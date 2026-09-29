@@ -26,6 +26,8 @@ class IngestionSettings(BaseSettings):
     chunk_encoding: str = "cl100k_base"
 
     cosmos_uri: str = ""
+    # Primary key for local/emulator Cosmos auth; empty uses DefaultAzureCredential.
+    cosmos_key: str = ""
     cosmos_database: str = "cortexa-pipeline"
     provenance_container: str = "provenance_maps"
     documents_container: str = "documents"
@@ -33,6 +35,8 @@ class IngestionSettings(BaseSettings):
     batches_container: str = "batches"
 
     blob_account_url: str = ""
+    # Connection string for local/emulator Blob auth (e.g. Azurite); empty uses managed identity.
+    blob_connection_string: str = ""
     blob_raw_container: str = "raw-files"
     blob_viewable_container: str = "viewable-docs"
     raw_file_max_bytes: int = 100 * 1024 * 1024  # 100 MB
@@ -42,6 +46,8 @@ class IngestionSettings(BaseSettings):
     geometry_max_words_per_page: int = 3000
 
     servicebus_namespace_fqdn: str = ""
+    # Connection string for local/emulator Service Bus auth; empty uses DefaultAzureCredential.
+    servicebus_connection_string: str = ""
     ingestion_completed_topic: str = "ingestion-completed"
     ingestion_requested_topic: str = "ingestion-requested"
     ingestion_subscription: str = "ingestion"

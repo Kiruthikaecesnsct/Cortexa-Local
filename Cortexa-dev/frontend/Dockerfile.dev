@@ -1,0 +1,13 @@
+# Hot-reload dev image for the local preview stack (deploy/local). Runs the
+# Vite dev server directly - never nginx. Build context is this directory
+# (frontend/), consistent with every other service's Dockerfile in this repo.
+FROM node:24-slim
+RUN corepack enable
+WORKDIR /app
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+RUN pnpm install --frozen-lockfile
+EXPOSE 5173
+# CHOKIDAR_USEPOLLING: Docker Desktop bind mounts on Windows/macOS deliver no
+# inotify events, so Vite's watcher would otherwise never see an edit.
+ENV CHOKIDAR_USEPOLLING=true CHOKIDAR_INTERVAL=1000
+CMD ["pnpm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]

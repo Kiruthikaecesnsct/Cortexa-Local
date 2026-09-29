@@ -42,6 +42,8 @@ locals {
     # Converged AI resource secrets — both model-router keys carry the same API key value
     "model-router-foundry-api-key"   = var.ai_resource_api_key
     "model-router-anthropic-api-key" = var.ai_resource_api_key
+    # Gemini — model-router's default provider (Router:Mode=single-gemini)
+    "gemini-api-key" = var.gemini_api_key
     # Query key only — least-privilege for service consumers; admin key is not distributed
     "ai-search-query-key" = module.ai_search.query_key
     # Connection string preferred over instrumentation key (ikey is deprecated by Microsoft)

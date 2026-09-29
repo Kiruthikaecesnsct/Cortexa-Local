@@ -1,0 +1,9 @@
+.git
+node_modules
+dist
+coverage
+.env
+.env.*
+Dockerfile
+Dockerfile.dev
+*.md

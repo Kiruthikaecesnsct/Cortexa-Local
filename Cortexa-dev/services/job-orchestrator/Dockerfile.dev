@@ -1,0 +1,32 @@
+# Hot-reload dev image for the local preview stack (deploy/local). Never used
+# in production - see Dockerfile for the published image. Build context is
+# this service directory (services/job-orchestrator), matching Dockerfile.
+FROM mcr.microsoft.com/dotnet/sdk:8.0
+
+# ca-certificates: required here for real - job-orchestrator is the one .NET
+# service that talks to the Cosmos DB emulator directly. deploy/local/preview.sh
+# / .ps1 fetches the emulator's self-signed cert after it reports healthy and
+# bind-mounts it read-only at /certs; deploy/local/scripts/dev-entrypoint.sh
+# (also bind-mounted, see docker-compose.preview.yml) imports it into this
+# image's trust store before `dotnet watch` starts. Without this, CosmosClient
+# fails TLS verification on every request - the emulator only serves HTTPS with
+# a self-signed cert (see
+# https://learn.microsoft.com/azure/cosmos-db/how-to-develop-emulator#import-the-emulators-tlsssl-certificate).
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY ["src/Api/Cortexa.JobOrchestrator.Api.csproj", "src/Api/"]
+COPY ["src/Application/Cortexa.JobOrchestrator.Application.csproj", "src/Application/"]
+COPY ["src/Domain/Cortexa.JobOrchestrator.Domain.csproj", "src/Domain/"]
+COPY ["src/Infrastructure/Cortexa.JobOrchestrator.Infrastructure.csproj", "src/Infrastructure/"]
+RUN dotnet restore "src/Api/Cortexa.JobOrchestrator.Api.csproj"
+
+# DOTNET_USE_POLLING_FILE_WATCHER: Docker Desktop bind mounts on Windows/macOS
+# deliver no inotify events, so dotnet watch would otherwise never see an edit.
+ENV DOTNET_USE_POLLING_FILE_WATCHER=1 \
+    ASPNETCORE_URLS=http://+:8080 \
+    ASPNETCORE_ENVIRONMENT=Development \
+    DOTNET_ENVIRONMENT=Development
+EXPOSE 8080
+CMD ["dotnet", "watch", "run", "--project", "src/Api/Cortexa.JobOrchestrator.Api.csproj", "--no-launch-profile"]

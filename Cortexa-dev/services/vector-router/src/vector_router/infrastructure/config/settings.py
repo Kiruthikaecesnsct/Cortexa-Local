@@ -17,6 +17,7 @@ class VectorRouterSettings(BaseSettings):
     ai_search_asset_index_name: str = "cortexa-asset"
 
     qdrant_url: str = ""
+    qdrant_api_key: str = ""
     qdrant_collection_name: str = "cortexa-corpus"
     qdrant_asset_collection_name: str = "cortexa-asset"
 

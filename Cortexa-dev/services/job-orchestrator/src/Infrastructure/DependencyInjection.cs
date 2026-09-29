@@ -48,10 +48,12 @@ public static class DependencyInjection
                 PropertyNameCaseInsensitive = true
             };
 
-            return new CosmosClient(
-                settings.Uri,
-                new DefaultAzureCredential(),
-                new CosmosClientOptions { Serializer = new SystemTextJsonCosmosSerializer(jsonOptions) });
+            var cosmosOptions = new CosmosClientOptions { Serializer = new SystemTextJsonCosmosSerializer(jsonOptions) };
+
+            // A configured key (local/emulator auth) takes precedence over managed identity.
+            return string.IsNullOrWhiteSpace(settings.Key)
+                ? new CosmosClient(settings.Uri, new DefaultAzureCredential(), cosmosOptions)
+                : new CosmosClient(settings.Uri, settings.Key, cosmosOptions);
         });
 
         services.AddSingleton(sp =>
@@ -59,12 +61,20 @@ public static class DependencyInjection
             var settings = configuration.GetSection("ServiceBus").Get<ServiceBusSettings>()
                 ?? throw new InvalidOperationException("ServiceBus configuration is required.");
 
-            return new ServiceBusClient(settings.NamespaceFqdn, new DefaultAzureCredential());
+            // A configured connection string (local/emulator auth) takes precedence over managed identity.
+            return string.IsNullOrWhiteSpace(settings.ConnectionString)
+                ? new ServiceBusClient(settings.NamespaceFqdn, new DefaultAzureCredential())
+                : new ServiceBusClient(settings.ConnectionString);
         });
 
         services.AddSingleton(sp =>
         {
             var settings = sp.GetRequiredService<IOptions<BlobSettings>>().Value;
+
+            // A configured connection string (local/emulator auth, e.g. Azurite) takes precedence over managed identity.
+            if (!string.IsNullOrWhiteSpace(settings.ConnectionString))
+                return new BlobServiceClient(settings.ConnectionString);
+
             if (string.IsNullOrWhiteSpace(settings.AccountUrl))
                 return new BlobServiceClient(new Uri("https://placeholder.blob.core.windows.net"), new DefaultAzureCredential());
 

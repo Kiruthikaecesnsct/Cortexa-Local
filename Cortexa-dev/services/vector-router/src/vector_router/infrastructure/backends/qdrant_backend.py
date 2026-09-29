@@ -23,8 +23,9 @@ class QdrantBackend:
         asset_collection_name: str,
         dimensions: int,
         embedder: Embedder,
+        api_key: str = "",
     ) -> None:
-        self._client = AsyncQdrantClient(url=url)
+        self._client = AsyncQdrantClient(url=url, api_key=api_key or None)
         self._collection_name = collection_name
         self._asset_collection_name = asset_collection_name
         self._dimensions = dimensions

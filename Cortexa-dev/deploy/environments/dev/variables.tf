@@ -131,6 +131,12 @@ variable "ai_resource_api_key" {
   description = "API key for the consolidated AI resource (cortexa-dev-ai-resource). Supplied via TF_VAR_ai_resource_api_key environment variable from GitHub secret AI_RESOURCE_API_KEY. NEVER hardcode. Both model-router-foundry-api-key and model-router-anthropic-api-key Key Vault secrets receive this value."
 }
 
+variable "gemini_api_key" {
+  type        = string
+  sensitive   = true
+  description = "Google Gemini API key for model-router's default LLM provider (Router:Mode=single-gemini). Supplied via TF_VAR_gemini_api_key environment variable from GitHub secret GEMINI_API_KEY. NEVER hardcode. Written to the gemini-api-key Key Vault secret, matching GeminiSettings.ApiKeySecretName."
+}
+
 variable "deployer_object_id" {
   type        = string
   description = "Service principal object ID of the principal running terraform apply. Gets Key Vault Secrets Officer so it can write connection strings. Get with: az ad sp show --id <AZURE_CLIENT_ID> --query id -o tsv"

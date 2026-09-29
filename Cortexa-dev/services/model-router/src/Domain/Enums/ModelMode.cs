@@ -1,3 +1,3 @@
 namespace Cortexa.ModelRouter.Domain.Enums;
 
-public enum ModelMode { SinglePrimary, SingleSecondary, DualAdversarial }
+public enum ModelMode { SinglePrimary, SingleSecondary, SingleGemini, DualAdversarial }

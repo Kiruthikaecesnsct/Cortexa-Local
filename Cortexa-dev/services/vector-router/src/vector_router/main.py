@@ -78,6 +78,7 @@ def _build_backend(
             asset_collection_name=settings.qdrant_asset_collection_name,
             dimensions=settings.embedding_dimensions,
             embedder=embedder,
+            api_key=settings.qdrant_api_key,
         )
     raise ValueError(
         f"Unknown VECTOR_BACKEND: '{settings.vector_backend}'. Must be 'ai_search' or 'qdrant'."

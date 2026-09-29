@@ -1,0 +1,22 @@
+# Hot-reload dev image for the local preview stack (deploy/local). Never used
+# in production - see Dockerfile for the published image. Build context is
+# this service directory (services/ingestion), matching Dockerfile.
+FROM python:3.14-slim
+
+# git, openssh-client, libreoffice-writer: matches Dockerfile (DOCX-to-PDF
+# conversion, US122). ca-certificates: lets
+# deploy/local/scripts/dev-entrypoint.sh (bind-mounted by the preview override)
+# import the local Cosmos DB emulator's self-signed cert - ingestion talks to
+# Cosmos directly. See
+# https://learn.microsoft.com/azure/cosmos-db/how-to-develop-emulator#import-the-emulators-tlsssl-certificate
+RUN apt-get update && apt-get install -y --no-install-recommends git openssh-client libreoffice-writer ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+WORKDIR /app
+COPY pyproject.toml uv.lock ./
+RUN pip install --no-cache-dir uv && uv sync --frozen --no-install-project
+COPY . .
+EXPOSE 8000
+CMD ["uv", "run", "uvicorn", "ingestion.main:app", "--host", "0.0.0.0", "--port", "8000", \
+     "--reload", "--reload-delay", "1"]

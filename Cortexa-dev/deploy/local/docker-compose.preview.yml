@@ -1,0 +1,272 @@
+# Preview override - always layered on top of ../docker-compose.yml, never
+# used alone. Switches every app service to its Dockerfile.dev (hot reload),
+# bind-mounts source, publishes host ports per the README's port map, and
+# points every cross-service URL at the dev port (.NET dev containers listen
+# on 8080, not the production image's 5000; Python dev containers keep 8000,
+# same as production, so those URLs are unchanged from the base file and are
+# not repeated here).
+#
+# `environment:` blocks merge key-by-key with the base file - only the keys
+# that actually change for preview are listed below. `ports:` and other list
+# keys use !override (Compose >= 2.24) to replace rather than append, since
+# the base file intentionally defines no ports for app services at all.
+#
+# Requires !override / !reset support - Compose >= 2.24.
+
+services:
+  # ───────────────────────────── app services ─────────────────────────────
+  api-gateway:
+    build:
+      dockerfile: Dockerfile.dev
+    environment:
+      APP_ENV: preview
+      UserStatus__IdentityInternalBaseUrl: http://identity:8080
+      ReverseProxy__Clusters__identity__Destinations__d1__Address: http://identity:8080
+      ReverseProxy__Clusters__job-orchestrator__Destinations__d1__Address: http://job-orchestrator:8080
+      ReverseProxy__Clusters__model-router__Destinations__d1__Address: http://model-router:8080
+    env_file:
+      - path: ./local/.env.preview
+        required: false
+    volumes:
+      - ../services/api-gateway:/app
+      - /app/src/Api/obj
+      - /app/src/Api/bin
+    ports: !override
+      - "5080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080' 2>/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+
+  identity:
+    build:
+      dockerfile: Dockerfile.dev
+    environment:
+      APP_ENV: preview
+    env_file:
+      - path: ./local/.env.preview
+        required: false
+    volumes:
+      - ../services/identity:/app
+      - /app/src/Api/obj
+      - /app/src/Api/bin
+      - /app/src/Application/obj
+      - /app/src/Application/bin
+      - /app/src/Domain/obj
+      - /app/src/Domain/bin
+      - /app/src/Infrastructure/obj
+      - /app/src/Infrastructure/bin
+    ports: !override
+      - "5081:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080' 2>/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+
+  job-orchestrator:
+    build:
+      dockerfile: Dockerfile.dev
+    # entrypoint override: imports the local Cosmos emulator's self-signed TLS
+    # cert (fetched by preview.sh / preview.ps1 into ../certs, mounted below)
+    # before dotnet watch starts. See deploy/local/scripts/dev-entrypoint.sh.
+    entrypoint: ["/usr/local/bin/dev-entrypoint.sh"]
+    environment:
+      APP_ENV: preview
+      ModelRouter__BaseUrl: http://model-router:8080
+    env_file:
+      - path: ./local/.env.preview
+        required: false
+    volumes:
+      - ../services/job-orchestrator:/app
+      - /app/src/Api/obj
+      - /app/src/Api/bin
+      - /app/src/Application/obj
+      - /app/src/Application/bin
+      - /app/src/Domain/obj
+      - /app/src/Domain/bin
+      - /app/src/Infrastructure/obj
+      - /app/src/Infrastructure/bin
+      - ./local/scripts/dev-entrypoint.sh:/usr/local/bin/dev-entrypoint.sh:ro
+      - ./local/certs:/certs:ro
+    ports: !override
+      - "5082:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080' 2>/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+
+  model-router:
+    build:
+      dockerfile: Dockerfile.dev
+    environment:
+      APP_ENV: preview
+    env_file:
+      - path: ./local/.env.preview
+        required: false
+    volumes:
+      - ../services/model-router:/app
+      - /app/src/Api/obj
+      - /app/src/Api/bin
+      - /app/src/Application/obj
+      - /app/src/Application/bin
+      - /app/src/Domain/obj
+      - /app/src/Domain/bin
+      - /app/src/Infrastructure/obj
+      - /app/src/Infrastructure/bin
+    ports: !override
+      - "5083:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080' 2>/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 60s
+
+  evidence:
+    build:
+      dockerfile: Dockerfile.dev
+    entrypoint: ["/usr/local/bin/dev-entrypoint.sh"]
+    environment:
+      APP_ENV: preview
+      MODEL_ROUTER_URL: http://model-router:8080
+    env_file:
+      - path: ./local/.env.preview
+        required: false
+    volumes:
+      - ../services/evidence:/app
+      - /app/.venv
+      - ./local/scripts/dev-entrypoint.sh:/usr/local/bin/dev-entrypoint.sh:ro
+      - ./local/certs:/certs:ro
+    ports: !override
+      - "5084:8000"
+
+  extraction:
+    build:
+      dockerfile: Dockerfile.dev
+    entrypoint: ["/usr/local/bin/dev-entrypoint.sh"]
+    environment:
+      APP_ENV: preview
+      MODEL_ROUTER_URL: http://model-router:8080
+    env_file:
+      - path: ./local/.env.preview
+        required: false
+    volumes:
+      - ../services/extraction:/app
+      - /app/.venv
+      - ./local/scripts/dev-entrypoint.sh:/usr/local/bin/dev-entrypoint.sh:ro
+      - ./local/certs:/certs:ro
+    ports: !override
+      - "5085:8000"
+
+  harvesting:
+    build:
+      dockerfile: Dockerfile.dev
+    entrypoint: ["/usr/local/bin/dev-entrypoint.sh"]
+    environment:
+      APP_ENV: preview
+    env_file:
+      - path: ./local/.env.preview
+        required: false
+    volumes:
+      - ../services/harvesting:/app
+      - /app/.venv
+      - ./local/scripts/dev-entrypoint.sh:/usr/local/bin/dev-entrypoint.sh:ro
+      - ./local/certs:/certs:ro
+    ports: !override
+      - "5086:8000"
+
+  ingestion:
+    build:
+      dockerfile: Dockerfile.dev
+    entrypoint: ["/usr/local/bin/dev-entrypoint.sh"]
+    environment:
+      APP_ENV: preview
+    env_file:
+      - path: ./local/.env.preview
+        required: false
+    volumes:
+      - ../services/ingestion:/app
+      - /app/.venv
+      - ./local/scripts/dev-entrypoint.sh:/usr/local/bin/dev-entrypoint.sh:ro
+      - ./local/certs:/certs:ro
+    ports: !override
+      - "5087:8000"
+
+  scoring:
+    build:
+      dockerfile: Dockerfile.dev
+    entrypoint: ["/usr/local/bin/dev-entrypoint.sh"]
+    environment:
+      APP_ENV: preview
+      MODEL_ROUTER_URL: http://model-router:8080
+    env_file:
+      - path: ./local/.env.preview
+        required: false
+    volumes:
+      - ../services/scoring:/app
+      - /app/.venv
+      - ./local/scripts/dev-entrypoint.sh:/usr/local/bin/dev-entrypoint.sh:ro
+      - ./local/certs:/certs:ro
+    ports: !override
+      - "5088:8000"
+
+  seeding:
+    build:
+      dockerfile: Dockerfile.dev
+    entrypoint: ["/usr/local/bin/dev-entrypoint.sh"]
+    environment:
+      APP_ENV: preview
+      MODEL_ROUTER_URL: http://model-router:8080
+    env_file:
+      - path: ./local/.env.preview
+        required: false
+    volumes:
+      - ../services/seeding:/app
+      - /app/.venv
+      - ./local/scripts/dev-entrypoint.sh:/usr/local/bin/dev-entrypoint.sh:ro
+      - ./local/certs:/certs:ro
+    ports: !override
+      - "5089:8000"
+
+  vector-router:
+    build:
+      dockerfile: Dockerfile.dev
+    environment:
+      APP_ENV: preview
+    env_file:
+      - path: ./local/.env.preview
+        required: false
+    volumes:
+      - ../services/vector-router:/app
+      - /app/.venv
+    ports: !override
+      - "5090:8000"
+
+  frontend:
+    build:
+      dockerfile: Dockerfile.dev
+    environment:
+      APP_ENV: preview
+      # Vite dev server runs server-side inside this container, so it reaches
+      # api-gateway by container DNS name - same pattern as the production
+      # nginx proxy, just pointed at the dev port. See vite.config.ts.
+      VITE_DEV_PROXY_TARGET: http://api-gateway:8080
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "1000"
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+    ports: !override
+      - "5070:5173"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:5173').then(()=>process.exit(0),()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s

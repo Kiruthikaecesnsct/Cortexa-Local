@@ -32,10 +32,11 @@ public sealed class ProviderRouterRouteDualAsyncTests
     {
         var foundry = Substitute.For<IModelProvider>();
         var anthropic = Substitute.For<IModelProvider>();
+        var gemini = Substitute.For<IModelProvider>();
         var catalog = Substitute.For<IModelCatalog>();
         var settings = new RouterSettings { Mode = "dual" };
         var router = new ProviderRouter(
-            foundry, anthropic, catalog, new GroundingValidator(), settings, NullLogger<ProviderRouter>.Instance);
+            foundry, anthropic, gemini, catalog, new GroundingValidator(), settings, NullLogger<ProviderRouter>.Instance);
         return (foundry, anthropic, catalog, router);
     }
 

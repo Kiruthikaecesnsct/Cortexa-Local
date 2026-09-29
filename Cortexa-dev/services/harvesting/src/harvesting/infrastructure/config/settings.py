@@ -7,6 +7,8 @@ class HarvestingSettings(BaseSettings):
     sentry_environment: str = "dev"
     sentry_traces_sample_rate: float = 0.1
     cosmos_uri: str
+    # Primary key for local/emulator Cosmos auth; empty uses DefaultAzureCredential.
+    cosmos_key: str = ""
     cosmos_database: str = "cortexa-pipeline"
     cosmos_container_harvesting: str = "harvesting"
     maturity_novelty_threshold: int = 70
@@ -19,6 +21,8 @@ class HarvestingSettings(BaseSettings):
     cosmos_container_reports: str = "reports"
     cosmos_container_verdicts: str = "verdicts"
     servicebus_namespace_fqdn: str
+    # Connection string for local/emulator Service Bus auth; empty uses DefaultAzureCredential.
+    servicebus_connection_string: str = ""
     servicebus_topic_engine_completed: str = "engine-completed"
     harvesting_requested_topic: str = "harvesting-requested"
     harvesting_failed_topic: str = "harvesting-failed"

@@ -1,0 +1,89 @@
+# Preview placement matrix. Restricted YAML - 2-space indent, one level of
+# nesting, no anchors/aliases/lists. Parsed by regex in both preview.sh and
+# preview.ps1 - keep every new entry inside this grammar.
+#
+# placement: local -> runs inside the preview stack (a container, toggled by
+#            the local_unit Compose profile)
+# placement: cloud -> not started locally; its env var must be non-empty in
+#            .env.preview or start/update abort naming the service, the key,
+#            and this file
+#
+# Several entries below share one physical dependency container (same
+# local_unit) but export a different credential - e.g. cosmos/cosmos_key both
+# toggle the "cosmos" profile, one exporting the endpoint URI and the other
+# the emulator's well-known key. Each service's own compose environment block
+# translates these shell-level vars into its own casing (COSMOS_URI for the
+# Python services, Cosmos__Uri for job-orchestrator).
+project_name: cortexa
+preview_mode: compose
+port_base: 5070
+
+services:
+  postgres:
+    kind: database
+    placement: local
+    env: POSTGRES_CONNECTION_STRING
+    local_url: 'Host=postgres;Port=5432;Database=cortexa;Username=cortexa;Password=cortexa-preview-local'
+    local_image: postgres:18
+    local_unit: postgres
+  cosmos:
+    kind: database
+    placement: local
+    env: COSMOS_URI
+    local_url: 'https://cosmos:8081'
+    local_image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-latest
+    local_unit: cosmos
+  cosmos_key:
+    kind: secrets
+    placement: local
+    env: COSMOS_KEY
+    local_url: 'C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw=='
+    local_image: ''
+    local_unit: cosmos
+  blob:
+    kind: object-storage
+    placement: local
+    env: BLOB_CONNECTION_STRING
+    local_url: 'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;'
+    local_image: mcr.microsoft.com/azure-storage/azurite:3.37.0
+    local_unit: blob
+  servicebus:
+    kind: queue
+    placement: local
+    env: SERVICEBUS_CONNECTION_STRING
+    local_url: 'Endpoint=sb://servicebus;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;'
+    local_image: mcr.microsoft.com/azure-messaging/servicebus-emulator:latest
+    local_unit: servicebus
+  gemini:
+    kind: ai-provider
+    placement: cloud
+    env: GEMINI_API_KEY
+    local_url: ''
+    local_image: ''
+    local_unit: ''
+    cloud_note: 'Gemini API - model-router primary LLM provider (Router:Mode=single-gemini). No local equivalent for an LLM exists.'
+  qdrant:
+    kind: search
+    placement: cloud
+    env: QDRANT_URL
+    local_url: ''
+    local_image: ''
+    local_unit: ''
+    cloud_note: 'Qdrant Cloud - vector-router with VECTOR_BACKEND=qdrant. Chosen deliberately over a local Qdrant container per the placement decision for this stack.'
+  qdrant_key:
+    kind: secrets
+    placement: cloud
+    env: QDRANT_API_KEY
+    local_url: ''
+    local_image: ''
+    local_unit: ''
+    cloud_note: 'Qdrant Cloud API key, paired with the qdrant entry above.'
+  sentry:
+    kind: other
+    placement: cloud
+    env: SENTRY_DSN
+    local_url: ''
+    local_image: ''
+    local_unit: ''
+    required: false
+    cloud_note: 'Sentry error tracking - optional. Every service treats an empty SENTRY_DSN as disabled, so this never fails closed.'

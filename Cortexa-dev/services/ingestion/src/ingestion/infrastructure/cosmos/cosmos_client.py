@@ -9,4 +9,6 @@ def get_cosmos_client(
 ) -> CosmosClient:
     if not settings.cosmos_uri:
         raise ValueError("cosmos_uri is not configured. Set the COSMOS_URI environment variable.")
-    return CosmosClient(url=settings.cosmos_uri, credential=credential)
+    # A configured key (local/emulator auth) takes precedence over managed identity.
+    effective_credential: DefaultAzureCredential | str = settings.cosmos_key or credential
+    return CosmosClient(url=settings.cosmos_uri, credential=effective_credential)

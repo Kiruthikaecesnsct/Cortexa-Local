@@ -5,6 +5,8 @@ namespace Cortexa.JobOrchestrator.Infrastructure.Configuration;
 public sealed class ServiceBusSettings
 {
     public string NamespaceFqdn { get; set; } = string.Empty;
+    // Connection string for local/emulator Service Bus auth; empty uses DefaultAzureCredential.
+    public string ConnectionString { get; set; } = string.Empty;
     public string SubscriptionName { get; set; } = string.Empty;
 
     public int MaxDeliveryCount { get; set; } = 5;

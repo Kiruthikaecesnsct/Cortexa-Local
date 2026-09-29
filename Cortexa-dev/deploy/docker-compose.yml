@@ -1,0 +1,424 @@
+# Base stack for the Cortexa local preview: every app service (production
+# image) plus every local-capable dependency, gated behind Compose profiles.
+# Never used alone for preview - deploy/local/preview.sh / preview.ps1 always
+# layer deploy/local/docker-compose.preview.yml on top, which switches app
+# services to their Dockerfile.dev hot-reload image and publishes host ports.
+# This file stays runnable standalone (e.g. `docker compose -f
+# deploy/docker-compose.yml --profile postgres --profile cosmos ... up`) with
+# in-stack defaults, per the ${VAR:-default} pattern used throughout.
+#
+# A dependency's Compose profile name matches its `local_unit` in
+# deploy/local/services.yaml - that file is what turns a `local` placement
+# into the --profile flag the preview scripts pass to `docker compose`.
+#
+# Cloud-placed dependencies (Gemini, Qdrant Cloud, Sentry) have no service
+# here at all - there is nothing to run locally for them.
+
+name: cortexa
+
+networks:
+  cortexa-network:
+    name: cortexa-network
+
+volumes:
+  postgres-data:
+  cosmos-data:
+  azurite-data:
+
+services:
+  # ───────────────────────────── dependencies ─────────────────────────────
+  postgres:
+    image: postgres:18
+    profiles: ["postgres"]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cortexa}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cortexa-preview-local}
+      POSTGRES_DB: ${POSTGRES_DB:-cortexa}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cortexa} -d ${POSTGRES_DB:-cortexa}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    networks: ["cortexa-network"]
+
+  # Cosmos DB Linux emulator (vNext). NoSQL API, gateway mode only. HTTPS is
+  # mandatory here - the .NET SDK refuses HTTP against this emulator, and the
+  # container regenerates a self-signed cert on every start. See
+  # deploy/local/scripts/dev-entrypoint.sh for how each consuming service
+  # trusts that cert, and deploy/local/preview.sh / .ps1 for how it is fetched.
+  cosmos:
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-latest
+    profiles: ["cosmos"]
+    environment:
+      PROTOCOL: https
+      ENABLE_EXPLORER: "true"
+    volumes:
+      - cosmos-data:/data
+    ports:
+      # Data Explorer UI only - the NoSQL gateway (8081) and health probe
+      # (8080) stay unpublished; every consuming service reaches them by
+      # container name on cortexa-network.
+      - "5100:1234"
+    healthcheck:
+      # Best-effort: relies on curl being present in the emulator image. If it
+      # is not, `docker compose logs cosmos` is the fallback per the README's
+      # troubleshooting section - wait_healthy will report the exact command.
+      test: ["CMD-SHELL", "curl -sk -f http://localhost:8080/ready || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 30s
+    networks: ["cortexa-network"]
+
+  # Azurite - Azure Blob Storage emulator. Plain Shared Key auth via the
+  # well-known devstoreaccount1 connection string (deploy/local/services.yaml)
+  # - no HTTPS/OAuth setup needed, unlike Cosmos.
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:3.37.0
+    profiles: ["blob"]
+    command: ["azurite-blob", "--blobHost", "0.0.0.0", "--blobPort", "10000", "--location", "/data", "--skipApiVersionCheck"]
+    volumes:
+      - azurite-data:/data
+    healthcheck:
+      # Azurite ships Node, not curl/wget - use it for a plain TCP check.
+      test: ["CMD", "node", "-e", "require('net').connect(10000,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+    networks: ["cortexa-network"]
+
+  # SQL Server Linux - required state backend for the Service Bus emulator
+  # (documented dependency, not optional). Local-only, unpublished, and its
+  # password is not sensitive: the container has no host port and holds
+  # nothing but the emulator's own transient topic/subscription state.
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    profiles: ["servicebus"]
+    environment:
+      ACCEPT_EULA: ${ACCEPT_EULA:-N}
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-CortexaPreview!Local2026}
+    networks: ["cortexa-network"]
+
+  # Service Bus emulator. Entities are defined declaratively in
+  # deploy/local/servicebus/config.json, mirrored from
+  # deploy/modules/service-bus/main.tf (the real Azure topology) - see that
+  # file's header comment before editing either.
+  #
+  # ACCEPT_EULA must be "Y", set by Alpha in .env.preview - accepting the
+  # Service Bus emulator and SQL Server Linux EULAs is an explicit consent
+  # step, never defaulted to "Y" in a committed file. preview.sh / .ps1 refuse
+  # to start the servicebus profile until it is set.
+  servicebus:
+    image: mcr.microsoft.com/azure-messaging/servicebus-emulator:latest
+    profiles: ["servicebus"]
+    volumes:
+      - ./local/servicebus/config.json:/ServiceBus_Emulator/ConfigFiles/Config.json:ro
+    environment:
+      SQL_SERVER: mssql
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-CortexaPreview!Local2026}
+      ACCEPT_EULA: ${ACCEPT_EULA:-N}
+      EMULATOR_HTTP_PORT: "5300"
+    depends_on:
+      # service_started, not service_healthy: mssql ships no curl/wget/nc for
+      # a reliable in-container probe, and the emulator's own SQL_WAIT_INTERVAL
+      # (default 15s) already waits for SQL to accept connections.
+      mssql:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:5300/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    networks: ["cortexa-network"]
+
+  # ───────────────────────────── app services ─────────────────────────────
+  api-gateway:
+    build:
+      context: ../services/api-gateway
+      dockerfile: Dockerfile
+    environment:
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      KeyVault__Uri: ""
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:-dev-symmetric-key-min-256-bits-long-shared-with-identity-service-for-local-development-only}
+      UserStatus__IdentityInternalBaseUrl: http://identity:5000
+      UserStatus__InternalKey: ${INTERNAL_SHARED_SECRET:-dev-internal-shared-secret-min-32-characters-long-local-only}
+      ReverseProxy__Clusters__identity__Destinations__d1__Address: http://identity:5000
+      ReverseProxy__Clusters__ingestion__Destinations__d1__Address: http://ingestion:8000
+      ReverseProxy__Clusters__extraction__Destinations__d1__Address: http://extraction:8000
+      ReverseProxy__Clusters__evidence__Destinations__d1__Address: http://evidence:8000
+      ReverseProxy__Clusters__scoring__Destinations__d1__Address: http://scoring:8000
+      ReverseProxy__Clusters__harvesting__Destinations__d1__Address: http://harvesting:8000
+      ReverseProxy__Clusters__seeding__Destinations__d1__Address: http://seeding:8000
+      ReverseProxy__Clusters__job-orchestrator__Destinations__d1__Address: http://job-orchestrator:5000
+      ReverseProxy__Clusters__model-router__Destinations__d1__Address: http://model-router:5000
+      ReverseProxy__Clusters__vector-router__Destinations__d1__Address: http://vector-router:8000
+    healthcheck:
+      # aspnet:8.0 ships neither curl nor wget; a bash /dev/tcp connect is the
+      # lowest-dependency way to confirm Kestrel is actually accepting
+      # connections on 5000 (bash is present in this Debian-based image).
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/5000' 2>/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks: ["cortexa-network"]
+
+  identity:
+    build:
+      context: ../services/identity
+      dockerfile: Dockerfile
+    environment:
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      KeyVault__Uri: ""
+      ConnectionStrings__Postgres: ${POSTGRES_CONNECTION_STRING:-Host=postgres;Port=5432;Database=cortexa;Username=cortexa;Password=cortexa-preview-local}
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:-dev-symmetric-key-min-256-bits-long-shared-with-identity-service-for-local-development-only}
+      Internal__SharedSecret: ${INTERNAL_SHARED_SECRET:-dev-internal-shared-secret-min-32-characters-long-local-only}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/5000' 2>/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks: ["cortexa-network"]
+
+  job-orchestrator:
+    build:
+      context: ../services/job-orchestrator
+      dockerfile: Dockerfile
+    environment:
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      KeyVault__Uri: ""
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:-dev-symmetric-key-min-256-bits-long-shared-with-identity-service-for-local-development-only}
+      Cosmos__Uri: ${COSMOS_URI}
+      Cosmos__Key: ${COSMOS_KEY}
+      Blob__ConnectionString: ${BLOB_CONNECTION_STRING}
+      ServiceBus__ConnectionString: ${SERVICEBUS_CONNECTION_STRING}
+      ServiceBus__UseSessions: "true"
+      ModelRouter__BaseUrl: http://model-router:5000
+      VectorRouter__Url: http://vector-router:8000
+    depends_on:
+      cosmos:
+        condition: service_healthy
+      azurite:
+        condition: service_healthy
+      servicebus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/5000' 2>/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks: ["cortexa-network"]
+
+  model-router:
+    build:
+      context: ../services/model-router
+      dockerfile: Dockerfile
+    environment:
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      KeyVault__Uri: ""
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      MODEL_ROUTER_FOUNDRY_API_KEY: ${MODEL_ROUTER_FOUNDRY_API_KEY:-}
+      MODEL_ROUTER_ANTHROPIC_API_KEY: ${MODEL_ROUTER_ANTHROPIC_API_KEY:-}
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/5000' 2>/dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks: ["cortexa-network"]
+
+  evidence:
+    build:
+      context: ../services/evidence
+      dockerfile: Dockerfile
+    environment:
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      KEYVAULT_URI: ""
+      LOCAL_DEV: "true"
+      COSMOS_URI: ${COSMOS_URI}
+      COSMOS_KEY: ${COSMOS_KEY}
+      SERVICEBUS_NAMESPACE_FQDN: servicebus.preview.local
+      SERVICEBUS_CONNECTION_STRING: ${SERVICEBUS_CONNECTION_STRING}
+      MODEL_ROUTER_URL: http://model-router:5000
+      VECTOR_ROUTER_URL: http://vector-router:8000
+    depends_on:
+      cosmos:
+        condition: service_healthy
+      servicebus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=3).status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 15s
+    networks: ["cortexa-network"]
+
+  extraction:
+    build:
+      context: ../services/extraction
+      dockerfile: Dockerfile
+    environment:
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      KEYVAULT_URI: ""
+      LOCAL_DEV: "true"
+      COSMOS_URI: ${COSMOS_URI}
+      COSMOS_KEY: ${COSMOS_KEY}
+      SERVICEBUS_NAMESPACE_FQDN: servicebus.preview.local
+      SERVICEBUS_CONNECTION_STRING: ${SERVICEBUS_CONNECTION_STRING}
+      MODEL_ROUTER_URL: http://model-router:5000
+    depends_on:
+      cosmos:
+        condition: service_healthy
+      servicebus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=3).status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 15s
+    networks: ["cortexa-network"]
+
+  harvesting:
+    build:
+      context: ../services/harvesting
+      dockerfile: Dockerfile
+    environment:
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      KEYVAULT_URI: ""
+      LOCAL_DEV: "true"
+      COSMOS_URI: ${COSMOS_URI}
+      COSMOS_KEY: ${COSMOS_KEY}
+      SERVICEBUS_NAMESPACE_FQDN: servicebus.preview.local
+      SERVICEBUS_CONNECTION_STRING: ${SERVICEBUS_CONNECTION_STRING}
+    depends_on:
+      cosmos:
+        condition: service_healthy
+      servicebus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=3).status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 15s
+    networks: ["cortexa-network"]
+
+  ingestion:
+    build:
+      context: ../services/ingestion
+      dockerfile: Dockerfile
+    environment:
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      KEYVAULT_URI: ""
+      LOCAL_DEV: "true"
+      COSMOS_URI: ${COSMOS_URI}
+      COSMOS_KEY: ${COSMOS_KEY}
+      BLOB_CONNECTION_STRING: ${BLOB_CONNECTION_STRING}
+      SERVICEBUS_NAMESPACE_FQDN: servicebus.preview.local
+      SERVICEBUS_CONNECTION_STRING: ${SERVICEBUS_CONNECTION_STRING}
+    depends_on:
+      cosmos:
+        condition: service_healthy
+      azurite:
+        condition: service_healthy
+      servicebus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=3).status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 15s
+    networks: ["cortexa-network"]
+
+  scoring:
+    build:
+      context: ../services/scoring
+      dockerfile: Dockerfile
+    environment:
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      KEYVAULT_URI: ""
+      LOCAL_DEV: "true"
+      COSMOS_URI: ${COSMOS_URI}
+      COSMOS_KEY: ${COSMOS_KEY}
+      SERVICEBUS_NAMESPACE_FQDN: servicebus.preview.local
+      SERVICEBUS_CONNECTION_STRING: ${SERVICEBUS_CONNECTION_STRING}
+      MODEL_ROUTER_URL: http://model-router:5000
+    depends_on:
+      cosmos:
+        condition: service_healthy
+      servicebus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=3).status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 15s
+    networks: ["cortexa-network"]
+
+  seeding:
+    build:
+      context: ../services/seeding
+      dockerfile: Dockerfile
+    environment:
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      KEYVAULT_URI: ""
+      LOCAL_DEV: "true"
+      COSMOS_URI: ${COSMOS_URI}
+      COSMOS_KEY: ${COSMOS_KEY}
+      SERVICEBUS_NAMESPACE_FQDN: servicebus.preview.local
+      SERVICEBUS_CONNECTION_STRING: ${SERVICEBUS_CONNECTION_STRING}
+      MODEL_ROUTER_URL: http://model-router:5000
+      VECTOR_ROUTER_URL: http://vector-router:8000
+      EVIDENCE_URL: http://evidence:8000
+    depends_on:
+      cosmos:
+        condition: service_healthy
+      servicebus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=3).status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 15s
+    networks: ["cortexa-network"]
+
+  vector-router:
+    build:
+      context: ../services/vector-router
+      dockerfile: Dockerfile
+    environment:
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      VECTOR_BACKEND: qdrant
+      QDRANT_URL: ${QDRANT_URL}
+      QDRANT_API_KEY: ${QDRANT_API_KEY}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=3).status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 15s
+    networks: ["cortexa-network"]
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    networks: ["cortexa-network"]

@@ -21,11 +21,15 @@ class ExtractionSettings(BaseSettings):
     keyvault_uri: str = ""
     local_dev: bool = False
     cosmos_uri: str = ""
+    # Primary key for local/emulator Cosmos auth; empty uses DefaultAzureCredential.
+    cosmos_key: str = ""
     cosmos_database: str = "cortexa-pipeline"
     candidates_container: str = "candidates"
     batches_container: str = "batches"
     batch_terminal_cache_ttl_seconds: float = 30.0
     servicebus_namespace_fqdn: str = ""
+    # Connection string for local/emulator Service Bus auth; empty uses DefaultAzureCredential.
+    servicebus_connection_string: str = ""
     extraction_completed_topic: str = "extraction-completed"
     extraction_failed_topic: str = "extraction-failed"
     extraction_requested_topic: str = "extraction-requested"

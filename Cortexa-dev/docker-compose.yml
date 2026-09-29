@@ -1,0 +1,7 @@
+# Lets `docker compose` work from the repo root without extra flags. The
+# local preview stack itself is always driven through deploy/local/preview.sh
+# or preview.ps1, which pass explicit -f flags and a dedicated project name -
+# this file is a convenience for ad hoc `docker compose config` / `build`
+# calls only, never used by the preview scripts.
+include:
+  - deploy/docker-compose.yml

@@ -176,3 +176,11 @@ credentials/
 *.iam.gserviceaccount.com.json
 # Evidence corpus data — runtime/operator-generated, not source.
 services/evidence/data/
+
+# ─────────────────────────────────────────────────────────────
+# Local preview stack (deploy/local) — see deploy/local/README.md
+# ─────────────────────────────────────────────────────────────
+deploy/local/.env.preview
+!deploy/local/.env.preview.example
+deploy/local/certs/
+deploy/local/keys/

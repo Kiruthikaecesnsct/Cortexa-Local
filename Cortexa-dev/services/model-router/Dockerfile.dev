@@ -1,0 +1,25 @@
+# Hot-reload dev image for the local preview stack (deploy/local). Never used
+# in production - see Dockerfile for the published image. Build context is
+# this service directory (services/model-router), matching Dockerfile.
+FROM mcr.microsoft.com/dotnet/sdk:8.0
+
+# ca-certificates: kept for entrypoint-contract uniformity across dev images
+# (see api-gateway/Dockerfile.dev) - model-router has no Cosmos dependency.
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY ["src/Api/Cortexa.ModelRouter.Api.csproj", "src/Api/"]
+COPY ["src/Application/Cortexa.ModelRouter.Application.csproj", "src/Application/"]
+COPY ["src/Domain/Cortexa.ModelRouter.Domain.csproj", "src/Domain/"]
+COPY ["src/Infrastructure/Cortexa.ModelRouter.Infrastructure.csproj", "src/Infrastructure/"]
+RUN dotnet restore "src/Api/Cortexa.ModelRouter.Api.csproj"
+
+# DOTNET_USE_POLLING_FILE_WATCHER: Docker Desktop bind mounts on Windows/macOS
+# deliver no inotify events, so dotnet watch would otherwise never see an edit.
+ENV DOTNET_USE_POLLING_FILE_WATCHER=1 \
+    ASPNETCORE_URLS=http://+:8080 \
+    ASPNETCORE_ENVIRONMENT=Development \
+    DOTNET_ENVIRONMENT=Development
+EXPOSE 8080
+CMD ["dotnet", "watch", "run", "--project", "src/Api/Cortexa.ModelRouter.Api.csproj", "--no-launch-profile"]

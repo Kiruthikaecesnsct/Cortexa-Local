@@ -28,13 +28,20 @@ public sealed class ProviderRouterRouteAsyncTests
 
     private static (IModelProvider foundry, IModelProvider anthropic, ProviderRouter router) BuildRouter(string mode)
     {
+        var (foundry, anthropic, _, router) = BuildRouterWithGemini(mode);
+        return (foundry, anthropic, router);
+    }
+
+    private static (IModelProvider foundry, IModelProvider anthropic, IModelProvider gemini, ProviderRouter router) BuildRouterWithGemini(string mode)
+    {
         var foundry = Substitute.For<IModelProvider>();
         var anthropic = Substitute.For<IModelProvider>();
+        var gemini = Substitute.For<IModelProvider>();
         var catalog = Substitute.For<IModelCatalog>();
         var settings = new RouterSettings { Mode = mode };
         var router = new ProviderRouter(
-            foundry, anthropic, catalog, new GroundingValidator(), settings, NullLogger<ProviderRouter>.Instance);
-        return (foundry, anthropic, router);
+            foundry, anthropic, gemini, catalog, new GroundingValidator(), settings, NullLogger<ProviderRouter>.Instance);
+        return (foundry, anthropic, gemini, router);
     }
 
     [Fact]
@@ -69,6 +76,51 @@ public sealed class ProviderRouterRouteAsyncTests
         response.Provider.Should().Be(AnthropicProviderName);
         response.Grounding.Should().NotBeNull();
         response.Grounding!.IsGrounded.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task RouteAsync_SingleGeminiMode_CallsGeminiProviderAndReturnsGroundedResponse()
+    {
+        const string GeminiProviderName = "Gemini";
+        var (foundry, anthropic, gemini, router) = BuildRouterWithGemini("single-gemini");
+        var expectedResult = BuildModelResult(GeminiProviderName);
+        gemini.CompleteAsync(Arg.Any<ModelRequest>(), Arg.Any<CancellationToken>())
+              .Returns(expectedResult);
+
+        var response = await router.RouteAsync(BuildRequest());
+
+        await gemini.Received(1).CompleteAsync(Arg.Any<ModelRequest>(), Arg.Any<CancellationToken>());
+        await foundry.DidNotReceive().CompleteAsync(Arg.Any<ModelRequest>(), Arg.Any<CancellationToken>());
+        await anthropic.DidNotReceive().CompleteAsync(Arg.Any<ModelRequest>(), Arg.Any<CancellationToken>());
+        response.Provider.Should().Be(GeminiProviderName);
+        response.Grounding.Should().NotBeNull();
+        response.Grounding!.IsGrounded.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task RouteAsync_ExplicitModelResolvesToGemini_CallsGeminiProviderWithResolvedDeployment()
+    {
+        const string GeminiProviderKey = "gemini";
+        const string GeminiProviderName = "Gemini";
+        const string RequestedModelId = "gemini-3.1-pro";
+        const string ResolvedDeployment = "gemini-3.1-pro";
+        var (foundry, anthropic, gemini, _) = BuildRouterWithGemini("single-foundry");
+        var catalog = Substitute.For<IModelCatalog>();
+        catalog.Resolve(RequestedModelId).Returns(new ModelResolution(GeminiProviderKey, ResolvedDeployment, true));
+        gemini.CompleteAsync(Arg.Any<ModelRequest>(), Arg.Any<CancellationToken>())
+              .Returns(BuildModelResult(GeminiProviderName));
+
+        var routerWithCatalog = new ProviderRouter(
+            foundry, anthropic, gemini, catalog, new GroundingValidator(),
+            new RouterSettings { Mode = "single-foundry" }, NullLogger<ProviderRouter>.Instance);
+
+        var response = await routerWithCatalog.RouteAsync(BuildRequest(RequestedModelId));
+
+        await gemini.Received(1).CompleteAsync(
+            Arg.Is<ModelRequest>(r => r.Model == ResolvedDeployment),
+            Arg.Any<CancellationToken>());
+        await foundry.DidNotReceive().CompleteAsync(Arg.Any<ModelRequest>(), Arg.Any<CancellationToken>());
+        response.Provider.Should().Be(GeminiProviderName);
     }
 
     [Fact]
@@ -213,9 +265,10 @@ public sealed class ProviderRouterRouteAsyncTests
         var realCatalog = new ModelCatalog(settings);
         var foundry = Substitute.For<IModelProvider>();
         var anthropic = Substitute.For<IModelProvider>();
+        var gemini = Substitute.For<IModelProvider>();
         var routerSettings = new RouterSettings { Mode = "single-foundry" };
         var router = new ProviderRouter(
-            foundry, anthropic, realCatalog, new GroundingValidator(), routerSettings, NullLogger<ProviderRouter>.Instance);
+            foundry, anthropic, gemini, realCatalog, new GroundingValidator(), routerSettings, NullLogger<ProviderRouter>.Instance);
         foundry.CompleteAsync(Arg.Any<ModelRequest>(), Arg.Any<CancellationToken>())
                .Returns(BuildModelResult(FoundryProviderName));
 
@@ -232,10 +285,11 @@ public sealed class ProviderRouterRouteAsyncTests
     {
         var foundry = Substitute.For<IModelProvider>();
         var anthropic = Substitute.For<IModelProvider>();
+        var gemini = Substitute.For<IModelProvider>();
         var catalog = Substitute.For<IModelCatalog>();
         var settings = new RouterSettings { Mode = mode };
         var router = new ProviderRouter(
-            foundry, anthropic, catalog, new GroundingValidator(), settings, NullLogger<ProviderRouter>.Instance);
+            foundry, anthropic, gemini, catalog, new GroundingValidator(), settings, NullLogger<ProviderRouter>.Instance);
         return (foundry, anthropic, catalog, router);
     }
 }

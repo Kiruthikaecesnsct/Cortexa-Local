@@ -1,0 +1,30 @@
+# Hot-reload dev image for the local preview stack (deploy/local). Never used
+# in production - see Dockerfile for the published image. Build context is
+# this service directory (services/identity), matching Dockerfile.
+FROM mcr.microsoft.com/dotnet/sdk:8.0
+
+# ca-certificates: lets deploy/local/scripts/dev-entrypoint.sh (bind-mounted by
+# the preview override) import the local Cosmos DB emulator's self-signed cert.
+# identity itself only talks to Postgres, not Cosmos, but every dev image
+# shares the same entrypoint contract so the override stays uniform.
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY ["src/Api/Cortexa.Identity.Api.csproj", "src/Api/"]
+COPY ["src/Application/Cortexa.Identity.Application.csproj", "src/Application/"]
+COPY ["src/Domain/Cortexa.Identity.Domain.csproj", "src/Domain/"]
+COPY ["src/Infrastructure/Cortexa.Identity.Infrastructure.csproj", "src/Infrastructure/"]
+RUN dotnet restore "src/Api/Cortexa.Identity.Api.csproj"
+
+# DOTNET_USE_POLLING_FILE_WATCHER: Docker Desktop bind mounts on Windows/macOS
+# deliver no inotify events, so dotnet watch would otherwise never see an edit.
+# ASPNETCORE_ENVIRONMENT=Development loads appsettings.Development.json, which
+# already carries dev-safe Jwt:SigningKey and Internal:SharedSecret values -
+# only ConnectionStrings__Postgres needs to come from the preview environment.
+ENV DOTNET_USE_POLLING_FILE_WATCHER=1 \
+    ASPNETCORE_URLS=http://+:8080 \
+    ASPNETCORE_ENVIRONMENT=Development \
+    DOTNET_ENVIRONMENT=Development
+EXPOSE 8080
+CMD ["dotnet", "watch", "run", "--project", "src/Api/Cortexa.Identity.Api.csproj", "--no-launch-profile"]

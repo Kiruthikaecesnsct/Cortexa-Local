@@ -1,0 +1,41 @@
+{
+  "_comment": "Topic/subscription topology mirrored from deploy/modules/service-bus/main.tf (read, never modified - Terraform stays the source of truth for the real Azure topology). Topic names replace dots with hyphens, matching the azurerm_servicebus_topic resource's naming rule. Do not hand-edit without cross-checking that file first.",
+  "UserConfig": {
+    "Namespaces": [
+      {
+        "Name": "cortexa",
+        "Queues": [],
+        "Topics": [
+          { "Name": "ingestion-requested", "Subscriptions": [ { "Name": "ingestion", "Properties": { "RequiresSession": true, "MaxDeliveryCount": 10 } } ] },
+          { "Name": "ingestion-completed", "Subscriptions": [ { "Name": "orchestrator", "Properties": { "RequiresSession": true, "MaxDeliveryCount": 10 } } ] },
+          { "Name": "extraction-requested", "Subscriptions": [ { "Name": "extraction", "Properties": { "RequiresSession": true, "MaxDeliveryCount": 10 } } ] },
+          { "Name": "extraction-completed", "Subscriptions": [ { "Name": "orchestrator", "Properties": { "RequiresSession": true, "MaxDeliveryCount": 10 } } ] },
+          { "Name": "extraction-failed", "Subscriptions": [ { "Name": "orchestrator", "Properties": { "RequiresSession": true, "MaxDeliveryCount": 10 } } ] },
+          { "Name": "evidence-requested", "Subscriptions": [ { "Name": "evidence", "Properties": { "RequiresSession": true, "MaxDeliveryCount": 10 } } ] },
+          { "Name": "evidence-completed", "Subscriptions": [ { "Name": "orchestrator", "Properties": { "RequiresSession": true, "MaxDeliveryCount": 10 } } ] },
+          { "Name": "evidence-failed", "Subscriptions": [ { "Name": "orchestrator", "Properties": { "RequiresSession": true, "MaxDeliveryCount": 10 } } ] },
+          { "Name": "scoring-requested", "Subscriptions": [ { "Name": "scoring", "Properties": { "RequiresSession": true, "MaxDeliveryCount": 10 } } ] },
+          { "Name": "scoring-completed", "Subscriptions": [ { "Name": "orchestrator", "Properties": { "RequiresSession": true, "MaxDeliveryCount": 10 } } ] },
+          { "Name": "scoring-failed", "Subscriptions": [ { "Name": "orchestrator", "Properties": { "RequiresSession": true, "MaxDeliveryCount": 10 } } ] },
+          { "Name": "harvesting-requested", "Subscriptions": [ { "Name": "harvesting", "Properties": { "RequiresSession": true, "MaxDeliveryCount": 10 } } ] },
+          { "Name": "harvesting-failed", "Subscriptions": [ { "Name": "orchestrator", "Properties": { "RequiresSession": true, "MaxDeliveryCount": 10 } } ] },
+          { "Name": "seeding-requested", "Subscriptions": [ { "Name": "seeding", "Properties": { "RequiresSession": true, "MaxDeliveryCount": 10 } } ] },
+          { "Name": "seeding-failed", "Subscriptions": [ { "Name": "orchestrator", "Properties": { "RequiresSession": true, "MaxDeliveryCount": 10 } } ] },
+          { "Name": "asset-embedding-requested", "Subscriptions": [ { "Name": "seeding", "Properties": { "RequiresSession": true, "MaxDeliveryCount": 10 } } ] },
+          { "Name": "asset-embedding-completed", "Subscriptions": [ { "Name": "orchestrator", "Properties": { "RequiresSession": true, "MaxDeliveryCount": 10 } } ] },
+          { "Name": "digest-requested", "Subscriptions": [ { "Name": "seeding", "Properties": { "RequiresSession": true, "MaxDeliveryCount": 10 } } ] },
+          { "Name": "digest-completed", "Subscriptions": [ { "Name": "orchestrator", "Properties": { "RequiresSession": true, "MaxDeliveryCount": 10 } } ] },
+          { "Name": "landscape-requested", "Subscriptions": [ { "Name": "seeding", "Properties": { "RequiresSession": true, "MaxDeliveryCount": 10 } } ] },
+          { "Name": "landscape-completed", "Subscriptions": [ { "Name": "orchestrator", "Properties": { "RequiresSession": true, "MaxDeliveryCount": 10 } } ] },
+          { "Name": "ideation-completed", "Subscriptions": [ { "Name": "orchestrator", "Properties": { "RequiresSession": true, "MaxDeliveryCount": 10 } } ] },
+          { "Name": "seeding-report-requested", "Subscriptions": [ { "Name": "seeding", "Properties": { "RequiresSession": true, "MaxDeliveryCount": 10 } } ] },
+          { "Name": "engine-completed", "Subscriptions": [ { "Name": "orchestrator", "Properties": { "RequiresSession": true, "MaxDeliveryCount": 10 } } ] },
+          { "Name": "batch-created", "Subscriptions": [ { "Name": "orchestrator", "Properties": { "RequiresSession": true, "MaxDeliveryCount": 5 } } ] }
+        ]
+      }
+    ],
+    "Logging": {
+      "Type": "File"
+    }
+  }
+}

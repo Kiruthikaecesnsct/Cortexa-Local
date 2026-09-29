@@ -4,6 +4,7 @@ using Cortexa.ModelRouter.Application.Services;
 using Cortexa.ModelRouter.Infrastructure.Configuration;
 using Cortexa.ModelRouter.Infrastructure.Providers.Anthropic;
 using Cortexa.ModelRouter.Infrastructure.Providers.Foundry;
+using Cortexa.ModelRouter.Infrastructure.Providers.Gemini;
 using Cortexa.ModelRouter.Infrastructure.Security;
 using Cortexa.ModelRouter.Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
@@ -23,6 +24,7 @@ public static class DependencyInjection
     {
         services.Configure<FoundrySettings>(configuration.GetSection("Foundry"));
         services.Configure<AnthropicSettings>(configuration.GetSection("Anthropic"));
+        services.Configure<GeminiSettings>(configuration.GetSection("Gemini"));
         services.Configure<KeyResolverSettings>(configuration.GetSection("KeyResolver"));
         services.Configure<ModelCatalogSettings>(configuration.GetSection("ModelCatalog"));
 
@@ -33,7 +35,22 @@ public static class DependencyInjection
             routerSettings.Mode = modeOverride;
 
         services.AddSingleton(routerSettings);
-        services.AddSingleton<IProviderKeyResolver, KeyVaultProviderKeyResolver>();
+        services.AddSingleton<IProviderKeyResolver>(sp =>
+        {
+            var keyResolverSettings = sp.GetRequiredService<IOptions<KeyResolverSettings>>();
+            var providerOverride = keyResolverSettings.Value.Provider;
+            var vaultUri = configuration["KeyVault:Uri"];
+
+            // Explicit override wins. Otherwise auto-detect the same way every other
+            // service in this fleet does: KeyVault:Uri set (e.g. by Terraform in Azure)
+            // means KeyVault, empty (local/docker preview) means plain env vars.
+            var useKeyVault = string.Equals(providerOverride, "KeyVault", StringComparison.OrdinalIgnoreCase)
+                || (string.IsNullOrWhiteSpace(providerOverride) && !string.IsNullOrWhiteSpace(vaultUri));
+
+            return useKeyVault
+                ? new KeyVaultProviderKeyResolver(configuration, keyResolverSettings)
+                : new EnvProviderKeyResolver(configuration);
+        });
         services.AddSingleton<IFoundryConcurrencyLimiter, FoundryConcurrencyLimiter>();
         services.AddHttpClient<FoundryProvider>()
             .ConfigureHttpClient((sp, client) =>
@@ -60,6 +77,12 @@ public static class DependencyInjection
                 });
             });
         services.AddHttpClient<AnthropicProvider>();
+        services.AddHttpClient<GeminiProvider>()
+            .ConfigureHttpClient((sp, client) =>
+            {
+                var geminiSettings = sp.GetRequiredService<IOptions<GeminiSettings>>().Value;
+                client.Timeout = TimeSpan.FromSeconds(geminiSettings.TimeoutSeconds);
+            });
         services.AddTransient<IGroundingValidator, GroundingValidator>();
         services.AddTransient<IModelCatalog>(sp =>
         {
@@ -71,11 +94,12 @@ public static class DependencyInjection
         {
             var foundry = sp.GetRequiredService<FoundryProvider>();
             var anthropic = sp.GetRequiredService<AnthropicProvider>();
+            var gemini = sp.GetRequiredService<GeminiProvider>();
             var catalog = sp.GetRequiredService<IModelCatalog>();
             var grounding = sp.GetRequiredService<IGroundingValidator>();
             var settings = sp.GetRequiredService<RouterSettings>();
             var logger = sp.GetRequiredService<ILogger<ProviderRouter>>();
-            return new ProviderRouter(foundry, anthropic, catalog, grounding, settings, logger);
+            return new ProviderRouter(foundry, anthropic, gemini, catalog, grounding, settings, logger);
         });
 
         return services;

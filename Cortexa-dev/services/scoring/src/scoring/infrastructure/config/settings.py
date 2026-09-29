@@ -8,6 +8,8 @@ class ScoringSettings(BaseSettings):
     sentry_environment: str = "dev"
     sentry_traces_sample_rate: float = 0.1
     cosmos_uri: str
+    # Primary key for local/emulator Cosmos auth; empty uses DefaultAzureCredential.
+    cosmos_key: str = ""
     cosmos_database: str = "cortexa-pipeline"
     verdicts_container: str = "verdicts"
     candidates_container: str = "candidates"
@@ -19,6 +21,8 @@ class ScoringSettings(BaseSettings):
     batch_terminal_cache_ttl_seconds: float = 30.0
     model_router_timeout_seconds: float = 90.0
     servicebus_namespace_fqdn: str
+    # Connection string for local/emulator Service Bus auth; empty uses DefaultAzureCredential.
+    servicebus_connection_string: str = ""
     scoring_completed_topic: str = "scoring-completed"
     scoring_failed_topic: str = "scoring-failed"
     scoring_requested_topic: str = "scoring-requested"

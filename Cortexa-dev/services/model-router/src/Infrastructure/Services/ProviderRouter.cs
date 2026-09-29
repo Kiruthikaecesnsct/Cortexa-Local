@@ -11,12 +11,14 @@ public sealed class ProviderRouter : IProviderRouter
 {
     private const string FoundryProviderKey = "azure-foundry";
     private const string AnthropicProviderKey = "anthropic";
+    private const string GeminiProviderKey = "gemini";
     private const string FoundryDisplayName = "Foundry";
     private const string NoSecondaryDisplayName = "None";
     private const string NoEnabledSecondaryMessage = "No enabled secondary model is configured in the model catalog";
 
     private readonly IModelProvider _foundry;
     private readonly IModelProvider _anthropic;
+    private readonly IModelProvider _gemini;
     private readonly IModelCatalog _catalog;
     private readonly IGroundingValidator _grounding;
     private readonly RouterSettings _settings;
@@ -25,6 +27,7 @@ public sealed class ProviderRouter : IProviderRouter
     public ProviderRouter(
         IModelProvider foundry,
         IModelProvider anthropic,
+        IModelProvider gemini,
         IModelCatalog catalog,
         IGroundingValidator grounding,
         RouterSettings settings,
@@ -32,6 +35,7 @@ public sealed class ProviderRouter : IProviderRouter
     {
         _foundry = foundry;
         _anthropic = anthropic;
+        _gemini = gemini;
         _catalog = catalog;
         _grounding = grounding;
         _settings = settings;
@@ -124,9 +128,12 @@ public sealed class ProviderRouter : IProviderRouter
         if (mode == ModelMode.DualAdversarial)
             throw new InvalidOperationException("Use POST /complete/dual when MODEL_MODE=dual");
 
-        var provider = mode == ModelMode.SingleSecondary
-            ? (IModelProvider)_anthropic
-            : _foundry;
+        var provider = mode switch
+        {
+            ModelMode.SingleSecondary => _anthropic,
+            ModelMode.SingleGemini => _gemini,
+            _ => _foundry
+        };
 
         return (provider, BuildModelRequest(request, mode));
     }
@@ -138,9 +145,12 @@ public sealed class ProviderRouter : IProviderRouter
             throw new InvalidOperationException($"Unknown or disabled model: {request.Model}");
 
         var provider = ResolveProvider(resolution.Provider);
-        var mode = resolution.Provider == AnthropicProviderKey
-            ? ModelMode.SingleSecondary
-            : ModelMode.SinglePrimary;
+        var mode = resolution.Provider switch
+        {
+            AnthropicProviderKey => ModelMode.SingleSecondary,
+            GeminiProviderKey => ModelMode.SingleGemini,
+            _ => ModelMode.SinglePrimary
+        };
 
         return (provider, BuildModelRequest(request, mode, resolution.Deployment));
     }
@@ -149,6 +159,7 @@ public sealed class ProviderRouter : IProviderRouter
     {
         FoundryProviderKey => _foundry,
         AnthropicProviderKey => _anthropic,
+        GeminiProviderKey => _gemini,
         _ => throw new InvalidOperationException($"Unsupported provider: {providerKey}")
     };
 

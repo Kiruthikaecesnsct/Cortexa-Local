@@ -1,0 +1,26 @@
+# Hot-reload dev image for the local preview stack (deploy/local). Never used
+# in production - see Dockerfile for the published image. Build context is
+# this service directory (services/api-gateway), matching Dockerfile.
+FROM mcr.microsoft.com/dotnet/sdk:8.0
+
+# ca-certificates: lets deploy/local/scripts/dev-entrypoint.sh (bind-mounted by
+# the preview override, not baked in here) import the local Cosmos DB emulator's
+# self-signed cert when this service is on the same compose network as other
+# preview services that need it. Harmless no-op for api-gateway, which has no
+# Cosmos dependency itself, but keeping the entrypoint contract identical across
+# every dev image avoids a second Dockerfile.dev shape to maintain.
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY ["src/Api/Cortexa.ApiGateway.Api.csproj", "src/Api/"]
+RUN dotnet restore "src/Api/Cortexa.ApiGateway.Api.csproj"
+
+# DOTNET_USE_POLLING_FILE_WATCHER: Docker Desktop bind mounts on Windows/macOS
+# deliver no inotify events, so dotnet watch would otherwise never see an edit.
+ENV DOTNET_USE_POLLING_FILE_WATCHER=1 \
+    ASPNETCORE_URLS=http://+:8080 \
+    ASPNETCORE_ENVIRONMENT=Development \
+    DOTNET_ENVIRONMENT=Development
+EXPOSE 8080
+CMD ["dotnet", "watch", "run", "--project", "src/Api/Cortexa.ApiGateway.Api.csproj", "--no-launch-profile"]

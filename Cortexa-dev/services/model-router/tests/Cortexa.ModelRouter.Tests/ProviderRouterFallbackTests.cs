@@ -32,12 +32,13 @@ public sealed class ProviderRouterFallbackTests
     {
         var foundry = Substitute.For<IModelProvider>();
         var secondary = Substitute.For<IModelProvider>();
+        var gemini = Substitute.For<IModelProvider>();
         var catalog = Substitute.For<IModelCatalog>();
         catalog.ResolveEnabledSecondary().Returns(
             hasSecondary ? new ModelResolution(AnthropicProviderKey, "claude-opus-4-8", true) : null);
         var settings = new RouterSettings { Mode = "single-foundry", EnableFallback = enableFallback };
         var router = new ProviderRouter(
-            foundry, secondary, catalog, new GroundingValidator(), settings, NullLogger<ProviderRouter>.Instance);
+            foundry, secondary, gemini, catalog, new GroundingValidator(), settings, NullLogger<ProviderRouter>.Instance);
         return (foundry, secondary, catalog, router);
     }
 
@@ -47,11 +48,12 @@ public sealed class ProviderRouterFallbackTests
     {
         var foundry = Substitute.For<IModelProvider>();
         var secondary = Substitute.For<IModelProvider>();
+        var gemini = Substitute.For<IModelProvider>();
         var catalog = Substitute.For<IModelCatalog>();
         catalog.ResolveEnabledSecondary().Returns(secondaryResolution);
         var settings = new RouterSettings { Mode = "single-foundry", EnableFallback = enableFallback };
         var router = new ProviderRouter(
-            foundry, secondary, catalog, new GroundingValidator(), settings, NullLogger<ProviderRouter>.Instance);
+            foundry, secondary, gemini, catalog, new GroundingValidator(), settings, NullLogger<ProviderRouter>.Instance);
         return (foundry, secondary, catalog, router);
     }
 

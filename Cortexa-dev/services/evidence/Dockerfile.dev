@@ -1,0 +1,24 @@
+# Hot-reload dev image for the local preview stack (deploy/local). Never used
+# in production - see Dockerfile for the published image. Build context is
+# this service directory (services/evidence), matching Dockerfile.
+FROM python:3.14-slim
+
+# git: matches Dockerfile (some deps are pulled from VCS refs).
+# ca-certificates: deploy/local/scripts/dev-entrypoint.sh (bind-mounted by the
+# preview override) imports the local Cosmos DB emulator's self-signed cert
+# into this image's trust store before uvicorn starts - evidence talks to
+# Cosmos directly. See
+# https://learn.microsoft.com/azure/cosmos-db/how-to-develop-emulator#import-the-emulators-tlsssl-certificate
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+WORKDIR /app
+COPY pyproject.toml uv.lock ./
+RUN pip install --no-cache-dir uv && uv sync --frozen --no-install-project
+COPY . .
+EXPOSE 8000
+# --reload-delay debounces watchfiles' polling watcher, which is what fires on
+# Docker Desktop bind mounts (no inotify events cross the VM boundary).
+CMD ["uv", "run", "uvicorn", "evidence.main:app", "--host", "0.0.0.0", "--port", "8000", \
+     "--reload", "--reload-delay", "1"]

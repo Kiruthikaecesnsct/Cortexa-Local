@@ -1,0 +1,16 @@
+# Hot-reload dev image for the local preview stack (deploy/local). Never used
+# in production - see Dockerfile for the published image. Build context is
+# this service directory (services/vector-router), matching Dockerfile.
+# vector-router has no Cosmos dependency (its backend is Qdrant Cloud or Azure
+# AI Search, both real HTTPS endpoints with valid certs), so no ca-certificates
+# / cert-trust plumbing is needed here.
+FROM python:3.14-slim
+
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
+WORKDIR /app
+COPY pyproject.toml uv.lock ./
+RUN pip install --no-cache-dir uv && uv sync --frozen --no-install-project
+COPY . .
+EXPOSE 8000
+CMD ["uv", "run", "uvicorn", "vector_router.main:app", "--host", "0.0.0.0", "--port", "8000", \
+     "--reload", "--reload-delay", "1"]

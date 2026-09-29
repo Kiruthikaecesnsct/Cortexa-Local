@@ -101,6 +101,8 @@ class EvidenceSettings(BaseSettings):
     llm_research_model: str | None = None
 
     cosmos_uri: str = ""
+    # Primary key for local/emulator Cosmos auth; empty uses DefaultAzureCredential.
+    cosmos_key: str = ""
     cosmos_database: str = "cortexa-pipeline"
     evidence_container: str = "evidence_bundles"
     candidates_container: str = "candidates"
@@ -109,6 +111,8 @@ class EvidenceSettings(BaseSettings):
     batch_terminal_cache_ttl_seconds: float = 30.0
     patent_config_cache_ttl_seconds: float = 30.0
     servicebus_namespace_fqdn: str = ""
+    # Connection string for local/emulator Service Bus auth; empty uses DefaultAzureCredential.
+    servicebus_connection_string: str = ""
     evidence_completed_topic: str = "evidence-completed"
     evidence_failed_topic: str = "evidence-failed"
     evidence_requested_topic: str = "evidence-requested"

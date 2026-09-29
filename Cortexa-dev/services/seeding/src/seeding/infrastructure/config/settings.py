@@ -20,6 +20,8 @@ class SeedingSettings(BaseSettings):
     seeding_max_output_tokens: int = 16384
     local_dev: bool = False
     servicebus_namespace_fqdn: str = ""
+    # Connection string for local/emulator Service Bus auth; empty uses DefaultAzureCredential.
+    servicebus_connection_string: str = ""
     engine_completed_topic: str = "engine-completed"
     seeding_failed_topic: str = "seeding-failed"
     ideation_completed_topic: str = "ideation-completed"
@@ -27,6 +29,8 @@ class SeedingSettings(BaseSettings):
     seeding_report_subscription: str = "seeding"
     engine_name: str = "seeding"
     cosmos_uri: str = ""
+    # Primary key for local/emulator Cosmos auth; empty uses DefaultAzureCredential.
+    cosmos_key: str = ""
     cosmos_database: str = "cortexa-pipeline"
     seeding_container: str = "seeding"
     seeding_requested_topic: str = "seeding-requested"

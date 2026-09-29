@@ -25,10 +25,15 @@ builder.WebHost.UseSentry(o =>
 
 var vaultUri = builder.Configuration["KeyVault:Uri"] ?? string.Empty;
 
-var connectionString = await LoadSecretAsync(
+var connectionString = await LoadOptionalSecretAsync(
     vaultUri,
     builder.Configuration["KeyVault:ConnectionStringSecretName"]
-        ?? throw new InvalidOperationException("KeyVault:ConnectionStringSecretName is required."));
+        ?? throw new InvalidOperationException("KeyVault:ConnectionStringSecretName is required."),
+    builder.Configuration["ConnectionStrings:Postgres"] ?? string.Empty);
+
+if (string.IsNullOrWhiteSpace(connectionString))
+    throw new InvalidOperationException(
+        "ConnectionStrings:Postgres must not be empty. Supply it via Key Vault or configuration/env.");
 
 var jwtSigningKey = await LoadOptionalSecretAsync(
     vaultUri,
@@ -170,16 +175,6 @@ app.MapAccountEndpoints();
 app.MapInternalEndpoints();
 
 app.Run();
-
-static async Task<string> LoadSecretAsync(string vaultUri, string secretName)
-{
-    if (string.IsNullOrWhiteSpace(vaultUri))
-        throw new InvalidOperationException("KeyVault:Uri must not be empty.");
-
-    var client = new SecretClient(new Uri(vaultUri), new DefaultAzureCredential());
-    var secret = await client.GetSecretAsync(secretName);
-    return secret.Value.Value;
-}
 
 static async Task<string> LoadOptionalSecretAsync(string vaultUri, string secretName, string fallback)
 {

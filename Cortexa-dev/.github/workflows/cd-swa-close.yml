@@ -1,0 +1,64 @@
+name: CD — SWA Staging Cleanup
+
+# Runs unconditionally on every PR close so that staging environments are
+# deleted regardless of which paths the PR touched. No paths-ignore filter
+# here — a docs-only PR still creates a staging slot and must clean it up.
+
+on:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: read
+  id-token: write # required for the OIDC Azure login used by the prune backstop
+
+jobs:
+  swa-close:
+    name: Remove SWA staging environment
+    runs-on: ubuntu-latest
+    environment: dev-plan # provides DEPLOYER OIDC federated-credential subject + Azure secrets
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+
+      - name: Close staging environment
+        uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1 # v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.SWA_DEV_DEPLOYMENT_TOKEN }}
+          action: close
+          app_location: "" # required by the action schema; ignored for action: close
+          # Must match the deployment_environment set on the upload step in cd.yml.
+          # The close action resolves the slot to delete by this name; if it does
+          # not match what upload created, close silently no-ops and the preview
+          # leaks until the SKU staging cap is hit.
+          deployment_environment: pr-${{ github.event.pull_request.number }}
+
+      # Defensive backstop: if the action-based close ever fails to match (e.g. a
+      # legacy build-number-named slot from before deployment_environment was
+      # pinned), delete the PR's slot directly via az. Idempotent — a missing
+      # environment is treated as already-clean, so this never fails the job.
+      - name: Azure login (OIDC)
+        uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Prune PR staging environment (backstop)
+        env:
+          SWA_NAME: cortexa-dev-swa
+          RESOURCE_GROUP: cortexa-dev-rg
+          ENV_NAME: pr-${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          if az staticwebapp environment show \
+              --name "$SWA_NAME" --resource-group "$RESOURCE_GROUP" \
+              --environment-name "$ENV_NAME" >/dev/null 2>&1; then
+            echo "Pruning staging environment '$ENV_NAME'."
+            az staticwebapp environment delete \
+              --name "$SWA_NAME" --resource-group "$RESOURCE_GROUP" \
+              --environment-name "$ENV_NAME" --yes
+          else
+            echo "No staging environment '$ENV_NAME' to prune — already clean."
+          fi

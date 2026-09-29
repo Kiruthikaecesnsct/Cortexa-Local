@@ -1,0 +1,320 @@
+/* ============================================================
+   Cortexa — Design Tokens (single source of truth)
+   Premium theme sampled from the v2 handoff design.
+   Light + dark are first-class. Every component binds to these
+   variables — no hardcoded hex/px in component code.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* ---- Type families ---- */
+  --font-display: 'Sora', 'Space Grotesk', system-ui, sans-serif;
+  --font-body: 'Geist', 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* ---- Type scale (1.25 ratio, base 16) ---- */
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-md: 16px;
+  --text-lg: 18px;
+  --text-xl: 21px;
+  --text-2xl: 24px;
+  --text-3xl: 30px;
+  --text-4xl: 42px;
+  --text-5xl: 56px;
+
+  --leading-tight: 100%;
+  --leading-snug: 120%;
+  --leading-normal: 150%;
+
+  --tracking-tight: -0.02em;
+  --tracking-snug: -0.5px;
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* ---- Spacing ---- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 10px;
+  --space-4: 12px;
+  --space-5: 16px;
+  --space-6: 20px;
+  --space-7: 24px;
+  --space-8: 32px;
+  --space-9: 42px;
+  --space-10: 68px;
+
+  /* ---- Radii ---- */
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 21px;
+  --radius-full: 999px;
+
+  /* ---- Layout ---- */
+  --sidebar-width: 236px;
+  --content-max: 1180px;
+
+  /* ---- Motion ---- */
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+
+  /* ---- Brand gradient (theme-independent) ---- */
+  --accent-grad: linear-gradient(115deg, #3e8bff 0%, #6e7bff 48%, #a46bff 100%);
+}
+
+/* ---- LIGHT theme (default) ---- */
+:root,
+[data-theme='light'] {
+  --surface-page: #f6f7fc;
+  --surface-canvas: radial-gradient(1000px 700px at 85% -10%, rgba(164, 107, 255, 0.13), transparent 60%),
+    radial-gradient(900px 700px at -10% 110%, rgba(62, 139, 255, 0.13), transparent 60%),
+    linear-gradient(160deg, #fafbff 0%, #f1f3fa 100%);
+  --surface-card: rgba(255, 255, 255, 0.78);
+  --surface-card-solid: #ffffff;
+  --surface-card-alt: #fbfbfe;
+  --surface-sunken: rgba(23, 26, 48, 0.045);
+  --surface-overlay: rgba(10, 12, 30, 0.45);
+  --surface-brand: #5b67f2;
+  --surface-brand-strong: radial-gradient(820px 560px at 92% -4%, rgba(164, 107, 255, 0.4), transparent 58%),
+    radial-gradient(760px 560px at -6% 104%, rgba(62, 139, 255, 0.45), transparent 58%),
+    linear-gradient(150deg, #12142b 0%, #191c40 52%, #0b0d20 100%);
+  --topbar-bg: rgba(255, 255, 255, 0.65);
+  --sidebar-bg: linear-gradient(180deg, rgba(110, 123, 255, 0.09), rgba(255, 255, 255, 0)), rgba(255, 255, 255, 0.72);
+
+  --border-subtle: rgba(23, 26, 48, 0.08);
+  --border-strong: rgba(23, 26, 48, 0.16);
+  --border-focus: #5b67f2;
+  --border-on-brand: rgba(255, 255, 255, 0.14);
+
+  --text-primary: #171a30;
+  --text-body: #464d6e;
+  --text-muted: #828aa8;
+  --text-on-brand: #ffffff;
+  --text-on-brand-muted: rgba(235, 238, 255, 0.72);
+  --text-link: #5b67f2;
+
+  --accent-primary: #5b67f2;
+  --accent-primary-hover: #4653e8;
+  --accent-primary-active: #3945d6;
+  --accent-primary-subtle: rgba(91, 103, 242, 0.1);
+
+  --status-success-fg: #0e9f6e;
+  --status-success-bg: rgba(14, 159, 110, 0.1);
+  --status-warning-fg: #b45309;
+  --status-warning-bg: rgba(217, 119, 6, 0.12);
+  --status-danger-fg: #e0344e;
+  --status-danger-bg: rgba(224, 52, 78, 0.1);
+  --status-info-fg: #5b67f2;
+  --status-info-bg: rgba(91, 103, 242, 0.12);
+
+  --focus-ring: 0 0 0 3px rgba(91, 103, 242, 0.3);
+
+  /* Bounded syntax palette for the US125 code viewer — contrast-verified
+     against --surface-sunken, anchored to the brand/status hues (see
+     handoff §3/§8.3) rather than a foreign VS Code theme. */
+  --syntax-keyword: #3945d6;
+  --syntax-string: #0b7a53;
+  --syntax-number: #b45309;
+  --syntax-comment: #828aa8;
+  --syntax-function: #7c3aed;
+  --syntax-type: #0f766e;
+  --syntax-punctuation: #5b6178;
+  --syntax-plain: #171a30;
+
+  --gray-75: #eef0f8;
+  --gray-100: #e7eaf5;
+  --gray-300: #cbd1e4;
+
+  --shadow-xs: 0 1px 2px rgba(23, 26, 48, 0.05), 0 14px 36px -24px rgba(23, 26, 48, 0.2);
+  --shadow-sm: 0 2px 6px rgba(23, 26, 48, 0.06), 0 18px 44px -26px rgba(23, 26, 48, 0.22);
+  --shadow-md: 0 8px 24px rgba(23, 26, 48, 0.1);
+  --shadow-lg: 0 32px 90px -28px rgba(30, 34, 90, 0.35), 0 0 0 1px rgba(23, 26, 48, 0.05);
+  --shadow-hover: 0 22px 52px -24px rgba(91, 103, 242, 0.35), 0 1px 2px rgba(23, 26, 48, 0.08);
+  --scrollbar-thumb: rgba(23, 26, 48, 0.18);
+}
+
+/* ---- DARK theme ---- */
+[data-theme='dark'] {
+  --surface-page: #06070c;
+  --surface-canvas: radial-gradient(1100px 750px at 82% -12%, rgba(140, 100, 255, 0.16), transparent 60%),
+    radial-gradient(950px 700px at -12% 108%, rgba(62, 139, 255, 0.13), transparent 60%),
+    linear-gradient(160deg, #0a0c16 0%, #06070c 70%);
+  --surface-card: rgba(19, 22, 40, 0.66);
+  --surface-card-solid: #12152a;
+  --surface-card-alt: rgba(255, 255, 255, 0.04);
+  --surface-sunken: rgba(255, 255, 255, 0.035);
+  --surface-overlay: rgba(2, 3, 8, 0.7);
+  --surface-brand: #6e7bff;
+  --surface-brand-strong: radial-gradient(820px 560px at 92% -4%, rgba(164, 107, 255, 0.4), transparent 58%),
+    radial-gradient(760px 560px at -6% 104%, rgba(62, 139, 255, 0.45), transparent 58%),
+    linear-gradient(150deg, #12142b 0%, #191c40 52%, #0b0d20 100%);
+  --topbar-bg: rgba(9, 11, 20, 0.6);
+  --sidebar-bg: linear-gradient(180deg, rgba(110, 123, 255, 0.08), rgba(164, 107, 255, 0.03) 45%, rgba(0, 0, 0, 0)),
+    rgba(10, 12, 22, 0.66);
+
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --border-focus: #8a93ff;
+  --border-on-brand: rgba(255, 255, 255, 0.14);
+
+  --text-primary: #f2f4ff;
+  --text-body: #b9bfd6;
+  --text-muted: #7a82a0;
+  --text-on-brand: #ffffff;
+  --text-on-brand-muted: rgba(235, 238, 255, 0.72);
+  --text-link: #8a93ff;
+
+  --accent-primary: #6e7bff;
+  --accent-primary-hover: #8a93ff;
+  --accent-primary-active: #a5acff;
+  --accent-primary-subtle: rgba(110, 123, 255, 0.14);
+
+  --status-success-fg: #4ade9c;
+  --status-success-bg: rgba(74, 222, 156, 0.12);
+  --status-warning-fg: #fbc65a;
+  --status-warning-bg: rgba(251, 198, 90, 0.12);
+  --status-danger-fg: #ff7a8a;
+  --status-danger-bg: rgba(255, 122, 138, 0.13);
+  --status-info-fg: #9fa8ff;
+  --status-info-bg: rgba(110, 123, 255, 0.16);
+
+  --focus-ring: 0 0 0 3px rgba(110, 123, 255, 0.4);
+
+  /* Bounded syntax palette for the US125 code viewer — contrast-verified
+     against --surface-sunken, anchored to the brand/status hues (see
+     handoff §3/§8.3) rather than a foreign VS Code theme. */
+  --syntax-keyword: #6e7bff;
+  --syntax-string: #4ade9c;
+  --syntax-number: #fbc65a;
+  --syntax-comment: #7a82a0;
+  --syntax-function: #c4a4ff;
+  --syntax-type: #5eead4;
+  --syntax-punctuation: #9aa1c2;
+  --syntax-plain: #f2f4ff;
+
+  --gray-75: #1a1e33;
+  --gray-100: #222741;
+  --gray-300: #38405f;
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.35), 0 14px 36px -20px rgba(0, 0, 0, 0.65);
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.35), 0 18px 44px -22px rgba(0, 0, 0, 0.65);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 32px 90px -28px rgba(15, 15, 60, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.06);
+  --shadow-hover: 0 22px 52px -22px rgba(110, 123, 255, 0.4), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.14);
+}
+
+/* ============================================================
+   Base resets
+   ============================================================ */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background: var(--surface-page);
+  color: var(--text-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: var(--tracking-tight);
+}
+
+a {
+  color: var(--text-link);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  font-family: var(--font-body);
+}
+
+::selection {
+  background: rgba(110, 123, 255, 0.35);
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 8px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ============================================================
+   Animations
+   ============================================================ */
+@keyframes cortexa-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes cortexa-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+@keyframes cortexa-drift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-34px, 26px) scale(1.1);
+  }
+}
+@keyframes cortexa-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 30px rgba(110, 123, 255, 0.22);
+  }
+  50% {
+    box-shadow: 0 0 56px rgba(164, 107, 255, 0.4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

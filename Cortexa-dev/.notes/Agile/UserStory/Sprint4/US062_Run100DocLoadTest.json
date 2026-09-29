@@ -1,0 +1,157 @@
+{
+  "id": "US062",
+  "workItemType": "User Story",
+  "Title": "Run 100-document load test on prod",
+  "Description": "As a QA engineer, I want to run a 100-document load test on prod so that we can prove the system handles the demo batch and is production-ready. The test submits a batch of 100+ documents to prod and monitors the pipeline for latency, errors, and resource utilization, tunes concurrency caps, queue settings, and autoscaling parameters, and verifies all documents complete successfully with correct results.",
+  "AcceptanceCriteria": [
+    "Batch of 100+ test documents prepared and uploaded",
+    "Load test runs on prod environment",
+    "All documents complete without errors or timeouts",
+    "Pipeline latency is acceptable (document completes within SLA)",
+    "Container App autoscaling activates and scales up",
+    "CPU, memory, and database RU/s usage are monitored and within limits",
+    "Cost for the 100-doc run is estimated and logged",
+    "Load test results are documented with latency percentiles and resource usage"
+  ],
+  "Planning": {
+    "StoryPoints": 1,
+    "Priority": 1
+  },
+  "Classification": {
+    "RemainingWork": 8.0
+  },
+  "Tags": [
+    "testing",
+    "load-test",
+    "prod"
+  ],
+  "TalkingPoints": "I'm going to run the full production load with 100+ docs to validate throughput, latency, and scaling. I'll monitor resources and costs. This is going to confirm the system can handle the demo batch and is production-ready.",
+  "Tasks": [
+    {
+      "Title": "Prepare 100+ test documents",
+      "Description": "Create or collect diverse test papers to mimic real-world ingestion.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Testing"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "Submit batch and monitor pipeline progress",
+      "Description": "Upload batch, track completion via API, and log stage timings.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Testing"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "Monitor autoscaling and resource utilization",
+      "Description": "Watch Container Apps scale via KEDA, track CPU/memory/RU/s in Application Insights.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Testing"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "Tune concurrency and scaling parameters if needed",
+      "Description": "Adjust KEDA triggers, orchestrator concurrency cap, or queue settings based on results.",
+      "Planning": {
+        "Priority": 2,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "Document load test results and cost",
+      "Description": "Write report with latency percentiles, resource usage, and estimated cost for 100-doc batch.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Documentation"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    }
+  ],
+  "createdDate": "2026-06-13",
+  "state": "New",
+  "Tests": [
+    {
+      "Title": "All 100+ documents upload and complete without errors",
+      "Steps": [
+        {
+          "Action": "Submit batch of 100+ test documents to prod",
+          "Expected": "All documents are accepted by ingestion service"
+        },
+        {
+          "Action": "Monitor pipeline and wait for all documents to complete",
+          "Expected": "All documents complete within reasonable time; zero failures"
+        }
+      ]
+    },
+    {
+      "Title": "Pipeline latency is acceptable and within SLA",
+      "Steps": [
+        {
+          "Action": "Track latency for each document from submit to completion",
+          "Expected": "P50 latency is reasonable (e.g., < 5 minutes per doc)"
+        },
+        {
+          "Action": "Compute P95/P99 percentiles and verify no outliers exceed SLA",
+          "Expected": "All documents complete within defined SLA"
+        }
+      ]
+    },
+    {
+      "Title": "Container App autoscaling activates and scales up",
+      "Steps": [
+        {
+          "Action": "Monitor KEDA metrics in Application Insights during load test",
+          "Expected": "Autoscaling triggers and replicas increase"
+        },
+        {
+          "Action": "Verify CPU/memory utilization remains healthy (no throttling)",
+          "Expected": "Resources scale before hitting limits"
+        }
+      ]
+    },
+    {
+      "Title": "Cost for 100-doc run is estimated and logged",
+      "Steps": [
+        {
+          "Action": "Calculate Cosmos RU/s consumed and Container App CPU-hours",
+          "Expected": "Cost estimate is computed"
+        },
+        {
+          "Action": "Log cost to test report with per-document cost breakdown",
+          "Expected": "Cost metrics are documented"
+        }
+      ]
+    }
+  ]
+}

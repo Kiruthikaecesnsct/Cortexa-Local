@@ -1,0 +1,86 @@
+project                    = "cortexa"
+environment                = "dev"
+location                   = "eastus"
+tenant_id                  = "<your-azure-tenant-id>"
+resource_group_name        = "cortexa-dev-rg"
+key_vault_allowed_ip_rules = ["<your-ci-runner-ip>/32"]
+
+# Cosmos DB — dev uses minimum autoscale throughput
+cosmos_throughput = 400
+
+# PostgreSQL — password via env var: export TF_VAR_postgresql_admin_password="..."
+postgresql_sku = "B_Standard_B1ms"
+postgresql_allowed_ip_ranges = [
+  {
+    name     = "ci-runner"
+    start_ip = "<your-ci-runner-ip>"
+    end_ip   = "<your-ci-runner-ip>"
+  }
+]
+
+# Service Bus — Standard for dev (no VNet isolation needed)
+service_bus_sku = "Standard"
+
+# Service Bus DLQ alerts — fires when dead-letter count exceeds threshold on any
+# of the three dispatch topics (evidence-requested, scoring-requested, extraction-requested).
+# Leave email list empty to create silent alerts (visible in Azure Monitor only).
+# service_bus_dlq_alert_threshold       = 10
+# service_bus_dlq_alert_email_receivers = ["team-dl@wisework.in"]
+
+# Static Web App — Standard SKU required for backend linking (~$9/month)
+static_web_app_location = "eastus2"
+static_web_app_sku_tier = "Standard"
+static_web_app_sku_size = "Standard"
+
+# AI Search
+ai_search_sku             = "basic"
+ai_search_replica_count   = 1
+ai_search_partition_count = 1
+
+# AI Foundry — GPT deployment (dev: Standard SKU, 10K TPM minimum)
+ai_foundry_gpt_model_name      = "gpt-4o"
+ai_foundry_gpt_model_version   = "2024-11-20"
+ai_foundry_deployment_sku_name = "Standard"
+ai_foundry_deployment_capacity = 10
+
+# Deployer identity — service principal object ID, NOT the app registration object ID.
+# Run: az ad sp show --id <AZURE_CLIENT_ID> --query id -o tsv
+deployer_object_id = "<your-service-principal-object-id>"
+
+# Budget Alert — triggers at 80% and 100% of monthly_amount
+budget_monthly_amount    = 500
+budget_time_period_start = "2026-06-01T00:00:00Z"
+budget_contact_emails    = ["team-dl@wisework.in"]
+
+# Patent API credentials — never commit real values; supply via environment variables:
+#   export TF_VAR_patent_uspto_api_key="<your-uspto-api-key>"
+#   export TF_VAR_patent_epo_consumer_key="<your-epo-client-id>"
+#   export TF_VAR_patent_epo_oauth_secret="<your-epo-client-secret>"
+
+# CORS allowed origins for api-gateway (BUG026).
+# Set to the SWA default hostname after provisioning. The dev hostname is stable once
+# provisioned; it only changes if the SWA resource is destroyed and re-created.
+# In CI this is injected via GATEWAY_CORS_ALLOWED_ORIGINS GitHub Actions variable
+# (JSON string array). Supply via env var locally:
+#   export TF_VAR_gateway_cors_allowed_origins='["https://nice-beach-0701ce10f.7.azurestaticapps.net"]'
+# Or uncomment and set directly (do not commit real hostnames if operating under a custom domain):
+# gateway_cors_allowed_origins = ["https://nice-beach-0701ce10f.7.azurestaticapps.net"]
+
+# Sentry DSNs (US106, Phase 1 — dev only). One DSN per backend service. Never commit
+# real values; supply via environment variable, sourced in CI from the SENTRY_DSNS
+# GitHub secret (JSON map):
+#   export TF_VAR_sentry_dsns='{"ingestion":"https://REPLACE@ingest.sentry.io/0", ...}'
+# Or uncomment and fill with placeholders for local reference only:
+# sentry_dsns = {
+#   ingestion         = "https://REPLACE@ingest.sentry.io/0"
+#   extraction        = "https://REPLACE@ingest.sentry.io/0"
+#   evidence          = "https://REPLACE@ingest.sentry.io/0"
+#   vector-router     = "https://REPLACE@ingest.sentry.io/0"
+#   scoring           = "https://REPLACE@ingest.sentry.io/0"
+#   seeding           = "https://REPLACE@ingest.sentry.io/0"
+#   harvesting        = "https://REPLACE@ingest.sentry.io/0"
+#   api-gateway       = "https://REPLACE@ingest.sentry.io/0"
+#   identity          = "https://REPLACE@ingest.sentry.io/0"
+#   model-router      = "https://REPLACE@ingest.sentry.io/0"
+#   job-orchestrator  = "https://REPLACE@ingest.sentry.io/0"
+# }

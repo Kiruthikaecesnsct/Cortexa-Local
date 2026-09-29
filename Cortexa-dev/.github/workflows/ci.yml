@@ -1,0 +1,136 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - dev
+      - main
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - ".notes/**"
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  changes:
+    name: Detect changed services
+    uses: ./.github/workflows/_changes.yml
+
+  # ── Python services ────────────────────────────────────────────────────────
+
+  ingestion:
+    name: CI / ingestion
+    needs: changes
+    if: needs.changes.outputs.ingestion == 'true'
+    uses: ./.github/workflows/_python-service.yml
+    with:
+      service: ingestion
+
+  extraction:
+    name: CI / extraction
+    needs: changes
+    if: needs.changes.outputs.extraction == 'true'
+    uses: ./.github/workflows/_python-service.yml
+    with:
+      service: extraction
+
+  evidence:
+    name: CI / evidence
+    needs: changes
+    if: needs.changes.outputs.evidence == 'true'
+    uses: ./.github/workflows/_python-service.yml
+    with:
+      service: evidence
+
+  vector-router:
+    name: CI / vector-router
+    needs: changes
+    if: needs.changes.outputs['vector-router'] == 'true'
+    uses: ./.github/workflows/_python-service.yml
+    with:
+      service: vector-router
+
+  scoring:
+    name: CI / scoring
+    needs: changes
+    if: needs.changes.outputs.scoring == 'true'
+    uses: ./.github/workflows/_python-service.yml
+    with:
+      service: scoring
+
+  seeding:
+    name: CI / seeding
+    needs: changes
+    if: needs.changes.outputs.seeding == 'true'
+    uses: ./.github/workflows/_python-service.yml
+    with:
+      service: seeding
+
+  harvesting:
+    name: CI / harvesting
+    needs: changes
+    if: needs.changes.outputs.harvesting == 'true'
+    uses: ./.github/workflows/_python-service.yml
+    with:
+      service: harvesting
+
+  # ── .NET services ──────────────────────────────────────────────────────────
+
+  api-gateway:
+    name: CI / api-gateway
+    needs: changes
+    if: needs.changes.outputs['api-gateway'] == 'true'
+    uses: ./.github/workflows/_dotnet-service.yml
+    with:
+      service: api-gateway
+
+  identity:
+    name: CI / identity
+    needs: changes
+    if: needs.changes.outputs.identity == 'true'
+    uses: ./.github/workflows/_dotnet-service.yml
+    with:
+      service: identity
+
+  model-router:
+    name: CI / model-router
+    needs: changes
+    if: needs.changes.outputs['model-router'] == 'true'
+    uses: ./.github/workflows/_dotnet-service.yml
+    with:
+      service: model-router
+
+  job-orchestrator:
+    name: CI / job-orchestrator
+    needs: changes
+    if: needs.changes.outputs['job-orchestrator'] == 'true'
+    uses: ./.github/workflows/_dotnet-service.yml
+    with:
+      service: job-orchestrator
+
+  # ── Frontend ───────────────────────────────────────────────────────────────
+
+  frontend:
+    name: CI / frontend
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    uses: ./.github/workflows/_frontend.yml
+
+  # ── CI config validation ───────────────────────────────────────────────────
+
+  ci-config:
+    name: CI / workflow lint
+    needs: changes
+    if: needs.changes.outputs['ci-config'] == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+
+      - name: Lint workflow YAML files
+        run: |
+          pip install yamllint --quiet
+          yamllint -c .github/.yamllint.yml .github/workflows/

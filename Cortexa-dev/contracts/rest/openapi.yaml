@@ -1,0 +1,1700 @@
+openapi: "3.1.0"
+info:
+  title: "Cortexa API"
+  version: "1.0.0"
+  description: >
+    Cortexa patent intelligence platform — REST API v1.
+    All endpoints flow through the YARP API Gateway, which injects X-Correlation-Id
+    and validates Bearer JWT tokens before forwarding to downstream services.
+    Correlation IDs are propagated from HTTP requests into every Service Bus event envelope.
+
+servers:
+  - url: "https://api.cortexa.io/v1"
+    description: "Production"
+
+security:
+  - bearerAuth: []
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >
+        Azure Entra ID or Cortexa-issued JWT. Include in the Authorization header:
+        Authorization: Bearer <token>
+
+  parameters:
+    CorrelationId:
+      name: X-Correlation-Id
+      in: header
+      required: false
+      schema:
+        type: string
+        format: uuid
+      description: >
+        Client-supplied trace ID. If omitted, the gateway generates one.
+        Returned on every response. Propagated to all downstream Service Bus events as correlation_id.
+
+  schemas:
+    SuccessResponse:
+      type: object
+      required: [success, data, correlation_id]
+      additionalProperties: false
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          additionalProperties: true
+        correlation_id:
+          type: string
+          format: uuid
+
+    ErrorResponse:
+      type: object
+      required: [success, error_code, message, correlation_id]
+      additionalProperties: false
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        error_code:
+          type: string
+          description: Stable machine-readable code, e.g. EXTRACTION_MODEL_UNAVAILABLE.
+        message:
+          type: string
+          description: Human-readable explanation. No secrets or PII.
+        correlation_id:
+          type: string
+          format: uuid
+        details:
+          type: object
+          nullable: true
+          additionalProperties: true
+
+    PagedResult:
+      type: object
+      required: [items, page, page_size, total]
+      additionalProperties: false
+      properties:
+        items:
+          type: array
+          items: {}
+        page:
+          type: integer
+          minimum: 1
+        page_size:
+          type: integer
+          minimum: 1
+          maximum: 500
+        total:
+          type: integer
+          minimum: 0
+
+    LoginResponse:
+      type: object
+      required: [access_token, expires_at]
+      additionalProperties: false
+      properties:
+        access_token:
+          type: string
+          description: Short-lived JWT. Include in subsequent requests as Bearer token.
+        expires_at:
+          type: string
+          format: date-time
+          description: ISO 8601 UTC expiry of the access token.
+
+    DocumentStatusValue:
+      type: string
+      enum:
+        - Uploaded
+        - Ingesting
+        - Ingested
+        - Extracting
+        - Extracted
+        - Evidencing
+        - Scored
+        - EngineDone
+        - Failed
+
+    BatchStatusValue:
+      type: string
+      enum:
+        - Pending
+        - Running
+        - Completed
+        - PartiallyFailed
+        - Failed
+
+    ModelModeValue:
+      type: string
+      enum:
+        - SinglePrimary
+        - SingleSecondary
+        - DualAdversarial
+
+    EvidenceSourceValue:
+      type: string
+      enum:
+        - PatentApi
+        - SeedCorpus
+        - LlmResearch
+
+    AxisScoreObject:
+      type: object
+      required: [score, confidence_band, citation_refs]
+      additionalProperties: false
+      properties:
+        score:
+          type: number
+          minimum: 0
+          maximum: 100
+        confidence_band:
+          type: string
+          enum: [Low, Medium, High]
+        citation_refs:
+          type: array
+          items:
+            type: string
+
+    CompleteResponse:
+      type: object
+      required: [provider, model, content]
+      additionalProperties: false
+      properties:
+        provider:
+          type: string
+          description: Name of the upstream LLM provider that served this response.
+        model:
+          type: string
+          description: Exact model identifier used.
+        content:
+          type: string
+          description: Generated text content.
+        citations:
+          type: array
+          nullable: true
+          items:
+            type: string
+        usage:
+          type: object
+          nullable: true
+          additionalProperties: false
+          properties:
+            prompt_tokens:
+              type: integer
+            completion_tokens:
+              type: integer
+        grounding:
+          type: object
+          nullable: true
+          additionalProperties: false
+          properties:
+            is_grounded:
+              type: boolean
+            confidence:
+              type: number
+              minimum: 0
+              maximum: 1
+            reason:
+              type: string
+        error:
+          type: string
+          nullable: true
+
+  responses:
+    400:
+      description: Validation error — request body or path parameters failed validation.
+      headers:
+        X-Correlation-Id:
+          schema:
+            type: string
+            format: uuid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+    401:
+      description: Unauthenticated — missing or invalid Bearer token.
+      headers:
+        X-Correlation-Id:
+          schema:
+            type: string
+            format: uuid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+    403:
+      description: Forbidden — authenticated but insufficient role.
+      headers:
+        X-Correlation-Id:
+          schema:
+            type: string
+            format: uuid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+    404:
+      description: Not found.
+      headers:
+        X-Correlation-Id:
+          schema:
+            type: string
+            format: uuid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+    502:
+      description: Upstream service error — downstream dependency failed.
+      headers:
+        X-Correlation-Id:
+          schema:
+            type: string
+            format: uuid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+paths:
+
+  # ---------------------------------------------------------------------------
+  # Auth — anonymous
+  # ---------------------------------------------------------------------------
+
+  /auth/login:
+    post:
+      summary: Authenticate with email and password
+      operationId: authLogin
+      security: []
+      tags: [Auth]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              additionalProperties: false
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+      responses:
+        "200":
+          description: >
+            Authentication successful. Sets an HttpOnly Secure SameSite=Strict
+            refresh_token cookie in addition to returning the access token.
+          headers:
+            X-Correlation-Id:
+              schema:
+                type: string
+                format: uuid
+            Set-Cookie:
+              schema:
+                type: string
+              description: refresh_token=<value>; HttpOnly; Secure; SameSite=Strict; Path=/auth/refresh
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "502":
+          $ref: "#/components/responses/502"
+
+  /auth/refresh:
+    post:
+      summary: Refresh access token using HttpOnly refresh_token cookie
+      operationId: authRefresh
+      security: []
+      tags: [Auth]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: New access token issued.
+          headers:
+            X-Correlation-Id:
+              schema:
+                type: string
+                format: uuid
+            Set-Cookie:
+              schema:
+                type: string
+              description: Rotated refresh_token cookie.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          $ref: "#/components/responses/401"
+        "502":
+          $ref: "#/components/responses/502"
+
+  /auth/entra:
+    post:
+      summary: Exchange an Azure Entra ID token for a Cortexa access token
+      operationId: authEntra
+      security: []
+      tags: [Auth]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id_token]
+              additionalProperties: false
+              properties:
+                id_token:
+                  type: string
+                  description: Entra ID token obtained from MSAL on the client.
+      responses:
+        "200":
+          description: Exchange successful.
+          headers:
+            X-Correlation-Id:
+              schema:
+                type: string
+                format: uuid
+            Set-Cookie:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "502":
+          $ref: "#/components/responses/502"
+
+  # ---------------------------------------------------------------------------
+  # Ingestion — Researcher, Reviewer, Admin
+  # ---------------------------------------------------------------------------
+
+  /ingestion/jobs:
+    post:
+      summary: Submit a document or repository for ingestion
+      operationId: ingestionCreateJob
+      tags: [Ingestion]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [source_type, batch_id]
+              additionalProperties: false
+              properties:
+                source_type:
+                  type: string
+                  enum: [file, repo]
+                blob_uri:
+                  type: string
+                  format: uri
+                  description: Required when source_type is file.
+                repo_url:
+                  type: string
+                  format: uri
+                  description: Required when source_type is repo.
+                batch_id:
+                  type: string
+                  format: uuid
+      responses:
+        "202":
+          description: Job accepted. Processing is asynchronous.
+          headers:
+            X-Correlation-Id:
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [document_id, status]
+                additionalProperties: false
+                properties:
+                  document_id:
+                    type: string
+                    format: uuid
+                  status:
+                    $ref: "#/components/schemas/DocumentStatusValue"
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          $ref: "#/components/responses/403"
+        "502":
+          $ref: "#/components/responses/502"
+
+  /ingestion/jobs/{document_id}:
+    get:
+      summary: Get ingestion job status
+      operationId: ingestionGetJob
+      tags: [Ingestion]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - name: document_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Current status of the ingestion job.
+          headers:
+            X-Correlation-Id:
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [document_id, status, created_at]
+                additionalProperties: false
+                properties:
+                  document_id:
+                    type: string
+                    format: uuid
+                  status:
+                    $ref: "#/components/schemas/DocumentStatusValue"
+                  chunk_count:
+                    type: integer
+                    nullable: true
+                    description: Populated after ingestion completes.
+                  created_at:
+                    type: string
+                    format: date-time
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          $ref: "#/components/responses/403"
+        "404":
+          $ref: "#/components/responses/404"
+        "502":
+          $ref: "#/components/responses/502"
+
+  # ---------------------------------------------------------------------------
+  # Extraction — Researcher, Reviewer, Admin
+  # ---------------------------------------------------------------------------
+
+  /extraction/candidates:
+    post:
+      summary: Run invention candidate extraction on an ingested document
+      operationId: extractionCreateCandidates
+      tags: [Extraction]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [document_id]
+              additionalProperties: false
+              properties:
+                document_id:
+                  type: string
+                  format: uuid
+                model_mode:
+                  $ref: "#/components/schemas/ModelModeValue"
+      responses:
+        "202":
+          description: Extraction accepted. Candidate IDs returned when complete via GET.
+          headers:
+            X-Correlation-Id:
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [candidate_ids]
+                additionalProperties: false
+                properties:
+                  candidate_ids:
+                    type: array
+                    items:
+                      type: string
+                      format: uuid
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          $ref: "#/components/responses/403"
+        "502":
+          $ref: "#/components/responses/502"
+
+  /extraction/candidates/{document_id}:
+    get:
+      summary: List extraction candidates for a document
+      operationId: extractionGetCandidates
+      tags: [Extraction]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - name: document_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: List of all invention candidates extracted from this document.
+          headers:
+            X-Correlation-Id:
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [id, claim_text, problem, mechanism, tech_field, source_span]
+                  additionalProperties: false
+                  properties:
+                    id:
+                      type: string
+                      format: uuid
+                    claim_text:
+                      type: string
+                    problem:
+                      type: string
+                    mechanism:
+                      type: string
+                    tech_field:
+                      type: string
+                    source_span:
+                      type: object
+                      required: [source_kind, locator]
+                      additionalProperties: false
+                      properties:
+                        source_kind:
+                          type: string
+                          enum: [paper, code]
+                        locator:
+                          type: string
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          $ref: "#/components/responses/403"
+        "404":
+          $ref: "#/components/responses/404"
+        "502":
+          $ref: "#/components/responses/502"
+
+  # ---------------------------------------------------------------------------
+  # Evidence — Researcher, Reviewer, Admin
+  # ---------------------------------------------------------------------------
+
+  /evidence/bundles:
+    post:
+      summary: Request evidence lookup for a candidate
+      operationId: evidenceCreateBundle
+      tags: [Evidence]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [document_id, candidate_id]
+              additionalProperties: false
+              properties:
+                document_id:
+                  type: string
+                  format: uuid
+                candidate_id:
+                  type: string
+                  format: uuid
+      responses:
+        "202":
+          description: Evidence lookup accepted.
+          headers:
+            X-Correlation-Id:
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [evidence_bundle_id]
+                additionalProperties: false
+                properties:
+                  evidence_bundle_id:
+                    type: string
+                    format: uuid
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          $ref: "#/components/responses/403"
+        "502":
+          $ref: "#/components/responses/502"
+
+  /evidence/bundles/{candidate_id}:
+    get:
+      summary: Get the evidence bundle for a candidate
+      operationId: evidenceGetBundle
+      tags: [Evidence]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - name: candidate_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Evidence bundle for the candidate.
+          headers:
+            X-Correlation-Id:
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [candidate_id, hits, confidence_band, sources_used]
+                additionalProperties: false
+                properties:
+                  candidate_id:
+                    type: string
+                    format: uuid
+                  hits:
+                    type: array
+                    items:
+                      type: object
+                      required: [source, reference, citation, similarity]
+                      additionalProperties: false
+                      properties:
+                        source:
+                          $ref: "#/components/schemas/EvidenceSourceValue"
+                        reference:
+                          type: string
+                          description: Patent number, corpus document ID, or LLM citation key.
+                        citation:
+                          type: string
+                          description: Human-readable citation string.
+                        similarity:
+                          type: number
+                          minimum: 0
+                          maximum: 1
+                          description: Cosine similarity or relevance score.
+                  confidence_band:
+                    type: string
+                    enum: [Low, Medium, High]
+                  sources_used:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/EvidenceSourceValue"
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          $ref: "#/components/responses/403"
+        "404":
+          $ref: "#/components/responses/404"
+        "502":
+          $ref: "#/components/responses/502"
+
+  # ---------------------------------------------------------------------------
+  # Scoring — Researcher, Reviewer, Admin
+  # ---------------------------------------------------------------------------
+
+  /scoring/verdicts:
+    post:
+      summary: Score a candidate against its evidence bundle
+      operationId: scoringCreateVerdict
+      tags: [Scoring]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [document_id, candidate_id, evidence_bundle_id]
+              additionalProperties: false
+              properties:
+                document_id:
+                  type: string
+                  format: uuid
+                candidate_id:
+                  type: string
+                  format: uuid
+                evidence_bundle_id:
+                  type: string
+                  format: uuid
+                model_mode:
+                  $ref: "#/components/schemas/ModelModeValue"
+      responses:
+        "202":
+          description: Scoring accepted.
+          headers:
+            X-Correlation-Id:
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [verdict_id]
+                additionalProperties: false
+                properties:
+                  verdict_id:
+                    type: string
+                    format: uuid
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          $ref: "#/components/responses/403"
+        "502":
+          $ref: "#/components/responses/502"
+
+  /scoring/verdicts/{candidate_id}:
+    get:
+      summary: Get the scoring verdict for a candidate
+      operationId: scoringGetVerdict
+      tags: [Scoring]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - name: candidate_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Full verdict with axis scores and composite score.
+          headers:
+            X-Correlation-Id:
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [candidate_id, axis_scores, composite_score, citations]
+                additionalProperties: false
+                properties:
+                  candidate_id:
+                    type: string
+                    format: uuid
+                  axis_scores:
+                    type: object
+                    required: [Novelty, Inventiveness, Commercial, Strategic, Patentability]
+                    additionalProperties: false
+                    properties:
+                      Novelty:
+                        $ref: "#/components/schemas/AxisScoreObject"
+                      Inventiveness:
+                        $ref: "#/components/schemas/AxisScoreObject"
+                      Commercial:
+                        $ref: "#/components/schemas/AxisScoreObject"
+                      Strategic:
+                        $ref: "#/components/schemas/AxisScoreObject"
+                      Patentability:
+                        $ref: "#/components/schemas/AxisScoreObject"
+                  composite_score:
+                    type: number
+                    minimum: 0
+                    maximum: 100
+                  citations:
+                    type: array
+                    items:
+                      type: string
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          $ref: "#/components/responses/403"
+        "404":
+          $ref: "#/components/responses/404"
+        "502":
+          $ref: "#/components/responses/502"
+
+  # ---------------------------------------------------------------------------
+  # Harvesting — Researcher, Reviewer, Admin
+  # ---------------------------------------------------------------------------
+
+  /harvesting/reports:
+    post:
+      summary: Generate a harvesting report for a batch
+      operationId: harvestingCreateReport
+      tags: [Harvesting]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [batch_id]
+              additionalProperties: false
+              properties:
+                batch_id:
+                  type: string
+                  format: uuid
+      responses:
+        "202":
+          description: Report generation accepted.
+          headers:
+            X-Correlation-Id:
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [report_id]
+                additionalProperties: false
+                properties:
+                  report_id:
+                    type: string
+                    format: uuid
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          $ref: "#/components/responses/403"
+        "502":
+          $ref: "#/components/responses/502"
+
+  /harvesting/reports/{report_id}:
+    get:
+      summary: Get a harvesting report
+      operationId: harvestingGetReport
+      tags: [Harvesting]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - name: report_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Harvesting report with ranked candidates.
+          headers:
+            X-Correlation-Id:
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [report_id, candidates]
+                additionalProperties: false
+                properties:
+                  report_id:
+                    type: string
+                    format: uuid
+                  candidates:
+                    type: array
+                    items:
+                      type: object
+                      required: [candidate_id, maturity, rank_score, why_patentable]
+                      additionalProperties: false
+                      properties:
+                        candidate_id:
+                          type: string
+                          format: uuid
+                        maturity:
+                          type: string
+                          enum: [Mature, EmergingSignal]
+                        rank_score:
+                          type: number
+                          minimum: 0
+                          maximum: 100
+                        why_patentable:
+                          type: string
+                        blocking_note:
+                          type: string
+                          nullable: true
+                          description: Present when a known prior-art or freedom-to-operate concern exists.
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          $ref: "#/components/responses/403"
+        "404":
+          $ref: "#/components/responses/404"
+        "502":
+          $ref: "#/components/responses/502"
+
+  # ---------------------------------------------------------------------------
+  # Seeding — Researcher, Reviewer, Admin
+  # ---------------------------------------------------------------------------
+
+  /seeding/reports:
+    post:
+      summary: Generate a seeding report proposing new patent opportunities
+      operationId: seedingCreateReport
+      tags: [Seeding]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [document_id, batch_id]
+              additionalProperties: false
+              properties:
+                document_id:
+                  type: string
+                  format: uuid
+                batch_id:
+                  type: string
+                  format: uuid
+      responses:
+        "202":
+          description: Report generation accepted.
+          headers:
+            X-Correlation-Id:
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [report_id]
+                additionalProperties: false
+                properties:
+                  report_id:
+                    type: string
+                    format: uuid
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          $ref: "#/components/responses/403"
+        "502":
+          $ref: "#/components/responses/502"
+
+  /seeding/reports/{report_id}:
+    get:
+      summary: Get a seeding report
+      operationId: seedingGetReport
+      tags: [Seeding]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - name: report_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Seeding report with opportunity map and claim seeds.
+          headers:
+            X-Correlation-Id:
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [report_id, opportunity_map, claim_seeds, idf_draft, invention_lattice]
+                additionalProperties: false
+                properties:
+                  report_id:
+                    type: string
+                    format: uuid
+                  opportunity_map:
+                    type: string
+                    description: Narrative description of the patent opportunity landscape derived from the asset.
+                  claim_seeds:
+                    type: array
+                    items:
+                      type: string
+                    description: Draft independent claim seed sentences ready for patent attorney refinement.
+                  idf_draft:
+                    type: string
+                    description: Invention disclosure form draft in prose form.
+                  invention_lattice:
+                    type: string
+                    description: Structured decomposition of the invention space as a serialized graph or outline.
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          $ref: "#/components/responses/403"
+        "404":
+          $ref: "#/components/responses/404"
+        "502":
+          $ref: "#/components/responses/502"
+
+  # ---------------------------------------------------------------------------
+  # Orchestrator — Researcher, Reviewer, Admin
+  # ---------------------------------------------------------------------------
+
+  /orchestrator/batches:
+    post:
+      summary: Submit a batch of documents for end-to-end pipeline processing
+      operationId: orchestratorCreateBatch
+      tags: [Orchestrator]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [documents, engines]
+              additionalProperties: false
+              properties:
+                documents:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [source_type]
+                    additionalProperties: false
+                    properties:
+                      source_type:
+                        type: string
+                        enum: [file, repo]
+                      blob_uri:
+                        type: string
+                        format: uri
+                      repo_url:
+                        type: string
+                        format: uri
+                engines:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: string
+                    enum: [harvesting, seeding]
+      responses:
+        "202":
+          description: Batch accepted. Saga begins asynchronously.
+          headers:
+            X-Correlation-Id:
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [batch_id, status]
+                additionalProperties: false
+                properties:
+                  batch_id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    enum: [Pending]
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          $ref: "#/components/responses/403"
+        "502":
+          $ref: "#/components/responses/502"
+
+  /orchestrator/batches/{batch_id}:
+    get:
+      summary: Get batch status
+      operationId: orchestratorGetBatch
+      tags: [Orchestrator]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - name: batch_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Current batch status.
+          headers:
+            X-Correlation-Id:
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [batch_id, status, document_count, completed_count, failed_count, created_at, updated_at]
+                additionalProperties: false
+                properties:
+                  batch_id:
+                    type: string
+                    format: uuid
+                  status:
+                    $ref: "#/components/schemas/BatchStatusValue"
+                  document_count:
+                    type: integer
+                    minimum: 0
+                  completed_count:
+                    type: integer
+                    minimum: 0
+                  failed_count:
+                    type: integer
+                    minimum: 0
+                  created_at:
+                    type: string
+                    format: date-time
+                  updated_at:
+                    type: string
+                    format: date-time
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          $ref: "#/components/responses/403"
+        "404":
+          $ref: "#/components/responses/404"
+        "502":
+          $ref: "#/components/responses/502"
+
+  /orchestrator/batches/{batch_id}/documents:
+    get:
+      summary: List documents in a batch with their pipeline status
+      operationId: orchestratorListBatchDocuments
+      tags: [Orchestrator]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+        - name: batch_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 500
+            default: 50
+      responses:
+        "200":
+          description: Paged list of documents and their current statuses.
+          headers:
+            X-Correlation-Id:
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PagedResult"
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          type: object
+                          required: [document_id, status, created_at]
+                          additionalProperties: false
+                          properties:
+                            document_id:
+                              type: string
+                              format: uuid
+                            status:
+                              $ref: "#/components/schemas/DocumentStatusValue"
+                            created_at:
+                              type: string
+                              format: date-time
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          $ref: "#/components/responses/403"
+        "404":
+          $ref: "#/components/responses/404"
+        "502":
+          $ref: "#/components/responses/502"
+
+  # ---------------------------------------------------------------------------
+  # Model Router — Admin only
+  # ---------------------------------------------------------------------------
+
+  /model/complete:
+    post:
+      summary: Submit a completion task to the active primary or secondary LLM
+      operationId: modelComplete
+      tags: [Model]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [task_kind, prompt]
+              additionalProperties: false
+              properties:
+                task_kind:
+                  type: string
+                  description: >
+                    Semantic label for the task type. Used by model-router to select
+                    the appropriate system prompt and apply grounding rules.
+                    Examples: extraction, scoring, seeding.
+                prompt:
+                  type: string
+                  minLength: 1
+                evidence_refs:
+                  type: array
+                  nullable: true
+                  items:
+                    type: string
+                  description: Citation keys from an evidence bundle to include as grounding context.
+                options:
+                  type: object
+                  nullable: true
+                  additionalProperties: false
+                  properties:
+                    max_tokens:
+                      type: integer
+                      minimum: 1
+                    temperature:
+                      type: number
+                      minimum: 0
+                      maximum: 2
+                    stream:
+                      type: boolean
+      responses:
+        "200":
+          description: Completion result from the selected LLM.
+          headers:
+            X-Correlation-Id:
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompleteResponse"
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          $ref: "#/components/responses/403"
+        "502":
+          $ref: "#/components/responses/502"
+
+  /model/complete/dual:
+    post:
+      summary: Submit a completion task to both LLMs simultaneously for adversarial comparison
+      operationId: modelCompleteDual
+      tags: [Model]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [task_kind, prompt]
+              additionalProperties: false
+              properties:
+                task_kind:
+                  type: string
+                prompt:
+                  type: string
+                  minLength: 1
+                evidence_refs:
+                  type: array
+                  nullable: true
+                  items:
+                    type: string
+                options:
+                  type: object
+                  nullable: true
+                  additionalProperties: false
+                  properties:
+                    max_tokens:
+                      type: integer
+                      minimum: 1
+                    temperature:
+                      type: number
+                      minimum: 0
+                      maximum: 2
+                    stream:
+                      type: boolean
+      responses:
+        "200":
+          description: Paired completion results from both LLMs.
+          headers:
+            X-Correlation-Id:
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [primary, secondary]
+                additionalProperties: false
+                properties:
+                  primary:
+                    $ref: "#/components/schemas/CompleteResponse"
+                  secondary:
+                    $ref: "#/components/schemas/CompleteResponse"
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          $ref: "#/components/responses/403"
+        "502":
+          $ref: "#/components/responses/502"
+
+  /model/health:
+    get:
+      summary: Model router health check
+      operationId: modelHealth
+      tags: [Model]
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: Model router is healthy and both LLM backends are reachable.
+          headers:
+            X-Correlation-Id:
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                additionalProperties: false
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy]
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          $ref: "#/components/responses/403"
+        "502":
+          $ref: "#/components/responses/502"
+
+  # ---------------------------------------------------------------------------
+  # Vector Router — Admin only
+  # ---------------------------------------------------------------------------
+
+  /vector/search:
+    post:
+      summary: Search the vector store by embedding
+      operationId: vectorSearch
+      tags: [Vector]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [embedding]
+              additionalProperties: false
+              properties:
+                embedding:
+                  type: array
+                  items:
+                    type: number
+                  minItems: 1
+                  description: Dense float vector from the embedding model.
+                top_k:
+                  type: integer
+                  minimum: 1
+                  maximum: 100
+                  default: 10
+                filters:
+                  type: array
+                  nullable: true
+                  items:
+                    type: object
+                    required: [field, value]
+                    additionalProperties: false
+                    properties:
+                      field:
+                        type: string
+                      value:
+                        description: Filter value. Type matches the payload field type.
+      responses:
+        "200":
+          description: Nearest-neighbor search results.
+          headers:
+            X-Correlation-Id:
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [hits]
+                additionalProperties: false
+                properties:
+                  hits:
+                    type: array
+                    items:
+                      type: object
+                      required: [id, score, payload]
+                      additionalProperties: false
+                      properties:
+                        id:
+                          type: string
+                        score:
+                          type: number
+                          minimum: 0
+                          maximum: 1
+                        payload:
+                          type: object
+                          additionalProperties: true
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          $ref: "#/components/responses/403"
+        "502":
+          $ref: "#/components/responses/502"
+
+  /vector/upsert:
+    post:
+      summary: Insert or update vectors in the vector store
+      operationId: vectorUpsert
+      tags: [Vector]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [items]
+              additionalProperties: false
+              properties:
+                items:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    required: [id, vector, payload]
+                    additionalProperties: false
+                    properties:
+                      id:
+                        type: string
+                        minLength: 1
+                      vector:
+                        type: array
+                        items:
+                          type: number
+                        minItems: 1
+                      payload:
+                        type: object
+                        additionalProperties: true
+      responses:
+        "200":
+          description: Upsert completed.
+          headers:
+            X-Correlation-Id:
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [upserted]
+                additionalProperties: false
+                properties:
+                  upserted:
+                    type: integer
+                    minimum: 0
+                    description: Number of records inserted or updated.
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          $ref: "#/components/responses/403"
+        "502":
+          $ref: "#/components/responses/502"
+
+  /vector/embed:
+    post:
+      summary: Generate embeddings for a list of text inputs
+      operationId: vectorEmbed
+      tags: [Vector]
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [texts]
+              additionalProperties: false
+              properties:
+                texts:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: string
+                    minLength: 1
+      responses:
+        "200":
+          description: Embedding vectors in the same order as the input texts.
+          headers:
+            X-Correlation-Id:
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [embeddings]
+                additionalProperties: false
+                properties:
+                  embeddings:
+                    type: array
+                    items:
+                      type: array
+                      items:
+                        type: number
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          $ref: "#/components/responses/403"
+        "502":
+          $ref: "#/components/responses/502"
+
+  /vector/health:
+    get:
+      summary: Vector router health check
+      operationId: vectorHealth
+      tags: [Vector]
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/CorrelationId"
+      responses:
+        "200":
+          description: Vector router is healthy and the active backend is reachable.
+          headers:
+            X-Correlation-Id:
+              schema:
+                type: string
+                format: uuid
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                additionalProperties: false
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy]
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          $ref: "#/components/responses/403"
+        "502":
+          $ref: "#/components/responses/502"
+
+tags:
+  - name: Auth
+    description: Authentication and token management. All /auth endpoints are anonymous.
+  - name: Ingestion
+    description: Document and repository ingestion. Requires Researcher, Reviewer, or Admin role.
+  - name: Extraction
+    description: Invention candidate extraction from ingested documents. Requires Researcher, Reviewer, or Admin role.
+  - name: Evidence
+    description: Patent evidence lookup from three independent sources. Requires Researcher, Reviewer, or Admin role.
+  - name: Scoring
+    description: Five-axis patentability scoring. Requires Researcher, Reviewer, or Admin role.
+  - name: Harvesting
+    description: Harvesting engine — finds buried patentable inventions. Requires Researcher, Reviewer, or Admin role.
+  - name: Seeding
+    description: Seeding engine — proposes new patent opportunities. Requires Researcher, Reviewer, or Admin role.
+  - name: Orchestrator
+    description: Batch orchestration — runs the full pipeline end-to-end. Requires Researcher, Reviewer, or Admin role.
+  - name: Model
+    description: Model router — LLM completion and mode management. Admin role only.
+  - name: Vector
+    description: Vector router — embedding, search, and upsert. Admin role only.

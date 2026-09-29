@@ -1,0 +1,68 @@
+name: Python Service CI
+
+on:
+  workflow_call:
+    inputs:
+      service:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: ${{ inputs.service }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/${{ inputs.service }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.14"
+          allow-prereleases: true
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      # BUG092: guard against azure-cosmos artifact drift. The scoring/evidence
+      # aio read_item(partition_key=...) call only works on the pinned build; an
+      # older installed SDK leaks the kwarg to aiohttp and fails 100% of scoring.
+      # `uv sync --frozen` already enforces the lockfile, so this asserts the
+      # installed version matches the lock as a loud, explicit build gate.
+      - name: Assert azure-cosmos matches lockfile
+        run: |
+          set -euo pipefail
+          if ! grep -q 'name = "azure-cosmos"' uv.lock; then
+            echo "azure-cosmos not in uv.lock — service does not use Cosmos, skipping."
+            exit 0
+          fi
+          locked=$(awk '/name = "azure-cosmos"/{getline; gsub(/[" ]/,"",$3); print $3; exit}' uv.lock)
+          installed=$(uv run python -c "import azure.cosmos; print(azure.cosmos.__version__)")
+          echo "azure-cosmos locked=$locked installed=$installed"
+          if [ "$locked" != "$installed" ]; then
+            echo "::error::azure-cosmos drift — locked $locked but installed $installed" >&2
+            exit 1
+          fi
+
+      - name: Format check (ruff)
+        run: uv run ruff format --check .
+
+      - name: Lint (ruff)
+        run: uv run ruff check .
+
+      - name: Test (pytest)
+        run: uv run pytest
+
+      - name: Dependency audit (pip-audit)
+        run: uvx pip-audit
+        continue-on-error: true

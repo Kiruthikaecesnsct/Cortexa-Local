@@ -1,0 +1,45 @@
+@Cortexa.ApiGateway.Api_HostAddress = http://localhost:5000
+
+### Health check
+GET {{Cortexa.ApiGateway.Api_HostAddress}}/health
+Accept: application/json
+
+### Auth forwarding example
+GET {{Cortexa.ApiGateway.Api_HostAddress}}/auth/health
+Accept: application/json
+
+### Ingestion forwarding example
+GET {{Cortexa.ApiGateway.Api_HostAddress}}/ingestion/health
+Accept: application/json
+
+### Extraction forwarding example
+GET {{Cortexa.ApiGateway.Api_HostAddress}}/extraction/health
+Accept: application/json
+
+### Evidence forwarding example
+GET {{Cortexa.ApiGateway.Api_HostAddress}}/evidence/health
+Accept: application/json
+
+### Scoring forwarding example
+GET {{Cortexa.ApiGateway.Api_HostAddress}}/scoring/health
+Accept: application/json
+
+### Harvesting forwarding example
+GET {{Cortexa.ApiGateway.Api_HostAddress}}/harvesting/health
+Accept: application/json
+
+### Seeding forwarding example
+GET {{Cortexa.ApiGateway.Api_HostAddress}}/seeding/health
+Accept: application/json
+
+### Orchestrator forwarding example
+GET {{Cortexa.ApiGateway.Api_HostAddress}}/orchestrator/health
+Accept: application/json
+
+### Model router forwarding example
+GET {{Cortexa.ApiGateway.Api_HostAddress}}/model/health
+Accept: application/json
+
+### Vector router forwarding example
+GET {{Cortexa.ApiGateway.Api_HostAddress}}/vector/health
+Accept: application/json

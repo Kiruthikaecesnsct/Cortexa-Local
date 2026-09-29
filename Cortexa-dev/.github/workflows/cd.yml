@@ -1,0 +1,789 @@
+name: CD
+
+on:
+  pull_request:
+    branches:
+      - qa
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - ".notes/**"
+
+permissions:
+  contents: read
+  pull-requests: read
+  id-token: write
+
+env:
+  TF_WORKING_DIR: deploy/environments/dev
+  ACR_LOGIN_SERVER: cortexadevacr.azurecr.io
+  RESOURCE_GROUP: cortexa-dev-rg
+  KEY_VAULT_NAME: cortexa-dev-kv
+
+jobs:
+  changes:
+    name: Detect changed services
+    uses: ./.github/workflows/_changes.yml
+
+  tf-plan:
+    name: Terraform plan
+    needs: changes
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    environment: dev-plan
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+
+      - name: Azure login (OIDC)
+        uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Add runner IP to Key Vault firewall
+        id: runnerip
+        run: |
+          IP=$(curl -sf https://api.ipify.org)
+          echo "ip=$IP" >> "$GITHUB_OUTPUT"
+          az keyvault network-rule add \
+            --name "${{ env.KEY_VAULT_NAME }}" \
+            --resource-group "${{ env.RESOURCE_GROUP }}" \
+            --ip-address "$IP" \
+            --only-show-errors
+          sleep 15
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_wrapper: false
+
+      - name: Terraform init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform init
+
+      - name: Import out-of-band resources
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          # BUG047: Migrate Cosmos batches container from manual to autoscale
+          # throughput. Guard: check current throughput type, migrate only if manual.
+          CURRENT_AUTOSCALE=$(az cosmosdb sql container throughput show \
+            --account-name cortexa-dev-cosmos \
+            --resource-group "${{ env.RESOURCE_GROUP }}" \
+            --database-name cortexa-pipeline \
+            --name batches \
+            --query "resource.autoscaleSettings.maxThroughput" -o tsv 2>/dev/null) || true
+          if [ -z "$CURRENT_AUTOSCALE" ] || [ "$CURRENT_AUTOSCALE" = "None" ]; then
+            echo "batches container is manual throughput — migrating to autoscale"
+            az cosmosdb sql container throughput migrate \
+              --account-name cortexa-dev-cosmos \
+              --resource-group "${{ env.RESOURCE_GROUP }}" \
+              --database-name cortexa-pipeline \
+              --name batches \
+              --throughput-type autoscale
+          else
+            echo "batches container already uses autoscale — migration skipped"
+          fi
+
+          # BUG047: Purge soft-deleted AI accounts (cortexa-dev-aifoundry eastus,
+          # cortexa-dev-claude eastus2) left by BUG046. BUG046 removed both modules;
+          # destroy succeeded but the purge post-step failed 403 (CI SP lacks purge
+          # rights). Purge-on-destroy is now disabled, so apply no longer depends on
+          # purge success. Run purge if the accounts are present; soft-fail on 403.
+          for account_location in "cortexa-dev-aifoundry:eastus" \
+                                  "cortexa-dev-claude:eastus2"; do
+            account_name="${account_location%%:*}"
+            location="${account_location##*:}"
+            if az cognitiveservices account list-deleted \
+                --query "[?name=='$account_name' && location=='$location']" \
+                -o tsv 2>/dev/null | grep -q .; then
+              echo "Soft-deleted account $account_name in $location found — purging"
+              if ! az cognitiveservices account purge \
+                --name "$account_name" \
+                --resource-group "${{ env.RESOURCE_GROUP }}" \
+                --location "$location" 2>&1; then
+                echo "WARN: purge failed — likely 403 permission denied."
+                echo "Account will remain soft-deleted but won't block apply."
+              fi
+            else
+              echo "Soft-deleted account $account_name in $location not present — skip"
+            fi
+          done
+
+          # BUG047: Import the orchestrator subscription under batch-created topic
+          # into state. It exists live but was missing (BUG045 imported only topic).
+          if terraform state list 2>/dev/null | grep -qF \
+              'module.service_bus.azurerm_servicebus_subscription.subscriptions["batch.created__orchestrator"]'; then
+            echo "batch.created orchestrator subscription already in state"
+          else
+            SB_SUB_ID=$(az servicebus topic subscription show \
+              --namespace-name cortexa-dev-bus \
+              --topic-name batch-created \
+              --name orchestrator \
+              --resource-group "${{ env.RESOURCE_GROUP }}" \
+              --query id -o tsv 2>/dev/null) || true
+            if [ -z "$SB_SUB_ID" ]; then
+              echo "orchestrator subscription not in Azure — Terraform will create it"
+            else
+              terraform import \
+                'module.service_bus.azurerm_servicebus_subscription.subscriptions["batch.created__orchestrator"]' \
+                "$SB_SUB_ID"
+            fi
+          fi
+
+          # BUG023: api-gateway authConfigs/current was created via CLI (BUG022
+          # fix) before the azapi_resource block existed — import it if it is not
+          # already in state. Idempotent: skips when in state; skips when the
+          # Azure resource does not yet exist (Terraform will create it on apply).
+          if terraform state list 2>/dev/null \
+              | grep -q 'azapi_resource.api_gateway_auth_config'; then
+            echo "azapi_resource.api_gateway_auth_config already in state"
+          else
+            APP_ID=$(az containerapp show \
+              --name cortexa-dev-api-gateway \
+              --resource-group "${{ env.RESOURCE_GROUP }}" \
+              --query id -o tsv 2>/dev/null) || true
+            if [ -z "$APP_ID" ]; then
+              echo "Container app not found — import skipped"
+            elif az rest --method GET --only-show-errors \
+                --url "https://management.azure.com${APP_ID}/authConfigs/current?api-version=2024-03-01" \
+                > /dev/null 2>&1; then
+              terraform import \
+                'azapi_resource.api_gateway_auth_config' \
+                "${APP_ID}/authConfigs/current"
+            else
+              echo "authConfigs/current not in Azure — Terraform will create it"
+            fi
+          fi
+
+          # BUG045: Three resources exist in Azure and Terraform config but are missing from state.
+          # Import them idempotently so terraform plan adopts them instead of aborting with "already exists".
+
+          # 1. Key Vault secret job-orchestrator-cosmos-uri (root level, no module)
+          if terraform state list 2>/dev/null \
+              | grep -qF 'azurerm_key_vault_secret.platform["job-orchestrator-cosmos-uri"]'; then
+            echo "azurerm_key_vault_secret.platform[\"job-orchestrator-cosmos-uri\"] already in state"
+          else
+            KV_SECRET_ID=$(az keyvault secret show \
+              --vault-name "${{ env.KEY_VAULT_NAME }}" \
+              --name job-orchestrator-cosmos-uri \
+              --query id -o tsv 2>/dev/null) || true
+            if [ -z "$KV_SECRET_ID" ]; then
+              echo "KV secret job-orchestrator-cosmos-uri not in Azure — import skipped"
+            else
+              terraform import \
+                'azurerm_key_vault_secret.platform["job-orchestrator-cosmos-uri"]' \
+                "$KV_SECRET_ID"
+            fi
+          fi
+
+          # 2. Cosmos DB batches container (module.cosmos_db)
+          if terraform state list 2>/dev/null \
+              | grep -qF 'module.cosmos_db.azurerm_cosmosdb_sql_container.this["batches"]'; then
+            echo "module.cosmos_db.azurerm_cosmosdb_sql_container.this[\"batches\"] already in state"
+          else
+            COSMOS_CONTAINER_ID=$(az cosmosdb sql container show \
+              --account-name cortexa-dev-cosmos \
+              --database-name cortexa-pipeline \
+              --name batches \
+              --resource-group "${{ env.RESOURCE_GROUP }}" \
+              --query id -o tsv 2>/dev/null) || true
+            if [ -z "$COSMOS_CONTAINER_ID" ]; then
+              echo "batches container not in Azure — Terraform will create it"
+            else
+              terraform import \
+                'module.cosmos_db.azurerm_cosmosdb_sql_container.this["batches"]' \
+                "$COSMOS_CONTAINER_ID"
+            fi
+          fi
+
+          # 3. Service Bus batch.created topic (module.service_bus; note DOTTED state key, HYPHENATED Azure name)
+          if terraform state list 2>/dev/null \
+              | grep -qF 'module.service_bus.azurerm_servicebus_topic.this["batch.created"]'; then
+            echo "module.service_bus.azurerm_servicebus_topic.this[\"batch.created\"] already in state"
+          else
+            SB_TOPIC_ID=$(az servicebus topic show \
+              --namespace-name cortexa-dev-bus \
+              --name batch-created \
+              --resource-group "${{ env.RESOURCE_GROUP }}" \
+              --query id -o tsv 2>/dev/null) || true
+            if [ -z "$SB_TOPIC_ID" ]; then
+              echo "batch-created topic not in Azure — Terraform will create it"
+            else
+              terraform import \
+                'module.service_bus.azurerm_servicebus_topic.this["batch.created"]' \
+                "$SB_TOPIC_ID"
+            fi
+          fi
+
+          # BUG046: Consolidate cortexa-dev-aifoundry + cortexa-dev-claude into the single
+          # manually-created cortexa-dev-ai-resource AIServices account. Import the account
+          # and its two live GPT deployments (gpt-5.5, gpt-5.4) so Terraform adopts them.
+
+          # 1. AI resource cognitive account
+          if terraform state list 2>/dev/null \
+              | grep -qF 'module.ai_resource.azurerm_cognitive_account.this'; then
+            echo "module.ai_resource.azurerm_cognitive_account.this already in state"
+          else
+            AI_ACCOUNT_ID=$(az cognitiveservices account show \
+              --name cortexa-dev-ai-resource \
+              --resource-group "${{ env.RESOURCE_GROUP }}" \
+              --query id -o tsv 2>/dev/null) || true
+            if [ -z "$AI_ACCOUNT_ID" ]; then
+              echo "cortexa-dev-ai-resource not in Azure — import skipped"
+            else
+              terraform import \
+                'module.ai_resource.azurerm_cognitive_account.this' \
+                "$AI_ACCOUNT_ID"
+            fi
+          fi
+
+          # 2. GPT-5.5 deployment
+          if terraform state list 2>/dev/null \
+              | grep -qF 'module.ai_resource.azurerm_cognitive_deployment.gpt["gpt-5.5"]'; then
+            echo "module.ai_resource.azurerm_cognitive_deployment.gpt[\"gpt-5.5\"] already in state"
+          else
+            GPT55_ID=$(az cognitiveservices account deployment show \
+              --name cortexa-dev-ai-resource \
+              --resource-group "${{ env.RESOURCE_GROUP }}" \
+              --deployment-name gpt-5.5 \
+              --query id -o tsv 2>/dev/null) || true
+            if [ -z "$GPT55_ID" ]; then
+              echo "gpt-5.5 deployment not in Azure — Terraform will create it"
+            else
+              terraform import \
+                'module.ai_resource.azurerm_cognitive_deployment.gpt["gpt-5.5"]' \
+                "$GPT55_ID"
+            fi
+          fi
+
+          # 3. GPT-5.4 deployment
+          if terraform state list 2>/dev/null \
+              | grep -qF 'module.ai_resource.azurerm_cognitive_deployment.gpt["gpt-5.4"]'; then
+            echo "module.ai_resource.azurerm_cognitive_deployment.gpt[\"gpt-5.4\"] already in state"
+          else
+            GPT54_ID=$(az cognitiveservices account deployment show \
+              --name cortexa-dev-ai-resource \
+              --resource-group "${{ env.RESOURCE_GROUP }}" \
+              --deployment-name gpt-5.4 \
+              --query id -o tsv 2>/dev/null) || true
+            if [ -z "$GPT54_ID" ]; then
+              echo "gpt-5.4 deployment not in Azure — Terraform will create it"
+            else
+              terraform import \
+                'module.ai_resource.azurerm_cognitive_deployment.gpt["gpt-5.4"]' \
+                "$GPT54_ID"
+            fi
+          fi
+
+          # BUG087: grok-4.3 and DeepSeek-V4-Pro were deployed live (portal) as part of
+          # rolling out a second Foundry model pair; adopt them into Terraform state so
+          # the azapi_resource blocks don't try to recreate/destroy already-existing
+          # deployments on the first plan.
+
+          # 4. grok-4.3 deployment
+          if terraform state list 2>/dev/null \
+              | grep -qF 'module.ai_resource.azapi_resource.grok_deployment[0]'; then
+            echo "module.ai_resource.azapi_resource.grok_deployment[0] already in state"
+          else
+            GROK_ID=$(az cognitiveservices account deployment show \
+              --name cortexa-dev-ai-resource \
+              --resource-group "${{ env.RESOURCE_GROUP }}" \
+              --deployment-name grok-4.3 \
+              --query id -o tsv 2>/dev/null) || true
+            if [ -z "$GROK_ID" ]; then
+              echo "grok-4.3 deployment not in Azure — Terraform will create it"
+            else
+              terraform import \
+                'module.ai_resource.azapi_resource.grok_deployment[0]' \
+                "$GROK_ID"
+            fi
+          fi
+
+          # 5. DeepSeek-V4-Pro deployment
+          if terraform state list 2>/dev/null \
+              | grep -qF 'module.ai_resource.azapi_resource.deepseek_deployment[0]'; then
+            echo "module.ai_resource.azapi_resource.deepseek_deployment[0] already in state"
+          else
+            DEEPSEEK_ID=$(az cognitiveservices account deployment show \
+              --name cortexa-dev-ai-resource \
+              --resource-group "${{ env.RESOURCE_GROUP }}" \
+              --deployment-name DeepSeek-V4-Pro \
+              --query id -o tsv 2>/dev/null) || true
+            if [ -z "$DEEPSEEK_ID" ]; then
+              echo "DeepSeek-V4-Pro deployment not in Azure — Terraform will create it"
+            else
+              terraform import \
+                'module.ai_resource.azapi_resource.deepseek_deployment[0]' \
+                "$DEEPSEEK_ID"
+            fi
+          fi
+        env:
+          TF_VAR_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          TF_VAR_postgresql_admin_password: ${{ secrets.POSTGRESQL_ADMIN_PASSWORD }}
+          TF_VAR_deployer_object_id: ${{ secrets.DEPLOYER_OBJECT_ID }}
+          TF_VAR_ai_resource_api_key: ${{ secrets.AI_RESOURCE_API_KEY }}
+          TF_VAR_patent_uspto_api_key: ${{ secrets.PATENT_USPTO_API_KEY }}
+          TF_VAR_patent_epo_consumer_key: ${{ secrets.PATENT_EPO_CONSUMER_KEY }}
+          TF_VAR_patent_epo_oauth_secret: ${{ secrets.PATENT_EPO_OAUTH_SECRET }}
+          TF_VAR_patent_lens_api_key: ${{ secrets.PATENT_LENS_API_KEY }}
+          TF_VAR_sentry_dsns: ${{ secrets.SENTRY_DSNS }}
+          TF_VAR_key_vault_allowed_ip_rules: ${{ vars.KEY_VAULT_ALLOWED_IP_RULES }}
+          TF_VAR_postgresql_allowed_ip_ranges: ${{ vars.POSTGRESQL_ALLOWED_IP_RANGES }}
+          TF_VAR_budget_monthly_amount: ${{ vars.BUDGET_MONTHLY_AMOUNT }}
+          TF_VAR_budget_contact_emails: ${{ vars.BUDGET_CONTACT_EMAILS }}
+          TF_VAR_gateway_cors_allowed_origins: ${{ vars.GATEWAY_CORS_ALLOWED_ORIGINS || '[]' }}
+
+      - name: Terraform plan
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform plan -out=tfplan -input=false
+        env:
+          # --- Terraform variable injection ---
+          # Secrets (sensitive — registered on dev-plan and dev-deploy GitHub environments)
+          # TF_VAR_tenant_id              ← secrets.AZURE_TENANT_ID   (already registered for OIDC)
+          # TF_VAR_postgresql_admin_password ← secrets.POSTGRESQL_ADMIN_PASSWORD
+          # TF_VAR_deployer_object_id     ← secrets.DEPLOYER_OBJECT_ID
+          #   (az ad sp show --id <AZURE_CLIENT_ID> --query id -o tsv)
+          # TF_VAR_ai_resource_api_key    ← secrets.AI_RESOURCE_API_KEY (BUG046: single consolidated AI key)
+          # TF_VAR_patent_uspto_api_key   ← secrets.PATENT_USPTO_API_KEY
+          # TF_VAR_patent_epo_consumer_key← secrets.PATENT_EPO_CONSUMER_KEY
+          # TF_VAR_patent_epo_oauth_secret← secrets.PATENT_EPO_OAUTH_SECRET
+          # TF_VAR_patent_lens_api_key    ← secrets.PATENT_LENS_API_KEY
+          # TF_VAR_sentry_dsns            ← secrets.SENTRY_DSNS (US106: JSON map of 11 backend DSNs)
+          # Variables (non-sensitive — registered on dev-plan and dev-deploy GitHub environments)
+          # TF_VAR_key_vault_allowed_ip_rules   ← vars.KEY_VAULT_ALLOWED_IP_RULES
+          #   (JSON string array, e.g. ["1.2.3.4/32"])
+          # TF_VAR_postgresql_allowed_ip_ranges ← vars.POSTGRESQL_ALLOWED_IP_RANGES
+          #   (JSON array of {name,start_ip,end_ip} objects)
+          # TF_VAR_budget_monthly_amount        ← vars.BUDGET_MONTHLY_AMOUNT
+          #   (plain number, e.g. 100)
+          # TF_VAR_budget_contact_emails        ← vars.BUDGET_CONTACT_EMAILS
+          #   (JSON string array, e.g. ["you@example.com"])
+          # TF_VAR_gateway_cors_allowed_origins ← vars.GATEWAY_CORS_ALLOWED_ORIGINS
+          #   (JSON string array of allowed CORS origins, e.g. ["https://nice-beach-0701ce10f.7.azurestaticapps.net"])
+          TF_VAR_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          TF_VAR_postgresql_admin_password: ${{ secrets.POSTGRESQL_ADMIN_PASSWORD }}
+          TF_VAR_deployer_object_id: ${{ secrets.DEPLOYER_OBJECT_ID }}
+          TF_VAR_ai_resource_api_key: ${{ secrets.AI_RESOURCE_API_KEY }}
+          TF_VAR_patent_uspto_api_key: ${{ secrets.PATENT_USPTO_API_KEY }}
+          TF_VAR_patent_epo_consumer_key: ${{ secrets.PATENT_EPO_CONSUMER_KEY }}
+          TF_VAR_patent_epo_oauth_secret: ${{ secrets.PATENT_EPO_OAUTH_SECRET }}
+          TF_VAR_patent_lens_api_key: ${{ secrets.PATENT_LENS_API_KEY }}
+          TF_VAR_sentry_dsns: ${{ secrets.SENTRY_DSNS }}
+          TF_VAR_key_vault_allowed_ip_rules: ${{ vars.KEY_VAULT_ALLOWED_IP_RULES }}
+          TF_VAR_postgresql_allowed_ip_ranges: ${{ vars.POSTGRESQL_ALLOWED_IP_RANGES }}
+          TF_VAR_budget_monthly_amount: ${{ vars.BUDGET_MONTHLY_AMOUNT }}
+          TF_VAR_budget_contact_emails: ${{ vars.BUDGET_CONTACT_EMAILS }}
+          TF_VAR_gateway_cors_allowed_origins: ${{ vars.GATEWAY_CORS_ALLOWED_ORIGINS || '[]' }}
+
+      - name: Encrypt plan artifact
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          gpg --symmetric --cipher-algo AES256 \
+            --passphrase "${{ secrets.TFPLAN_PASSPHRASE }}" \
+            --batch -o tfplan.enc tfplan
+          rm tfplan
+
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: tfplan-enc
+          path: ${{ env.TF_WORKING_DIR }}/tfplan.enc
+          retention-days: 1
+
+      - name: Remove runner IP from Key Vault firewall
+        if: always()
+        run: |
+          IP="${{ steps.runnerip.outputs.ip }}"
+          [ -n "$IP" ] && az keyvault network-rule remove \
+            --name "${{ env.KEY_VAULT_NAME }}" \
+            --resource-group "${{ env.RESOURCE_GROUP }}" \
+            --ip-address "$IP" \
+            --only-show-errors
+
+  tf-apply:
+    name: Terraform apply (gated)
+    needs: tf-plan
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    environment: dev-deploy
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+
+      - name: Azure login (OIDC)
+        uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Add runner IP to Key Vault firewall
+        id: runnerip
+        run: |
+          IP=$(curl -sf https://api.ipify.org)
+          echo "ip=$IP" >> "$GITHUB_OUTPUT"
+          az keyvault network-rule add \
+            --name "${{ env.KEY_VAULT_NAME }}" \
+            --resource-group "${{ env.RESOURCE_GROUP }}" \
+            --ip-address "$IP" \
+            --only-show-errors
+          sleep 15
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_wrapper: false
+
+      - name: Terraform init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform init
+
+      - name: Download plan artifact
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: tfplan-enc
+          path: ${{ env.TF_WORKING_DIR }}
+
+      - name: Decrypt plan artifact
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          gpg --decrypt --passphrase "${{ secrets.TFPLAN_PASSPHRASE }}" --batch -o tfplan tfplan.enc
+          rm tfplan.enc
+
+      - name: Terraform apply
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform apply -input=false tfplan
+        env:
+          # --- Terraform variable injection ---
+          # Secrets (sensitive — registered on dev-plan and dev-deploy GitHub environments)
+          # TF_VAR_tenant_id              ← secrets.AZURE_TENANT_ID   (already registered for OIDC)
+          # TF_VAR_postgresql_admin_password ← secrets.POSTGRESQL_ADMIN_PASSWORD
+          # TF_VAR_deployer_object_id     ← secrets.DEPLOYER_OBJECT_ID
+          #   (az ad sp show --id <AZURE_CLIENT_ID> --query id -o tsv)
+          # TF_VAR_ai_resource_api_key    ← secrets.AI_RESOURCE_API_KEY (BUG046: single consolidated AI key)
+          # TF_VAR_patent_uspto_api_key   ← secrets.PATENT_USPTO_API_KEY
+          # TF_VAR_patent_epo_consumer_key← secrets.PATENT_EPO_CONSUMER_KEY
+          # TF_VAR_patent_epo_oauth_secret← secrets.PATENT_EPO_OAUTH_SECRET
+          # TF_VAR_patent_lens_api_key    ← secrets.PATENT_LENS_API_KEY
+          # TF_VAR_sentry_dsns            ← secrets.SENTRY_DSNS (US106: JSON map of 11 backend DSNs)
+          # Variables (non-sensitive — registered on dev-plan and dev-deploy GitHub environments)
+          # TF_VAR_key_vault_allowed_ip_rules   ← vars.KEY_VAULT_ALLOWED_IP_RULES
+          #   (JSON string array, e.g. ["1.2.3.4/32"])
+          # TF_VAR_postgresql_allowed_ip_ranges ← vars.POSTGRESQL_ALLOWED_IP_RANGES
+          #   (JSON array of {name,start_ip,end_ip} objects)
+          # TF_VAR_budget_monthly_amount        ← vars.BUDGET_MONTHLY_AMOUNT
+          #   (plain number, e.g. 100)
+          # TF_VAR_budget_contact_emails        ← vars.BUDGET_CONTACT_EMAILS
+          #   (JSON string array, e.g. ["you@example.com"])
+          # TF_VAR_gateway_cors_allowed_origins ← vars.GATEWAY_CORS_ALLOWED_ORIGINS
+          #   (JSON string array of allowed CORS origins, e.g. ["https://nice-beach-0701ce10f.7.azurestaticapps.net"])
+          TF_VAR_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          TF_VAR_postgresql_admin_password: ${{ secrets.POSTGRESQL_ADMIN_PASSWORD }}
+          TF_VAR_deployer_object_id: ${{ secrets.DEPLOYER_OBJECT_ID }}
+          TF_VAR_ai_resource_api_key: ${{ secrets.AI_RESOURCE_API_KEY }}
+          TF_VAR_patent_uspto_api_key: ${{ secrets.PATENT_USPTO_API_KEY }}
+          TF_VAR_patent_epo_consumer_key: ${{ secrets.PATENT_EPO_CONSUMER_KEY }}
+          TF_VAR_patent_epo_oauth_secret: ${{ secrets.PATENT_EPO_OAUTH_SECRET }}
+          TF_VAR_patent_lens_api_key: ${{ secrets.PATENT_LENS_API_KEY }}
+          TF_VAR_sentry_dsns: ${{ secrets.SENTRY_DSNS }}
+          TF_VAR_key_vault_allowed_ip_rules: ${{ vars.KEY_VAULT_ALLOWED_IP_RULES }}
+          TF_VAR_postgresql_allowed_ip_ranges: ${{ vars.POSTGRESQL_ALLOWED_IP_RANGES }}
+          TF_VAR_budget_monthly_amount: ${{ vars.BUDGET_MONTHLY_AMOUNT }}
+          TF_VAR_budget_contact_emails: ${{ vars.BUDGET_CONTACT_EMAILS }}
+          TF_VAR_gateway_cors_allowed_origins: ${{ vars.GATEWAY_CORS_ALLOWED_ORIGINS || '[]' }}
+
+      - name: Remove runner IP from Key Vault firewall
+        if: always()
+        run: |
+          IP="${{ steps.runnerip.outputs.ip }}"
+          [ -n "$IP" ] && az keyvault network-rule remove \
+            --name "${{ env.KEY_VAULT_NAME }}" \
+            --resource-group "${{ env.RESOURCE_GROUP }}" \
+            --ip-address "$IP" \
+            --only-show-errors
+
+  build-push:
+    name: Build and push images
+    needs: [changes, tf-apply]
+    if: github.event.pull_request.head.repo.full_name == github.repository && needs.changes.outputs.services != '[]'
+    strategy:
+      matrix:
+        service: ${{ fromJSON(needs.changes.outputs.services) }}
+    uses: ./.github/workflows/_build-push.yml
+    with:
+      service: ${{ matrix.service }}
+      acr_login_server: cortexadevacr.azurecr.io
+    secrets: inherit
+
+  deploy:
+    name: Deploy to Container Apps
+    needs: [changes, build-push]
+    if: github.event.pull_request.head.repo.full_name == github.repository && needs.changes.outputs.services != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJSON(needs.changes.outputs.services) }}
+    uses: ./.github/workflows/_deploy-service.yml
+    with:
+      service: ${{ matrix.service }}
+      image: cortexadevacr.azurecr.io/${{ matrix.service }}:${{ github.sha }}
+      resource_group: cortexa-dev-rg
+      name_prefix: cortexa-dev
+    secrets: inherit
+
+  frontend-deploy:
+    name: Deploy frontend to SWA
+    needs: [changes, tf-apply]
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      preview_url: ${{ steps.swa_deploy.outputs.static_web_app_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+        with:
+          version: "11.10.0"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: "24"
+          cache: "pnpm"
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Build (production)
+        working-directory: frontend
+        run: pnpm build
+        env:
+          VITE_API_BASE_URL: /api
+          VITE_APP_VERSION: ${{ github.sha }}
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+
+      - name: Create Sentry release and upload sourcemaps
+        uses: getsentry/action-release@ff07929a6537bac57790c3451cf4d364aca38528 # v3.7.0
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.SENTRY_ORG }}
+          SENTRY_PROJECT: cortexa-frontend
+        with:
+          environment: dev
+          release: ${{ github.sha }}
+          sourcemaps: frontend/dist
+          set_commits: skip
+
+      # The frontend build emits hidden sourcemaps (vite.config.ts build.sourcemap:
+      # 'hidden') so stack traces resolve in Sentry, but the .map files themselves
+      # must never reach the public Static Web App — strip them post-upload.
+      - name: Remove sourcemaps before SWA upload
+        run: find frontend/dist -name '*.map' -delete
+
+      - name: Remove node_modules before SWA upload
+        run: rm -rf frontend/node_modules
+
+      - name: Deploy to Static Web App
+        id: swa_deploy
+        uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1 # v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.SWA_DEV_DEPLOYMENT_TOKEN }}
+          action: upload
+          # With skip_app_build, the action zips app_location verbatim and ignores
+          # output_location — so app_location must point at the pre-built dist folder,
+          # otherwise the raw source (index.html → /src/main.tsx) is served and the
+          # SPA never mounts (blank page).
+          app_location: frontend/dist
+          skip_app_build: true
+          # Pin the preview slot to a deterministic, PR-scoped name so the close
+          # workflow (cd-swa-close.yml) can delete this exact environment on PR
+          # close. Without it the action auto-names the slot by build number and
+          # `action: close` cannot resolve it — it exits "successfully" deleting
+          # nothing, so previews accumulate until the SKU staging cap is hit.
+          deployment_environment: pr-${{ github.event.pull_request.number }}
+
+  smoke:
+    name: Smoke checks
+    needs: deploy
+    runs-on: ubuntu-latest
+    environment: dev-plan
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Azure login (OIDC)
+        uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Resolve api-gateway FQDN
+        id: gateway
+        run: |
+          fqdn=$(az containerapp show \
+            --name cortexa-dev-api-gateway \
+            --resource-group "${{ env.RESOURCE_GROUP }}" \
+            --query "properties.configuration.ingress.fqdn" -o tsv)
+          echo "fqdn=$fqdn" >> "$GITHUB_OUTPUT"
+
+      # api-gateway is the only externally-exposed Container App; it proxies to every
+      # backend service. Hitting these routes is the only way to smoke-test the internal
+      # services from outside the VNet, and it also exercises the real request path.
+      - name: Health sweep through api-gateway
+        run: |
+          set -euo pipefail
+          fqdn="${{ steps.gateway.outputs.fqdn }}"
+
+          # Service health routes proxied by the gateway (verified against
+          # services/api-gateway/src/Api/appsettings.json ReverseProxy.Routes).
+          # Note: /health (gateway's own ASP.NET health endpoint) is NOT in this list —
+          # it is not a proxied route. Test it separately if needed.
+          routes="auth/health ingestion/health extraction/health evidence/health"
+          routes="$routes scoring/health harvesting/health seeding/health orchestrator/health"
+          routes="$routes model/health vector/health"
+
+          # --- Phase 1: Parallel warm-up (wake all scale-to-zero services concurrently) ---
+          echo "=== Phase 1: Triggering scale-from-zero for all services in parallel ==="
+          warmup_pids=()
+          for route in $routes; do
+            url="https://${fqdn}/${route}"
+            # Fire-and-forget: ignore failures, just wake the service. Run in background.
+            (curl -fsS --max-time 5 "$url" > /dev/null 2>&1 || true) &
+            warmup_pids+=($!)
+          done
+
+          # Wait for all warmup requests to complete (or timeout), then give services
+          # time to complete cold-start boot. 60s should cover ACR image pull + FastAPI/.NET
+          # boot for most services; the gated sweep will catch stragglers.
+          for pid in "${warmup_pids[@]}"; do
+            wait "$pid" 2>/dev/null || true
+          done
+          echo "Warm-up requests sent. Waiting 60s for services to complete cold starts..."
+          sleep 60
+
+          # --- Phase 2: Gated health sweep (strict pass/fail) ---
+          echo "=== Phase 2: Gated health sweep ==="
+          # Per-attempt timeout: individual curl request cap.
+          ATTEMPT_TIMEOUT=10
+          # Per-route budget: enough for stragglers or a single slow cold start, but
+          # bounded so a genuinely dead service fails the gate in reasonable time.
+          # 60s is sufficient now that Phase 1 pre-warmed services in parallel.
+          ROUTE_BUDGET=60
+
+          failed=0
+          for route in $routes; do
+            url="https://${fqdn}/${route}"
+            deadline=$(( $(date +%s) + ROUTE_BUDGET ))
+            attempt=0
+            route_ok=0
+
+            while [ "$(date +%s)" -lt "$deadline" ]; do
+              attempt=$(( attempt + 1 ))
+              echo "Probing /${route} (attempt ${attempt})..."
+
+              # -fsS: fail on HTTP 4xx/5xx, silent progress, show errors.
+              # --max-time: per-attempt cap so a single hung connection does not
+              # consume the entire route budget.
+              http_code=$(curl -fsS --max-time "$ATTEMPT_TIMEOUT" \
+                -o /dev/null -w "%{http_code}" "$url" 2>/dev/null) || curl_exit=$?
+
+              if [ "${http_code:-0}" -ge 200 ] && [ "${http_code:-0}" -lt 400 ]; then
+                echo "OK: /${route} (${http_code}, attempt ${attempt})"
+                route_ok=1
+                break
+              fi
+
+              # Distinguish cold-start (timeout/connection refused, curl exit 7 or 28)
+              # from a live HTTP error (4xx/5xx). A live error means the service is up
+              # but unhealthy — stop retrying and mark failed immediately.
+              if [ -n "${http_code:-}" ] && [ "${http_code}" -ge 400 ]; then
+                echo "FAILED: /${route} returned HTTP ${http_code} — not a cold-start" >&2
+                break
+              fi
+
+              remaining=$(( deadline - $(date +%s) ))
+              echo "/${route} not ready yet (exit ${curl_exit:-unknown}),"\
+                " ${remaining}s budget remaining — retrying in 10s..."
+              sleep 10
+            done
+
+            if [ "$route_ok" -eq 0 ]; then
+              echo "FAILED: /${route} did not become healthy within ${ROUTE_BUDGET}s" >&2
+              failed=1
+            fi
+          done
+          exit $failed
+
+  frontend-validate:
+    name: Validate preview slot static assets
+    needs: [frontend-deploy]
+    if: needs.frontend-deploy.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe preview slot SPA bundle
+        run: |
+          # Azure SWA preview slots (pr-{number}) do NOT inherit linked backends
+          # (backend binding is production-slot-only). The SPA loaded from a preview
+          # slot gets 404 on /api/* → login fails → full E2E cannot run. This step
+          # validates the frontend artifact only: assert the preview serves the built
+          # bundle (not raw source), which confirms the SWA deploy step succeeded.
+          # SWA CDN propagation can lag 10-30s after the deploy step returns, so
+          # retry before failing — a single probe would flakily red-fail a good deploy.
+          PREVIEW_URL="${{ needs.frontend-deploy.outputs.preview_url }}"
+          for attempt in $(seq 1 5); do
+            if curl -fsSL --max-time 20 "$PREVIEW_URL" | grep -q '/assets/index-'; then
+              echo "OK: Preview slot serves built SPA bundle (attempt ${attempt})"
+              exit 0
+            fi
+            echo "Attempt ${attempt}: built bundle not visible yet — retrying in 5s..."
+            sleep 5
+          done
+          echo "ERROR: Preview slot did not serve built bundle after 5 attempts" >&2
+          exit 1
+
+  e2e:
+    name: E2E tests
+    needs: [changes, deploy, frontend-deploy, smoke]
+    # Run E2E when:
+    # - The gate is enabled (vars.CORTEXA_E2E_ENABLED == 'true')
+    # - AND at least one deployment job ran (either deploy or frontend-deploy)
+    # - AND all prerequisite jobs that ran succeeded (skipped jobs don't block)
+    #
+    # Deployment jobs are conditional: deploy skips when no services changed,
+    # frontend-deploy skips when frontend didn't change. Use always() to evaluate
+    # this job regardless of needs status, then guard on each job's result.
+    if: >-
+      always() &&
+      vars.CORTEXA_E2E_ENABLED == 'true' &&
+      (needs.deploy.result == 'success' || needs.deploy.result == 'skipped') &&
+      (needs.frontend-deploy.result == 'success' || needs.frontend-deploy.result == 'skipped') &&
+      (needs.smoke.result == 'success' || needs.smoke.result == 'skipped') &&
+      (needs.deploy.result == 'success' || needs.frontend-deploy.result == 'success')
+    uses: ./.github/workflows/_e2e.yml
+    with:
+      # Azure SWA linked backend (api-gateway) is bound to builds/default (production
+      # slot) ONLY. Preview slots (pr-{number}) do NOT inherit it, and CSP blocks
+      # cross-origin calls. Therefore the browser MUST target the stable dev SWA
+      # (vars.CORTEXA_E2E_BASE_URL), which has the linked backend and serves /api/*
+      # against the freshly-deployed Container Apps revisions. The preview slot's
+      # frontend bundle is validated separately by frontend-validate (static check).
+      # Never run @live full-pipeline in the gate.
+      run_live: false
+    secrets: inherit

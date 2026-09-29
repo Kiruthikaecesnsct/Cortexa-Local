@@ -1,0 +1,140 @@
+{
+  "id": "US070",
+  "workItemType": "User Story",
+  "Title": "Prepare demo dataset and corpus",
+  "Description": "As a product owner, I want a curated demo corpus loaded into the vector store so that the demo finds strong evidence and the seeding output is credible. The work curates a seed corpus of patents in the demo paper's field and loads them into the vector store, ensuring the field is well-represented so evidence search finds strong prior art and seeding opportunities are relevant.",
+  "AcceptanceCriteria": [
+    "Demo paper field is identified and agreed upon",
+    "Representative patents in that field are selected (50+ documents)",
+    "Patents are embedded and loaded into vector store (AI Search or Qdrant)",
+    "Evidence corpus search finds relevant prior art for demo paper",
+    "Seeding recommendations are aligned with the demo field",
+    "Vector index is deployed to prod before demo day"
+  ],
+  "Planning": {
+    "StoryPoints": 1,
+    "Priority": 1
+  },
+  "Classification": {
+    "RemainingWork": 5.0
+  },
+  "Tags": [
+    "demo",
+    "data-prep"
+  ],
+  "TalkingPoints": "I'm going to prepare the demo corpus: select a research paper field, find patents in that field, then embed and load them into the vector store. This is going to ensure the demo finds strong evidence and the seeding output is credible.",
+  "Tasks": [
+    {
+      "Title": "Finalize demo paper field and content",
+      "Description": "Confirm demo paper domain with stakeholders; ensure it is representative and interesting.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "Curate seed corpus of 50+ relevant patents",
+      "Description": "Search USPTO/EPO for patents in demo field; select diverse, high-quality patents.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "Load corpus into vector store (AI Search or Qdrant)",
+      "Description": "Embed patents using model-router; upsert into vector index on prod.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "Verify search finds strong evidence for demo paper",
+      "Description": "Query vector index with demo paper keywords; confirm relevant hits rank high.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Testing"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    }
+  ],
+  "createdDate": "2026-06-13",
+  "state": "New",
+  "Tests": [
+    {
+      "Title": "Demo paper field is identified and representative patents are selected",
+      "Steps": [
+        {
+          "Action": "Confirm demo paper domain with stakeholders (e.g., blockchain, AI, biotech)",
+          "Expected": "Field is agreed upon and representative"
+        },
+        {
+          "Action": "Search USPTO/EPO for patents in that field",
+          "Expected": "50+ relevant patents are found"
+        }
+      ]
+    },
+    {
+      "Title": "Representative patents are embedded via vector-router",
+      "Steps": [
+        {
+          "Action": "Call vector-router to embed each patent in seed corpus",
+          "Expected": "All patents receive embeddings"
+        },
+        {
+          "Action": "Verify embedding dimension matches configured model",
+          "Expected": "Embeddings are consistent"
+        }
+      ]
+    },
+    {
+      "Title": "Patents are loaded into vector store (AI Search or Qdrant)",
+      "Steps": [
+        {
+          "Action": "Upload embeddings to vector store on prod",
+          "Expected": "Vector index is populated"
+        },
+        {
+          "Action": "Verify vector count matches patent count",
+          "Expected": "All patents are indexed"
+        }
+      ]
+    },
+    {
+      "Title": "Vector search finds relevant prior art for demo paper",
+      "Steps": [
+        {
+          "Action": "Extract keywords from demo paper and search vector store",
+          "Expected": "Top results are relevant patents from corpus"
+        },
+        {
+          "Action": "Verify similarity scores are high for relevant matches",
+          "Expected": "Search quality is good"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+project                    = "cortexa"
+environment                = "prod"
+location                   = "eastus"
+tenant_id                  = "<your-azure-tenant-id>"
+resource_group_name        = "cortexa-prod-rg"
+key_vault_allowed_ip_rules = ["<your-ci-runner-ip>/32"]
+
+# Cosmos DB — prod autoscale throughput (reduced from 4000 to fit the
+# $2,000/mo budget cap; see runbook §6 for the cost analysis)
+cosmos_throughput = 1000
+
+# PostgreSQL — password via env var: export TF_VAR_postgresql_admin_password="..."
+postgresql_sku = "GP_Standard_D2s_v3"
+postgresql_allowed_ip_ranges = [
+  {
+    name     = "ci-runner"
+    start_ip = "<your-ci-runner-ip>"
+    end_ip   = "<your-ci-runner-ip>"
+  }
+]
+
+# Service Bus — Standard (Premium's VNet isolation is not exercised by this
+# workload yet; dropped to fit the $2,000/mo budget cap, see runbook §6)
+service_bus_sku = "Standard"
+
+# Container Registry — Premium for prod (geo-replication, VNet support)
+container_registry_sku = "Premium"
+
+# Static Web App
+static_web_app_location = "eastus2"
+static_web_app_sku_tier = "Standard"
+static_web_app_sku_size = "Standard"
+
+# AI Search
+ai_search_sku             = "standard"
+ai_search_replica_count   = 2
+ai_search_partition_count = 1
+
+# Container Apps — prod runs always-on (min_replicas = 1), no scale-to-zero.
+# Cost note: all 11 services are billed continuously at this setting (no idle savings).
+container_apps_min_replicas = 1
+
+# AI Resource — consolidated GPT + Claude + embedding (BUG046).
+# Prod inherits module defaults (gpt-5.5, gpt-5.4, embedding enabled, Claude disabled).
+# No terraform.tfvars overrides required unless deployment mix changes.
+
+# Deployer identity — service principal object ID, NOT the app registration object ID.
+# Run: az ad sp show --id <AZURE_CLIENT_ID> --query id -o tsv
+deployer_object_id = "<your-service-principal-object-id>"
+
+# Budget Alert — triggers at 80% and 100% of monthly_amount
+budget_monthly_amount    = 2000
+budget_time_period_start = "2026-06-01T00:00:00Z"
+budget_contact_emails    = ["team-dl@wisework.in"]
+
+# Patent API credentials — never commit real values; supply via environment variables:
+#   export TF_VAR_patent_uspto_api_key="<your-uspto-api-key>"
+#   export TF_VAR_patent_epo_consumer_key="<your-epo-client-id>"
+#   export TF_VAR_patent_epo_oauth_secret="<your-epo-client-secret>"
+
+# CORS allowed origins for api-gateway (BUG026).
+# After the first prod apply, retrieve the SWA hostname:
+#   terraform -chdir=deploy/environments/prod output static_web_app_default_host_name
+# Then set GATEWAY_CORS_ALLOWED_ORIGINS on the production-plan and production GitHub
+# environments as a JSON string array, e.g. ["https://<prod-swa-host>.azurestaticapps.net"]
+# If a custom domain is bound to the SWA, include both (the SWA proxies /api/* same-origin,
+# but direct gateway FQDN calls from a custom domain still need an entry here).
+# gateway_cors_allowed_origins = ["https://<prod-swa-host>.azurestaticapps.net"]

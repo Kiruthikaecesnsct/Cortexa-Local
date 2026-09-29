@@ -1,0 +1,88 @@
+{
+  "id": "US066",
+  "workItemType": "User Story",
+  "Title": "Security review and hardening",
+  "Description": "As a security engineer, I want a full security review and hardening pass before the prod demo so that the system is safe for customer access. The pass verifies all secrets are in Key Vault (no hardcoding), confirms input validation on all endpoints, verifies JWT validation is strict, checks CORS configuration, scans for dependency vulnerabilities, and produces a signed-off security checklist.",
+  "AcceptanceCriteria": [
+    "All secrets (API keys, connection strings, certs) are in Key Vault or managed identity",
+    "No secrets appear in code, logs, or error messages",
+    "Input validation is applied to all user-facing endpoints (file uploads, repo URLs)",
+    "JWT validation is strict (expiry, signature, issuer)",
+    "CORS is configured securely (not wildcard unless frontend is same origin)",
+    "Dependency audit passes (pip-audit, dotnet list vulnerable, npm audit)",
+    "Security checklist completed and signed by reviewer"
+  ],
+  "Planning": {
+    "StoryPoints": 1,
+    "Priority": 1
+  },
+  "Classification": {
+    "RemainingWork": 8.0
+  },
+  "Tags": ["security", "hardening", "prod"],
+  "TalkingPoints": "I'm going to run a security audit before the prod demo. I'll check for secrets in code, validate input handling, verify auth is strict, and scan for known vulnerabilities. I'm going to sign off on a security checklist so the system is ready for customer access.",
+  "Tasks": [
+    {
+      "Title": "Audit all services for hardcoded secrets",
+      "Description": "Grep codebase for credentials; verify all are in Key Vault or managed identity.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": ["backend", "security"]
+    },
+    {
+      "Title": "Review input validation on all endpoints",
+      "Description": "Check file upload, repo URL, and user input endpoints for injection risks.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": ["backend", "security"]
+    },
+    {
+      "Title": "Verify JWT and CORS configuration",
+      "Description": "Confirm token validation is strict and CORS is not overly permissive.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": ["backend", "security"]
+    },
+    {
+      "Title": "Run dependency vulnerability audit",
+      "Description": "Execute pip-audit, dotnet list vulnerable, npm audit; fix critical and high findings.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": ["backend", "security"]
+    },
+    {
+      "Title": "Complete and sign security checklist",
+      "Description": "Document security review findings and sign off that prod is hardened.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Documentation"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": ["security"]
+    }
+  ],
+  "createdDate": "2026-06-13",
+  "state": "New"
+}

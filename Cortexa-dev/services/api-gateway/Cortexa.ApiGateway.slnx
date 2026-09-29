@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Api/">
+    <Project Path="src/Api/Cortexa.ApiGateway.Api.csproj" />
+  </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/Cortexa.ApiGateway.Tests/Cortexa.ApiGateway.Tests.csproj" />
+  </Folder>
+</Solution>

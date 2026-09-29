@@ -1,0 +1,97 @@
+name: Deploy Service to Container App
+
+on:
+  workflow_call:
+    inputs:
+      service:
+        required: true
+        type: string
+      image:
+        required: true
+        type: string
+      resource_group:
+        required: true
+        type: string
+      name_prefix:
+        description: 'Resource name prefix (e.g. cortexa-dev, cortexa-prod)'
+        required: false
+        default: 'cortexa-dev'
+        type: string
+      health_max_attempts:
+        description: 'Revision health poll attempts (10s each). Raise for services with slow cold starts (e.g. identity, which migrates+seeds RBAC before listening).'
+        required: false
+        default: 20
+        type: number
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: deploy / ${{ inputs.service }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Azure login (OIDC)
+        uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Update Container App image
+        run: |
+          # Retry with backoff: the deploy matrix runs many services concurrently and
+          # Azure ARM returns transient 429 (Too Many Requests) under load. The update
+          # to a fixed image is idempotent, so retrying is safe.
+          delay=10
+          for attempt in $(seq 1 5); do
+            if az containerapp update \
+              --name "${{ inputs.name_prefix }}-${{ inputs.service }}" \
+              --resource-group "${{ inputs.resource_group }}" \
+              --image "${{ inputs.image }}"; then
+              echo "Updated ${{ inputs.service }} image on attempt $attempt."
+              exit 0
+            fi
+            echo "Attempt $attempt/5 to update ${{ inputs.service }} failed, retrying in ${delay}s..."
+            sleep "$delay"
+            delay=$((delay * 2))
+          done
+          echo "Failed to update ${{ inputs.service }} image after 5 attempts." >&2
+          exit 1
+
+      # Container Apps in this environment are internal-only (except api-gateway), so
+      # they are not reachable from a GitHub-hosted runner. Verify rollout health via
+      # the ARM control plane instead of an HTTP probe; the real end-to-end HTTP smoke
+      # test runs once, in cd.yml's smoke job, through api-gateway's public proxy routes.
+      - name: Wait for revision to become healthy
+        run: |
+          svc="${{ inputs.service }}"
+          # Activated/healthy revision states. ScaledToZero is healthy: these apps run
+          # with min_replicas=0, so a revision that started cleanly scales back to zero
+          # and reports ScaledToZero (not Running) once idle.
+          healthy_re='^(Running|RunningAtMaxScale|ScaledToZero)$'
+          # Terminal failure states — fail fast instead of waiting out the timeout.
+          failed_re='^(ActivationFailed|Failed|Degraded)$'
+          max_attempts=${{ inputs.health_max_attempts }}
+          for i in $(seq 1 "$max_attempts"); do
+            state=$(az containerapp revision list \
+              --name "${{ inputs.name_prefix }}-${svc}" \
+              --resource-group "${{ inputs.resource_group }}" \
+              --query "sort_by([?properties.active], &properties.createdTime)[-1].properties.runningState" -o tsv)
+            if [[ "$state" =~ $healthy_re ]]; then
+              echo "Service ${svc} active revision is '$state' (healthy)."
+              exit 0
+            fi
+            if [[ "$state" =~ $failed_re ]]; then
+              echo "Service ${svc} active revision is '$state' — deploy failed." >&2
+              exit 1
+            fi
+            # Transitional (Activating / Provisioning / empty) — keep polling.
+            echo "Attempt $i/$max_attempts: ${svc} revision state is '$state', retrying in 10s..."
+            sleep 10
+          done
+          echo "Service ${svc} did not reach a healthy revision state after deploy." >&2
+          exit 1

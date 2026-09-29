@@ -1,0 +1,103 @@
+name: CD — SWA Production Deploy
+
+# Deploys the React frontend to the SWA production slot after a PR merges to qa.
+# cd.yml runs on pull_request events and therefore always deploys to a PR staging
+# slot. This workflow fires on push (merge) so the production slot receives content.
+
+on:
+  push:
+    branches:
+      - qa
+    paths:
+      - "frontend/**"
+      - ".github/workflows/cd-swa.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-swa:
+    name: Build and deploy to SWA (production)
+    runs-on: ubuntu-latest
+
+    # Production hostname the custom domain resolves to. Used by the post-deploy
+    # gate to confirm the live site is serving the built SPA, not raw source.
+    env:
+      PROD_URL: https://cortexadev.imaginext.co
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+        with:
+          version: "11.10.0"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: "24"
+          cache: "pnpm"
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Build (production)
+        working-directory: frontend
+        run: pnpm build
+        env:
+          VITE_API_BASE_URL: /api
+          VITE_APP_VERSION: ${{ github.sha }}
+
+      - name: Remove node_modules before SWA upload
+        run: rm -rf frontend/node_modules
+
+      - name: Deploy to Static Web App (production slot)
+        uses: Azure/static-web-apps-deploy@4d27395796ac319302594769cfe812bd207490b1 # v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.SWA_DEV_DEPLOYMENT_TOKEN }}
+          action: upload
+          # With skip_app_build, the action zips app_location verbatim and ignores
+          # output_location — so app_location must point at the pre-built dist folder,
+          # otherwise the raw source (index.html → /src/main.tsx) is served and the
+          # SPA never mounts (blank page).
+          app_location: frontend/dist
+          skip_app_build: true
+
+      # Guard against the recurring "blank page" regression. The Azure SWA action
+      # silently succeeds even when it ships the wrong folder, so we assert the
+      # artifact and the live site both serve the built SPA (/assets/*.js) and not
+      # raw source (/src/main.tsx). Either check failing turns the deploy red.
+      - name: Verify built artifact before trusting the deploy
+        run: |
+          set -euo pipefail
+          index="frontend/dist/index.html"
+          test -f "$index" || { echo "::error::$index is missing — build did not run."; exit 1; }
+          grep -q '/assets/.*\.js' "$index" \
+            || { echo "::error::$index does not reference /assets/*.js — not a production build."; exit 1; }
+          if grep -q '/src/main.tsx' "$index"; then
+            echo "::error::$index references /src/main.tsx — raw source, not built output."
+            exit 1
+          fi
+          echo "Artifact OK: built SPA bundle."
+
+      - name: Verify production serves the built app
+        run: |
+          set -euo pipefail
+          url="${PROD_URL%/}/"
+          for attempt in $(seq 1 8); do
+            html="$(curl -fsS --max-time 20 "$url" || true)"
+            if printf '%s' "$html" | grep -q '/assets/.*\.js' \
+               && ! printf '%s' "$html" | grep -q '/src/main.tsx'; then
+              echo "Production OK: $url is serving the built SPA."
+              exit 0
+            fi
+            echo "Attempt $attempt: $url not yet serving built output, retrying in 15s..."
+            sleep 15
+          done
+          echo "::error::$url still serves raw source (index.html → /src/main.tsx); built dist not published."
+          exit 1

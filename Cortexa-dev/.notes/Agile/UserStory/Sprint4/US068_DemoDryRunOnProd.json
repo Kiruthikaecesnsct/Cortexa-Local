@@ -1,0 +1,159 @@
+{
+  "id": "US068",
+  "workItemType": "User Story",
+  "Title": "Demo dry run on prod with seeding scenario",
+  "Description": "As a product owner, I want a full seeding demo dry run on prod so that we can validate the end-to-end user experience before demo day. The dry run uploads a representative research paper, processes it through the full pipeline, and verifies the output includes the opportunity map, IDF, claim seeds, invention lattice, and scored verdict card, while recording the demo flow and timing.",
+  "AcceptanceCriteria": [
+    "Demo paper is uploaded to prod",
+    "Pipeline completes within acceptable time (no timeouts)",
+    "Opportunity map is generated and shown on dashboard",
+    "IDF with abstract, background, and summary is created",
+    "Claim seeds are generated and visible",
+    "Invention lattice (core → continuation → platform → system) is constructed",
+    "Scored verdict card shows 5 axes with citations",
+    "Drill-down shows evidence sources and provenance",
+    "Export to PDF and JSON works",
+    "Demo flow is recorded; timing and UI/UX are validated"
+  ],
+  "Planning": {
+    "StoryPoints": 1,
+    "Priority": 1
+  },
+  "Classification": {
+    "RemainingWork": 8.0
+  },
+  "Tags": [
+    "testing",
+    "demo",
+    "prod"
+  ],
+  "TalkingPoints": "I'm going to run the full seeding demo scenario on prod to validate the user experience. I'll upload the demo paper, watch it flow through the pipeline, and verify all outputs are correct. I'm going to record timing and any issues for refinement.",
+  "Tasks": [
+    {
+      "Title": "Prepare demo research paper and test data",
+      "Description": "Select or create a representative paper; seed corpus with related patents.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Testing"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "Upload and process demo paper through full pipeline",
+      "Description": "Submit paper, monitor stages, confirm all outputs are generated.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Testing"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "Validate UI and drill-down flows",
+      "Description": "Navigate dashboard, click on cards, drill to evidence, verify citations.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Testing"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "frontend"
+      ]
+    },
+    {
+      "Title": "Test export and verify PDF/JSON quality",
+      "Description": "Export verdict and report; confirm files are valid and complete.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Testing"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "frontend"
+      ]
+    },
+    {
+      "Title": "Record timing and document demo observations",
+      "Description": "Measure end-to-end latency, note any UI/UX issues, document readiness.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Documentation"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "frontend"
+      ]
+    }
+  ],
+  "createdDate": "2026-06-13",
+  "state": "New",
+  "Tests": [
+    {
+      "Title": "Demo paper uploads and pipeline completes within acceptable time",
+      "Steps": [
+        {
+          "Action": "Upload demo research paper to prod and start processing",
+          "Expected": "Paper is accepted and flows through pipeline"
+        },
+        {
+          "Action": "Monitor pipeline progress and measure end-to-end latency",
+          "Expected": "Pipeline completes without timeout (under 10 minutes typical)"
+        }
+      ]
+    },
+    {
+      "Title": "Opportunity map, IDF, claim seeds, and invention lattice are generated",
+      "Steps": [
+        {
+          "Action": "After pipeline completes, navigate dashboard and verify seeding output",
+          "Expected": "Opportunity map card is visible with innovation summary"
+        },
+        {
+          "Action": "Drill into seeding detail and verify IDF, claim seeds, and lattice sections",
+          "Expected": "All seeding components are present and populated"
+        }
+      ]
+    },
+    {
+      "Title": "Scored verdict card shows 5 axes with citations",
+      "Steps": [
+        {
+          "Action": "View verdict card on dashboard",
+          "Expected": "Card displays 5 scoring axes (novelty, inventiveness, etc.)"
+        },
+        {
+          "Action": "Verify each axis has citations and evidence links",
+          "Expected": "Citations are present and traceable to source patents"
+        }
+      ]
+    },
+    {
+      "Title": "Export to PDF and JSON works and files are valid",
+      "Steps": [
+        {
+          "Action": "Click export PDF and verify file downloads and opens",
+          "Expected": "PDF contains verdict, evidence, and citations"
+        },
+        {
+          "Action": "Click export JSON and verify file is valid JSON with all data",
+          "Expected": "JSON export is complete"
+        }
+      ]
+    }
+  ]
+}

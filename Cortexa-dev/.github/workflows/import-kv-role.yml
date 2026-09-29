@@ -1,0 +1,89 @@
+name: Import Key Vault role assignment into Terraform state
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment (dev or prod)"
+        type: choice
+        options:
+          - dev
+          - prod
+        default: dev
+        required: true
+      assignment_id:
+        description: >-
+          Full Azure resource ID of the role assignment to import
+          (az role assignment list --scope <vault-id> --query "[0].id" -o tsv)
+        type: string
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  TF_WORKING_DIR: deploy/environments/${{ inputs.environment }}
+
+jobs:
+  import:
+    name: Import role assignment
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment == 'prod' && 'production' || 'dev-deploy' }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+
+      - name: Azure login (OIDC)
+        uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_wrapper: false
+
+      - name: Terraform init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform init
+
+      - name: Import role assignment
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform import azurerm_role_assignment.deployer_secrets "${{ inputs.assignment_id }}"
+        env:
+          # --- Terraform variable injection ---
+          # Secrets (sensitive — registered on dev-plan and dev-deploy GitHub environments)
+          # TF_VAR_tenant_id              ← secrets.AZURE_TENANT_ID   (already registered for OIDC)
+          # TF_VAR_postgresql_admin_password ← secrets.POSTGRESQL_ADMIN_PASSWORD
+          # TF_VAR_deployer_object_id     ← secrets.DEPLOYER_OBJECT_ID
+          #   (az ad sp show --id <AZURE_CLIENT_ID> --query id -o tsv)
+          # TF_VAR_patent_uspto_api_key   ← secrets.PATENT_USPTO_API_KEY
+          # TF_VAR_patent_epo_consumer_key← secrets.PATENT_EPO_CONSUMER_KEY
+          # TF_VAR_patent_epo_oauth_secret← secrets.PATENT_EPO_OAUTH_SECRET
+          # TF_VAR_patent_lens_api_key    ← secrets.PATENT_LENS_API_KEY
+          # Variables (non-sensitive — registered on dev-plan and dev-deploy GitHub environments)
+          # TF_VAR_key_vault_allowed_ip_rules   ← vars.KEY_VAULT_ALLOWED_IP_RULES
+          #   (JSON string array, e.g. ["1.2.3.4/32"])
+          # TF_VAR_postgresql_allowed_ip_ranges ← vars.POSTGRESQL_ALLOWED_IP_RANGES
+          #   (JSON array of {name,start_ip,end_ip} objects)
+          # TF_VAR_budget_monthly_amount        ← vars.BUDGET_MONTHLY_AMOUNT
+          #   (plain number, e.g. 100)
+          # TF_VAR_budget_contact_emails        ← vars.BUDGET_CONTACT_EMAILS
+          #   (JSON string array, e.g. ["you@example.com"])
+          TF_VAR_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          TF_VAR_postgresql_admin_password: ${{ secrets.POSTGRESQL_ADMIN_PASSWORD }}
+          TF_VAR_deployer_object_id: ${{ secrets.DEPLOYER_OBJECT_ID }}
+          TF_VAR_patent_uspto_api_key: ${{ secrets.PATENT_USPTO_API_KEY }}
+          TF_VAR_patent_epo_consumer_key: ${{ secrets.PATENT_EPO_CONSUMER_KEY }}
+          TF_VAR_patent_epo_oauth_secret: ${{ secrets.PATENT_EPO_OAUTH_SECRET }}
+          TF_VAR_patent_lens_api_key: ${{ secrets.PATENT_LENS_API_KEY }}
+          TF_VAR_key_vault_allowed_ip_rules: ${{ vars.KEY_VAULT_ALLOWED_IP_RULES }}
+          TF_VAR_postgresql_allowed_ip_ranges: ${{ vars.POSTGRESQL_ALLOWED_IP_RANGES }}
+          TF_VAR_budget_monthly_amount: ${{ vars.BUDGET_MONTHLY_AMOUNT }}
+          TF_VAR_budget_contact_emails: ${{ vars.BUDGET_CONTACT_EMAILS }}

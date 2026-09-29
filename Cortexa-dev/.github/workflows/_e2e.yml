@@ -1,0 +1,79 @@
+name: E2E Tests
+
+on:
+  workflow_call:
+    inputs:
+      run_live:
+        description: Run @live full-pipeline test
+        required: false
+        type: boolean
+        default: false
+      base_url:
+        description: Frontend base URL (overrides vars.CORTEXA_E2E_BASE_URL when set)
+        required: false
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  e2e:
+    name: e2e-tests
+    runs-on: ubuntu-latest
+    if: vars.CORTEXA_E2E_ENABLED == 'true'
+    environment: dev-plan
+    defaults:
+      run:
+        working-directory: tests/e2e
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+        with:
+          version: "11.10.0"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: "24"
+          cache: "pnpm"
+          cache-dependency-path: tests/e2e/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm run install-browsers
+
+      - name: Azure login (OIDC)
+        uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Run Playwright E2E tests
+        run: ${{ inputs.run_live && 'pnpm run test:live' || 'pnpm test' }}
+        env:
+          CI: true
+          CORTEXA_E2E_BASE_URL: ${{ inputs.base_url || vars.CORTEXA_E2E_BASE_URL }}
+          CORTEXA_GATEWAY_BASE_URL: ${{ vars.CORTEXA_GATEWAY_BASE_URL }}
+          CORTEXA_KEY_VAULT_NAME: ${{ vars.CORTEXA_KEY_VAULT_NAME }}
+          CORTEXA_ADMIN_EMAIL_SECRET: ${{ vars.CORTEXA_ADMIN_EMAIL_SECRET || 'identity-admin-email' }}
+          CORTEXA_ADMIN_PASSWORD_SECRET: ${{ vars.CORTEXA_ADMIN_PASSWORD_SECRET || 'identity-admin-initial-password' }}
+          CORTEXA_E2E_BATCH_ID: ${{ vars.CORTEXA_E2E_BATCH_ID || '' }}
+          CORTEXA_E2E_LIVE_TIMEOUT_MS: ${{ vars.CORTEXA_E2E_LIVE_TIMEOUT_MS || '900000' }}
+          CORTEXA_E2E_POLL_INTERVAL_MS: ${{ vars.CORTEXA_E2E_POLL_INTERVAL_MS || '5000' }}
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: playwright-report-${{ github.run_id }}
+          path: tests/e2e/playwright-report
+          retention-days: 7

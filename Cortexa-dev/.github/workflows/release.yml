@@ -1,0 +1,351 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  TF_WORKING_DIR: deploy/environments/prod
+  ACR_LOGIN_SERVER: cortexaprodacr.azurecr.io
+  RESOURCE_GROUP: cortexa-prod-rg
+  KEY_VAULT_NAME: cortexa-prod-kv
+
+jobs:
+  tf-plan:
+    name: Terraform plan
+    runs-on: ubuntu-latest
+    environment: production-plan
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+
+      - name: Azure login (OIDC)
+        uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_wrapper: false
+
+      - name: Terraform init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform init
+
+      - name: Terraform plan
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform plan -out=tfplan -input=false
+        env:
+          # --- Terraform variable injection ---
+          # Secrets (sensitive — registered on production-plan and production GitHub environments)
+          # TF_VAR_tenant_id              ← secrets.AZURE_TENANT_ID   (already registered for OIDC)
+          # TF_VAR_postgresql_admin_password ← secrets.POSTGRESQL_ADMIN_PASSWORD
+          # TF_VAR_deployer_object_id     ← secrets.DEPLOYER_OBJECT_ID
+          # TF_VAR_patent_uspto_api_key   ← secrets.PATENT_USPTO_API_KEY
+          # TF_VAR_patent_epo_consumer_key← secrets.PATENT_EPO_CONSUMER_KEY
+          # TF_VAR_patent_epo_oauth_secret← secrets.PATENT_EPO_OAUTH_SECRET
+          # TF_VAR_patent_lens_api_key    ← secrets.PATENT_LENS_API_KEY
+          # Variables (non-sensitive — registered on production-plan and production GitHub environments)
+          # TF_VAR_key_vault_allowed_ip_rules   ← vars.KEY_VAULT_ALLOWED_IP_RULES
+          # TF_VAR_postgresql_allowed_ip_ranges ← vars.POSTGRESQL_ALLOWED_IP_RANGES
+          # TF_VAR_budget_monthly_amount        ← vars.BUDGET_MONTHLY_AMOUNT
+          # TF_VAR_budget_contact_emails        ← vars.BUDGET_CONTACT_EMAILS
+          # TF_VAR_gateway_cors_allowed_origins ← vars.GATEWAY_CORS_ALLOWED_ORIGINS
+          #   (JSON string array of allowed CORS origins — obtain prod SWA hostname after first apply:
+          #    terraform -chdir=deploy/environments/prod output static_web_app_default_host_name)
+          TF_VAR_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          TF_VAR_postgresql_admin_password: ${{ secrets.POSTGRESQL_ADMIN_PASSWORD }}
+          TF_VAR_deployer_object_id: ${{ secrets.DEPLOYER_OBJECT_ID }}
+          TF_VAR_patent_uspto_api_key: ${{ secrets.PATENT_USPTO_API_KEY }}
+          TF_VAR_patent_epo_consumer_key: ${{ secrets.PATENT_EPO_CONSUMER_KEY }}
+          TF_VAR_patent_epo_oauth_secret: ${{ secrets.PATENT_EPO_OAUTH_SECRET }}
+          TF_VAR_patent_lens_api_key: ${{ secrets.PATENT_LENS_API_KEY }}
+          TF_VAR_key_vault_allowed_ip_rules: ${{ vars.KEY_VAULT_ALLOWED_IP_RULES }}
+          TF_VAR_postgresql_allowed_ip_ranges: ${{ vars.POSTGRESQL_ALLOWED_IP_RANGES }}
+          TF_VAR_budget_monthly_amount: ${{ vars.BUDGET_MONTHLY_AMOUNT }}
+          TF_VAR_budget_contact_emails: ${{ vars.BUDGET_CONTACT_EMAILS }}
+          TF_VAR_gateway_cors_allowed_origins: ${{ vars.GATEWAY_CORS_ALLOWED_ORIGINS || '[]' }}
+
+      - name: Encrypt plan artifact
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          gpg --symmetric --cipher-algo AES256 \
+            --passphrase "${{ secrets.TFPLAN_PASSPHRASE }}" \
+            --batch -o tfplan.enc tfplan
+          rm tfplan
+
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: tfplan-enc
+          path: ${{ env.TF_WORKING_DIR }}/tfplan.enc
+          retention-days: 1
+
+  tf-apply:
+    name: Terraform apply (gated)
+    needs: tf-plan
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+
+      - name: Azure login (OIDC)
+        uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        with:
+          terraform_wrapper: false
+
+      - name: Terraform init
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform init
+
+      - name: Download plan artifact
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+        with:
+          name: tfplan-enc
+          path: ${{ env.TF_WORKING_DIR }}
+
+      - name: Decrypt plan artifact
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          gpg --decrypt --passphrase "${{ secrets.TFPLAN_PASSPHRASE }}" --batch -o tfplan tfplan.enc
+          rm tfplan.enc
+
+      - name: Terraform apply
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: terraform apply -input=false tfplan
+        env:
+          # --- Terraform variable injection ---
+          # Secrets (sensitive — registered on production-plan and production GitHub environments)
+          # TF_VAR_tenant_id              ← secrets.AZURE_TENANT_ID   (already registered for OIDC)
+          # TF_VAR_postgresql_admin_password ← secrets.POSTGRESQL_ADMIN_PASSWORD
+          # TF_VAR_deployer_object_id     ← secrets.DEPLOYER_OBJECT_ID
+          # TF_VAR_patent_uspto_api_key   ← secrets.PATENT_USPTO_API_KEY
+          # TF_VAR_patent_epo_consumer_key← secrets.PATENT_EPO_CONSUMER_KEY
+          # TF_VAR_patent_epo_oauth_secret← secrets.PATENT_EPO_OAUTH_SECRET
+          # TF_VAR_patent_lens_api_key    ← secrets.PATENT_LENS_API_KEY
+          # Variables (non-sensitive — registered on production-plan and production GitHub environments)
+          # TF_VAR_key_vault_allowed_ip_rules   ← vars.KEY_VAULT_ALLOWED_IP_RULES
+          # TF_VAR_postgresql_allowed_ip_ranges ← vars.POSTGRESQL_ALLOWED_IP_RANGES
+          # TF_VAR_budget_monthly_amount        ← vars.BUDGET_MONTHLY_AMOUNT
+          # TF_VAR_budget_contact_emails        ← vars.BUDGET_CONTACT_EMAILS
+          # TF_VAR_gateway_cors_allowed_origins ← vars.GATEWAY_CORS_ALLOWED_ORIGINS
+          #   (JSON string array of allowed CORS origins — obtain prod SWA hostname after first apply:
+          #    terraform -chdir=deploy/environments/prod output static_web_app_default_host_name)
+          TF_VAR_tenant_id: ${{ secrets.AZURE_TENANT_ID }}
+          TF_VAR_postgresql_admin_password: ${{ secrets.POSTGRESQL_ADMIN_PASSWORD }}
+          TF_VAR_deployer_object_id: ${{ secrets.DEPLOYER_OBJECT_ID }}
+          TF_VAR_patent_uspto_api_key: ${{ secrets.PATENT_USPTO_API_KEY }}
+          TF_VAR_patent_epo_consumer_key: ${{ secrets.PATENT_EPO_CONSUMER_KEY }}
+          TF_VAR_patent_epo_oauth_secret: ${{ secrets.PATENT_EPO_OAUTH_SECRET }}
+          TF_VAR_patent_lens_api_key: ${{ secrets.PATENT_LENS_API_KEY }}
+          TF_VAR_key_vault_allowed_ip_rules: ${{ vars.KEY_VAULT_ALLOWED_IP_RULES }}
+          TF_VAR_postgresql_allowed_ip_ranges: ${{ vars.POSTGRESQL_ALLOWED_IP_RANGES }}
+          TF_VAR_budget_monthly_amount: ${{ vars.BUDGET_MONTHLY_AMOUNT }}
+          TF_VAR_budget_contact_emails: ${{ vars.BUDGET_CONTACT_EMAILS }}
+          TF_VAR_gateway_cors_allowed_origins: ${{ vars.GATEWAY_CORS_ALLOWED_ORIGINS || '[]' }}
+
+  build-push:
+    name: Build and push / ${{ matrix.service }}
+    needs: tf-apply
+    runs-on: ubuntu-latest
+    environment: production-plan
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - ingestion
+          - extraction
+          - evidence
+          - vector-router
+          - scoring
+          - seeding
+          - harvesting
+          - api-gateway
+          - identity
+          - model-router
+          - job-orchestrator
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+
+      - name: Azure login (OIDC)
+        uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: ACR login
+        run: az acr login --name "$(cut -d. -f1 <<< '${{ env.ACR_LOGIN_SERVER }}')"
+
+      - name: Build image
+        run: |
+          docker build \
+            -t "${{ env.ACR_LOGIN_SERVER }}/${{ matrix.service }}:${{ github.sha }}" \
+            -f "services/${{ matrix.service }}/Dockerfile" \
+            "services/${{ matrix.service }}"
+
+      - name: Push image
+        run: docker push "${{ env.ACR_LOGIN_SERVER }}/${{ matrix.service }}:${{ github.sha }}"
+
+      - name: Tag and push release tag
+        run: |
+          docker tag \
+            "${{ env.ACR_LOGIN_SERVER }}/${{ matrix.service }}:${{ github.sha }}" \
+            "${{ env.ACR_LOGIN_SERVER }}/${{ matrix.service }}:${{ github.ref_name }}"
+          docker push "${{ env.ACR_LOGIN_SERVER }}/${{ matrix.service }}:${{ github.ref_name }}"
+
+  deploy:
+    name: Deploy / ${{ matrix.service }}
+    needs: build-push
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - ingestion
+          - extraction
+          - evidence
+          - vector-router
+          - scoring
+          - seeding
+          - harvesting
+          - api-gateway
+          - identity
+          - model-router
+          - job-orchestrator
+    steps:
+      - name: Azure login (OIDC)
+        uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Update Container App image
+        run: |
+          # Retry with backoff: the deploy matrix runs many services concurrently and
+          # Azure ARM returns transient 429 (Too Many Requests) under load. The update
+          # to a fixed image is idempotent, so retrying is safe.
+          delay=10
+          for attempt in $(seq 1 5); do
+            if az containerapp update \
+              --name "cortexa-prod-${{ matrix.service }}" \
+              --resource-group "${{ env.RESOURCE_GROUP }}" \
+              --image "${{ env.ACR_LOGIN_SERVER }}/${{ matrix.service }}:${{ github.ref_name }}"; then
+              echo "Updated ${{ matrix.service }} image on attempt $attempt."
+              exit 0
+            fi
+            echo "Attempt $attempt/5 to update ${{ matrix.service }} failed, retrying in ${delay}s..."
+            sleep "$delay"
+            delay=$((delay * 2))
+          done
+          echo "Failed to update ${{ matrix.service }} image after 5 attempts." >&2
+          exit 1
+
+      - name: Wait for revision to become healthy
+        run: |
+          svc="${{ matrix.service }}"
+          # Activated/healthy revision states. ScaledToZero counts as healthy for any
+          # service scaled to zero; Running/RunningAtMaxScale for always-on ones.
+          healthy_re='^(Running|RunningAtMaxScale|ScaledToZero)$'
+          # Terminal failure states — fail fast instead of waiting out the timeout.
+          failed_re='^(ActivationFailed|Failed|Degraded)$'
+          for i in $(seq 1 10); do
+            state=$(az containerapp revision list \
+              --name "cortexa-prod-${svc}" \
+              --resource-group "${{ env.RESOURCE_GROUP }}" \
+              --query "sort_by([?properties.active], &properties.createdTime)[-1].properties.runningState" -o tsv)
+            if [[ "$state" =~ $healthy_re ]]; then
+              echo "Service ${svc} active revision is '$state' (healthy)."
+              exit 0
+            fi
+            if [[ "$state" =~ $failed_re ]]; then
+              echo "Service ${svc} active revision is '$state' — deploy failed." >&2
+              exit 1
+            fi
+            # Transitional (Activating / Provisioning / empty) — keep polling.
+            echo "Attempt $i/10: ${svc} revision state is '$state', retrying in 10s..."
+            sleep 10
+          done
+          echo "Service ${svc} did not reach a healthy revision state after deploy." >&2
+          exit 1
+
+  smoke:
+    name: Smoke checks
+    needs: deploy
+    runs-on: ubuntu-latest
+    environment: production-plan
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Azure login (OIDC)
+        uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Resolve api-gateway FQDN
+        id: gateway
+        run: |
+          fqdn=$(az containerapp show \
+            --name cortexa-prod-api-gateway \
+            --resource-group "${{ env.RESOURCE_GROUP }}" \
+            --query "properties.configuration.ingress.fqdn" -o tsv)
+          echo "fqdn=$fqdn" >> "$GITHUB_OUTPUT"
+
+      # api-gateway is the only externally-exposed Container App; it proxies to every
+      # backend service. Hitting these routes is the only way to smoke-test the internal
+      # services from outside the VNet, and it also exercises the real request path.
+      - name: Health sweep through api-gateway
+        run: |
+          fqdn="${{ steps.gateway.outputs.fqdn }}"
+          routes="health auth/health ingestion/health extraction/health evidence/health"
+          routes="$routes scoring/health harvesting/health seeding/health orchestrator/health"
+          routes="$routes model/health vector/health"
+          failed=0
+          for route in $routes; do
+            # --max-time bounds each probe so one unreachable service fails fast
+            # instead of hanging the whole sweep on a connection that never opens.
+            if curl -fsS --max-time 30 "https://${fqdn}/${route}" > /dev/null; then
+              echo "OK: /${route}"
+            else
+              echo "FAILED: /${route}" >&2
+              failed=1
+            fi
+          done
+          exit $failed

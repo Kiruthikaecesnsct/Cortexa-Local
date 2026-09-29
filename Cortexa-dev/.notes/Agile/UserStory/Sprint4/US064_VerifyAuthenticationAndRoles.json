@@ -1,0 +1,146 @@
+{
+  "id": "US064",
+  "workItemType": "User Story",
+  "Title": "Verify email/password and Entra ID authentication",
+  "Description": "As a security engineer, I want both authentication flows verified on prod so that we can confirm the identity service is production-ready for the demo. The work tests email/password login and Microsoft Entra ID on prod, verifies tokens are issued and refreshed, confirms roles are enforced on API endpoints, and checks the gateway blocks unauthorized requests.",
+  "AcceptanceCriteria": [
+    "Email/password login works on prod; JWT is issued and valid",
+    "Refresh token endpoint renews JWT without re-login",
+    "Entra ID OIDC login works; user is created or retrieved from database",
+    "Entra ID claims map correctly to application roles",
+    "API Gateway enforces role-based access control on all endpoints",
+    "Unauthorized requests (missing/invalid token) are rejected with 401/403",
+    "Session management and token expiration work as designed"
+  ],
+  "Planning": {
+    "StoryPoints": 1,
+    "Priority": 1
+  },
+  "Classification": {
+    "RemainingWork": 5.0
+  },
+  "Tags": [
+    "testing",
+    "auth",
+    "identity"
+  ],
+  "TalkingPoints": "I'm going to verify both authentication paths work on prod. I'll test email/password and Entra ID flows, token refresh, and role enforcement. This is going to confirm the identity service is production-ready for the demo.",
+  "Tasks": [
+    {
+      "Title": "Test email/password login flow",
+      "Description": "Create test user, log in, receive JWT, verify token claims.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Testing"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "Test refresh token flow",
+      "Description": "Verify refresh endpoint issues new JWT and old token is invalid.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Testing"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "Test Entra ID OIDC flow",
+      "Description": "Log in with Microsoft account, verify claim mapping and role assignment.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Testing"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "Test role-based access control on endpoints",
+      "Description": "Verify admin-only endpoints reject non-admin tokens; non-admin endpoints allow viewer roles.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Testing"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    }
+  ],
+  "createdDate": "2026-06-13",
+  "state": "New",
+  "Tests": [
+    {
+      "Title": "Email/password login works and JWT is issued with correct claims",
+      "Steps": [
+        {
+          "Action": "POST /auth/login with valid email and password",
+          "Expected": "Response status 200 with JWT in body"
+        },
+        {
+          "Action": "Decode JWT and verify claims include email, roles, exp",
+          "Expected": "Claims are correct and token is valid"
+        }
+      ]
+    },
+    {
+      "Title": "Refresh token endpoint renews JWT without re-login",
+      "Steps": [
+        {
+          "Action": "POST /auth/refresh with valid refresh token from login",
+          "Expected": "Response status 200 with new JWT"
+        },
+        {
+          "Action": "Verify old token is invalidated (added to blacklist)",
+          "Expected": "Attempting to use old token fails with 401"
+        }
+      ]
+    },
+    {
+      "Title": "Entra ID OIDC login creates or retrieves user with correct role mapping",
+      "Steps": [
+        {
+          "Action": "Initiate Entra ID login flow and complete OIDC redirect",
+          "Expected": "User is authenticated and JWT is issued"
+        },
+        {
+          "Action": "Query User table and verify user record exists with mapped roles",
+          "Expected": "Entra ID claims are correctly mapped to app roles"
+        }
+      ]
+    },
+    {
+      "Title": "API Gateway enforces role-based access control on all endpoints",
+      "Steps": [
+        {
+          "Action": "Call admin-only endpoint (/admin/...) with viewer-role JWT",
+          "Expected": "Response status 403 Forbidden"
+        },
+        {
+          "Action": "Call same endpoint with admin-role JWT",
+          "Expected": "Response status 200 with results"
+        },
+        {
+          "Action": "Call public endpoint without token",
+          "Expected": "Response status 200 (no auth required)"
+        }
+      ]
+    }
+  ]
+}

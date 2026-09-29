@@ -1,0 +1,41 @@
+name: .NET Service CI
+
+on:
+  workflow_call:
+    inputs:
+      service:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: ${{ inputs.service }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        run: dotnet restore services/${{ inputs.service }}/
+
+      - name: Build (warnings as errors)
+        run: dotnet build services/${{ inputs.service }}/ -warnaserror
+
+      - name: Format check
+        run: dotnet format services/${{ inputs.service }}/ --verify-no-changes
+
+      - name: Test
+        run: dotnet test services/${{ inputs.service }}/
+
+      - name: Dependency audit
+        run: dotnet list services/${{ inputs.service }}/ package --vulnerable
+        continue-on-error: true

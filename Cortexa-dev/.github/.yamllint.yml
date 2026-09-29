@@ -1,0 +1,21 @@
+---
+extends: default
+
+rules:
+  # SHA-pinned action references (e.g. uses: actions/checkout@<40-char-sha> # vX.Y.Z)
+  # exceed 80 chars by design; 120 accommodates the longest possible pin line.
+  line-length:
+    max: 120
+    level: error
+
+  # Allow single space before inline comments (# vX.Y.Z style is idiomatic).
+  comments:
+    min-spaces-from-content: 1
+
+  # GitHub Actions uses 'on:' as a key; yamllint default flags it as a truthy.
+  truthy:
+    allowed-values: ["true", "false", "on"]
+    level: warning
+
+  # Workflow files don't conventionally start with ---.
+  document-start: disable

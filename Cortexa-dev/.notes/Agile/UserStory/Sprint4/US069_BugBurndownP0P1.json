@@ -1,0 +1,159 @@
+{
+  "id": "US069",
+  "workItemType": "User Story",
+  "Title": "Bug burn-down for P0 and P1 issues",
+  "Description": "As a QA engineer, I want all P0 and P1 bugs burned down before the prod demo so that the system is stable when we show it. The work reviews all open bugs from integration tests, E2E tests, and the load test, prioritizes P0 (blocker) and P1 (critical) issues, fixes and verifies their closure, and ensures no P0/P1 bugs remain open before the prod demo.",
+  "AcceptanceCriteria": [
+    "All P0 bugs are identified and documented",
+    "All P1 bugs are identified and documented",
+    "P0 bugs are fixed and verified closed (passing tests)",
+    "P1 bugs are fixed and verified closed (passing tests)",
+    "Zero open P0/P1 bugs remain before demo",
+    "Bug log is updated with resolution status and date",
+    "Remaining P2/P3 issues are triaged and deferred if necessary"
+  ],
+  "Planning": {
+    "StoryPoints": 1,
+    "Priority": 1
+  },
+  "Classification": {
+    "RemainingWork": 8.0
+  },
+  "Tags": [
+    "testing",
+    "bug-fixes"
+  ],
+  "TalkingPoints": "I'm going to burn down all P0/P1 bugs so prod is stable for the demo. I'll triage integration and E2E test failures, fix blockers and critical issues, and defer lower-priority bugs to post-MVP.",
+  "Tasks": [
+    {
+      "Title": "Triage all failing integration and E2E tests",
+      "Description": "Categorize failures as P0, P1, or P2; identify root causes.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Testing"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "backend",
+        "frontend"
+      ]
+    },
+    {
+      "Title": "Fix P0 blocker issues",
+      "Description": "Address critical failures (service crashes, pipeline hangs, data loss) immediately.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "backend",
+        "frontend"
+      ]
+    },
+    {
+      "Title": "Fix P1 critical issues",
+      "Description": "Address critical issues (wrong results, auth failures, UI crashes).",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "backend",
+        "frontend"
+      ]
+    },
+    {
+      "Title": "Verify bug fixes and retest",
+      "Description": "Run tests again to confirm all P0/P1 fixes work and no regressions.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Testing"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "backend",
+        "frontend"
+      ]
+    },
+    {
+      "Title": "Document remaining P2/P3 bugs for post-MVP",
+      "Description": "Log deferred issues with priority and defer reason; hand off to backlog.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Documentation"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    }
+  ],
+  "createdDate": "2026-06-13",
+  "state": "New",
+  "Tests": [
+    {
+      "Title": "All P0 blockers are identified, documented, and fixed",
+      "Steps": [
+        {
+          "Action": "Review all integration and E2E test failures and categorize by severity",
+          "Expected": "P0 issues (service crashes, pipeline hangs) are identified"
+        },
+        {
+          "Action": "Fix each P0 and verify tests pass after fix",
+          "Expected": "All P0 issues resolved"
+        }
+      ]
+    },
+    {
+      "Title": "All P1 critical issues are identified, documented, and fixed",
+      "Steps": [
+        {
+          "Action": "Identify P1 issues (wrong results, auth failures, UI crashes)",
+          "Expected": "P1 issues are documented with root causes"
+        },
+        {
+          "Action": "Fix each P1 and retest to confirm resolution",
+          "Expected": "All P1 issues resolved and no regressions introduced"
+        }
+      ]
+    },
+    {
+      "Title": "No P0/P1 bugs remain open before demo",
+      "Steps": [
+        {
+          "Action": "Run integration and E2E test suites again after all fixes",
+          "Expected": "All tests pass; no P0/P1 failures reported"
+        },
+        {
+          "Action": "Verify bug tracking system shows no open P0/P1 items",
+          "Expected": "Bug list is clean for demo"
+        }
+      ]
+    },
+    {
+      "Title": "Remaining P2/P3 issues are triaged and deferred to post-MVP",
+      "Steps": [
+        {
+          "Action": "Classify remaining issues as P2 or P3",
+          "Expected": "Issues are prioritized"
+        },
+        {
+          "Action": "Document defer reason and move to post-MVP backlog",
+          "Expected": "Deferred issues are tracked for future work"
+        }
+      ]
+    }
+  ]
+}

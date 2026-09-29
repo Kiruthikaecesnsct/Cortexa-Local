@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cortexa.io/schemas/events/envelope/v1",
+  "title": "EventEnvelope",
+  "description": "Shared envelope for all Cortexa Service Bus events. Every event published to any topic must conform to this schema. The payload property is event-specific and validated separately per event type.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_type",
+    "event_id",
+    "schema_version",
+    "batch_id",
+    "correlation_id",
+    "occurred_at",
+    "payload"
+  ],
+  "properties": {
+    "event_type": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Dot-separated event type identifier, e.g. 'ingestion.completed'. Matches the Service Bus topic name."
+    },
+    "event_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for this message instance. Used for deduplication and idempotency checks."
+    },
+    "schema_version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Monotonic version of this envelope schema. Starts at 1. Additive-only changes increment this value; breaking changes require a new topic."
+    },
+    "batch_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Identifier of the orchestration batch this event belongs to."
+    },
+    "document_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Identifier of the document within the batch. Optional — not all events are document-scoped (e.g. engine.completed covers a full batch run)."
+    },
+    "correlation_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Tracing identifier propagated from the originating HTTP request X-Correlation-Id header. Must be preserved unchanged through the entire pipeline."
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC timestamp of when the event occurred on the publishing service. Must include timezone offset (Z or +00:00)."
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": true,
+      "minProperties": 1,
+      "description": "Event-specific data. Schema is defined per event type in event-types.md. This object must not be empty."
+    }
+  }
+}

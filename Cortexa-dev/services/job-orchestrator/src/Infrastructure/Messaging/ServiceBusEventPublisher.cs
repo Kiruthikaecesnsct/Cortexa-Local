@@ -20,7 +20,7 @@ public sealed class ServiceBusEventPublisher : IEventPublisher
 
     public async Task PublishAsync(EventEnvelope envelope, CancellationToken ct)
     {
-        var topicName = ResolveTopicName(envelope.EventType);
+        var topicName = TopicNameResolver.Resolve(_settings, envelope.EventType);
         var sender = _client.CreateSender(topicName);
 
         await using (sender.ConfigureAwait(false))
@@ -54,7 +54,7 @@ public sealed class ServiceBusEventPublisher : IEventPublisher
             if (!string.IsNullOrEmpty(sessionId))
             {
                 message.SessionId = sessionId;
-                message.ApplicationProperties[SessionKeyResolver.BatchIdProperty] = ExtractBatchIdFromSessionId(sessionId);
+                message.ApplicationProperties[SessionKeyResolver.BatchIdProperty] = SessionKeyResolver.BatchIdFromSessionId(sessionId);
             }
             await sender.SendMessageAsync(message, ct);
         }
@@ -64,19 +64,5 @@ public sealed class ServiceBusEventPublisher : IEventPublisher
     {
         foreach (var property in properties)
             message.ApplicationProperties[property.Key] = property.Value;
-    }
-
-    private static string ExtractBatchIdFromSessionId(string sessionId)
-    {
-        var separatorIndex = sessionId.IndexOf(':');
-        return separatorIndex < 0 ? sessionId : sessionId[..separatorIndex];
-    }
-
-    private string ResolveTopicName(string eventType)
-    {
-        if (_settings.TopicNames.TryGetValue(eventType, out var name))
-            return name;
-
-        return eventType.Replace('.', '-');
     }
 }

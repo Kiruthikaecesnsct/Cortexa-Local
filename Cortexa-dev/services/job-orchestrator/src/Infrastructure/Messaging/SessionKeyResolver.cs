@@ -34,6 +34,13 @@ public static class SessionKeyResolver
         return BatchScoped(envelope.BatchId);
     }
 
+    // Candidate- and unit-scoped session ids are "{batchId}:{...}"; the batch id is the first segment.
+    public static string BatchIdFromSessionId(string sessionId)
+    {
+        var separatorIndex = sessionId.IndexOf(':');
+        return separatorIndex < 0 ? sessionId : sessionId[..separatorIndex];
+    }
+
     public static bool IsCandidateScoped(string eventType) =>
         CandidateScopedEventTypes.Contains(eventType);
 

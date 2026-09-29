@@ -102,11 +102,12 @@ class ServiceBusConsumer:
             max_wait_time=self._session_idle_timeout,
         ) as receiver:
             async with AutoLockRenewer() as renewer:
-                renewer.register(
-                    receiver,
-                    receiver.session,
-                    max_lock_renewal_duration=self._session_lock_renewal_seconds,
-                )
+                if receiver.session is not None:
+                    renewer.register(
+                        receiver,
+                        receiver.session,
+                        max_lock_renewal_duration=self._session_lock_renewal_seconds,
+                    )
                 async for message in receiver:
                     if cancellation.is_set():
                         await receiver.abandon_message(message)

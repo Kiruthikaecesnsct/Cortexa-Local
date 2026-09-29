@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic_settings import BaseSettings
 
 
@@ -45,6 +47,10 @@ class IngestionSettings(BaseSettings):
     geometry_enabled: bool = True
     geometry_max_words_per_page: int = 3000
 
+    # "servicebus" uses Azure Service Bus; "rabbitmq" uses a local RabbitMQ broker.
+    messaging_backend: Literal["servicebus", "rabbitmq"] = "servicebus"
+    # AMQP URL for the rabbitmq backend (amqp://user:password@host:port/vhost).
+    rabbitmq_url: str = ""
     servicebus_namespace_fqdn: str = ""
     # Connection string for local/emulator Service Bus auth; empty uses DefaultAzureCredential.
     servicebus_connection_string: str = ""

@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -20,6 +22,10 @@ class ScoringSettings(BaseSettings):
     dual_mode_enabled: bool = False
     batch_terminal_cache_ttl_seconds: float = 30.0
     model_router_timeout_seconds: float = 90.0
+    # "servicebus" uses Azure Service Bus; "rabbitmq" uses a local RabbitMQ broker.
+    messaging_backend: Literal["servicebus", "rabbitmq"] = "servicebus"
+    # AMQP URL for the rabbitmq backend (amqp://user:password@host:port/vhost).
+    rabbitmq_url: str = ""
     servicebus_namespace_fqdn: str
     # Connection string for local/emulator Service Bus auth; empty uses DefaultAzureCredential.
     servicebus_connection_string: str = ""

@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic_settings import BaseSettings
 
 from extraction.domain.enums.model_mode import ModelMode
@@ -27,6 +29,10 @@ class ExtractionSettings(BaseSettings):
     candidates_container: str = "candidates"
     batches_container: str = "batches"
     batch_terminal_cache_ttl_seconds: float = 30.0
+    # "servicebus" uses Azure Service Bus; "rabbitmq" uses a local RabbitMQ broker.
+    messaging_backend: Literal["servicebus", "rabbitmq"] = "servicebus"
+    # AMQP URL for the rabbitmq backend (amqp://user:password@host:port/vhost).
+    rabbitmq_url: str = ""
     servicebus_namespace_fqdn: str = ""
     # Connection string for local/emulator Service Bus auth; empty uses DefaultAzureCredential.
     servicebus_connection_string: str = ""

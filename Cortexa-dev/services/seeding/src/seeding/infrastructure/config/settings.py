@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -19,6 +21,10 @@ class SeedingSettings(BaseSettings):
     seeding_candidates_per_call: int = 15
     seeding_max_output_tokens: int = 16384
     local_dev: bool = False
+    # "servicebus" uses Azure Service Bus; "rabbitmq" uses a local RabbitMQ broker.
+    messaging_backend: Literal["servicebus", "rabbitmq"] = "servicebus"
+    # AMQP URL for the rabbitmq backend (amqp://user:password@host:port/vhost).
+    rabbitmq_url: str = ""
     servicebus_namespace_fqdn: str = ""
     # Connection string for local/emulator Service Bus auth; empty uses DefaultAzureCredential.
     servicebus_connection_string: str = ""

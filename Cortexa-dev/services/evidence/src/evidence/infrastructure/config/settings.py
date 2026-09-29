@@ -110,6 +110,10 @@ class EvidenceSettings(BaseSettings):
     config_container: str = "config"
     batch_terminal_cache_ttl_seconds: float = 30.0
     patent_config_cache_ttl_seconds: float = 30.0
+    # "servicebus" uses Azure Service Bus; "rabbitmq" uses a local RabbitMQ broker.
+    messaging_backend: Literal["servicebus", "rabbitmq"] = "servicebus"
+    # AMQP URL for the rabbitmq backend (amqp://user:password@host:port/vhost).
+    rabbitmq_url: str = ""
     servicebus_namespace_fqdn: str = ""
     # Connection string for local/emulator Service Bus auth; empty uses DefaultAzureCredential.
     servicebus_connection_string: str = ""

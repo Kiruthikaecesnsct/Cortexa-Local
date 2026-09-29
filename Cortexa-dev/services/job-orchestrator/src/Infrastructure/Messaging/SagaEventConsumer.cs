@@ -17,7 +17,7 @@ public sealed class SagaEventConsumer : BackgroundService
     private readonly List<ServiceBusProcessor> _processors = [];
     private readonly List<ServiceBusSessionProcessor> _sessionProcessors = [];
 
-    private static readonly IReadOnlyList<string> ConsumedTopics =
+    internal static readonly IReadOnlyList<string> ConsumedTopics =
     [
         SagaEventType.BatchCreated,
         SagaEventType.IngestionCompleted,
@@ -146,11 +146,5 @@ public sealed class SagaEventConsumer : BackgroundService
         return Task.CompletedTask;
     }
 
-    private string ResolveTopicName(string eventType)
-    {
-        if (_settings.TopicNames.TryGetValue(eventType, out var name))
-            return name;
-
-        return eventType.Replace('.', '-');
-    }
+    private string ResolveTopicName(string eventType) => TopicNameResolver.Resolve(_settings, eventType);
 }

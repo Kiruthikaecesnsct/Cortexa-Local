@@ -79,10 +79,8 @@ public sealed class ServiceBusStuckScanner : IServiceBusStuckScanner
             raw is string { Length: > 0 } propertyValue)
             return propertyValue;
 
-        if (string.IsNullOrWhiteSpace(message.SessionId))
-            return null;
-
-        var separatorIndex = message.SessionId.IndexOf(':');
-        return separatorIndex >= 0 ? message.SessionId[..separatorIndex] : message.SessionId;
+        return string.IsNullOrWhiteSpace(message.SessionId)
+            ? null
+            : SessionKeyResolver.BatchIdFromSessionId(message.SessionId);
     }
 }

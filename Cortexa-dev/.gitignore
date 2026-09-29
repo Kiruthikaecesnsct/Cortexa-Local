@@ -183,4 +183,5 @@ services/evidence/data/
 deploy/local/.env.preview
 !deploy/local/.env.preview.example
 deploy/local/certs/
+deploy/local/native/.run/
 deploy/local/keys/

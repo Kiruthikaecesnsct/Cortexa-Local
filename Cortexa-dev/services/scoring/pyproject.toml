@@ -10,6 +10,7 @@ dependencies = [
     "uvicorn[standard]>=0.29",
     "azure-cosmos>=4.5",
     "azure-servicebus>=7.12",
+    "aio-pika>=10.0.1",
     "azure-identity>=1.17",
     "aiohttp>=3.9",
     "sentry-sdk[fastapi]>=2.44,<3",

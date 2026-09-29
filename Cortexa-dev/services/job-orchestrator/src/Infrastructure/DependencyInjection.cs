@@ -11,6 +11,7 @@ using Cortexa.JobOrchestrator.Application.Settings;
 using Cortexa.JobOrchestrator.Infrastructure.BackgroundServices;
 using Cortexa.JobOrchestrator.Infrastructure.Configuration;
 using Cortexa.JobOrchestrator.Infrastructure.Messaging;
+using Cortexa.JobOrchestrator.Infrastructure.Messaging.RabbitMq;
 using Cortexa.JobOrchestrator.Infrastructure.Persistence;
 using Cortexa.JobOrchestrator.Infrastructure.Storage;
 using Microsoft.Azure.Cosmos;
@@ -56,16 +57,7 @@ public static class DependencyInjection
                 : new CosmosClient(settings.Uri, settings.Key, cosmosOptions);
         });
 
-        services.AddSingleton(sp =>
-        {
-            var settings = configuration.GetSection("ServiceBus").Get<ServiceBusSettings>()
-                ?? throw new InvalidOperationException("ServiceBus configuration is required.");
-
-            // A configured connection string (local/emulator auth) takes precedence over managed identity.
-            return string.IsNullOrWhiteSpace(settings.ConnectionString)
-                ? new ServiceBusClient(settings.NamespaceFqdn, new DefaultAzureCredential())
-                : new ServiceBusClient(settings.ConnectionString);
-        });
+        AddMessaging(services, configuration);
 
         services.AddSingleton(sp =>
         {
@@ -98,7 +90,6 @@ public static class DependencyInjection
         services.AddScoped<IBatchDeleter, CosmosBatchDeleter>();
         services.AddScoped<IBatchDeleter, BlobBatchDeleter>();
         services.AddScoped<IBatchDeleter>(sp => new KeyVaultBatchDeleter(sp.GetService<SecretClient>()));
-        services.AddScoped<IBatchDeleter, ServiceBusBatchDeleter>();
         services.AddHttpClient<IBatchDeleter, Infrastructure.Http.VectorMemoryBatchDeleter>((sp, client) =>
         {
             var baseUrl = configuration["VectorRouter:Url"];
@@ -112,7 +103,6 @@ public static class DependencyInjection
         services.AddScoped<IResultsReadRepository, CosmosResultsReadRepository>();
         services.AddScoped<IBlobStorageWriter, BlobStorageWriter>();
         services.AddScoped<IViewableDocumentReader, ViewableDocumentReader>();
-        services.AddScoped<IEventPublisher, ServiceBusEventPublisher>();
         services.AddScoped<Application.Services.ModelConfigValidator>();
         services.AddHttpClient<Application.Contracts.IModelCatalogClient, Infrastructure.Services.ModelCatalogClient>((sp, client) =>
         {
@@ -144,7 +134,6 @@ public static class DependencyInjection
         services.AddScoped<SagaMessageProcessor>();
         services.AddScoped<IBatchRetentionQuery, CosmosBatchRetentionQuery>();
         services.AddScoped<IRetentionSweeper, RetentionSweepHandler>();
-        services.AddHostedService<SagaEventConsumer>();
         services.AddHostedService<RetentionSweepBackgroundService>();
         services.AddScoped<StaleBatchWatchdogHandler>();
         services.AddHostedService<StaleBatchWatchdogBackgroundService>();
@@ -156,7 +145,6 @@ public static class DependencyInjection
             sp.GetService<SecretClient>(),
             sp.GetRequiredService<ILogger<KeyVaultOrphanScanner>>()));
         services.AddScoped<ISagaReferenceScanner, CosmosSagaReferenceScanner>();
-        services.AddScoped<IServiceBusStuckScanner, ServiceBusStuckScanner>();
         services.AddScoped<ReconciliationScannerDependencies>(sp => new ReconciliationScannerDependencies(
             sp.GetRequiredService<IEnumerable<IOrphanScanner>>(),
             sp.GetRequiredService<IBatchExistenceQuery>(),
@@ -165,5 +153,47 @@ public static class DependencyInjection
         services.AddScoped<IReconciliationHandler, ReconciliationHandler>();
 
         return services;
+    }
+
+    private static void AddMessaging(IServiceCollection services, IConfiguration configuration)
+    {
+        var messaging = configuration.GetSection("Messaging").Get<MessagingSettings>() ?? new MessagingSettings();
+        messaging.Validate();
+
+        if (messaging.UsesRabbitMq)
+            AddRabbitMqMessaging(services, configuration);
+        else
+            AddServiceBusMessaging(services, configuration);
+    }
+
+    private static void AddServiceBusMessaging(IServiceCollection services, IConfiguration configuration)
+    {
+        services.AddSingleton(sp =>
+        {
+            var settings = configuration.GetSection("ServiceBus").Get<ServiceBusSettings>()
+                ?? throw new InvalidOperationException("ServiceBus configuration is required.");
+
+            // A configured connection string (local/emulator auth) takes precedence over managed identity.
+            return string.IsNullOrWhiteSpace(settings.ConnectionString)
+                ? new ServiceBusClient(settings.NamespaceFqdn, new DefaultAzureCredential())
+                : new ServiceBusClient(settings.ConnectionString);
+        });
+
+        services.AddScoped<IBatchDeleter, ServiceBusBatchDeleter>();
+        services.AddScoped<IEventPublisher, ServiceBusEventPublisher>();
+        services.AddScoped<IServiceBusStuckScanner, ServiceBusStuckScanner>();
+        services.AddHostedService<SagaEventConsumer>();
+    }
+
+    private static void AddRabbitMqMessaging(IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<RabbitMqSettings>(configuration.GetSection("RabbitMq"));
+        services.AddSingleton<RabbitMqConnectionProvider>();
+        services.AddSingleton<RabbitMqQueueScanner>();
+        services.AddScoped<RabbitMqEventPublisher>();
+        services.AddScoped<IEventPublisher>(sp => sp.GetRequiredService<RabbitMqEventPublisher>());
+        services.AddScoped<IBatchDeleter, RabbitMqBatchDeleter>();
+        services.AddScoped<IServiceBusStuckScanner, RabbitMqStuckScanner>();
+        services.AddHostedService<RabbitMqSagaEventConsumer>();
     }
 }

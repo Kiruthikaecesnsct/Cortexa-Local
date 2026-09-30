@@ -122,6 +122,16 @@ export const IconFile = ({ size }: IconProps) =>
 export const IconScan = ({ size }: IconProps) =>
   svg(<path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M4 12h16" strokeLinecap="round" strokeLinejoin="round" />, size);
 
+export const IconCloud = ({ size }: IconProps) =>
+  svg(
+    <path
+      d="M7 18a4.5 4.5 0 0 1-.5-8.98A5.5 5.5 0 0 1 17.2 8.02 4 4 0 0 1 17 16H7Z"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />,
+    size
+  );
+
 export const IconServer = ({ size }: IconProps) =>
   svg(
     <>

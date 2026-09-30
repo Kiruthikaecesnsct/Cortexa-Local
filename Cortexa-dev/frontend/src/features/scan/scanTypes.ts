@@ -3,6 +3,11 @@ export interface GithubCredentials {
   pat: string;
 }
 
+export interface AzureDevOpsCredentials {
+  orgUrl: string;
+  pat: string;
+}
+
 export interface RepositorySummaryDto {
   name: string;
   full_name: string;

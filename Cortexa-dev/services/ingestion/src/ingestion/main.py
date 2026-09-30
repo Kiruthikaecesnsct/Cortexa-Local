@@ -7,9 +7,11 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from ingestion.api.routes.azure_devops_scan_routes import router as azure_devops_scan_router
 from ingestion.api.routes.github_scan_routes import router as github_scan_router
 from ingestion.api.routes.ingestion_routes import router as ingestion_router
 from ingestion.application.git.clone_adapter import CloneAdapter
+from ingestion.application.handlers.azure_devops_scan_handler import AzureDevOpsScanHandler
 from ingestion.application.handlers.github_scan_handler import GitHubScanHandler
 from ingestion.application.handlers.process_ingestion_request_handler import (
     ProcessIngestionDeps,
@@ -20,6 +22,10 @@ from ingestion.application.handlers.store_ingestion_handler import (
     StoreIngestionHandler,
 )
 from ingestion.application.raw_file_ingestor import IngestorConfig
+from ingestion.infrastructure.azure_devops.azure_devops_api_client import (
+    AzureDevOpsApiClient,
+    create_azure_devops_http_client,
+)
 from ingestion.infrastructure.blob.blob_client import get_blob_service_client
 from ingestion.infrastructure.blob.blob_repository import BlobRepository
 from ingestion.infrastructure.config.settings import IngestionSettings
@@ -106,6 +112,11 @@ async def lifespan(app: FastAPI):
         GitHubApiClient(github_http, settings.github_scan_max_pages)
     )
 
+    azure_devops_http = create_azure_devops_http_client(settings)
+    app.state.azure_devops_scan_handler = AzureDevOpsScanHandler(
+        AzureDevOpsApiClient(azure_devops_http, settings.azdo_api_version)
+    )
+
     ingestor_config = IngestorConfig(
         chunk_size=settings.chunk_size_tokens,
         chunk_overlap=settings.chunk_overlap_tokens,
@@ -152,6 +163,7 @@ async def lifespan(app: FastAPI):
         pass
 
     await github_http.aclose()
+    await azure_devops_http.aclose()
     await kv_client.close()
     await cosmos.close()
     await blob_svc.close()
@@ -174,6 +186,7 @@ def create_app() -> FastAPI:
 
     app.include_router(ingestion_router)
     app.include_router(github_scan_router)
+    app.include_router(azure_devops_scan_router)
     return app
 
 

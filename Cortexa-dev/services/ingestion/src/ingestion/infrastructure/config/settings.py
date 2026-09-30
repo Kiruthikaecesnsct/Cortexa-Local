@@ -69,4 +69,10 @@ class IngestionSettings(BaseSettings):
     github_scan_timeout_seconds: float = 20.0
     github_scan_max_pages: int = 50
 
+    # Azure DevOps scan uses only the PAT the user supplies per request, never
+    # azdo_pat_secret_name.
+    azdo_api_base_url: str = "https://dev.azure.com"
+    azdo_api_version: str = "7.1"
+    azdo_scan_timeout_seconds: float = 20.0
+
     model_config = {"env_prefix": "", "env_file": ".env", "extra": "ignore"}

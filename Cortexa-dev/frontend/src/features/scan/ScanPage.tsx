@@ -1,10 +1,11 @@
 import { useState, type ReactNode } from 'react';
 import { AppShell } from '../../shared/layout/AppShell';
 import { PageHeader, SectionCard } from '../../shared/layout/PageHeader';
-import { IconGit, IconServer } from '../../shared/ds';
+import { IconCloud, IconGit, IconServer } from '../../shared/ds';
+import { AzureDevOpsScanPanel } from './AzureDevOpsScanPanel';
 import { GithubScanPanel } from './GithubScanPanel';
 
-type ScanSource = 'github' | 'local';
+type ScanSource = 'github' | 'azure-devops' | 'local';
 
 interface SourceOption {
   id: ScanSource;
@@ -19,6 +20,12 @@ const SOURCES: SourceOption[] = [
     title: 'GitHub Scan',
     description: 'Connect a GitHub organization with a personal access token and browse every repository.',
     icon: <IconGit size={22} />,
+  },
+  {
+    id: 'azure-devops',
+    title: 'Azure DevOps Scan',
+    description: 'Connect an Azure DevOps organization with a personal access token and browse every repository.',
+    icon: <IconCloud size={22} />,
   },
   {
     id: 'local',
@@ -83,12 +90,16 @@ export function ScanPage() {
   return (
     <AppShell>
       <PageHeader title="Scan" subtitle="Pick a source to scan for files and folders." />
-      <div role="tablist" aria-label="Scan source" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div role="tablist" aria-label="Scan source" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
         {SOURCES.map((option) => (
           <SourceCard key={option.id} option={option} selected={option.id === source} onSelect={() => setSource(option.id)} />
         ))}
       </div>
-      <SectionCard title={active.title}>{source === 'github' ? <GithubScanPanel /> : <LocalScanPanel />}</SectionCard>
+      <SectionCard title={active.title}>
+        {source === 'github' && <GithubScanPanel />}
+        {source === 'azure-devops' && <AzureDevOpsScanPanel />}
+        {source === 'local' && <LocalScanPanel />}
+      </SectionCard>
     </AppShell>
   );
 }

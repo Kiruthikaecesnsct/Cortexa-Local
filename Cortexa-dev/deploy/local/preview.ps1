@@ -162,7 +162,9 @@ function Assert-Runtime {
 function Get-EnvVal {
     param([string]$Key)
     if (-not (Test-Path $EnvFile)) { return '' }
-    $lines = Get-Content -LiteralPath $EnvFile | Where-Object { $_ -match "^$Key=" }
+    # Force an array: Where-Object unwraps a single match into a bare string, and
+    # indexing a string with [0] yields a [char] (no .Substring), not a one-line array.
+    $lines = @(Get-Content -LiteralPath $EnvFile | Where-Object { $_ -match "^$Key=" })
     if ($lines.Count -eq 0) { return '' }
     $last = $lines[$lines.Count - 1]
     return $last.Substring($Key.Length + 1)

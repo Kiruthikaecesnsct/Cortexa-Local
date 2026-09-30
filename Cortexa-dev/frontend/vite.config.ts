@@ -32,6 +32,11 @@ export default defineConfig({
     },
   },
   server: {
+    // Explicit host/port so the dev server always binds all interfaces inside
+    // the preview container, regardless of how pnpm forwards (or swallows)
+    // the --host/--port CLI flags from Dockerfile.dev's CMD.
+    host: '0.0.0.0',
+    port: 5173,
     proxy: {
       '/api': {
         target: DEV_PROXY_TARGET,

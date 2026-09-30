@@ -35,7 +35,10 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cortexa-preview-local}
       POSTGRES_DB: ${POSTGRES_DB:-cortexa}
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      # postgres:18 stores data under a major-version-specific subdirectory of this
+      # mount (pg_ctlcluster-style layout); mounting straight at .../data (the pre-18
+      # layout) makes the image refuse to start even on an empty volume.
+      - postgres-data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cortexa} -d ${POSTGRES_DB:-cortexa}"]
       interval: 5s
@@ -128,12 +131,10 @@ services:
       # (default 15s) already waits for SQL to accept connections.
       mssql:
         condition: service_started
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:5300/health || exit 1"]
-      interval: 5s
-      timeout: 5s
-      retries: 30
-      start_period: 20s
+    # No healthcheck: this image is built on runtime-deps distroless-extra (no
+    # shell, no curl/wget) so a CMD-SHELL probe can never execute here; every
+    # dependent below uses service_started plus its own connection retries
+    # instead, the same accommodation already made for mssql above.
     networks: ["cortexa-network"]
 
   # ───────────────────────────── app services ─────────────────────────────
@@ -210,7 +211,7 @@ services:
       azurite:
         condition: service_healthy
       servicebus:
-        condition: service_healthy
+        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/5000' 2>/dev/null"]
       interval: 10s
@@ -255,7 +256,7 @@ services:
       cosmos:
         condition: service_healthy
       servicebus:
-        condition: service_healthy
+        condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=3).status==200 else 1)"]
       interval: 10s
@@ -281,7 +282,7 @@ services:
       cosmos:
         condition: service_healthy
       servicebus:
-        condition: service_healthy
+        condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=3).status==200 else 1)"]
       interval: 10s
@@ -306,7 +307,7 @@ services:
       cosmos:
         condition: service_healthy
       servicebus:
-        condition: service_healthy
+        condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=3).status==200 else 1)"]
       interval: 10s
@@ -334,7 +335,7 @@ services:
       azurite:
         condition: service_healthy
       servicebus:
-        condition: service_healthy
+        condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=3).status==200 else 1)"]
       interval: 10s
@@ -360,7 +361,7 @@ services:
       cosmos:
         condition: service_healthy
       servicebus:
-        condition: service_healthy
+        condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=3).status==200 else 1)"]
       interval: 10s
@@ -388,7 +389,7 @@ services:
       cosmos:
         condition: service_healthy
       servicebus:
-        condition: service_healthy
+        condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=3).status==200 else 1)"]
       interval: 10s

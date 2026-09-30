@@ -184,4 +184,5 @@ deploy/local/.env.preview
 !deploy/local/.env.preview.example
 deploy/local/certs/
 deploy/local/native/.run/
+deploy/local/native/.env.native
 deploy/local/keys/

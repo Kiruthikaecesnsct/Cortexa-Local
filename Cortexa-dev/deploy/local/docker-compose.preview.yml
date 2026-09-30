@@ -74,6 +74,10 @@ services:
     # cert (fetched by preview.sh / preview.ps1 into ../certs, mounted below)
     # before dotnet watch starts. See deploy/local/scripts/dev-entrypoint.sh.
     entrypoint: ["/usr/local/bin/dev-entrypoint.sh"]
+    # Overriding entrypoint discards the image's CMD (standard Docker
+    # behavior), so it must be restated here or the container exits
+    # immediately after the cert import with nothing left to run.
+    command: ["dotnet", "watch", "run", "--project", "src/Api/Cortexa.JobOrchestrator.Api.csproj", "--no-launch-profile"]
     environment:
       APP_ENV: preview
       ModelRouter__BaseUrl: http://model-router:8080
@@ -132,6 +136,9 @@ services:
     build:
       dockerfile: Dockerfile.dev
     entrypoint: ["/usr/local/bin/dev-entrypoint.sh"]
+    # See job-orchestrator's comment above - entrypoint override needs an
+    # explicit command or the image's CMD is discarded.
+    command: ["uv", "run", "uvicorn", "evidence.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-delay", "1"]
     environment:
       APP_ENV: preview
       MODEL_ROUTER_URL: http://model-router:8080
@@ -150,6 +157,7 @@ services:
     build:
       dockerfile: Dockerfile.dev
     entrypoint: ["/usr/local/bin/dev-entrypoint.sh"]
+    command: ["uv", "run", "uvicorn", "extraction.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-delay", "1"]
     environment:
       APP_ENV: preview
       MODEL_ROUTER_URL: http://model-router:8080
@@ -168,6 +176,7 @@ services:
     build:
       dockerfile: Dockerfile.dev
     entrypoint: ["/usr/local/bin/dev-entrypoint.sh"]
+    command: ["uv", "run", "uvicorn", "harvesting.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-delay", "1"]
     environment:
       APP_ENV: preview
     env_file:
@@ -185,6 +194,7 @@ services:
     build:
       dockerfile: Dockerfile.dev
     entrypoint: ["/usr/local/bin/dev-entrypoint.sh"]
+    command: ["uv", "run", "uvicorn", "ingestion.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-delay", "1"]
     environment:
       APP_ENV: preview
     env_file:
@@ -202,6 +212,7 @@ services:
     build:
       dockerfile: Dockerfile.dev
     entrypoint: ["/usr/local/bin/dev-entrypoint.sh"]
+    command: ["uv", "run", "uvicorn", "scoring.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-delay", "1"]
     environment:
       APP_ENV: preview
       MODEL_ROUTER_URL: http://model-router:8080
@@ -220,6 +231,7 @@ services:
     build:
       dockerfile: Dockerfile.dev
     entrypoint: ["/usr/local/bin/dev-entrypoint.sh"]
+    command: ["uv", "run", "uvicorn", "seeding.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-delay", "1"]
     environment:
       APP_ENV: preview
       MODEL_ROUTER_URL: http://model-router:8080

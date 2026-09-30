@@ -1,0 +1,11 @@
+from typing import Protocol
+
+from ingestion.domain.models.github_scan import BranchSummary, RepositorySummary, RepositoryTree
+
+
+class GitHubRepositoryReader(Protocol):
+    async def list_repositories(self, owner: str, token: str) -> list[RepositorySummary]: ...
+
+    async def list_branches(self, owner: str, repo: str, token: str) -> list[BranchSummary]: ...
+
+    async def get_tree(self, owner: str, repo: str, branch: str, token: str) -> RepositoryTree: ...

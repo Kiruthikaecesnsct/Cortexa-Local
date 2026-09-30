@@ -7,8 +7,10 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from ingestion.api.routes.github_scan_routes import router as github_scan_router
 from ingestion.api.routes.ingestion_routes import router as ingestion_router
 from ingestion.application.git.clone_adapter import CloneAdapter
+from ingestion.application.handlers.github_scan_handler import GitHubScanHandler
 from ingestion.application.handlers.process_ingestion_request_handler import (
     ProcessIngestionDeps,
     ProcessIngestionRequestHandler,
@@ -27,6 +29,10 @@ from ingestion.infrastructure.cosmos.cosmos_client import get_cosmos_client
 from ingestion.infrastructure.cosmos.document_repository import DocumentRepository
 from ingestion.infrastructure.cosmos.provenance_repository import ProvenanceRepository
 from ingestion.infrastructure.git.clone_cleanup import sweep_workdir
+from ingestion.infrastructure.github.github_api_client import (
+    GitHubApiClient,
+    create_github_http_client,
+)
 from ingestion.infrastructure.observability.consumer_supervisor import (
     ConsumerHealth,
     configure_logging,
@@ -95,6 +101,11 @@ async def lifespan(app: FastAPI):
     )
     app.state.store_ingestion_handler = store_handler
 
+    github_http = create_github_http_client(settings)
+    app.state.github_scan_handler = GitHubScanHandler(
+        GitHubApiClient(github_http, settings.github_scan_max_pages)
+    )
+
     ingestor_config = IngestorConfig(
         chunk_size=settings.chunk_size_tokens,
         chunk_overlap=settings.chunk_overlap_tokens,
@@ -140,6 +151,7 @@ async def lifespan(app: FastAPI):
     except asyncio.CancelledError:
         pass
 
+    await github_http.aclose()
     await kv_client.close()
     await cosmos.close()
     await blob_svc.close()
@@ -161,6 +173,7 @@ def create_app() -> FastAPI:
         return JSONResponse(status_code=503, content={"status": "consumer_dead"})
 
     app.include_router(ingestion_router)
+    app.include_router(github_scan_router)
     return app
 
 

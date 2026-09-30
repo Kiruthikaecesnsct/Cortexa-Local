@@ -10,6 +10,7 @@ import { UploadPage } from './features/upload';
 import { ProfilePage } from './features/profile';
 import { SettingsPage } from './features/settings';
 import { AdminUsersPage, AdminRolesPage, AdminAuditPage } from './features/admin';
+import { ScanPage } from './features/scan';
 import { NotFoundPage } from './shared/layout/NotFoundPage';
 
 function RequireAuth() {
@@ -36,6 +37,10 @@ export const router = createBrowserRouter([
       { path: '/profile', element: <ProfilePage /> },
       { path: '/settings', element: <SettingsPage /> },
       { path: '/settings/:tabId', element: <SettingsPage /> },
+      {
+        element: <RequireRole permission="jobs:submit" />,
+        children: [{ path: '/scan', element: <ScanPage /> }],
+      },
       {
         element: <RequireRole permission="admin:users:read" anyRole={['Admin', 'SuperAdmin']} />,
         children: [{ path: '/admin/users', element: <AdminUsersPage /> }],

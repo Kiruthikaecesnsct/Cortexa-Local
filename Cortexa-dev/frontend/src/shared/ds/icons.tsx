@@ -116,4 +116,57 @@ export const IconAlertCircle = ({ size }: IconProps) =>
     size
   );
 
+export const IconFile = ({ size }: IconProps) =>
+  svg(<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Zm0 0v5h5" strokeLinecap="round" strokeLinejoin="round" />, size);
+
+export const IconScan = ({ size }: IconProps) =>
+  svg(<path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M4 12h16" strokeLinecap="round" strokeLinejoin="round" />, size);
+
+export const IconServer = ({ size }: IconProps) =>
+  svg(
+    <>
+      <rect x="3" y="4" width="18" height="7" rx="1.5" />
+      <rect x="3" y="13" width="18" height="7" rx="1.5" />
+      <path d="M7 7.5h.01M7 16.5h.01" strokeLinecap="round" />
+    </>,
+    size
+  );
+
+export const IconSearch = ({ size }: IconProps) =>
+  svg(
+    <>
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.5-3.5" strokeLinecap="round" />
+    </>,
+    size
+  );
+
+export const IconLock = ({ size }: IconProps) =>
+  svg(
+    <>
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" strokeLinecap="round" />
+    </>,
+    size
+  );
+
+export const IconBranch = ({ size }: IconProps) =>
+  svg(
+    <path
+      d="M6 3v12M6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm12-12a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm0 0a9 9 0 0 1-9 9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />,
+    size
+  );
+
+export const IconEye = ({ size }: IconProps) =>
+  svg(
+    <>
+      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" strokeLinejoin="round" />
+      <circle cx="12" cy="12" r="3" />
+    </>,
+    size
+  );
+
 export const IconMinus = ({ size }: IconProps) => svg(<path d="M5 12h14" strokeLinecap="round" />, size);

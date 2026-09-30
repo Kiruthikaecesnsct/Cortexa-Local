@@ -7,6 +7,7 @@ import {
   IconDashboard,
   IconUpload,
   IconHistory,
+  IconScan,
   IconUser,
   IconSettings,
   IconUsers,
@@ -61,6 +62,7 @@ const CRUMBS: { prefix: string; crumb: string }[] = [
   { prefix: '/dashboard', crumb: 'Dashboard' },
   { prefix: '/batches/new', crumb: 'Dashboard / New Analysis' },
   { prefix: '/batches', crumb: 'Dashboard / Batch History' },
+  { prefix: '/scan', crumb: 'Analysis / Scan' },
   { prefix: '/profile', crumb: 'Account / Profile' },
   { prefix: '/settings', crumb: 'Account / Settings' },
   { prefix: '/admin/users', crumb: 'Administration / Users' },
@@ -95,6 +97,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       items: [
         { to: '/batches/new', label: 'New Analysis', icon: <IconUpload />, show: canUpload },
         { to: '/batches', label: 'Batch History', icon: <IconHistory />, show: true, end: true },
+        { to: '/scan', label: 'Scan', icon: <IconScan />, show: canUpload },
       ],
     },
     {

@@ -63,4 +63,10 @@ class IngestionSettings(BaseSettings):
 
     batch_terminal_cache_ttl_seconds: float = 30.0
 
+    # GitHub scan uses only the PAT the user supplies per request, never github_token_secret_name.
+    github_api_base_url: str = "https://api.github.com"
+    github_api_version: str = "2026-03-10"
+    github_scan_timeout_seconds: float = 20.0
+    github_scan_max_pages: int = 50
+
     model_config = {"env_prefix": "", "env_file": ".env", "extra": "ignore"}

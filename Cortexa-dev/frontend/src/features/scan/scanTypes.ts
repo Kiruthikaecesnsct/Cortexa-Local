@@ -69,6 +69,30 @@ export interface RepositoryTreeDto {
   truncated: boolean;
 }
 
+export interface LocalSystemCredentials {
+  host: string;
+  port: number;
+  username: string;
+  privateKey: string;
+  passphrase?: string;
+}
+
+export type DirectoryEntryType = 'file' | 'directory' | 'symlink';
+
+export interface DirectoryEntryDto {
+  name: string;
+  path: string;
+  type: DirectoryEntryType;
+  size: number | null;
+  modified_at: string | null;
+}
+
+export interface DirectoryListingDto {
+  path: string;
+  entries: DirectoryEntryDto[];
+  truncated: boolean;
+}
+
 export interface ScanError {
   message: string;
   correlationId?: string;

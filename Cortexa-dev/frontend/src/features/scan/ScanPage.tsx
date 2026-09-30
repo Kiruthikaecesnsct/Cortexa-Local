@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from 'react';
 import { AppShell } from '../../shared/layout/AppShell';
-import { PageHeader, SectionCard } from '../../shared/layout/PageHeader';
+import { PageHeader } from '../../shared/layout/PageHeader';
 import { IconCloud, IconGit, IconServer } from '../../shared/ds';
 import { AzureDevOpsScanPanel } from './AzureDevOpsScanPanel';
 import { GithubScanPanel } from './GithubScanPanel';
+import { LocalSystemScanPanel } from './LocalSystemScanPanel';
 
 type ScanSource = 'github' | 'azure-devops' | 'local';
 
@@ -30,7 +31,7 @@ const SOURCES: SourceOption[] = [
   {
     id: 'local',
     title: 'Local File System Scan',
-    description: 'Scan folders on a machine reached through a VM connection.',
+    description: 'Connect to a VM over SSH with its IP address, key, and a folder path, then browse its files.',
     icon: <IconServer size={22} />,
   },
 ];
@@ -63,23 +64,6 @@ function SourceCard({ option, selected, onSelect }: { option: SourceOption; sele
         <span style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>{option.description}</span>
       </span>
     </button>
-  );
-}
-
-function LocalScanPanel() {
-  return (
-    <div
-      style={{
-        padding: '14px 16px',
-        borderRadius: 'var(--radius-md)',
-        background: 'var(--status-warning-bg)',
-        color: 'var(--status-warning-fg)',
-        fontSize: 13,
-        lineHeight: 1.5,
-      }}
-    >
-      Local file system scanning over a VM connection isn't available yet in this build.
-    </div>
   );
 }
 
@@ -121,11 +105,7 @@ export function ScanPage() {
         </SectionLabel>
         {source === 'github' && <GithubScanPanel />}
         {source === 'azure-devops' && <AzureDevOpsScanPanel />}
-        {source === 'local' && (
-          <SectionCard title="Local File System Scan" subtitle="Scan folders on a machine reached through a VM connection.">
-            <LocalScanPanel />
-          </SectionCard>
-        )}
+        {source === 'local' && <LocalSystemScanPanel />}
       </section>
     </AppShell>
   );

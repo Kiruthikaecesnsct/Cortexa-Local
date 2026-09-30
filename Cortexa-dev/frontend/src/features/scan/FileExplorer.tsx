@@ -1,10 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Badge, Button, IconBranch, IconSearch, InlineMessage, Input, Skeleton } from '../../shared/ds';
+import { Badge, Button, IconBranch, IconSearch, InlineMessage, Input } from '../../shared/ds';
 import { countEntries, filterFileTree } from './fileTree';
 import { FileTreeView } from './FileTreeView';
+import { ScanLoader } from './ScanLoader';
 import type { Loadable, LoadedTree } from './scanTypes';
-
-const SKELETON_ROWS = 6;
 
 interface ExplorerHeaderProps {
   owner: string;
@@ -102,11 +101,11 @@ export function FileExplorer({ owner, repository, branch, tree, onRetry }: FileE
         </div>
       )}
       {(tree.status === 'loading' || tree.status === 'idle') && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }} aria-label="Loading files">
-          {Array.from({ length: SKELETON_ROWS }, (_, i) => (
-            <Skeleton key={i} height={26} />
-          ))}
-        </div>
+        <ScanLoader
+          title="Reading files"
+          message={`Listing every file and folder on ${branch} in ${repository}.`}
+          slowHint="Large repositories can take several seconds. Hang tight."
+        />
       )}
     </div>
   );

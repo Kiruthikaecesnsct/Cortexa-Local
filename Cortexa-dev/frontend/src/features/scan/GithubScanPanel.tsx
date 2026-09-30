@@ -4,6 +4,7 @@ import { BranchPicker } from './BranchPicker';
 import { FileExplorer } from './FileExplorer';
 import { GithubConnectForm } from './GithubConnectForm';
 import { RepositoryPicker } from './RepositoryPicker';
+import { ScanLoader } from './ScanLoader';
 import { promptFor } from './scanPrompts';
 import { ScanStepper } from './ScanStepper';
 import type { WizardState, WizardStep } from './scanWizard';
@@ -15,7 +16,19 @@ type Scan = ReturnType<typeof useGithubScan>;
 function ConnectStep({ scan }: { scan: Scan }) {
   const { connection } = scan.state;
   const error = connection.status === 'error' ? connection.error : undefined;
-  return <GithubConnectForm connecting={connection.status === 'loading'} error={error} onConnect={(c) => void scan.connect(c)} />;
+  const connecting = connection.status === 'loading';
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <GithubConnectForm connecting={connecting} error={error} onConnect={(c) => void scan.connect(c)} />
+      {connecting && (
+        <ScanLoader
+          title="Connecting to GitHub"
+          message="Checking your token and finding every repository it can see."
+          slowHint="Organizations with many repositories take longer, since GitHub returns them 100 at a time."
+        />
+      )}
+    </div>
+  );
 }
 
 function RepositoryStep({ scan }: { scan: Scan }) {

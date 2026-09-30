@@ -3,7 +3,7 @@ import { Badge, Button, IconBranch, InlineMessage, Spinner } from '../../shared/
 import { SectionCard } from '../../shared/layout/PageHeader';
 import { relativeTime } from '../../shared/utils';
 import { formatBytes } from '../upload/uploadValidation';
-import { STATUS_LABELS, isInProgress, shortSha } from './cloneFormat';
+import { isInProgress, shortSha, statusLabel } from './cloneFormat';
 import type { Loadable, RepositoryCloneDto, ScanError } from './scanTypes';
 import type { CloneActionResult } from './useClones';
 
@@ -11,11 +11,11 @@ function CloneStatusView({ clone }: { clone: RepositoryCloneDto }) {
   if (isInProgress(clone)) {
     return (
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 'var(--text-sm)', color: 'var(--accent-primary)' }}>
-        <Spinner size={14} /> {STATUS_LABELS[clone.status]}…
+        <Spinner size={14} /> {statusLabel(clone)}…
       </span>
     );
   }
-  return <Badge tone={clone.status === 'stored' ? 'success' : 'danger'}>{STATUS_LABELS[clone.status]}</Badge>;
+  return <Badge tone={clone.status === 'stored' ? 'success' : 'danger'}>{statusLabel(clone)}</Badge>;
 }
 
 function CloneMeta({ clone }: { clone: RepositoryCloneDto }) {

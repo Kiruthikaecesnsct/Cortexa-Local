@@ -10,6 +10,10 @@ from ingestion.domain.models.azure_devops_scan import (
 class AzureDevOpsRepositoryReader(Protocol):
     async def list_repositories(self, organization: str, token: str) -> list[RepositorySummary]: ...
 
+    async def get_repository(
+        self, organization: str, project: str, repository: str, token: str
+    ) -> RepositorySummary: ...
+
     async def list_branches(
         self, organization: str, project: str, repository: str, token: str
     ) -> list[BranchSummary]: ...

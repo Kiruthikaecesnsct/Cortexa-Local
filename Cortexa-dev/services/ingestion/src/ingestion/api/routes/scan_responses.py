@@ -5,34 +5,28 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
-from ingestion.domain.errors.github_scan_errors import (
-    CloneNotFoundError,
-    CloneStorageUnavailableError,
-    GitHubAccessDeniedError,
-    GitHubAuthError,
-    GitHubNotFoundError,
-    GitHubRateLimitError,
-    GitHubScanError,
-    InvalidScanTargetError,
-    MissingUserContextError,
-    RepositoryTooLargeError,
-)
+from ingestion.domain.errors.scan_errors import ScanError
 
 CORRELATION_HEADER = "X-Correlation-Id"
 USER_ID_HEADER = "X-User-Id"
 _UPSTREAM_STATUS = 502
-# A rejected GitHub token maps to 400, never 401: the frontend treats 401 as an
-# expired Cortexa session and would sign the user out.
-_ERROR_STATUS: dict[type[GitHubScanError], int] = {
-    InvalidScanTargetError: 422,
-    RepositoryTooLargeError: 422,
-    GitHubAuthError: 400,
-    GitHubAccessDeniedError: 403,
-    MissingUserContextError: 403,
-    GitHubNotFoundError: 404,
-    CloneNotFoundError: 404,
-    GitHubRateLimitError: 429,
-    CloneStorageUnavailableError: 503,
+# Keyed by error code so GitHub, Azure DevOps and save errors share one table.
+# A rejected token maps to 400, never 401: the frontend treats 401 as an expired
+# Cortexa session and would sign the user out.
+_ERROR_STATUS: dict[str, int] = {
+    "invalid_scan_target": 422,
+    "repository_too_large": 422,
+    "github_auth_failed": 400,
+    "azure_devops_auth_failed": 400,
+    "github_access_denied": 403,
+    "azure_devops_access_denied": 403,
+    "missing_user_context": 403,
+    "github_not_found": 404,
+    "azure_devops_not_found": 404,
+    "clone_not_found": 404,
+    "github_rate_limited": 429,
+    "azure_devops_rate_limited": 429,
+    "clone_storage_unavailable": 503,
 }
 
 
@@ -47,10 +41,10 @@ def success(data: BaseModel, cid: str, status_code: int = 200) -> JSONResponse:
     )
 
 
-def failure(exc: GitHubScanError, cid: str) -> JSONResponse:
+def failure(exc: ScanError, cid: str) -> JSONResponse:
     return JSONResponse(
         {"success": False, "error_code": exc.code, "message": str(exc), "correlation_id": cid},
-        status_code=_ERROR_STATUS.get(type(exc), _UPSTREAM_STATUS),
+        status_code=_ERROR_STATUS.get(exc.code, _UPSTREAM_STATUS),
     )
 
 
@@ -60,6 +54,6 @@ async def respond(
     cid = correlation_id(request)
     try:
         result = await operation
-    except GitHubScanError as exc:
+    except ScanError as exc:
         return failure(exc, cid)
     return success(result, cid, status_code)

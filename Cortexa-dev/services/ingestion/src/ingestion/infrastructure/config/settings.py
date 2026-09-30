@@ -68,6 +68,8 @@ class IngestionSettings(BaseSettings):
     github_api_version: str = "2026-03-10"
     github_scan_timeout_seconds: float = 20.0
     github_scan_max_pages: int = 50
+    # Host used to build `git clone` URLs when saving a GitHub branch.
+    github_clone_base_url: str = "https://github.com"
 
     # Azure DevOps scan uses only the PAT the user supplies per request, never
     # azdo_pat_secret_name.

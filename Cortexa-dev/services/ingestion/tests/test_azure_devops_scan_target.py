@@ -60,9 +60,7 @@ def test_validate_branch_accepts_valid_names(branch: str) -> None:
     assert validate_branch(branch) == branch
 
 
-@pytest.mark.parametrize(
-    "branch", ["../main", "/main", "main/", "a//b", "main.lock", "a b", "a?b"]
-)
+@pytest.mark.parametrize("branch", ["../main", "/main", "main/", "a//b", "main.lock", "a b", "a?b"])
 def test_validate_branch_rejects_invalid_names(branch: str) -> None:
     with pytest.raises(InvalidScanTargetError):
         validate_branch(branch)

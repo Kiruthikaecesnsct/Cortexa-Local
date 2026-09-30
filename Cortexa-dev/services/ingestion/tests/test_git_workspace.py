@@ -4,13 +4,19 @@ from pathlib import Path
 
 import pytest
 
+from ingestion.domain.enums.git_host import GitHost
 from ingestion.domain.errors.clone_errors import CloneTimeoutError, GitExecutionError
-from ingestion.domain.errors.github_scan_errors import CloneExecutionError
+from ingestion.domain.errors.scan_errors import CloneExecutionError
+from ingestion.domain.models.repository_clone import CheckoutSpec
 from ingestion.infrastructure.config.settings import IngestionSettings
 from ingestion.infrastructure.git import git_workspace
 from ingestion.infrastructure.git.git_workspace import GitRepositoryWorkspace
 
 SYMLINK_MODE = "120000"
+GITHUB_SPEC = CheckoutSpec(GitHost.GITHUB, "https://github.com/acme/api.git", "main", "tok")
+AZURE_SPEC = CheckoutSpec(
+    GitHost.AZURE_DEVOPS, "https://dev.azure.com/contoso/P/_git/api", "main", "tok"
+)
 
 
 def _git(cwd: Path, *args: str, stdin: str | None = None) -> str:
@@ -74,7 +80,7 @@ async def test_clone_and_pack_removes_checkout(
 
     monkeypatch.setattr(git_workspace.git_runner, "run_clone", fake_clone)
 
-    archive = await workspace.clone_and_pack("acme", "api", "main", "tok")
+    archive = await workspace.clone_and_pack(GITHUB_SPEC)
 
     assert archive.path.exists()
     assert not checkout.exists()
@@ -100,4 +106,20 @@ async def test_clone_errors_become_user_facing_messages(
     monkeypatch.setattr(git_workspace.git_runner, "run_clone", failing_clone)
 
     with pytest.raises(CloneExecutionError, match=message):
-        await workspace.clone_and_pack("acme", "api", "main", "tok")
+        await workspace.clone_and_pack(GITHUB_SPEC)
+
+
+async def test_azure_clone_passes_url_and_names_azure_in_errors(
+    workspace: GitRepositoryWorkspace, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    seen: list[tuple[str, str, str | None]] = []
+
+    async def failing_clone(ref, token, settings, branch):  # noqa: ANN001, ANN202
+        seen.append((ref.normalized_https_url, token, branch))
+        raise GitExecutionError(exit_code=128, message="denied")
+
+    monkeypatch.setattr(git_workspace.git_runner, "run_clone", failing_clone)
+
+    with pytest.raises(CloneExecutionError, match="from Azure DevOps"):
+        await workspace.clone_and_pack(AZURE_SPEC)
+    assert seen == [("https://dev.azure.com/contoso/P/_git/api", "tok", "main")]

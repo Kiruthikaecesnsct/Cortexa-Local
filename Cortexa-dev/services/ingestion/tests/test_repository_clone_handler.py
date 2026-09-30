@@ -5,26 +5,34 @@ from pathlib import Path
 import pytest
 from pydantic import SecretStr
 
-from ingestion.application.dtos.github_scan_dtos import RepositoryTreeRequest
-from ingestion.application.github_scan.clone_jobs import BackgroundRunner, CloneJobRegistry
+from ingestion.application.dtos.azure_devops_scan_dtos import (
+    RepositoryTreeRequest as AzureRequest,
+)
+from ingestion.application.dtos.github_scan_dtos import RepositoryTreeRequest as GitHubRequest
 from ingestion.application.handlers.repository_clone_handler import (
     RepositoryCloneDeps,
     RepositoryCloneHandler,
 )
+from ingestion.application.repository_clone.azure_devops_source import AzureDevOpsSource
+from ingestion.application.repository_clone.clone_jobs import BackgroundRunner, CloneJobRegistry
+from ingestion.application.repository_clone.github_source import GitHubSource
 from ingestion.domain.enums.clone_status import CloneStatus
-from ingestion.domain.errors.github_scan_errors import (
+from ingestion.domain.enums.source_provider import SourceProvider
+from ingestion.domain.errors.github_scan_errors import InvalidScanTargetError
+from ingestion.domain.errors.scan_errors import (
     CloneExecutionError,
     CloneNotFoundError,
-    InvalidScanTargetError,
     MissingUserContextError,
     RepositoryTooLargeError,
 )
-from ingestion.domain.models.github_scan import RepositorySummary
+from ingestion.domain.models.azure_devops_scan import RepositorySummary as AzureSummary
+from ingestion.domain.models.github_scan import RepositorySummary as GitHubSummary
 from ingestion.domain.models.repository_clone import (
     ArchiveDownload,
+    CheckoutSpec,
     PackedArchive,
     RepositoryClone,
-    clone_id_for,
+    SaveTarget,
 )
 
 TOKEN = "ghp_supersecrettoken"
@@ -34,18 +42,27 @@ MAX_BYTES = 10 * 1024 * 1024
 SETTLE_ROUNDS = 20
 
 
-def _request(branch: str = "main") -> RepositoryTreeRequest:
-    return RepositoryTreeRequest(
+def _github_request(branch: str = "main") -> GitHubRequest:
+    return GitHubRequest(
         org_url="https://github.com/acme", pat=SecretStr(TOKEN), repository="api", branch=branch
     )
 
 
-class FakeReader:
+def _azure_request(branch: str = "main") -> AzureRequest:
+    return AzureRequest(
+        org_url="https://dev.azure.com/contoso",
+        pat=SecretStr(TOKEN),
+        repository="Platform/api",
+        branch=branch,
+    )
+
+
+class FakeGitHubReader:
     def __init__(self, size_kb: int = 100) -> None:
         self.size_kb = size_kb
 
-    async def get_repository(self, owner: str, repo: str, token: str) -> RepositorySummary:
-        return RepositorySummary(
+    async def get_repository(self, owner: str, repo: str, token: str) -> GitHubSummary:
+        return GitHubSummary(
             name=repo,
             full_name=f"{owner}/{repo}",
             private=True,
@@ -55,14 +72,21 @@ class FakeReader:
         )
 
 
+class FakeAzureReader:
+    async def get_repository(
+        self, organization: str, project: str, repository: str, token: str
+    ) -> AzureSummary:
+        return AzureSummary(name=f"{project}/{repository}", full_name="x", html_url="x", size_kb=1)
+
+
 class FakeWorkspace:
     def __init__(self, error: Exception | None = None) -> None:
         self.error = error
-        self.tokens: list[str] = []
+        self.specs: list[CheckoutSpec] = []
         self.discarded: list[PackedArchive] = []
 
-    async def clone_and_pack(self, owner: str, repo: str, branch: str, token: str) -> PackedArchive:
-        self.tokens.append(token)
+    async def clone_and_pack(self, spec: CheckoutSpec) -> PackedArchive:
+        self.specs.append(spec)
         if self.error:
             raise self.error
         return PackedArchive(path=Path("fake.zip"), commit_sha="abc1234def")
@@ -72,41 +96,55 @@ class FakeWorkspace:
 
 
 class FakeStore:
-    """Keyed like the real store: one object per owner/repository/branch."""
+    """Keyed like the real store: one object per saved target."""
 
     def __init__(self) -> None:
-        self.saved: dict[tuple[str, str, str], RepositoryClone] = {}
+        self.saved: dict[SaveTarget, RepositoryClone] = {}
 
     async def ensure_ready(self) -> None:
         return None
 
     async def save(self, archive: PackedArchive, clone: RepositoryClone) -> int:
         stored = clone.model_copy(update={"status": CloneStatus.STORED, "size_bytes": 42})
-        self.saved[(clone.owner, clone.repository, clone.branch)] = stored
+        self.saved[clone.target] = stored
         return 42
 
-    async def list_clones(self) -> list[RepositoryClone]:
-        return list(self.saved.values())
+    async def list_clones(self, provider: SourceProvider) -> list[RepositoryClone]:
+        return [c for c in self.saved.values() if c.provider == provider]
 
-    async def open_download(self, owner: str, repository: str, branch: str) -> ArchiveDownload:
-        if (owner, repository, branch) not in self.saved:
+    async def open_download(self, target: SaveTarget) -> ArchiveDownload:
+        if target not in self.saved:
             raise CloneNotFoundError("Saved repository not found.")
         chunks: Iterator[bytes] = iter([b"zip"])
-        return ArchiveDownload(chunks=chunks, size_bytes=3, filename=f"{repository}.zip")
+        return ArchiveDownload(
+            chunks=chunks, size_bytes=3, filename=f"{target.repository_name}.zip"
+        )
 
 
-def _handler(
-    workspace: FakeWorkspace | None = None, reader: FakeReader | None = None
-) -> tuple[RepositoryCloneHandler, RepositoryCloneDeps]:
-    deps = RepositoryCloneDeps(
-        reader=reader or FakeReader(),
-        workspace=workspace or FakeWorkspace(),
-        store=FakeStore(),
-        registry=CloneJobRegistry(),
-        runner=BackgroundRunner(),
-        max_repo_bytes=MAX_BYTES,
-    )
-    return RepositoryCloneHandler(deps), deps
+class Harness:
+    """GitHub and Azure DevOps handlers sharing one store, registry and runner, as in wiring."""
+
+    def __init__(self, workspace: FakeWorkspace | None = None, github_size_kb: int = 100) -> None:
+        self.workspace = workspace or FakeWorkspace()
+        self.store = FakeStore()
+        self.registry = CloneJobRegistry()
+        self.runner = BackgroundRunner()
+        self.github = self._handler(
+            GitHubSource(FakeGitHubReader(github_size_kb), "https://github.com")
+        )
+        self.azure = self._handler(AzureDevOpsSource(FakeAzureReader(), "https://dev.azure.com"))
+
+    def _handler(self, source) -> RepositoryCloneHandler:  # noqa: ANN001
+        return RepositoryCloneHandler(
+            RepositoryCloneDeps(
+                source=source,
+                workspace=self.workspace,
+                store=self.store,
+                registry=self.registry,
+                runner=self.runner,
+                max_repo_bytes=MAX_BYTES,
+            )
+        )
 
 
 async def _settle() -> None:
@@ -114,162 +152,169 @@ async def _settle() -> None:
         await asyncio.sleep(0)
 
 
-async def test_start_queues_then_stores_the_archive() -> None:
-    handler, deps = _handler()
+async def test_github_save_queues_then_stores_the_archive() -> None:
+    h = Harness()
 
-    queued = await handler.start(_request(), USER)
-    assert queued.status == CloneStatus.QUEUED
-    assert queued.clone_id == clone_id_for("acme", "api", "main")
+    queued = await h.github.start(_github_request(), USER)
+    assert (queued.status, queued.provider) == (CloneStatus.QUEUED, SourceProvider.GITHUB)
     await _settle()
 
-    clones = await handler.list_clones(USER)
-    assert [(c.clone_id, c.status, c.commit_sha) for c in clones] == [
-        (queued.clone_id, CloneStatus.STORED, "abc1234def")
-    ]
-    assert deps.registry.all() == []
-    assert deps.workspace.discarded == [PackedArchive(Path("fake.zip"), "abc1234def")]
+    [clone] = await h.github.list_clones(USER)
+    assert (clone.clone_id, clone.status, clone.commit_sha) == (
+        queued.clone_id,
+        CloneStatus.STORED,
+        "abc1234def",
+    )
+    assert h.registry.all() == []
+    assert h.workspace.discarded == [PackedArchive(Path("fake.zip"), "abc1234def")]
+    assert h.workspace.specs[0].url == "https://github.com/acme/api.git"
+
+
+async def test_azure_save_uses_azure_clone_url_and_project_repository() -> None:
+    h = Harness()
+
+    queued = await h.azure.start(_azure_request(), USER)
+    await _settle()
+
+    assert (queued.provider, queued.owner, queued.repository) == (
+        SourceProvider.AZURE_DEVOPS,
+        "contoso",
+        "Platform/api",
+    )
+    assert h.workspace.specs[0].url == "https://dev.azure.com/contoso/Platform/_git/api"
+    assert [c.status for c in await h.azure.list_clones(USER)] == [CloneStatus.STORED]
+
+
+async def test_each_provider_lists_only_its_own_saves() -> None:
+    h = Harness()
+    await h.github.start(_github_request(), USER)
+    await h.azure.start(_azure_request(), USER)
+    await _settle()
+
+    assert [c.provider for c in await h.github.list_clones(USER)] == [SourceProvider.GITHUB]
+    assert [c.provider for c in await h.azure.list_clones(USER)] == [SourceProvider.AZURE_DEVOPS]
 
 
 async def test_token_reaches_git_but_never_the_clone_record() -> None:
-    workspace = FakeWorkspace()
-    handler, _ = _handler(workspace)
+    h = Harness()
 
-    queued = await handler.start(_request(), USER)
+    queued = await h.github.start(_github_request(), USER)
     await _settle()
 
-    assert workspace.tokens == [TOKEN]
-    for clone in [queued, *await handler.list_clones(USER)]:
+    assert h.workspace.specs[0].token == TOKEN
+    assert TOKEN not in repr(h.workspace.specs[0])
+    for clone in [queued, *await h.github.list_clones(USER)]:
         assert TOKEN not in clone.model_dump_json()
         assert "saved_by" not in clone.model_dump()
 
 
 async def test_saves_are_shared_between_signed_in_users() -> None:
-    handler, _ = _handler()
-    await handler.start(_request(), USER)
+    h = Harness()
+    await h.azure.start(_azure_request(), USER)
     await _settle()
 
-    clones = await handler.list_clones(OTHER_USER)
-    download = await handler.open_download(OTHER_USER, "acme", "api", "main")
+    clones = await h.azure.list_clones(OTHER_USER)
+    download = await h.azure.open_download(OTHER_USER, "contoso", "Platform/api", "main")
 
-    assert [c.repository for c in clones] == ["api"]
+    assert [c.repository for c in clones] == ["Platform/api"]
     assert download.filename == "api.zip"
 
 
 async def test_missing_user_is_rejected_before_any_work() -> None:
-    handler, deps = _handler()
+    h = Harness()
 
     with pytest.raises(MissingUserContextError):
-        await handler.start(_request(), None)
+        await h.github.start(_github_request(), None)
     with pytest.raises(MissingUserContextError):
-        await handler.list_clones("bad id!")
+        await h.azure.list_clones("bad id!")
     with pytest.raises(MissingUserContextError):
-        await handler.open_download(None, "acme", "api", "main")
-    assert deps.runner.active_count == 0
+        await h.github.open_download(None, "acme", "api", "main")
+    assert h.runner.active_count == 0
 
 
 async def test_too_large_repository_is_rejected() -> None:
-    handler, deps = _handler(reader=FakeReader(size_kb=MAX_BYTES))
+    h = Harness(github_size_kb=MAX_BYTES)
 
     with pytest.raises(RepositoryTooLargeError):
-        await handler.start(_request(), USER)
-    assert deps.registry.all() == []
-
-
-async def test_second_request_for_same_branch_reuses_active_save() -> None:
-    handler, _ = _handler()
-
-    first = await handler.start(_request(), USER)
-    second = await handler.start(_request(), OTHER_USER)
-
-    assert second is first
-    await _settle()
+        await h.github.start(_github_request(), USER)
+    assert h.registry.all() == []
 
 
 async def test_concurrent_requests_for_same_branch_start_one_save() -> None:
-    workspace = FakeWorkspace()
-    handler, _ = _handler(workspace)
+    h = Harness()
 
     first, second = await asyncio.gather(
-        handler.start(_request(), USER), handler.start(_request(), USER)
+        h.github.start(_github_request(), USER), h.github.start(_github_request(), OTHER_USER)
     )
 
     assert first.clone_id == second.clone_id
     await _settle()
-    assert len(workspace.tokens) == 1
+    assert len(h.workspace.specs) == 1
+
+
+async def test_same_names_on_different_providers_are_separate_saves() -> None:
+    h = Harness()
+
+    github = await h.github.start(_github_request(), USER)
+    azure = await h.azure.start(_azure_request(), USER)
+
+    assert github.clone_id != azure.clone_id
+    await _settle()
 
 
 async def test_clone_error_marks_job_failed_with_its_message() -> None:
-    handler, _ = _handler(FakeWorkspace(CloneExecutionError("Could not download.")))
+    h = Harness(FakeWorkspace(CloneExecutionError("Could not download.")))
 
-    await handler.start(_request(), USER)
+    await h.azure.start(_azure_request(), USER)
     await _settle()
 
-    [clone] = await handler.list_clones(USER)
+    [clone] = await h.azure.list_clones(USER)
     assert (clone.status, clone.error) == (CloneStatus.FAILED, "Could not download.")
 
 
 async def test_unexpected_error_shows_generic_message() -> None:
-    handler, _ = _handler(FakeWorkspace(RuntimeError(f"boom {TOKEN}")))
+    h = Harness(FakeWorkspace(RuntimeError(f"boom {TOKEN}")))
 
-    await handler.start(_request(), USER)
+    await h.github.start(_github_request(), USER)
     await _settle()
 
-    [clone] = await handler.list_clones(USER)
+    [clone] = await h.github.list_clones(USER)
     assert clone.status == CloneStatus.FAILED
     assert TOKEN not in (clone.error or "")
 
 
 async def test_retry_replaces_the_earlier_failed_attempt() -> None:
     workspace = FakeWorkspace(CloneExecutionError("Could not download."))
-    handler, _ = _handler(workspace)
-    await handler.start(_request(), USER)
+    h = Harness(workspace)
+    await h.github.start(_github_request(), USER)
     await _settle()
 
     workspace.error = None
-    retry = await handler.start(_request(), USER)
+    retry = await h.github.start(_github_request(), USER)
     await _settle()
 
-    clones = await handler.list_clones(USER)
+    clones = await h.github.list_clones(USER)
     assert [(c.clone_id, c.status) for c in clones] == [(retry.clone_id, CloneStatus.STORED)]
 
 
-async def test_saving_same_branch_again_keeps_one_entry() -> None:
-    handler, _ = _handler()
-    await handler.start(_request(), USER)
-    await _settle()
-    await handler.start(_request(), USER)
-    await _settle()
-
-    assert len(await handler.list_clones(USER)) == 1
-
-
 async def test_in_progress_save_replaces_stored_copy_in_list() -> None:
-    handler, _ = _handler()
-    await handler.start(_request(), USER)
+    h = Harness()
+    await h.github.start(_github_request(), USER)
     await _settle()
 
-    await handler.start(_request(), USER)
-    [clone] = await handler.list_clones(USER)
+    await h.github.start(_github_request(), USER)
+    [clone] = await h.github.list_clones(USER)
 
     assert clone.status == CloneStatus.QUEUED
     await _settle()
 
 
-async def test_different_branches_are_listed_separately() -> None:
-    handler, _ = _handler()
-    await handler.start(_request("main"), USER)
-    await handler.start(_request("dev"), USER)
-    await _settle()
-
-    assert sorted(c.branch for c in await handler.list_clones(USER)) == ["dev", "main"]
-
-
 async def test_download_validates_names_and_reports_missing() -> None:
-    handler, _ = _handler()
+    h = Harness()
 
     with pytest.raises(CloneNotFoundError):
-        await handler.open_download(USER, "acme", "api", "main")
+        await h.github.open_download(USER, "acme", "api", "main")
     with pytest.raises(InvalidScanTargetError):
-        await handler.open_download(USER, "..", "api", "main")
+        await h.github.open_download(USER, "..", "api", "main")
     with pytest.raises(InvalidScanTargetError):
-        await handler.open_download(USER, "acme", "api", "../../etc")
+        await h.github.open_download(USER, "acme", "api", "../../etc")

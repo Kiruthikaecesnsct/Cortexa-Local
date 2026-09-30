@@ -10,10 +10,12 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from ingestion.api.routes.azure_devops_scan_routes import router as azure_devops_scan_router
 from ingestion.api.routes.github_scan_routes import router as github_scan_router
 from ingestion.api.routes.ingestion_routes import router as ingestion_router
-from ingestion.api.routes.repository_clone_routes import router as repository_clone_router
+from ingestion.api.routes.repository_clone_routes import (
+    azure_devops_clone_router,
+    github_clone_router,
+)
 from ingestion.api.scan_wiring import build_scan_services
 from ingestion.application.git.clone_adapter import CloneAdapter
-from ingestion.application.handlers.azure_devops_scan_handler import AzureDevOpsScanHandler
 from ingestion.application.handlers.process_ingestion_request_handler import (
     ProcessIngestionDeps,
     ProcessIngestionRequestHandler,
@@ -23,10 +25,6 @@ from ingestion.application.handlers.store_ingestion_handler import (
     StoreIngestionHandler,
 )
 from ingestion.application.raw_file_ingestor import IngestorConfig
-from ingestion.infrastructure.azure_devops.azure_devops_api_client import (
-    AzureDevOpsApiClient,
-    create_azure_devops_http_client,
-)
 from ingestion.infrastructure.blob.blob_client import get_blob_service_client
 from ingestion.infrastructure.blob.blob_repository import BlobRepository
 from ingestion.infrastructure.config.settings import IngestionSettings
@@ -105,13 +103,10 @@ async def lifespan(app: FastAPI):
     app.state.store_ingestion_handler = store_handler
 
     scan_services = await build_scan_services(settings)
-    app.state.github_scan_handler = scan_services.scan_handler
-    app.state.repository_clone_handler = scan_services.clone_handler
-
-    azure_devops_http = create_azure_devops_http_client(settings)
-    app.state.azure_devops_scan_handler = AzureDevOpsScanHandler(
-        AzureDevOpsApiClient(azure_devops_http, settings.azdo_api_version)
-    )
+    app.state.github_scan_handler = scan_services.github_scan_handler
+    app.state.repository_clone_handler = scan_services.github_clone_handler
+    app.state.azure_devops_scan_handler = scan_services.azure_devops_scan_handler
+    app.state.azure_devops_clone_handler = scan_services.azure_devops_clone_handler
 
     ingestor_config = IngestorConfig(
         chunk_size=settings.chunk_size_tokens,
@@ -159,7 +154,6 @@ async def lifespan(app: FastAPI):
         pass
 
     await scan_services.aclose()
-    await azure_devops_http.aclose()
     await kv_client.close()
     await cosmos.close()
     await blob_svc.close()
@@ -183,7 +177,8 @@ def create_app() -> FastAPI:
     app.include_router(ingestion_router)
     app.include_router(github_scan_router)
     app.include_router(azure_devops_scan_router)
-    app.include_router(repository_clone_router)
+    app.include_router(github_clone_router)
+    app.include_router(azure_devops_clone_router)
     return app
 
 

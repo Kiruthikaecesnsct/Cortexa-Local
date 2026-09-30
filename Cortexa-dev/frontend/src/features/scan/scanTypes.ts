@@ -37,8 +37,11 @@ export interface ListBranchesDto {
 
 export type CloneStatus = 'queued' | 'cloning' | 'uploading' | 'stored' | 'failed';
 
+export type ScanProvider = 'github' | 'azure-devops';
+
 export interface RepositoryCloneDto {
   clone_id: string;
+  provider: ScanProvider;
   owner: string;
   repository: string;
   branch: string;

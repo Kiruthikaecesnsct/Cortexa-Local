@@ -1,5 +1,9 @@
+from dataclasses import dataclass
+from urllib.parse import quote
+
 from fastapi import APIRouter, Query, Request
 from fastapi.responses import JSONResponse, Response, StreamingResponse
+from pydantic import BaseModel
 
 from ingestion.api.routes.scan_responses import (
     USER_ID_HEADER,
@@ -7,18 +11,27 @@ from ingestion.api.routes.scan_responses import (
     failure,
     respond,
 )
-from ingestion.application.dtos.github_scan_dtos import CloneListResponse, RepositoryTreeRequest
+from ingestion.application.dtos.azure_devops_scan_dtos import (
+    RepositoryTreeRequest as AzureDevOpsSaveRequest,
+)
+from ingestion.application.dtos.github_scan_dtos import CloneListResponse
+from ingestion.application.dtos.github_scan_dtos import (
+    RepositoryTreeRequest as GitHubSaveRequest,
+)
 from ingestion.application.handlers.repository_clone_handler import RepositoryCloneHandler
-from ingestion.domain.errors.github_scan_errors import GitHubScanError
-from ingestion.domain.models.repository_clone import RepositoryClone
-
-router = APIRouter(prefix="/scan/github/clones", tags=["scan"])
+from ingestion.domain.errors.scan_errors import ScanError
 
 _ACCEPTED = 202
+_MAX_OWNER = 64
+_MAX_REPOSITORY = 129
+_MAX_BRANCH = 255
 
 
-def _handler(request: Request) -> RepositoryCloneHandler:
-    return request.app.state.repository_clone_handler
+@dataclass(frozen=True)
+class CloneRouteConfig:
+    prefix: str
+    handler_attr: str
+    request_model: type[BaseModel]
 
 
 def _user_id(request: Request) -> str | None:
@@ -26,43 +39,68 @@ def _user_id(request: Request) -> str | None:
     return request.headers.get(USER_ID_HEADER)
 
 
-async def _list(request: Request) -> CloneListResponse:
-    clones = await _handler(request).list_clones(_user_id(request))
-    return CloneListResponse(clones=clones)
+def _content_disposition(filename: str) -> str:
+    # Repository names may hold spaces, quotes or non-ASCII characters: send an ASCII
+    # fallback plus the RFC 5987 encoded name so the header can never be broken.
+    fallback = "".join(
+        c if c.isascii() and c.isprintable() and c not in '"\\' else "_" for c in filename
+    )
+    return f"attachment; filename=\"{fallback}\"; filename*=UTF-8''{quote(filename)}"
 
 
-async def _start(body: RepositoryTreeRequest, request: Request) -> RepositoryClone:
-    return await _handler(request).start(body, _user_id(request))
-
-
-@router.post("")
-async def start_clone(body: RepositoryTreeRequest, request: Request) -> JSONResponse:
-    return await respond(request, _start(body, request), status_code=_ACCEPTED)
-
-
-@router.get("")
-async def list_clones(request: Request) -> JSONResponse:
-    return await respond(request, _list(request))
-
-
-@router.get("/download", response_model=None)
-async def download_clone(
-    request: Request,
-    owner: str = Query(max_length=39),
-    repository: str = Query(max_length=100),
-    branch: str = Query(max_length=255),
+async def _download_response(
+    handler: RepositoryCloneHandler, request: Request, names: tuple[str, str, str]
 ) -> Response:
     try:
-        download = await _handler(request).open_download(
-            _user_id(request), owner, repository, branch
-        )
-    except GitHubScanError as exc:
+        download = await handler.open_download(_user_id(request), *names)
+    except ScanError as exc:
         return failure(exc, correlation_id(request))
     return StreamingResponse(
         download.chunks,
         media_type="application/zip",
         headers={
-            "Content-Disposition": f'attachment; filename="{download.filename}"',
+            "Content-Disposition": _content_disposition(download.filename),
             "Content-Length": str(download.size_bytes),
         },
     )
+
+
+def build_clone_router(config: CloneRouteConfig) -> APIRouter:
+    router = APIRouter(prefix=config.prefix, tags=["scan"])
+    request_model = config.request_model
+
+    def handler(request: Request) -> RepositoryCloneHandler:
+        return getattr(request.app.state, config.handler_attr)
+
+    async def listed(request: Request) -> CloneListResponse:
+        return CloneListResponse(clones=await handler(request).list_clones(_user_id(request)))
+
+    @router.post("")
+    async def start_clone(body: request_model, request: Request) -> JSONResponse:  # type: ignore[valid-type]
+        operation = handler(request).start(body, _user_id(request))
+        return await respond(request, operation, status_code=_ACCEPTED)
+
+    @router.get("")
+    async def list_clones(request: Request) -> JSONResponse:
+        return await respond(request, listed(request))
+
+    @router.get("/download", response_model=None)
+    async def download_clone(
+        request: Request,
+        owner: str = Query(max_length=_MAX_OWNER),
+        repository: str = Query(max_length=_MAX_REPOSITORY),
+        branch: str = Query(max_length=_MAX_BRANCH),
+    ) -> Response:
+        return await _download_response(handler(request), request, (owner, repository, branch))
+
+    return router
+
+
+github_clone_router = build_clone_router(
+    CloneRouteConfig("/scan/github/clones", "repository_clone_handler", GitHubSaveRequest)
+)
+azure_devops_clone_router = build_clone_router(
+    CloneRouteConfig(
+        "/scan/azure-devops/clones", "azure_devops_clone_handler", AzureDevOpsSaveRequest
+    )
+)

@@ -1,28 +1,21 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { CloneApi } from '../cloneApi';
 import type { RepositoryCloneDto } from '../scanTypes';
 
-const listClones = vi.fn();
-const startClone = vi.fn();
-const downloadClone = vi.fn();
 const downloadBlob = vi.fn();
-
-vi.mock('../scanRepository', () => ({
-  listClones: () => listClones(),
-  startClone: (...args: unknown[]) => startClone(...args),
-  downloadClone: (...args: unknown[]) => downloadClone(...args),
-}));
 vi.mock('../../export/downloadBlob', () => ({ downloadBlob: (...args: unknown[]) => downloadBlob(...args) }));
 
 const { useClones } = await import('../useClones');
 
 const POLL_MS = 3000;
 
-function clone(status: RepositoryCloneDto['status']): RepositoryCloneDto {
+function clone(status: RepositoryCloneDto['status'], repository = 'api'): RepositoryCloneDto {
   return {
     clone_id: 'c'.repeat(32),
+    provider: 'github',
     owner: 'acme',
-    repository: 'api',
+    repository,
     branch: 'main',
     status,
     created_at: '2026-09-30T10:00:00Z',
@@ -33,7 +26,11 @@ function clone(status: RepositoryCloneDto['status']): RepositoryCloneDto {
   };
 }
 
-const listed = (...clones: RepositoryCloneDto[]) => ({ ok: true, data: { clones } });
+const listed = (...clones: RepositoryCloneDto[]) => ({ ok: true as const, data: { clones } });
+
+function fakeApi() {
+  return { start: vi.fn(), list: vi.fn(), download: vi.fn() } satisfies Record<keyof CloneApi, unknown>;
+}
 
 async function flush() {
   await act(async () => {
@@ -48,9 +45,10 @@ describe('useClones', () => {
   });
   afterEach(() => vi.useRealTimers());
 
-  it('polls while a clone is in progress and stops once it is stored', async () => {
-    listClones.mockResolvedValueOnce(listed(clone('cloning'))).mockResolvedValueOnce(listed(clone('stored')));
-    const { result } = renderHook(() => useClones());
+  it('polls while a save is in progress and stops once it is stored', async () => {
+    const api = fakeApi();
+    api.list.mockResolvedValueOnce(listed(clone('cloning'))).mockResolvedValueOnce(listed(clone('stored')));
+    const { result } = renderHook(() => useClones(api));
     await flush();
     expect(result.current.clones).toMatchObject({ status: 'loaded', data: [{ status: 'cloning' }] });
 
@@ -62,25 +60,27 @@ describe('useClones', () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(POLL_MS * 3);
     });
-    expect(listClones).toHaveBeenCalledTimes(2);
+    expect(api.list).toHaveBeenCalledTimes(2);
   });
 
   it('does not poll when nothing is in progress', async () => {
-    listClones.mockResolvedValue(listed(clone('stored')));
-    renderHook(() => useClones());
+    const api = fakeApi();
+    api.list.mockResolvedValue(listed(clone('stored')));
+    renderHook(() => useClones(api));
     await flush();
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(POLL_MS * 3);
     });
-    expect(listClones).toHaveBeenCalledTimes(1);
+    expect(api.list).toHaveBeenCalledTimes(1);
   });
 
-  it('refreshes after starting a clone and reports start errors', async () => {
-    listClones.mockResolvedValue(listed());
-    startClone.mockResolvedValueOnce({ ok: true, data: clone('queued') });
-    startClone.mockResolvedValueOnce({ ok: false, error: { message: 'Repository too large' } });
-    const { result } = renderHook(() => useClones());
+  it('refreshes after starting a save and reports start errors', async () => {
+    const api = fakeApi();
+    api.list.mockResolvedValue(listed());
+    api.start.mockResolvedValueOnce({ ok: true, data: clone('queued') });
+    api.start.mockResolvedValueOnce({ ok: false, error: { message: 'Repository too large' } });
+    const { result } = renderHook(() => useClones(api));
     await flush();
     const credentials = { orgUrl: 'https://github.com/acme', pat: 'tok' };
 
@@ -89,8 +89,8 @@ describe('useClones', () => {
       outcome = await result.current.start(credentials, 'api', 'main');
     });
     expect(outcome).toEqual({ ok: true });
-    expect(startClone).toHaveBeenCalledWith(credentials, 'api', 'main');
-    expect(listClones).toHaveBeenCalledTimes(2);
+    expect(api.start).toHaveBeenCalledWith(credentials, 'api', 'main');
+    expect(api.list).toHaveBeenCalledTimes(2);
 
     await act(async () => {
       outcome = await result.current.start(credentials, 'api', 'main');
@@ -98,18 +98,20 @@ describe('useClones', () => {
     expect(outcome).toEqual({ ok: false, error: { message: 'Repository too large' } });
   });
 
-  it('downloads the blob with a readable file name', async () => {
-    listClones.mockResolvedValue(listed(clone('stored')));
+  it('downloads the blob named after the repository', async () => {
+    const api = fakeApi();
+    api.list.mockResolvedValue(listed());
     const blob = new Blob(['zip']);
-    downloadClone.mockResolvedValue({ ok: true, data: blob });
-    const { result } = renderHook(() => useClones());
+    api.download.mockResolvedValue({ ok: true, data: blob });
+    const { result } = renderHook(() => useClones(api));
     await flush();
+    const azureClone = { ...clone('stored', 'Platform/api'), provider: 'azure-devops' as const };
 
     await act(async () => {
-      await result.current.download(clone('stored'));
+      await result.current.download(azureClone);
     });
 
-    expect(downloadClone).toHaveBeenCalledWith(clone('stored'));
+    expect(api.download).toHaveBeenCalledWith(azureClone);
     expect(downloadBlob).toHaveBeenCalledWith(blob, 'api.zip');
     expect(result.current.downloading).toBeNull();
   });

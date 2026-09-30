@@ -26,9 +26,7 @@ class AzureDevOpsScanHandler:
         organization = parse_organization(request.org_url)
         repos = await self._reader.list_repositories(organization, request.pat.get_secret_value())
         repos.sort(key=lambda r: r.name.lower())
-        _logger.info(
-            "Azure DevOps scan listed %d repositories for %s", len(repos), organization
-        )
+        _logger.info("Azure DevOps scan listed %d repositories for %s", len(repos), organization)
         return ListRepositoriesResponse(owner=organization, repositories=repos)
 
     async def list_branches(self, request: ListBranchesRequest) -> ListBranchesResponse:

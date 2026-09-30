@@ -52,3 +52,9 @@ def validate_branch(branch: str) -> str:
     if invalid:
         raise InvalidScanTargetError("Branch name is not valid.")
     return branch
+
+
+def validate_organization(organization: str) -> str:
+    if not _ORG.match(organization):
+        raise InvalidScanTargetError("Organization name is not valid.")
+    return organization

@@ -1,4 +1,7 @@
-class AzureDevOpsScanError(Exception):
+from ingestion.domain.errors.scan_errors import ScanError
+
+
+class AzureDevOpsScanError(ScanError):
     code = "azure_devops_scan_error"
 
 

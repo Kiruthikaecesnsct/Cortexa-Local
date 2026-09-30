@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Badge, Button, InlineMessage, Spinner } from '../../shared/ds';
-import { STATUS_LABELS, isInProgress } from './cloneFormat';
+import { isInProgress, statusLabel } from './cloneFormat';
 import type { RepositoryCloneDto, ScanError } from './scanTypes';
 import type { CloneActionResult } from './useClones';
 
@@ -13,7 +13,7 @@ function ControlButton({ latest, starting, onClick }: { latest?: RepositoryClone
   if (starting || (latest && isInProgress(latest))) {
     return (
       <Button size="sm" disabled icon={<Spinner size={14} />}>
-        {latest && !starting ? `${STATUS_LABELS[latest.status]}…` : 'Starting save…'}
+        {latest && !starting ? `${statusLabel(latest)}…` : 'Starting save…'}
       </Button>
     );
   }

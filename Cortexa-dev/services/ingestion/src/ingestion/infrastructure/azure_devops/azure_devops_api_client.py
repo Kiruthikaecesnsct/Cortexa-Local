@@ -60,6 +60,12 @@ class AzureDevOpsApiClient:
         items = _json(response).get("value", [])
         return [_to_summary(organization, item) for item in items]
 
+    async def get_repository(
+        self, organization: str, project: str, repository: str, token: str
+    ) -> RepositorySummary:
+        path = self._repo_path(organization, project, repository, "").rstrip("/")
+        return _to_summary(organization, _json(await self._get(path, token)))
+
     async def list_branches(
         self, organization: str, project: str, repository: str, token: str
     ) -> list[BranchSummary]:

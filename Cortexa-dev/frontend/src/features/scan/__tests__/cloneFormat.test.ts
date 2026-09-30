@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { cloneFileName, isInProgress, latestCloneFor, shortSha } from '../cloneFormat';
+import { cloneFileName, isInProgress, latestCloneFor, shortSha, statusLabel } from '../cloneFormat';
 import type { RepositoryCloneDto } from '../scanTypes';
 
 function clone(overrides: Partial<RepositoryCloneDto> = {}): RepositoryCloneDto {
   return {
     clone_id: 'a'.repeat(32),
+    provider: 'github',
     owner: 'acme',
     repository: 'api',
     branch: 'main',
@@ -32,6 +33,10 @@ describe('cloneFileName', () => {
   it('names the zip after the repository, like the stored file', () => {
     expect(cloneFileName(clone({ branch: 'feature/scan' }))).toBe('api.zip');
   });
+
+  it('uses only the repository part of an Azure project/repository handle', () => {
+    expect(cloneFileName(clone({ provider: 'azure-devops', repository: 'Platform Team/web-app' }))).toBe('web-app.zip');
+  });
 });
 
 describe('shortSha', () => {
@@ -52,5 +57,17 @@ describe('latestCloneFor', () => {
 
     expect(latestCloneFor([older, other, newer, otherOrg], ref)?.clone_id).toBe('new');
     expect(latestCloneFor([older], { ...ref, branch: 'dev' })).toBeUndefined();
+  });
+});
+
+describe('statusLabel', () => {
+  it('names the provider a save is downloading from', () => {
+    expect(statusLabel(clone({ status: 'cloning' }))).toBe('Downloading from GitHub');
+    expect(statusLabel(clone({ status: 'cloning', provider: 'azure-devops' }))).toBe('Downloading from Azure DevOps');
+  });
+
+  it('uses provider-neutral text for other stages', () => {
+    expect(statusLabel(clone({ status: 'uploading', provider: 'azure-devops' }))).toBe('Saving');
+    expect(statusLabel(clone({ status: 'stored' }))).toBe('Saved');
   });
 });

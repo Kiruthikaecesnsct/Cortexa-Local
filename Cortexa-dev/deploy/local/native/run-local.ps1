@@ -18,7 +18,9 @@
     Settings and secrets come from deploy/local/native/.env.native (gitignored). Required:
     GEMINI_API_KEY, QDRANT_URL, QDRANT_API_KEY, POSTGRES_CONNECTION_STRING,
     RABBITMQ_ADMIN_USER, RABBITMQ_ADMIN_PASSWORD. JWT_SIGNING_KEY, INTERNAL_SHARED_SECRET,
-    RABBITMQ_APP_PASSWORD and MINIO_ROOT_PASSWORD are generated into that file on first start.
+    RABBITMQ_APP_PASSWORD, MINIO_ROOT_PASSWORD and SEED_SUPERADMIN_PASSWORD are generated into
+    that file on first start. SEED_SUPERADMIN_EMAIL (default superadmin@cortexa.co) plus that
+    password are the login of the SuperAdmin account seeded into this machine's database.
     Logs: deploy/local/native/.run/logs/<service>.log
 #>
 [CmdletBinding()]
@@ -55,6 +57,7 @@ $MinioConsoleImage = 'bitnamilegacy/minio-object-browser:2.0.2-debian-12-r4'
 $MinioConsoleContainer = 'cortexa-minio-console'
 $MinioVolume = 'cortexa-minio-data'
 $MinioUser = 'cortexa'
+$DefaultSuperAdminEmail = 'superadmin@cortexa.co'
 $MinioPort = 9000
 $MinioConsolePort = 9001
 
@@ -82,13 +85,25 @@ function New-RandomSecret([int]$Length) {
     return -join (1..$Length | ForEach-Object { $chars[[Security.Cryptography.RandomNumberGenerator]::GetInt32($chars.Length)] })
 }
 
-function Add-GeneratedSecret([hashtable]$Config, [string]$Name, [int]$Length) {
-    if ($Config.ContainsKey($Name) -and $Config[$Name]) { return }
-    $Config[$Name] = New-RandomSecret $Length
+function Test-Setting([hashtable]$Config, [string]$Name) {
+    return $Config.ContainsKey($Name) -and [bool]$Config[$Name]
+}
+
+# Appends a setting to .env.native; callers only use it for settings that are missing.
+function Save-EnvSetting([hashtable]$Config, [string]$Name, [string]$Value) {
+    $Config[$Name] = $Value
     $content = Get-Content -Raw $EnvFile
     $separator = if ($content -and -not $content.EndsWith("`n")) { "`n" } else { '' }
-    Add-Content $EnvFile "$separator$Name=$($Config[$Name])"
-    Write-Host "Generated $Name into .env.native"
+    Add-Content $EnvFile "$separator$Name=$Value"
+    Write-Host "Added $Name to .env.native"
+}
+
+function Add-GeneratedSecret([hashtable]$Config, [string]$Name, [int]$Length) {
+    if (-not (Test-Setting $Config $Name)) { Save-EnvSetting $Config $Name (New-RandomSecret $Length) }
+}
+
+function Add-DefaultSetting([hashtable]$Config, [string]$Name, [string]$Value) {
+    if (-not (Test-Setting $Config $Name)) { Save-EnvSetting $Config $Name $Value }
 }
 
 function Assert-ConfigKeys([hashtable]$Config) {
@@ -261,6 +276,9 @@ function Get-IdentityEnv([hashtable]$Config) {
     $envVars = Get-DotnetCommonEnv $Config 'identity'
     $envVars['ConnectionStrings__Postgres'] = $Config['POSTGRES_CONNECTION_STRING']
     $envVars['Internal__SharedSecret'] = $Config['INTERNAL_SHARED_SECRET']
+    # Seeds one SuperAdmin on first start; later starts leave an existing account untouched.
+    $envVars['Seed__SuperAdminEmail'] = $Config['SEED_SUPERADMIN_EMAIL']
+    $envVars['Seed__AdminPassword'] = $Config['SEED_SUPERADMIN_PASSWORD']
     return $envVars
 }
 
@@ -386,6 +404,8 @@ function Invoke-Start {
     Add-GeneratedSecret $config 'INTERNAL_SHARED_SECRET' 48
     Add-GeneratedSecret $config 'RABBITMQ_APP_PASSWORD' 32
     Add-GeneratedSecret $config 'MINIO_ROOT_PASSWORD' 32
+    Add-DefaultSetting $config 'SEED_SUPERADMIN_EMAIL' $DefaultSuperAdminEmail
+    Add-GeneratedSecret $config 'SEED_SUPERADMIN_PASSWORD' 24
     Assert-ConfigKeys $config
     Assert-Dependencies
     Initialize-RabbitMq $config

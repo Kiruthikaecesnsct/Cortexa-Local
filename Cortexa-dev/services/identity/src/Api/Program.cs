@@ -64,7 +64,11 @@ var adminPasswordSecretName = builder.Configuration["Seed:AdminPasswordSecretNam
     ?? "identity-admin-initial-password";
 
 var adminEmail = await LoadOptionalSecretAsync(vaultUri, adminEmailSecretName, string.Empty);
-var adminPassword = await LoadOptionalSecretAsync(vaultUri, adminPasswordSecretName, string.Empty);
+// Key Vault wins when configured; local runs without a vault fall back to Seed:AdminPassword.
+var adminPassword = await LoadOptionalSecretAsync(
+    vaultUri,
+    adminPasswordSecretName,
+    builder.Configuration["Seed:AdminPassword"] ?? string.Empty);
 
 if (!string.IsNullOrWhiteSpace(adminEmail))
     builder.Configuration["Seed:AdminEmail"] = adminEmail;

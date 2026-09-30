@@ -85,4 +85,9 @@ class IngestionSettings(BaseSettings):
     s3_clone_bucket: str = "cortexa"
     clone_list_limit: int = 100
 
+    # Local file system scan connects to a caller-supplied VM over SSH/SFTP per
+    # request; nothing here is persisted between requests.
+    local_system_scan_timeout_seconds: float = 15.0
+    local_system_scan_max_entries: int = 2000
+
     model_config = {"env_prefix": "", "env_file": ".env", "extra": "ignore"}

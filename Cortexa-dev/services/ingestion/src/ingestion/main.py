@@ -10,12 +10,14 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from ingestion.api.routes.azure_devops_scan_routes import router as azure_devops_scan_router
 from ingestion.api.routes.github_scan_routes import router as github_scan_router
 from ingestion.api.routes.ingestion_routes import router as ingestion_router
+from ingestion.api.routes.local_system_scan_routes import router as local_system_scan_router
 from ingestion.api.routes.repository_clone_routes import (
     azure_devops_clone_router,
     github_clone_router,
 )
 from ingestion.api.scan_wiring import build_scan_services
 from ingestion.application.git.clone_adapter import CloneAdapter
+from ingestion.application.handlers.local_system_scan_handler import LocalSystemScanHandler
 from ingestion.application.handlers.process_ingestion_request_handler import (
     ProcessIngestionDeps,
     ProcessIngestionRequestHandler,
@@ -34,6 +36,7 @@ from ingestion.infrastructure.cosmos.cosmos_client import get_cosmos_client
 from ingestion.infrastructure.cosmos.document_repository import DocumentRepository
 from ingestion.infrastructure.cosmos.provenance_repository import ProvenanceRepository
 from ingestion.infrastructure.git.clone_cleanup import sweep_workdir
+from ingestion.infrastructure.local_system.ssh_directory_reader import SshDirectoryReader
 from ingestion.infrastructure.observability.consumer_supervisor import (
     ConsumerHealth,
     configure_logging,
@@ -108,6 +111,8 @@ async def lifespan(app: FastAPI):
     app.state.azure_devops_scan_handler = scan_services.azure_devops_scan_handler
     app.state.azure_devops_clone_handler = scan_services.azure_devops_clone_handler
 
+    app.state.local_system_scan_handler = LocalSystemScanHandler(SshDirectoryReader(settings))
+
     ingestor_config = IngestorConfig(
         chunk_size=settings.chunk_size_tokens,
         chunk_overlap=settings.chunk_overlap_tokens,
@@ -179,6 +184,7 @@ def create_app() -> FastAPI:
     app.include_router(azure_devops_scan_router)
     app.include_router(github_clone_router)
     app.include_router(azure_devops_clone_router)
+    app.include_router(local_system_scan_router)
     return app
 
 

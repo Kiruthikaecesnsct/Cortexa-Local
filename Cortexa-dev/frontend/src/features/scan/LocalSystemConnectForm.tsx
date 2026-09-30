@@ -1,6 +1,8 @@
-import { useState, type FormEvent } from 'react';
-import { Button, IconEye, IconFolder, IconLock, IconServer, IconUser, InlineMessage, Input } from '../../shared/ds';
+import { useRef, useState, type ChangeEvent, type FormEvent } from 'react';
+import { Button, IconEye, IconFile, IconFolder, IconLock, IconServer, IconUpload, IconUser, InlineMessage, Input } from '../../shared/ds';
 import type { LocalSystemCredentials, ScanError } from './scanTypes';
+
+const MAX_KEY_FILE_BYTES = 16_384;
 
 const DEFAULT_PORT = 22;
 const PATH_PATTERN = /^(\/|~(\/.*)?)$|^\/.*$/;
@@ -9,7 +11,10 @@ interface FormValues {
   host: string;
   port: string;
   username: string;
+  // The key's contents live only here, never bound to a visible input — the
+  // user uploads the file, they don't type or paste it into view.
   privateKey: string;
+  privateKeyFileName: string;
   passphrase: string;
   path: string;
 }
@@ -22,9 +27,22 @@ function validate(values: FormValues): FieldErrors {
   const port = Number(values.port);
   if (!Number.isInteger(port) || port < 1 || port > 65535) errors.port = 'Enter a port between 1 and 65535';
   if (values.username.trim().length === 0) errors.username = 'Enter the SSH username';
-  if (values.privateKey.trim().length === 0) errors.privateKey = 'Paste the SSH private key';
+  if (values.privateKey.trim().length === 0) errors.privateKey = 'Upload the SSH private key file';
   if (!PATH_PATTERN.test(values.path.trim())) errors.path = 'Enter an absolute path (e.g. /var/data) or start with ~';
   return errors;
+}
+
+function readKeyFile(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (file.size > MAX_KEY_FILE_BYTES) {
+      reject(new Error("That file is too large to be a private key."));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '');
+    reader.onerror = () => reject(new Error('Could not read that file.'));
+    reader.readAsText(file);
+  });
 }
 
 function RevealButton({ revealed, onToggle }: { revealed: boolean; onToggle: () => void }) {
@@ -42,43 +60,65 @@ function RevealButton({ revealed, onToggle }: { revealed: boolean; onToggle: () 
 }
 
 function PrivateKeyField({
-  value,
-  onChange,
+  fileName,
   error,
   disabled,
+  onSelect,
+  onClear,
 }: {
-  value: string;
-  onChange: (value: string) => void;
+  fileName: string;
   error?: string;
   disabled: boolean;
+  onSelect: (file: File) => void;
+  onClear: () => void;
 }) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function onFileInputChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    // Reset so selecting the same file again still fires onChange.
+    event.target.value = '';
+    if (file) onSelect(file);
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontFamily: 'var(--font-body)' }}>
       <label style={{ fontSize: 'var(--text-sm)', fontWeight: 500, color: 'var(--text-primary)' }}>3. SSH private key</label>
-      <textarea
-        aria-label="SSH private key"
-        placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;…&#10;-----END OPENSSH PRIVATE KEY-----"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={disabled}
-        spellCheck={false}
-        rows={6}
-        style={{
-          resize: 'vertical',
-          minHeight: 120,
-          padding: '10px 14px',
-          borderRadius: 'var(--radius-md)',
-          background: disabled ? 'var(--gray-75)' : 'var(--surface-card)',
-          border: `1px solid ${error ? 'var(--status-danger-fg)' : 'var(--border-subtle)'}`,
-          fontFamily: 'var(--font-mono)',
-          fontSize: 'var(--text-sm)',
-          color: 'var(--text-primary)',
-          outline: 'none',
-        }}
-      />
+      <input ref={inputRef} type="file" hidden aria-hidden="true" onChange={onFileInputChange} disabled={disabled} />
+      {fileName ? (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '10px 14px',
+            borderRadius: 'var(--radius-md)',
+            background: 'var(--surface-card)',
+            border: `1px solid ${error ? 'var(--status-danger-fg)' : 'var(--border-subtle)'}`,
+          }}
+        >
+          <span style={{ color: 'var(--text-muted)', display: 'inline-flex' }}><IconFile size={16} /></span>
+          <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)' }}>
+            {fileName}
+          </span>
+          <Button size="sm" variant="ghost" onClick={onClear} disabled={disabled}>
+            Remove
+          </Button>
+        </div>
+      ) : (
+        <Button
+          type="button"
+          variant="secondary"
+          icon={<IconUpload size={16} />}
+          onClick={() => inputRef.current?.click()}
+          disabled={disabled}
+        >
+          Upload private key file
+        </Button>
+      )}
       {error && <span style={{ fontSize: 'var(--text-xs)', color: 'var(--status-danger-fg)' }}>{error}</span>}
       <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-        Needs read access to the folder you want to browse. The key is used only for this scan and is never stored.
+        Read once in your browser for this connection — never shown on screen, never stored.
       </span>
     </div>
   );
@@ -96,6 +136,7 @@ export function LocalSystemConnectForm({ connecting, error, onConnect }: LocalSy
     port: String(DEFAULT_PORT),
     username: 'root',
     privateKey: '',
+    privateKeyFileName: '',
     passphrase: '',
     path: '/',
   });
@@ -104,6 +145,21 @@ export function LocalSystemConnectForm({ connecting, error, onConnect }: LocalSy
 
   function set<K extends keyof FormValues>(key: K, value: string) {
     setValues((v) => ({ ...v, [key]: value }));
+  }
+
+  async function onKeyFileSelected(file: File) {
+    try {
+      const contents = await readKeyFile(file);
+      setValues((v) => ({ ...v, privateKey: contents, privateKeyFileName: file.name }));
+      setErrors((e) => ({ ...e, privateKey: undefined }));
+    } catch (err) {
+      setValues((v) => ({ ...v, privateKey: '', privateKeyFileName: '' }));
+      setErrors((e) => ({ ...e, privateKey: err instanceof Error ? err.message : 'Could not read that file.' }));
+    }
+  }
+
+  function onKeyFileCleared() {
+    setValues((v) => ({ ...v, privateKey: '', privateKeyFileName: '' }));
   }
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -164,7 +220,13 @@ export function LocalSystemConnectForm({ connecting, error, onConnect }: LocalSy
         disabled={connecting}
         autoComplete="off"
       />
-      <PrivateKeyField value={values.privateKey} onChange={(v) => set('privateKey', v)} error={errors.privateKey} disabled={connecting} />
+      <PrivateKeyField
+        fileName={values.privateKeyFileName}
+        error={errors.privateKey}
+        disabled={connecting}
+        onSelect={(file) => void onKeyFileSelected(file)}
+        onClear={onKeyFileCleared}
+      />
       <Input
         label="4. Private key passphrase (optional)"
         aria-label="Private key passphrase"

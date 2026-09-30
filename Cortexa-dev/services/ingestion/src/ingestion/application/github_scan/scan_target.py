@@ -1,7 +1,10 @@
 import re
 from urllib.parse import urlsplit
 
-from ingestion.domain.errors.github_scan_errors import InvalidScanTargetError
+from ingestion.domain.errors.github_scan_errors import (
+    InvalidScanTargetError,
+    MissingUserContextError,
+)
 
 _GITHUB_HOSTS = {"github.com", "www.github.com"}
 # GitHub account names: alphanumeric or single hyphens, max 39 chars, no leading hyphen.
@@ -41,3 +44,18 @@ def validate_branch(branch: str) -> str:
     if invalid:
         raise InvalidScanTargetError("Branch name is not valid.")
     return branch
+
+
+_USER_ID = re.compile(r"^[A-Za-z0-9-]{1,64}$")
+
+
+def validate_user_id(user_id: str | None) -> str:
+    if not user_id or not _USER_ID.match(user_id):
+        raise MissingUserContextError("Sign in to save repositories.")
+    return user_id
+
+
+def validate_owner(owner: str) -> str:
+    if not _OWNER.match(owner):
+        raise InvalidScanTargetError("Owner name is not valid.")
+    return owner

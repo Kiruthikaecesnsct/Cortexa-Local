@@ -9,8 +9,9 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from ingestion.api.routes.github_scan_routes import router as github_scan_router
 from ingestion.api.routes.ingestion_routes import router as ingestion_router
+from ingestion.api.routes.repository_clone_routes import router as repository_clone_router
+from ingestion.api.scan_wiring import build_scan_services
 from ingestion.application.git.clone_adapter import CloneAdapter
-from ingestion.application.handlers.github_scan_handler import GitHubScanHandler
 from ingestion.application.handlers.process_ingestion_request_handler import (
     ProcessIngestionDeps,
     ProcessIngestionRequestHandler,
@@ -29,10 +30,6 @@ from ingestion.infrastructure.cosmos.cosmos_client import get_cosmos_client
 from ingestion.infrastructure.cosmos.document_repository import DocumentRepository
 from ingestion.infrastructure.cosmos.provenance_repository import ProvenanceRepository
 from ingestion.infrastructure.git.clone_cleanup import sweep_workdir
-from ingestion.infrastructure.github.github_api_client import (
-    GitHubApiClient,
-    create_github_http_client,
-)
 from ingestion.infrastructure.observability.consumer_supervisor import (
     ConsumerHealth,
     configure_logging,
@@ -101,10 +98,9 @@ async def lifespan(app: FastAPI):
     )
     app.state.store_ingestion_handler = store_handler
 
-    github_http = create_github_http_client(settings)
-    app.state.github_scan_handler = GitHubScanHandler(
-        GitHubApiClient(github_http, settings.github_scan_max_pages)
-    )
+    scan_services = await build_scan_services(settings)
+    app.state.github_scan_handler = scan_services.scan_handler
+    app.state.repository_clone_handler = scan_services.clone_handler
 
     ingestor_config = IngestorConfig(
         chunk_size=settings.chunk_size_tokens,
@@ -151,7 +147,7 @@ async def lifespan(app: FastAPI):
     except asyncio.CancelledError:
         pass
 
-    await github_http.aclose()
+    await scan_services.aclose()
     await kv_client.close()
     await cosmos.close()
     await blob_svc.close()
@@ -174,6 +170,7 @@ def create_app() -> FastAPI:
 
     app.include_router(ingestion_router)
     app.include_router(github_scan_router)
+    app.include_router(repository_clone_router)
     return app
 
 

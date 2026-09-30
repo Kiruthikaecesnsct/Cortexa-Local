@@ -1,7 +1,7 @@
 #Requires -Version 7.4
 <#
 .SYNOPSIS
-    Runs the whole Cortexa stack natively on Windows - no Docker.
+    Runs the whole Cortexa stack natively on Windows. Docker is used only for MinIO.
 
 .DESCRIPTION
     start  - checks the local dependencies, starts Azurite if needed, declares the RabbitMQ
@@ -11,12 +11,14 @@
     status - shows which ports are listening.
 
     Dependencies expected to be running: RabbitMQ (5672, management 15672), PostgreSQL (5432),
-    Cosmos DB emulator (8081). Azurite (10000) is started by this script.
+    Cosmos DB emulator (8081). Azurite (10000) is started by this script. MinIO (9000, console
+    9001) runs as a Docker container when Docker is running; without Docker the stack still
+    starts and repository cloning reports that storage is unavailable.
 
     Settings and secrets come from deploy/local/native/.env.native (gitignored). Required:
     GEMINI_API_KEY, QDRANT_URL, QDRANT_API_KEY, POSTGRES_CONNECTION_STRING,
-    RABBITMQ_ADMIN_USER, RABBITMQ_ADMIN_PASSWORD. JWT_SIGNING_KEY, INTERNAL_SHARED_SECRET and
-    RABBITMQ_APP_PASSWORD are generated into that file on first start.
+    RABBITMQ_ADMIN_USER, RABBITMQ_ADMIN_PASSWORD. JWT_SIGNING_KEY, INTERNAL_SHARED_SECRET,
+    RABBITMQ_APP_PASSWORD and MINIO_ROOT_PASSWORD are generated into that file on first start.
     Logs: deploy/local/native/.run/logs/<service>.log
 #>
 [CmdletBinding()]
@@ -46,6 +48,15 @@ $Ports = [ordered]@{
 }
 $DependencyPorts = [ordered]@{ 'RabbitMQ' = 5672; 'PostgreSQL' = 5432; 'Cosmos DB emulator' = 8081 }
 $AzuritePort = 10000
+# Official MinIO images are no longer published; this is the last Bitnami build (MinIO 2025.7.23).
+$MinioImage = 'bitnamilegacy/minio:2025.7.23-debian-12-r5'
+$MinioContainer = 'cortexa-minio'
+$MinioConsoleImage = 'bitnamilegacy/minio-object-browser:2.0.2-debian-12-r4'
+$MinioConsoleContainer = 'cortexa-minio-console'
+$MinioVolume = 'cortexa-minio-data'
+$MinioUser = 'cortexa'
+$MinioPort = 9000
+$MinioConsolePort = 9001
 
 # Publicly documented emulator credentials (Cosmos DB emulator / Azurite), not secrets.
 $CosmosUri = 'https://localhost:8081'
@@ -110,6 +121,69 @@ function Start-Azurite {
     New-Item -ItemType Directory -Force $data | Out-Null
     $arguments = @('--blobHost', $LocalHost, '--blobPort', $AzuritePort, '--location', $data, '--skipApiVersionCheck')
     Start-Tracked -Name 'azurite' -FilePath 'azurite-blob.cmd' -Arguments $arguments -WorkingDirectory $RunDir -Environment @{}
+}
+
+function Test-DockerRunning {
+    if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { return $false }
+    & docker info *> $null
+    return $LASTEXITCODE -eq 0
+}
+
+function Test-Container([string]$Name) {
+    $found = & docker ps -a --filter "name=^$Name$" --format '{{.Names}}'
+    return [bool]$found
+}
+
+# Starts an existing container, or creates it from the given 'docker run' arguments.
+function Start-Container([string]$Name, [string[]]$RunArguments) {
+    if (Test-Container $Name) { & docker start $Name | Out-Null }
+    else { & docker run -d --name $Name @RunArguments | Out-Null }
+    if ($LASTEXITCODE -ne 0) { throw "Could not start the $Name container." }
+}
+
+function Get-MinioRunArguments([hashtable]$Config) {
+    return @(
+        '-p', "${LocalHost}:${MinioPort}:9000",
+        '-e', "MINIO_ROOT_USER=$MinioUser", '-e', "MINIO_ROOT_PASSWORD=$($Config['MINIO_ROOT_PASSWORD'])",
+        '-v', "${MinioVolume}:/bitnami/minio/data", $MinioImage
+    )
+}
+
+# The Bitnami MinIO build has no embedded web console; Bitnami ships it as a separate image.
+function Get-MinioConsoleRunArguments {
+    return @(
+        '-p', "${LocalHost}:${MinioConsolePort}:9090",
+        '-e', "CONSOLE_MINIO_SERVER=http://host.docker.internal:$MinioPort",
+        $MinioConsoleImage, 'server'
+    )
+}
+
+# Returns $true when MinIO is listening, so ingestion only gets S3 settings it can use.
+function Start-Minio([hashtable]$Config) {
+    if (-not (Test-DockerRunning)) {
+        Write-Warning 'Docker is not running - MinIO is skipped and saving repositories is disabled.'
+        return (Test-Port $MinioPort)
+    }
+    Start-Container $MinioContainer (Get-MinioRunArguments $Config)
+    Wait-Port $MinioPort 'MinIO'
+    Start-Container $MinioConsoleContainer (Get-MinioConsoleRunArguments)
+    return $true
+}
+
+function Stop-Minio {
+    if (-not (Test-DockerRunning)) { return }
+    foreach ($name in $MinioConsoleContainer, $MinioContainer) {
+        if (-not (Test-Container $name)) { continue }
+        & docker stop $name | Out-Null
+        Write-Host "  stopped $name"
+    }
+}
+
+function Get-MinioEnv([hashtable]$Config) {
+    return @{
+        S3_ENDPOINT_URL = "http://${LocalHost}:$MinioPort"; S3_ACCESS_KEY = $MinioUser
+        S3_SECRET_KEY = $Config['MINIO_ROOT_PASSWORD']
+    }
 }
 
 function Wait-Port([int]$Port, [string]$Name) {
@@ -220,6 +294,7 @@ function Get-PythonServiceEnv([hashtable]$Config, [string]$Service) {
         'seeding'    = @{ MODEL_ROUTER_URL = (Get-Url 'model-router'); VECTOR_ROUTER_URL = (Get-Url 'vector-router'); EVIDENCE_URL = (Get-Url 'evidence') }
     }
     if ($extra.ContainsKey($Service)) { $extra[$Service].GetEnumerator() | ForEach-Object { $envVars[$_.Key] = $_.Value } }
+    if ($Service -eq 'ingestion' -and $script:MinioReady) { (Get-MinioEnv $Config).GetEnumerator() | ForEach-Object { $envVars[$_.Key] = $_.Value } }
     return $envVars
 }
 
@@ -310,6 +385,7 @@ function Invoke-Start {
     Add-GeneratedSecret $config 'JWT_SIGNING_KEY' 64
     Add-GeneratedSecret $config 'INTERNAL_SHARED_SECRET' 48
     Add-GeneratedSecret $config 'RABBITMQ_APP_PASSWORD' 32
+    Add-GeneratedSecret $config 'MINIO_ROOT_PASSWORD' 32
     Assert-ConfigKeys $config
     Assert-Dependencies
     Initialize-RabbitMq $config
@@ -318,6 +394,7 @@ function Invoke-Start {
     $script:Started = [ordered]@{}
     try {
         Start-Azurite
+        $script:MinioReady = Start-Minio $config
         Initialize-Storage
         foreach ($service in Get-ServiceDefinitions $config) {
             Start-Tracked -Name $service.Name -FilePath $service.FilePath -Arguments $service.Arguments `
@@ -332,13 +409,15 @@ function Invoke-Start {
 }
 
 function Invoke-Stop {
-    if (-not (Test-Path $PidFile)) { Write-Host 'Nothing to stop.'; return }
+    Update-SessionPath
+    if (-not (Test-Path $PidFile)) { Write-Host 'Nothing to stop.'; Stop-Minio; return }
     $pids = Get-Content -Raw $PidFile | ConvertFrom-Json
     foreach ($entry in $pids.PSObject.Properties) {
         & taskkill.exe /PID $entry.Value /T /F 2>&1 | Out-Null
         Write-Host "  stopped $($entry.Name)"
     }
     Remove-Item $PidFile
+    Stop-Minio
 }
 
 function Invoke-Status {
@@ -346,6 +425,8 @@ function Invoke-Status {
         $state = if (Test-Port $Ports[$name]) { 'up  ' } else { 'down' }
         Write-Host "  $state $name  $(Get-Url $name)"
     }
+    $minio = if (Test-Port $MinioPort) { 'up  ' } else { 'down' }
+    Write-Host "  $minio minio  http://${LocalHost}:$MinioPort  (console http://${LocalHost}:$MinioConsolePort)"
 }
 
 switch ($Command) {

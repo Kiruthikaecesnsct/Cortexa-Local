@@ -19,6 +19,7 @@ dependencies = [
     "aio-pika>=10.0.1",
     "aiohttp>=3.9",
     "sentry-sdk[fastapi]>=2.44,<3",
+    "boto3>=1.43.105",
 ]
 
 [tool.uv]

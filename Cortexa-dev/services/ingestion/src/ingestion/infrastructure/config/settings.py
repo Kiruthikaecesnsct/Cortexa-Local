@@ -69,4 +69,12 @@ class IngestionSettings(BaseSettings):
     github_scan_timeout_seconds: float = 20.0
     github_scan_max_pages: int = 50
 
+    # S3-compatible storage for cloned repositories (MinIO locally). Empty endpoint disables it.
+    s3_endpoint_url: str = ""
+    s3_access_key: str = ""
+    s3_secret_key: str = ""
+    s3_region: str = "us-east-1"
+    s3_clone_bucket: str = "cortexa"
+    clone_list_limit: int = 100
+
     model_config = {"env_prefix": "", "env_file": ".env", "extra": "ignore"}

@@ -1,85 +1,31 @@
-import uuid
-from collections.abc import Awaitable
-
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
 
+from ingestion.api.routes.scan_responses import respond
 from ingestion.application.dtos.github_scan_dtos import (
     ListBranchesRequest,
     ListRepositoriesRequest,
     RepositoryTreeRequest,
 )
 from ingestion.application.handlers.github_scan_handler import GitHubScanHandler
-from ingestion.domain.errors.github_scan_errors import (
-    GitHubAccessDeniedError,
-    GitHubAuthError,
-    GitHubNotFoundError,
-    GitHubRateLimitError,
-    GitHubScanError,
-    InvalidScanTargetError,
-)
 
 router = APIRouter(prefix="/scan/github", tags=["scan"])
-
-_CORRELATION_HEADER = "X-Correlation-Id"
-_UPSTREAM_STATUS = 502
-# A rejected GitHub token maps to 400, never 401: the frontend treats 401 as an
-# expired Cortexa session and would sign the user out.
-_ERROR_STATUS: dict[type[GitHubScanError], int] = {
-    InvalidScanTargetError: 422,
-    GitHubAuthError: 400,
-    GitHubAccessDeniedError: 403,
-    GitHubNotFoundError: 404,
-    GitHubRateLimitError: 429,
-}
 
 
 def _handler(request: Request) -> GitHubScanHandler:
     return request.app.state.github_scan_handler
 
 
-def _correlation_id(request: Request) -> str:
-    return request.headers.get(_CORRELATION_HEADER) or str(uuid.uuid4())
-
-
-def _success(data: BaseModel, correlation_id: str) -> JSONResponse:
-    return JSONResponse(
-        {"success": True, "data": data.model_dump(mode="json"), "correlation_id": correlation_id}
-    )
-
-
-def _failure(exc: GitHubScanError, correlation_id: str) -> JSONResponse:
-    return JSONResponse(
-        {
-            "success": False,
-            "error_code": exc.code,
-            "message": str(exc),
-            "correlation_id": correlation_id,
-        },
-        status_code=_ERROR_STATUS.get(type(exc), _UPSTREAM_STATUS),
-    )
-
-
-async def _respond(request: Request, operation: Awaitable[BaseModel]) -> JSONResponse:
-    correlation_id = _correlation_id(request)
-    try:
-        result = await operation
-    except GitHubScanError as exc:
-        return _failure(exc, correlation_id)
-    return _success(result, correlation_id)
-
-
 @router.post("/repositories")
 async def list_repositories(body: ListRepositoriesRequest, request: Request) -> JSONResponse:
-    return await _respond(request, _handler(request).list_repositories(body))
+    return await respond(request, _handler(request).list_repositories(body))
 
 
 @router.post("/branches")
 async def list_branches(body: ListBranchesRequest, request: Request) -> JSONResponse:
-    return await _respond(request, _handler(request).list_branches(body))
+    return await respond(request, _handler(request).list_branches(body))
 
 
 @router.post("/tree")
 async def get_tree(body: RepositoryTreeRequest, request: Request) -> JSONResponse:
-    return await _respond(request, _handler(request).get_tree(body))
+    return await respond(request, _handler(request).get_tree(body))

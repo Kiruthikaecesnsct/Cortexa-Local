@@ -67,5 +67,7 @@ export function useGithubScan() {
     rawDispatch({ type: 'reset' });
   }, [begin]);
 
-  return { state, connect, selectRepository, selectBranch, goToStep, disconnect };
+  const credentials = useCallback(() => credentialsRef.current, []);
+
+  return { state, connect, selectRepository, selectBranch, goToStep, disconnect, credentials };
 }

@@ -47,7 +47,7 @@ function branchCopy(state: WizardState): Omit<StepPromptCopy, 'stepLabel'> {
 function filesCopy(state: WizardState): Omit<StepPromptCopy, 'stepLabel'> {
   return {
     title: 'Browse files',
-    message: `Showing everything on ${state.branch ?? 'the selected branch'}. Search or expand folders, or step back to choose a different branch or repository.`,
+    message: `Showing everything on ${state.branch ?? 'the selected branch'}. Select Save repository to keep a copy you can download later, search or expand folders, or step back to choose a different branch or repository.`,
   };
 }
 

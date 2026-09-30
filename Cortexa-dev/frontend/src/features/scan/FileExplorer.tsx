@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Badge, Button, IconBranch, IconSearch, InlineMessage, Input } from '../../shared/ds';
 import { countEntries, filterFileTree } from './fileTree';
 import { FileTreeView } from './FileTreeView';
@@ -14,7 +14,7 @@ interface ExplorerHeaderProps {
 
 function ExplorerHeader({ owner, repository, branch, counts }: ExplorerHeaderProps) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-md)' }}>
         <span style={{ color: 'var(--text-muted)' }}>{owner} / </span>
         <strong>{repository}</strong>
@@ -82,13 +82,17 @@ function LoadedExplorer({ data, repository }: { data: LoadedTree; repository: st
 interface FileExplorerProps extends Omit<ExplorerHeaderProps, 'counts'> {
   tree: Loadable<LoadedTree>;
   onRetry: () => void;
+  action?: ReactNode;
 }
 
-export function FileExplorer({ owner, repository, branch, tree, onRetry }: FileExplorerProps) {
+export function FileExplorer({ owner, repository, branch, tree, onRetry, action }: FileExplorerProps) {
   const counts = tree.status === 'loaded' ? countEntries(tree.data.tree.entries) : undefined;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <ExplorerHeader owner={owner} repository={repository} branch={branch} counts={counts} />
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+        <ExplorerHeader owner={owner} repository={repository} branch={branch} counts={counts} />
+        {action}
+      </div>
       {tree.status === 'loaded' && <LoadedExplorer data={tree.data} repository={repository} />}
       {tree.status === 'error' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'flex-start' }}>

@@ -79,7 +79,8 @@ function breadcrumbFor(pathname: string): string {
   return match?.crumb ?? 'Dashboard';
 }
 
-export function AppShell({ children }: { children: ReactNode }) {
+// fullWidth lets work-heavy pages (like Scan) use the whole main area instead of the centered column.
+export function AppShell({ children, fullWidth = false }: { children: ReactNode; fullWidth?: boolean }) {
   const { user, hasPermission, isSuperAdmin } = useSession();
   const { themeMode, toggleTheme } = useThemeContext();
   const location = useLocation();
@@ -292,7 +293,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </header>
 
         <main id="cortexa-main" style={{ flex: 1, background: 'var(--surface-sunken)', padding: '28px 32px', overflow: 'auto' }}>
-          <div style={{ maxWidth: 'var(--content-max)', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div style={{ maxWidth: fullWidth ? 'none' : 'var(--content-max)', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
             {children}
           </div>
         </main>

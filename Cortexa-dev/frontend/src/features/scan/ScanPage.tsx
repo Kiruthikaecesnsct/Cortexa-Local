@@ -18,19 +18,19 @@ interface SourceOption {
 const SOURCES: SourceOption[] = [
   {
     id: 'github',
-    title: 'GitHub Scan',
+    title: 'GitHub',
     description: 'Connect a GitHub organization with a personal access token and browse every repository.',
     icon: <IconGit size={22} />,
   },
   {
     id: 'azure-devops',
-    title: 'Azure DevOps Scan',
+    title: 'Azure DevOps',
     description: 'Connect an Azure DevOps organization with a personal access token and browse every repository.',
     icon: <IconCloud size={22} />,
   },
   {
     id: 'local',
-    title: 'Local File System Scan',
+    title: 'Local File System',
     description: 'Connect to a VM over SSH with its IP address, key, and a folder path, then browse its files.',
     icon: <IconServer size={22} />,
   },
@@ -89,7 +89,7 @@ export function ScanPage() {
   const [source, setSource] = useState<ScanSource>('github');
 
   return (
-    <AppShell>
+    <AppShell fullWidth>
       <PageHeader title="Scan" subtitle="Pick a source to scan for files and folders." />
       <section aria-labelledby="scan-source-label" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <SectionLabel id="scan-source-label">Source</SectionLabel>

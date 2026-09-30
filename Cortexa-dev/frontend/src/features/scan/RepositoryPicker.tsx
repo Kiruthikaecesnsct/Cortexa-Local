@@ -25,6 +25,19 @@ const clampTwoLines: React.CSSProperties = {
   overflow: 'hidden',
 };
 
+// The list scrolls on its own so the search and filters stay in view.
+// The small padding keeps the selected card's focus ring from being clipped.
+const REPOSITORY_LIST_STYLE: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+  alignContent: 'start',
+  gap: 12,
+  maxHeight: 'min(560px, 60vh)',
+  overflowY: 'auto',
+  padding: 4,
+  paddingRight: 8,
+};
+
 function RepositoryCard({ repo, selected, onSelect }: { repo: RepositorySummaryDto; selected: boolean; onSelect: () => void }) {
   return (
     <button
@@ -106,7 +119,7 @@ export function RepositoryPicker({ repositories, selectedName, onSelect }: Repos
       {visible.length === 0 ? (
         <div style={{ color: 'var(--text-muted)', padding: '16px 0' }}>No repositories match your search.</div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
+        <div role="region" aria-label="Repositories" tabIndex={0} style={REPOSITORY_LIST_STYLE}>
           {visible.map((repo) => (
             <RepositoryCard key={repo.full_name} repo={repo} selected={repo.name === selectedName} onSelect={() => onSelect(repo)} />
           ))}

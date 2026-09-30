@@ -76,6 +76,11 @@ class SshDirectoryReader:
                 username=connection.username,
                 client_keys=[client_key],
                 known_hosts=None,
+                # Every connection is defined only by the request. Don't pick up
+                # the service account's ~/.ssh/config or ssh-agent: an unreadable
+                # config file used to fail every connect as "Could not reach".
+                config=[],
+                agent_path=None,
                 connect_timeout=self._settings.local_system_scan_timeout_seconds,
                 login_timeout=self._settings.local_system_scan_timeout_seconds,
             ) as conn:

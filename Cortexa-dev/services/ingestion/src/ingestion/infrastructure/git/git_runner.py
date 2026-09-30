@@ -75,15 +75,27 @@ async def run_clone(
     return dest
 
 
+# Windows has neither process groups (os.killpg) nor SIGKILL.
+_SIGKILL = getattr(signal, "SIGKILL", signal.SIGTERM)
+
+
+def _signal(proc: asyncio.subprocess.Process, sig: int) -> None:
+    killpg = getattr(os, "killpg", None)
+    if killpg is None:
+        proc.kill()
+        return
+    killpg(os.getpgid(proc.pid), sig)
+
+
 async def _terminate(proc: asyncio.subprocess.Process) -> None:
     try:
-        os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
+        _signal(proc, signal.SIGTERM)
     except ProcessLookupError:
         return
     try:
         await asyncio.wait_for(proc.wait(), timeout=2.0)
     except TimeoutError:
         try:
-            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
+            _signal(proc, _SIGKILL)
         except ProcessLookupError:
             pass

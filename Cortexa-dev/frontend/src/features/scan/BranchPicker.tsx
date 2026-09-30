@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
-import { Badge, Button, IconBranch, IconChevronRight, IconSearch, InlineMessage, Input, Skeleton } from '../../shared/ds';
+import { Badge, Button, IconBranch, IconChevronRight, IconSearch, InlineMessage, Input } from '../../shared/ds';
 import { orderBranches } from './scanFilters';
+import { ScanLoader } from './ScanLoader';
 import type { BranchSummaryDto, Loadable, RepositorySummaryDto } from './scanTypes';
 
 const SHORT_SHA_LENGTH = 7;
-const SKELETON_ROWS = 4;
 
 function BranchRow({ branch, isDefault, selected, onSelect }: { branch: BranchSummaryDto; isDefault: boolean; selected: boolean; onSelect: () => void }) {
   return (
@@ -42,16 +42,6 @@ function BranchRow({ branch, isDefault, selected, onSelect }: { branch: BranchSu
         <IconChevronRight size={14} />
       </button>
     </li>
-  );
-}
-
-function BranchSkeleton() {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }} aria-label="Loading branches">
-      {Array.from({ length: SKELETON_ROWS }, (_, i) => (
-        <Skeleton key={i} height={46} />
-      ))}
-    </div>
   );
 }
 
@@ -105,6 +95,14 @@ export function BranchPicker({ repository, branches, selected, onSelect, onRetry
       </div>
     );
   }
-  if (branches.status !== 'loaded') return <BranchSkeleton />;
+  if (branches.status !== 'loaded') {
+    return (
+      <ScanLoader
+        title="Loading branches"
+        message={`Reading the branches of ${repository.name} from GitHub.`}
+        slowHint="Repositories with many branches can take a little longer."
+      />
+    );
+  }
   return <BranchList repository={repository} branches={branches.data} selected={selected} onSelect={onSelect} />;
 }

@@ -35,6 +35,25 @@ export interface ListBranchesDto {
   branches: BranchSummaryDto[];
 }
 
+export type CloneStatus = 'queued' | 'cloning' | 'uploading' | 'stored' | 'failed';
+
+export interface RepositoryCloneDto {
+  clone_id: string;
+  owner: string;
+  repository: string;
+  branch: string;
+  status: CloneStatus;
+  created_at: string;
+  updated_at: string;
+  size_bytes: number | null;
+  commit_sha: string | null;
+  error: string | null;
+}
+
+export interface CloneListDto {
+  clones: RepositoryCloneDto[];
+}
+
 export type TreeEntryType = 'blob' | 'tree' | 'commit';
 
 export interface TreeEntryDto {

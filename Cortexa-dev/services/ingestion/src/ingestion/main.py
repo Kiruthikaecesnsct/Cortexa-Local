@@ -10,9 +10,10 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from ingestion.api.routes.azure_devops_scan_routes import router as azure_devops_scan_router
 from ingestion.api.routes.github_scan_routes import router as github_scan_router
 from ingestion.api.routes.ingestion_routes import router as ingestion_router
+from ingestion.api.routes.repository_clone_routes import router as repository_clone_router
+from ingestion.api.scan_wiring import build_scan_services
 from ingestion.application.git.clone_adapter import CloneAdapter
 from ingestion.application.handlers.azure_devops_scan_handler import AzureDevOpsScanHandler
-from ingestion.application.handlers.github_scan_handler import GitHubScanHandler
 from ingestion.application.handlers.process_ingestion_request_handler import (
     ProcessIngestionDeps,
     ProcessIngestionRequestHandler,
@@ -35,10 +36,6 @@ from ingestion.infrastructure.cosmos.cosmos_client import get_cosmos_client
 from ingestion.infrastructure.cosmos.document_repository import DocumentRepository
 from ingestion.infrastructure.cosmos.provenance_repository import ProvenanceRepository
 from ingestion.infrastructure.git.clone_cleanup import sweep_workdir
-from ingestion.infrastructure.github.github_api_client import (
-    GitHubApiClient,
-    create_github_http_client,
-)
 from ingestion.infrastructure.observability.consumer_supervisor import (
     ConsumerHealth,
     configure_logging,
@@ -107,10 +104,9 @@ async def lifespan(app: FastAPI):
     )
     app.state.store_ingestion_handler = store_handler
 
-    github_http = create_github_http_client(settings)
-    app.state.github_scan_handler = GitHubScanHandler(
-        GitHubApiClient(github_http, settings.github_scan_max_pages)
-    )
+    scan_services = await build_scan_services(settings)
+    app.state.github_scan_handler = scan_services.scan_handler
+    app.state.repository_clone_handler = scan_services.clone_handler
 
     azure_devops_http = create_azure_devops_http_client(settings)
     app.state.azure_devops_scan_handler = AzureDevOpsScanHandler(
@@ -162,7 +158,7 @@ async def lifespan(app: FastAPI):
     except asyncio.CancelledError:
         pass
 
-    await github_http.aclose()
+    await scan_services.aclose()
     await azure_devops_http.aclose()
     await kv_client.close()
     await cosmos.close()
@@ -187,6 +183,7 @@ def create_app() -> FastAPI:
     app.include_router(ingestion_router)
     app.include_router(github_scan_router)
     app.include_router(azure_devops_scan_router)
+    app.include_router(repository_clone_router)
     return app
 
 

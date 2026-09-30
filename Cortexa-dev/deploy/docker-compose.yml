@@ -24,6 +24,7 @@ volumes:
   postgres-data:
   cosmos-data:
   azurite-data:
+  minio-data:
 
 services:
   # ───────────────────────────── dependencies ─────────────────────────────
@@ -92,6 +93,44 @@ services:
       timeout: 5s
       retries: 20
       start_period: 5s
+    networks: ["cortexa-network"]
+
+  # MinIO - S3-compatible storage for cloned GitHub repositories. Opt-in with
+  # `--profile objectstore`; without it ingestion reports clone storage as not
+  # configured. Official MinIO images are no longer published, so this pins the
+  # last Bitnami build (MinIO 2025.7.23). Runs as uid 1001 - keep a named volume.
+  minio:
+    image: bitnamilegacy/minio:2025.7.23-debian-12-r5
+    profiles: ["objectstore"]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-cortexa}
+      # Required when the profile is used; MinIO refuses to start with an empty password.
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-}
+    ports:
+      - "127.0.0.1:9000:9000"
+    volumes:
+      - minio-data:/bitnami/minio/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+    networks: ["cortexa-network"]
+
+  # Web console for MinIO at http://127.0.0.1:9001. The Bitnami MinIO build has
+  # no embedded console, so Bitnami ships it as this separate image.
+  minio-console:
+    image: bitnamilegacy/minio-object-browser:2.0.2-debian-12-r4
+    profiles: ["objectstore"]
+    command: ["server"]
+    environment:
+      CONSOLE_MINIO_SERVER: http://minio:9000
+    ports:
+      - "127.0.0.1:9001:9090"
+    depends_on:
+      minio:
+        condition: service_healthy
     networks: ["cortexa-network"]
 
   # SQL Server Linux - required state backend for the Service Bus emulator
@@ -329,6 +368,10 @@ services:
       BLOB_CONNECTION_STRING: ${BLOB_CONNECTION_STRING}
       SERVICEBUS_NAMESPACE_FQDN: servicebus.preview.local
       SERVICEBUS_CONNECTION_STRING: ${SERVICEBUS_CONNECTION_STRING}
+      # Empty unless the objectstore profile is used (S3_ENDPOINT_URL=http://minio:9000).
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-}
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER:-cortexa}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-}
     depends_on:
       cosmos:
         condition: service_healthy

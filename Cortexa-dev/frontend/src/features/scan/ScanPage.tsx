@@ -83,23 +83,50 @@ function LocalScanPanel() {
   );
 }
 
+function SectionLabel({ id, children }: { id: string; children: ReactNode }) {
+  return (
+    <h2
+      id={id}
+      style={{
+        margin: 0,
+        fontSize: 11,
+        fontWeight: 600,
+        letterSpacing: '0.06em',
+        textTransform: 'uppercase',
+        color: 'var(--text-muted)',
+      }}
+    >
+      {children}
+    </h2>
+  );
+}
+
 export function ScanPage() {
   const [source, setSource] = useState<ScanSource>('github');
-  const active = SOURCES.find((s) => s.id === source) ?? SOURCES[0]!;
 
   return (
     <AppShell>
       <PageHeader title="Scan" subtitle="Pick a source to scan for files and folders." />
-      <div role="tablist" aria-label="Scan source" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
-        {SOURCES.map((option) => (
-          <SourceCard key={option.id} option={option} selected={option.id === source} onSelect={() => setSource(option.id)} />
-        ))}
-      </div>
-      <SectionCard title={active.title}>
+      <section aria-labelledby="scan-source-label" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <SectionLabel id="scan-source-label">Source</SectionLabel>
+        <div role="tablist" aria-labelledby="scan-source-label" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
+          {SOURCES.map((option) => (
+            <SourceCard key={option.id} option={option} selected={option.id === source} onSelect={() => setSource(option.id)} />
+          ))}
+        </div>
+      </section>
+      <section aria-labelledby="scan-work-label" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <SectionLabel id="scan-work-label">
+          {source === 'github' ? 'GitHub' : source === 'azure-devops' ? 'Azure DevOps' : 'Local file system'}
+        </SectionLabel>
         {source === 'github' && <GithubScanPanel />}
         {source === 'azure-devops' && <AzureDevOpsScanPanel />}
-        {source === 'local' && <LocalScanPanel />}
-      </SectionCard>
+        {source === 'local' && (
+          <SectionCard title="Local File System Scan" subtitle="Scan folders on a machine reached through a VM connection.">
+            <LocalScanPanel />
+          </SectionCard>
+        )}
+      </section>
     </AppShell>
   );
 }

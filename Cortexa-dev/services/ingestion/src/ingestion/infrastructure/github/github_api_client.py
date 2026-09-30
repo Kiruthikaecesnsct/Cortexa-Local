@@ -57,6 +57,9 @@ class GitHubApiClient:
         except GitHubNotFoundError:
             return await self._list_account_repositories(owner, token)
 
+    async def get_repository(self, owner: str, repo: str, token: str) -> RepositorySummary:
+        return _to_summary(_json(await self._get(f"/repos/{owner}/{repo}", token)))
+
     async def list_branches(self, owner: str, repo: str, token: str) -> list[BranchSummary]:
         return await self._paginate(f"/repos/{owner}/{repo}/branches", {}, token, _to_branch)
 

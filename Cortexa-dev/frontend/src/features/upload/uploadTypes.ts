@@ -1,3 +1,5 @@
+import type { SavedRepositorySelection } from './savedRepositories';
+
 export type SourceType = 'file' | 'repo';
 
 export type AcceptedFileFormat = 'pdf' | 'docx';
@@ -26,6 +28,7 @@ export interface CreateBatchRequest {
   files: File[];
   batchName: string;
   gitParams?: GitParams;
+  savedRepositories: SavedRepositorySelection[];
   engine: AnalysisEngine;
   seedCorpusDomain: SeedCorpusDomain;
 }

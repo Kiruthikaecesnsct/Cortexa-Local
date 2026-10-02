@@ -8,7 +8,7 @@ from ingestion.application.repository_clone.clone_jobs import (
     utc_now,
 )
 from ingestion.application.repository_clone.clone_ports import (
-    CloneArchiveStore,
+    CloneFolderStore,
     RepositorySource,
     RepositoryWorkspace,
     SaveRequest,
@@ -32,7 +32,7 @@ _GENERIC_FAILURE = "Saving failed unexpectedly. Try again, or check the ingestio
 class RepositoryCloneDeps:
     source: RepositorySource
     workspace: RepositoryWorkspace
-    store: CloneArchiveStore
+    store: CloneFolderStore
     registry: CloneJobRegistry
     runner: BackgroundRunner
     max_repo_bytes: int
@@ -100,16 +100,14 @@ class RepositoryCloneHandler:
     async def _clone_and_store(self, clone: RepositoryClone, token: str) -> None:
         registry, workspace = self._deps.registry, self._deps.workspace
         registry.update(clone.clone_id, status=CloneStatus.CLONING)
-        archive = await workspace.clone_and_pack(
-            self._deps.source.checkout_spec(clone.target, token)
-        )
+        checkout = await workspace.checkout(self._deps.source.checkout_spec(clone.target, token))
         try:
             uploading = registry.update(
-                clone.clone_id, status=CloneStatus.UPLOADING, commit_sha=archive.commit_sha
+                clone.clone_id, status=CloneStatus.UPLOADING, commit_sha=checkout.commit_sha
             )
-            await self._deps.store.save(archive, uploading)
+            await self._deps.store.save(checkout, uploading)
         finally:
-            workspace.discard(archive)
+            workspace.discard(checkout)
         registry.remove(clone.clone_id)
         _logger.info("Save %s stored", clone.clone_id)
 

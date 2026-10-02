@@ -1,9 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { AppShell } from '../../shared/layout/AppShell';
 import { PageHeader, SectionCard } from '../../shared/layout/PageHeader';
 import { Button, Input, Select, Modal, IconGit, IconUpload, IconFolder, Badge } from '../../shared/ds';
 import { useToast } from '../../shared/ds/Toast';
+import { maxSavedRepositoriesPerBatch } from '../../core/config/env';
+import { SavedRepositoriesCard } from './SavedRepositoriesCard';
+import { readSavedRepositoriesFromState } from './savedRepositories';
 import { useUploadStore } from './useUploadStore';
 import { formatBytes, validateGitParams } from './uploadValidation';
 import type { AnalysisEngine, GitHost, SeedCorpusDomain } from './uploadTypes';
@@ -27,7 +30,9 @@ const GIT_PROVIDERS: { value: GitHost; label: string }[] = [
 
 export function UploadPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const store = useUploadStore();
+  const { addSavedRepositories } = store;
   const { show } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const gitCardRef = useRef<HTMLDivElement>(null);
@@ -52,6 +57,15 @@ export function UploadPage() {
       show({ variant: 'error', title: 'Upload failed', message: store.submitError.message });
     }
   }, [store.status, store.submitError, show]);
+
+  // Saved repositories handed over from Source Connectors arrive once through router
+  // state; clear it so going back or reloading does not add them again.
+  useEffect(() => {
+    const incoming = readSavedRepositoriesFromState(location.state);
+    if (incoming.length === 0) return;
+    addSavedRepositories(incoming);
+    navigate(location.pathname, { replace: true, state: null });
+  }, [location.state, location.pathname, addSavedRepositories, navigate]);
 
   function onFilesPicked(list: FileList | null) {
     if (list && list.length) store.addFiles(Array.from(list));
@@ -242,6 +256,12 @@ export function UploadPage() {
         </SectionCard>
       )}
 
+      <SavedRepositoriesCard
+        repositories={store.savedRepositories}
+        maxCount={maxSavedRepositoriesPerBatch}
+        onRemove={store.removeSavedRepository}
+      />
+
       {/* Batch name */}
       <SectionCard>
         <Input
@@ -332,43 +352,42 @@ export function UploadPage() {
   );
 }
 
-function getDisabledReason(store: ReturnType<typeof useUploadStore>): React.ReactNode {
-  const rejectedFiles = store.files.filter((f) => !f.valid);
-  const hasInput = store.files.length > 0 || store.gitParams;
+interface DisabledReason {
+  message: string;
+  danger: boolean;
+}
 
-  if (!hasInput) {
-    return (
-      <div id="submit-reason" style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
-        Add a file or connect a repository to begin.
-      </div>
-    );
-  }
-  if (rejectedFiles.length > 0) {
-    return (
-      <div id="submit-reason" style={{ fontSize: 'var(--text-sm)', color: 'var(--status-danger-fg)' }}>
-        Remove the rejected files to continue.
-      </div>
-    );
-  }
-  if (store.fieldErrors.batchName) {
-    return (
-      <div id="submit-reason" style={{ fontSize: 'var(--text-sm)', color: 'var(--status-danger-fg)' }}>
-        Fix the batch name to continue.
-      </div>
-    );
-  }
+function isOverFileLimits(store: ReturnType<typeof useUploadStore>): boolean {
   const validFiles = store.files.filter((f) => f.valid).map((f) => f.file);
   const totalSize = validFiles.reduce((sum, f) => sum + f.size, 0);
   const maxSize = 1024 * 1024 * 1024;
   const maxCount = 25;
-  if (validFiles.length > maxCount || totalSize > maxSize) {
-    return (
-      <div id="submit-reason" style={{ fontSize: 'var(--text-sm)', color: 'var(--status-danger-fg)' }}>
-        Reduce the batch — over the file count or size limit.
-      </div>
-    );
-  }
-  return null;
+  return validFiles.length > maxCount || totalSize > maxSize;
+}
+
+function findDisabledReason(store: ReturnType<typeof useUploadStore>): DisabledReason | undefined {
+  const hasInput = store.files.length > 0 || store.gitParams !== null || store.savedRepositories.length > 0;
+  const rules: [boolean, DisabledReason][] = [
+    [!hasInput, { message: 'Add a file, connect a repository, or load a saved repository to begin.', danger: false }],
+    [store.files.some((f) => !f.valid), { message: 'Remove the rejected files to continue.', danger: true }],
+    [Boolean(store.fieldErrors.batchName), { message: 'Fix the batch name to continue.', danger: true }],
+    [isOverFileLimits(store), { message: 'Reduce the batch — over the file count or size limit.', danger: true }],
+    [!store.withinSavedCap, { message: 'Remove some saved repositories — over the per-batch limit.', danger: true }],
+  ];
+  return rules.find(([applies]) => applies)?.[1];
+}
+
+function getDisabledReason(store: ReturnType<typeof useUploadStore>): React.ReactNode {
+  const reason = findDisabledReason(store);
+  if (!reason) return null;
+  return (
+    <div
+      id="submit-reason"
+      style={{ fontSize: 'var(--text-sm)', color: reason.danger ? 'var(--status-danger-fg)' : 'var(--text-muted)' }}
+    >
+      {reason.message}
+    </div>
+  );
 }
 
 const SourceCard = React.forwardRef<HTMLDivElement, {

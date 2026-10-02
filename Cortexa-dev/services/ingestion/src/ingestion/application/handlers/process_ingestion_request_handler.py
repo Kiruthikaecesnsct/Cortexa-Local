@@ -10,6 +10,7 @@ from ingestion.application.code_walker import walk_code_files
 from ingestion.application.git.clone_adapter import CloneAdapter
 from ingestion.application.handlers.store_ingestion_handler import StoreIngestionHandler
 from ingestion.application.raw_file_ingestor import IngestorConfig, assemble_ingest_request
+from ingestion.application.repository_clone.saved_repository_loader import SavedRepositoryLoader
 from ingestion.domain.errors.clone_errors import (
     AuthResolutionError,
     CloneTimeoutError,
@@ -19,9 +20,10 @@ from ingestion.domain.errors.clone_errors import (
     UnsupportedHostError,
 )
 from ingestion.domain.errors.parser_errors import UnsupportedFormatError
+from ingestion.domain.errors.scan_errors import CloneStorageUnavailableError, ScanError
 from ingestion.domain.errors.storage_errors import StorageWriteError
 from ingestion.domain.events.event_envelope import EventEnvelope
-from ingestion.domain.models.document_ref import DocumentRef
+from ingestion.domain.models.document_ref import DocumentRef, SavedRepositoryRef
 from ingestion.domain.repositories.storage_protocols import BlobRepository, DocumentRepository
 from ingestion.infrastructure.git.clone_cleanup import remove_clone
 
@@ -41,6 +43,7 @@ class ProcessIngestionDeps:
     store_handler: StoreIngestionHandler
     ingestor_config: IngestorConfig
     clone_adapter: CloneAdapter | None = None
+    saved_repositories: SavedRepositoryLoader | None = None
 
 
 class ProcessIngestionRequestHandler:
@@ -50,6 +53,7 @@ class ProcessIngestionRequestHandler:
         self._store = deps.store_handler
         self._config = deps.ingestor_config
         self._clone_adapter = deps.clone_adapter
+        self._saved_repositories = deps.saved_repositories
 
     async def handle(self, envelope: EventEnvelope) -> ProcessOutcome:
         if envelope.document_id is None:
@@ -130,6 +134,8 @@ class ProcessIngestionRequestHandler:
             return ProcessOutcome.PERMANENT
         except StorageWriteError as exc:
             return self._classify_storage_error(envelope, exc)
+        except ScanError as exc:
+            return self._classify_saved_repository_error(envelope, exc)
         except ValueError as exc:
             # A ValueError reaching here is deterministic (tokenization/chunking or
             # bad config) — every I/O, clone, and timeout failure raises its own
@@ -173,6 +179,24 @@ class ProcessIngestionRequestHandler:
         )
         return outcome
 
+    def _classify_saved_repository_error(
+        self, envelope: EventEnvelope, exc: ScanError
+    ) -> ProcessOutcome:
+        # Storage being down may recover; a missing folder or invalid name never will.
+        transient = isinstance(exc, CloneStorageUnavailableError)
+        outcome = ProcessOutcome.TRANSIENT if transient else ProcessOutcome.PERMANENT
+        logger.error(
+            "batch_id=%s document_id=%s correlation_id=%s outcome=%s "
+            "reason=saved_repository_error code=%s error=%s",
+            envelope.batch_id,
+            envelope.document_id,
+            envelope.correlation_id,
+            outcome.value.upper(),
+            exc.code,
+            exc,
+        )
+        return outcome
+
     async def _execute(self, envelope: EventEnvelope) -> ProcessOutcome:
         batch_id = envelope.batch_id
         document_id = envelope.document_id
@@ -205,13 +229,8 @@ class ProcessIngestionRequestHandler:
         document_id = envelope.document_id
         correlation_id = envelope.correlation_id
 
-        source_kind = envelope.payload.get("source_kind", "paper")
-
-        if source_kind == "code":
-            request = await self._run_code_pipeline(envelope, document)
-        else:
-            request = await self._run_paper_pipeline(envelope, document)
-
+        source_kind = _source_kind(envelope, document)
+        request = await self._assemble_request(envelope, document)
         await self._store.handle(request)
         logger.info(
             "batch_id=%s document_id=%s correlation_id=%s outcome=SUCCESS source_kind=%s",
@@ -221,6 +240,30 @@ class ProcessIngestionRequestHandler:
             source_kind,
         )
         return ProcessOutcome.SUCCESS
+
+    async def _assemble_request(self, envelope: EventEnvelope, document: DocumentRef):
+        if document.saved_repository is not None:
+            return await self._run_saved_repository_pipeline(envelope, document.saved_repository)
+        if envelope.payload.get("source_kind", "paper") == "code":
+            return await self._run_code_pipeline(envelope, document)
+        return await self._run_paper_pipeline(envelope, document)
+
+    async def _run_saved_repository_pipeline(
+        self, envelope: EventEnvelope, saved: SavedRepositoryRef
+    ):
+        if self._saved_repositories is None:
+            raise RuntimeError("SavedRepositoryLoader not configured for saved repositories")
+
+        async with self._saved_repositories.materialize(saved) as folder:
+            files = list(walk_code_files(folder))
+
+        return assemble_code_ingest_request(
+            batch_id=envelope.batch_id,
+            document_id=envelope.document_id,
+            files=files,
+            correlation_id=envelope.correlation_id,
+            config=self._config,
+        )
 
     async def _run_paper_pipeline(self, envelope: EventEnvelope, document: DocumentRef):
         batch_id = envelope.batch_id
@@ -269,3 +312,9 @@ class ProcessIngestionRequestHandler:
         finally:
             if clone_path:
                 remove_clone(str(clone_path))
+
+
+def _source_kind(envelope: EventEnvelope, document: DocumentRef) -> str:
+    if document.saved_repository is not None:
+        return "code"
+    return envelope.payload.get("source_kind", "paper")

@@ -20,6 +20,7 @@ function buildFormData(request: CreateBatchRequest): FormData {
     if (request.gitParams.pat) form.append('git_pat', request.gitParams.pat);
     if (request.gitParams.branch) form.append('git_branch', request.gitParams.branch);
   }
+  request.savedRepositories.forEach((repo) => form.append('saved_repositories', JSON.stringify(repo)));
   return form;
 }
 

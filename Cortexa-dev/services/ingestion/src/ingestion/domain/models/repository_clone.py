@@ -30,7 +30,7 @@ class SaveTarget:
 
     @property
     def clone_id(self) -> str:
-        """Stable id: the same branch always maps to the same stored zip."""
+        """Stable id: the same branch always maps to the same stored folder."""
         key = f"{self.provider}/{self.owner}/{self.repository}/{self.branch}"
         return hashlib.sha256(key.encode()).hexdigest()[:32]
 
@@ -66,9 +66,12 @@ class CheckoutSpec:
 
 
 @dataclass(frozen=True)
-class PackedArchive:
+class RepositoryCheckout:
+    """A cloned branch on local disk; `files` lists its tracked regular files as POSIX paths."""
+
     path: Path
     commit_sha: str
+    files: tuple[str, ...]
 
 
 @dataclass(frozen=True)

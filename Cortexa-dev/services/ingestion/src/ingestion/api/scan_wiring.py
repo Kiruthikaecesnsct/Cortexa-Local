@@ -12,10 +12,11 @@ from ingestion.application.handlers.repository_clone_handler import (
 from ingestion.application.repository_clone.azure_devops_source import AzureDevOpsSource
 from ingestion.application.repository_clone.clone_jobs import BackgroundRunner, CloneJobRegistry
 from ingestion.application.repository_clone.clone_ports import (
-    CloneArchiveStore,
+    CloneFolderStore,
     RepositorySource,
 )
 from ingestion.application.repository_clone.github_source import GitHubSource
+from ingestion.application.repository_clone.saved_repository_loader import SavedRepositoryLoader
 from ingestion.domain.errors.scan_errors import ScanError
 from ingestion.infrastructure.azure_devops.azure_devops_api_client import (
     AzureDevOpsApiClient,
@@ -38,6 +39,7 @@ class ScanServices:
     github_clone_handler: RepositoryCloneHandler
     azure_devops_scan_handler: AzureDevOpsScanHandler
     azure_devops_clone_handler: RepositoryCloneHandler
+    saved_repositories: SavedRepositoryLoader
     http_clients: tuple[httpx.AsyncClient, ...]
     runner: BackgroundRunner
 
@@ -52,7 +54,7 @@ class _SharedSaving:
     """One store, job registry, runner and git workspace serve every provider."""
 
     settings: IngestionSettings
-    store: CloneArchiveStore
+    store: CloneFolderStore
     registry: CloneJobRegistry
     runner: BackgroundRunner
     workspace: GitRepositoryWorkspace
@@ -91,15 +93,15 @@ async def build_scan_services(settings: IngestionSettings) -> ScanServices:
     github_reader = GitHubApiClient(github_http, settings.github_scan_max_pages)
     azure_reader = AzureDevOpsApiClient(azure_http, settings.azdo_api_version)
     saving = await _shared_saving(settings)
+    github_source = GitHubSource(github_reader, settings.github_clone_base_url)
+    azure_source = AzureDevOpsSource(azure_reader, settings.azdo_api_base_url)
+    sources = {source.provider: source for source in (github_source, azure_source)}
     return ScanServices(
         github_scan_handler=GitHubScanHandler(github_reader),
-        github_clone_handler=saving.handler_for(
-            GitHubSource(github_reader, settings.github_clone_base_url)
-        ),
+        github_clone_handler=saving.handler_for(github_source),
         azure_devops_scan_handler=AzureDevOpsScanHandler(azure_reader),
-        azure_devops_clone_handler=saving.handler_for(
-            AzureDevOpsSource(azure_reader, settings.azdo_api_base_url)
-        ),
+        azure_devops_clone_handler=saving.handler_for(azure_source),
+        saved_repositories=SavedRepositoryLoader(saving.store, sources, settings.clone_workdir),
         http_clients=(github_http, azure_http),
         runner=saving.runner,
     )

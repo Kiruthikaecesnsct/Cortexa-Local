@@ -30,7 +30,7 @@ from ingestion.domain.models.github_scan import RepositorySummary as GitHubSumma
 from ingestion.domain.models.repository_clone import (
     ArchiveDownload,
     CheckoutSpec,
-    PackedArchive,
+    RepositoryCheckout,
     RepositoryClone,
     SaveTarget,
 )
@@ -40,6 +40,7 @@ USER = "user-1"
 OTHER_USER = "user-2"
 MAX_BYTES = 10 * 1024 * 1024
 SETTLE_ROUNDS = 20
+CHECKOUT = RepositoryCheckout(Path("checkout"), "abc1234def", ("README.md",))
 
 
 def _github_request(branch: str = "main") -> GitHubRequest:
@@ -83,16 +84,16 @@ class FakeWorkspace:
     def __init__(self, error: Exception | None = None) -> None:
         self.error = error
         self.specs: list[CheckoutSpec] = []
-        self.discarded: list[PackedArchive] = []
+        self.discarded: list[RepositoryCheckout] = []
 
-    async def clone_and_pack(self, spec: CheckoutSpec) -> PackedArchive:
+    async def checkout(self, spec: CheckoutSpec) -> RepositoryCheckout:
         self.specs.append(spec)
         if self.error:
             raise self.error
-        return PackedArchive(path=Path("fake.zip"), commit_sha="abc1234def")
+        return CHECKOUT
 
-    def discard(self, archive: PackedArchive) -> None:
-        self.discarded.append(archive)
+    def discard(self, checkout: RepositoryCheckout) -> None:
+        self.discarded.append(checkout)
 
 
 class FakeStore:
@@ -104,7 +105,7 @@ class FakeStore:
     async def ensure_ready(self) -> None:
         return None
 
-    async def save(self, archive: PackedArchive, clone: RepositoryClone) -> int:
+    async def save(self, checkout: RepositoryCheckout, clone: RepositoryClone) -> int:
         stored = clone.model_copy(update={"status": CloneStatus.STORED, "size_bytes": 42})
         self.saved[clone.target] = stored
         return 42
@@ -152,7 +153,7 @@ async def _settle() -> None:
         await asyncio.sleep(0)
 
 
-async def test_github_save_queues_then_stores_the_archive() -> None:
+async def test_github_save_queues_then_stores_the_folder() -> None:
     h = Harness()
 
     queued = await h.github.start(_github_request(), USER)
@@ -166,7 +167,7 @@ async def test_github_save_queues_then_stores_the_archive() -> None:
         "abc1234def",
     )
     assert h.registry.all() == []
-    assert h.workspace.discarded == [PackedArchive(Path("fake.zip"), "abc1234def")]
+    assert h.workspace.discarded == [CHECKOUT]
     assert h.workspace.specs[0].url == "https://github.com/acme/api.git"
 
 
@@ -318,3 +319,18 @@ async def test_download_validates_names_and_reports_missing() -> None:
         await h.github.open_download(USER, "..", "api", "main")
     with pytest.raises(InvalidScanTargetError):
         await h.github.open_download(USER, "acme", "api", "../../etc")
+
+
+async def test_failed_upload_still_discards_the_checkout() -> None:
+    h = Harness()
+
+    async def failing_save(checkout: RepositoryCheckout, clone: RepositoryClone) -> int:
+        raise CloneExecutionError("Upload failed.")
+
+    h.store.save = failing_save  # type: ignore[method-assign]
+    await h.github.start(_github_request(), USER)
+    await _settle()
+
+    [clone] = await h.github.list_clones(USER)
+    assert (clone.status, clone.error) == (CloneStatus.FAILED, "Upload failed.")
+    assert h.workspace.discarded == [CHECKOUT]

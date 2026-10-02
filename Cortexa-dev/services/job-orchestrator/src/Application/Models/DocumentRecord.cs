@@ -9,4 +9,5 @@ public sealed record DocumentRecord(
     public string Status { get; init; } = "queued";
     public DateTimeOffset CreatedAt { get; init; } = DateTimeOffset.UtcNow;
     public string? SourceKind { get; init; }
+    public SavedRepositoryRef? SavedRepository { get; init; }
 }

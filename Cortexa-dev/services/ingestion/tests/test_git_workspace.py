@@ -1,5 +1,4 @@
 import subprocess
-import zipfile
 from pathlib import Path
 
 import pytest
@@ -47,44 +46,48 @@ def workspace(tmp_path: Path) -> GitRepositoryWorkspace:
     return GitRepositoryWorkspace(IngestionSettings(clone_workdir=str(workdir)))
 
 
-async def test_pack_keeps_symlinks_as_links_and_skips_git_dir(
-    workspace: GitRepositoryWorkspace, tmp_path: Path
+def test_regular_files_skips_symlinks_missing_and_outside_entries(tmp_path: Path) -> None:
+    root = tmp_path / "checkout"
+    (root / "src").mkdir(parents=True)
+    (root / "README.md").write_text("hello")
+    (root / "src" / "app.py").write_text("print(1)")
+    secret = tmp_path / "server-secret.txt"
+    secret.write_text("TOP-SECRET-CONTENT")
+    listing = "README.md\0src/app.py\0gone.txt\0"
+    try:
+        (root / "leak").symlink_to(secret)
+        listing += "leak\0"
+    except OSError:
+        pass  # The OS cannot create symlinks here; the other cases still apply.
+
+    assert list(git_workspace._regular_files(root, listing)) == ["README.md", "src/app.py"]
+
+
+async def test_checkout_lists_tracked_files_and_keeps_folder_until_discard(
+    workspace: GitRepositoryWorkspace, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     secret = tmp_path / "server-secret.txt"
     secret.write_text("TOP-SECRET-CONTENT")
-    repo = _repo_with_symlink_to(secret, tmp_path)
-
-    archive = await workspace._pack(repo)
-
-    with zipfile.ZipFile(archive.path) as zf:
-        names = zf.namelist()
-        leak = zf.read("leak")
-    assert sorted(names) == ["README.md", "leak"]
-    assert b"TOP-SECRET-CONTENT" not in leak
-    assert leak == str(secret).encode()
-    assert archive.commit_sha == _git(repo, "rev-parse", "HEAD")
-    workspace.discard(archive)
-    assert not archive.path.exists()
-
-
-async def test_clone_and_pack_removes_checkout(
-    workspace: GitRepositoryWorkspace, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    source = _repo_with_symlink_to(tmp_path / "x", tmp_path)
-    checkout = tmp_path / "work" / "checkout"
-    subprocess.run(["git", "clone", "-q", str(source), str(checkout)], check=True)
+    source = _repo_with_symlink_to(secret, tmp_path)
+    checkout_dir = tmp_path / "work" / "checkout"
+    subprocess.run(["git", "clone", "-q", str(source), str(checkout_dir)], check=True)
 
     async def fake_clone(ref, token, settings, branch):  # noqa: ANN001, ANN202
         assert ref.normalized_https_url == "https://github.com/acme/api.git"
-        return str(checkout)
+        return str(checkout_dir)
 
     monkeypatch.setattr(git_workspace.git_runner, "run_clone", fake_clone)
 
-    archive = await workspace.clone_and_pack(GITHUB_SPEC)
+    checkout = await workspace.checkout(GITHUB_SPEC)
 
-    assert archive.path.exists()
-    assert not checkout.exists()
-    workspace.discard(archive)
+    assert checkout.path == checkout_dir
+    assert "README.md" in checkout.files
+    assert not any(name.startswith(".git/") for name in checkout.files)
+    for name in checkout.files:
+        assert b"TOP-SECRET-CONTENT" not in (checkout_dir / name).read_bytes()
+    assert checkout.commit_sha == _git(source, "rev-parse", "HEAD")
+    workspace.discard(checkout)
+    assert not checkout_dir.exists()
 
 
 @pytest.mark.parametrize(
@@ -106,7 +109,7 @@ async def test_clone_errors_become_user_facing_messages(
     monkeypatch.setattr(git_workspace.git_runner, "run_clone", failing_clone)
 
     with pytest.raises(CloneExecutionError, match=message):
-        await workspace.clone_and_pack(GITHUB_SPEC)
+        await workspace.checkout(GITHUB_SPEC)
 
 
 async def test_azure_clone_passes_url_and_names_azure_in_errors(
@@ -121,5 +124,5 @@ async def test_azure_clone_passes_url_and_names_azure_in_errors(
     monkeypatch.setattr(git_workspace.git_runner, "run_clone", failing_clone)
 
     with pytest.raises(CloneExecutionError, match="from Azure DevOps"):
-        await workspace.clone_and_pack(AZURE_SPEC)
+        await workspace.checkout(AZURE_SPEC)
     assert seen == [("https://dev.azure.com/contoso/P/_git/api", "tok", "main")]

@@ -1,9 +1,12 @@
 import { useCallback, useReducer, type Dispatch } from 'react';
+import { maxSavedRepositoriesPerBatch } from '../../core/config/env';
+import { mergeSavedRepositories, savedRepositoryKey, type SavedRepositorySelection } from './savedRepositories';
 import { createBatch, resumeBatch } from './uploadRepository';
 import type {
   AnalysisEngine,
   BatchFieldErrors,
   CreateBatchData,
+  CreateBatchRequest,
   GitParams,
   SelectedFile,
   SeedCorpusDomain,
@@ -19,6 +22,7 @@ export interface UploadState {
   batchName: string;
   gitParams: GitParams | null;
   gitModalOpen: boolean;
+  savedRepositories: SavedRepositorySelection[];
   engine: AnalysisEngine;
   seedCorpusDomain: SeedCorpusDomain;
   fieldErrors: BatchFieldErrors;
@@ -36,6 +40,8 @@ type UploadAction =
   | { type: 'OPEN_GIT_MODAL' }
   | { type: 'CLOSE_GIT_MODAL' }
   | { type: 'SET_GIT_PARAMS'; payload: GitParams | null }
+  | { type: 'ADD_SAVED_REPOSITORIES'; repositories: SavedRepositorySelection[] }
+  | { type: 'REMOVE_SAVED_REPOSITORY'; key: string }
   | { type: 'SET_DRAG_ACTIVE'; value: boolean }
   | { type: 'ADD_FILES'; files: SelectedFile[]; zoneError?: string }
   | { type: 'REMOVE_FILE'; id: string }
@@ -51,6 +57,7 @@ const initialState: UploadState = {
   batchName: '',
   gitParams: null,
   gitModalOpen: false,
+  savedRepositories: [],
   engine: 'harvesting',
   seedCorpusDomain: 'ml_ai',
   fieldErrors: {},
@@ -104,6 +111,19 @@ function gitModalReducer(state: UploadState, action: UploadAction): UploadState 
   }
 }
 
+function savedRepositoriesReducer(state: UploadState, action: UploadAction): UploadState {
+  switch (action.type) {
+    case 'ADD_SAVED_REPOSITORIES': {
+      const merged = mergeSavedRepositories(state.savedRepositories, action.repositories);
+      return merged === state.savedRepositories ? state : { ...state, savedRepositories: merged };
+    }
+    case 'REMOVE_SAVED_REPOSITORY':
+      return { ...state, savedRepositories: state.savedRepositories.filter((r) => savedRepositoryKey(r) !== action.key) };
+    default:
+      return state;
+  }
+}
+
 function statusReducer(state: UploadState, action: UploadAction): UploadState {
   switch (action.type) {
     case 'CLEAR_SUBMIT_ERROR':
@@ -128,6 +148,8 @@ function uploadReducer(state: UploadState, action: UploadAction): UploadState {
   if (afterConfig !== state) return afterConfig;
   const afterGitModal = gitModalReducer(state, action);
   if (afterGitModal !== state) return afterGitModal;
+  const afterSaved = savedRepositoriesReducer(state, action);
+  if (afterSaved !== state) return afterSaved;
   return statusReducer(state, action);
 }
 
@@ -179,23 +201,9 @@ function isSubmitBlocked(
   return Object.keys(fieldErrors).length > 0 || !filesOk || !hasAnyInput;
 }
 
-async function handleFreshFlow(
-  batchName: string,
-  gitParams: GitParams | undefined,
-  engine: AnalysisEngine,
-  seedCorpusDomain: SeedCorpusDomain,
-  validFiles: File[],
-  dispatch: Dispatch<UploadAction>
-): Promise<void> {
+async function handleFreshFlow(request: CreateBatchRequest, dispatch: Dispatch<UploadAction>): Promise<void> {
   dispatch({ type: 'SUBMIT_START' });
-  const name = batchName.trim() || generateBatchName();
-  const result = await createBatch({
-    files: validFiles,
-    batchName: name,
-    gitParams,
-    engine,
-    seedCorpusDomain,
-  });
+  const result = await createBatch({ ...request, batchName: request.batchName.trim() || generateBatchName() });
   if (result.ok) {
     dispatch({ type: 'SUBMIT_SUCCESS', data: result.data });
   } else {
@@ -222,14 +230,22 @@ export function useUploadStore() {
 
   const removeFile = useCallback((id: string) => dispatch({ type: 'REMOVE_FILE', id }), []);
 
+  const addSavedRepositories = useCallback(
+    (repositories: SavedRepositorySelection[]) => dispatch({ type: 'ADD_SAVED_REPOSITORIES', repositories }),
+    []
+  );
+  const removeSavedRepository = useCallback((key: string) => dispatch({ type: 'REMOVE_SAVED_REPOSITORY', key }), []);
+
   const validFiles = state.files.filter((f) => f.valid).map((f) => f.file);
   const filesOk = state.files.every((f) => f.valid);
   const hasValidFiles = validFiles.length > 0;
   const hasValidRepo = state.gitParams != null;
-  const hasAnyInput = hasValidFiles || hasValidRepo;
+  const hasAnyInput = hasValidFiles || hasValidRepo || state.savedRepositories.length > 0;
   const caps = checkBatchCaps(validFiles);
+  const withinSavedCap = state.savedRepositories.length <= maxSavedRepositoriesPerBatch;
   const noFieldErrors = Object.keys(state.fieldErrors).length === 0;
-  const canSubmit = hasAnyInput && filesOk && caps.withinCount && caps.withinSize && noFieldErrors && state.status !== 'uploading';
+  const canSubmit =
+    hasAnyInput && filesOk && caps.withinCount && caps.withinSize && withinSavedCap && noFieldErrors && state.status !== 'uploading';
 
   const submit = useCallback(async () => {
     if (state.pendingBatchId) {
@@ -242,16 +258,20 @@ export function useUploadStore() {
       return;
     }
     await handleFreshFlow(
-      state.batchName,
-      state.gitParams ?? undefined,
-      state.engine,
-      state.seedCorpusDomain,
-      validFiles,
+      {
+        files: validFiles,
+        batchName: state.batchName,
+        gitParams: state.gitParams ?? undefined,
+        savedRepositories: state.savedRepositories,
+        engine: state.engine,
+        seedCorpusDomain: state.seedCorpusDomain,
+      },
       dispatch
     );
   }, [
     state.batchName,
     state.gitParams,
+    state.savedRepositories,
     state.pendingBatchId,
     state.engine,
     state.seedCorpusDomain,
@@ -273,6 +293,9 @@ export function useUploadStore() {
     setDragActive,
     addFiles,
     removeFile,
+    addSavedRepositories,
+    removeSavedRepository,
+    withinSavedCap,
     clearSubmitError,
     submit,
   };

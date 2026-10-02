@@ -38,6 +38,8 @@ public sealed class CreateBatchHandler
             records.Add(repoDoc);
         }
 
+        records.AddRange((command.SavedRepositories ?? []).Select(saved => CreateSavedRepositoryDocument(batchId, saved)));
+
         await _documents.CreateManyAsync(records, ct);
 
         var gitPatSecretName = await StoreGitPatIfNeededAsync(
@@ -117,6 +119,15 @@ public sealed class CreateBatchHandler
         return new DocumentRecord(documentId, batchId, filename, string.Empty)
         {
             SourceKind = "code"
+        };
+    }
+
+    private static DocumentRecord CreateSavedRepositoryDocument(string batchId, SavedRepositoryRef saved)
+    {
+        return new DocumentRecord(Guid.NewGuid().ToString(), batchId, saved.DisplayName, string.Empty)
+        {
+            SourceKind = "code",
+            SavedRepository = saved
         };
     }
 

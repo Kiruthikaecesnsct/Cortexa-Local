@@ -31,7 +31,8 @@ public sealed class CosmosDocumentRepository : IDocumentRepository
                 Filename = record.Filename,
                 BlobUri = record.BlobUri,
                 Status = record.Status,
-                CreatedAt = record.CreatedAt
+                CreatedAt = record.CreatedAt,
+                SavedRepository = CosmosSavedRepository.FromDomain(record.SavedRepository)
             };
             await Container.CreateItemAsync(doc, new PartitionKey(record.BatchId), cancellationToken: ct);
         }
@@ -86,7 +87,8 @@ public sealed class CosmosDocumentRepository : IDocumentRepository
         new(doc.Id, doc.BatchId, doc.Filename, doc.BlobUri)
         {
             Status = doc.Status,
-            CreatedAt = doc.CreatedAt
+            CreatedAt = doc.CreatedAt,
+            SavedRepository = doc.SavedRepository?.ToDomain()
         };
 }
 
@@ -98,4 +100,30 @@ internal sealed class CosmosDocumentRecord
     [JsonPropertyName("blob_uri")] public string BlobUri { get; set; } = string.Empty;
     [JsonPropertyName("status")] public string Status { get; set; } = string.Empty;
     [JsonPropertyName("created_at")] public DateTimeOffset CreatedAt { get; set; }
+
+    // Read by the ingestion service to load the document from a saved repository folder.
+    [JsonPropertyName("saved_repository")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public CosmosSavedRepository? SavedRepository { get; set; }
+}
+
+internal sealed class CosmosSavedRepository
+{
+    [JsonPropertyName("provider")] public string Provider { get; set; } = string.Empty;
+    [JsonPropertyName("owner")] public string Owner { get; set; } = string.Empty;
+    [JsonPropertyName("repository")] public string Repository { get; set; } = string.Empty;
+    [JsonPropertyName("branch")] public string Branch { get; set; } = string.Empty;
+
+    public static CosmosSavedRepository? FromDomain(SavedRepositoryRef? saved) =>
+        saved is null
+            ? null
+            : new CosmosSavedRepository
+            {
+                Provider = saved.Provider,
+                Owner = saved.Owner,
+                Repository = saved.Repository,
+                Branch = saved.Branch
+            };
+
+    public SavedRepositoryRef ToDomain() => new(Provider, Owner, Repository, Branch);
 }

@@ -1,4 +1,17 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+
+from ingestion.domain.enums.source_provider import SourceProvider
+
+
+class SavedRepositoryRef(BaseModel):
+    """A branch saved to repository storage that a document should be ingested from."""
+
+    model_config = ConfigDict(extra="ignore", frozen=True)
+
+    provider: SourceProvider
+    owner: str = Field(min_length=1, max_length=64)
+    repository: str = Field(min_length=1, max_length=129)
+    branch: str = Field(min_length=1, max_length=255)
 
 
 class DocumentRef(BaseModel):
@@ -9,6 +22,9 @@ class DocumentRef(BaseModel):
     provenance_map_id) do not exist yet, so ingestion must not validate the row against
     the write-side Document model. Extra fields are ignored and status is left free-form
     so the shared status vocabulary can evolve without breaking reads.
+
+    `saved_repository` is set when the document is a saved repository folder rather
+    than an uploaded file or a repository URL.
     """
 
     model_config = ConfigDict(extra="ignore")
@@ -17,3 +33,4 @@ class DocumentRef(BaseModel):
     batch_id: str
     filename: str
     status: str = "queued"
+    saved_repository: SavedRepositoryRef | None = None

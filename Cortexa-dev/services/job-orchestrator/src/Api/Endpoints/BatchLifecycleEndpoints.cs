@@ -4,11 +4,16 @@ using Cortexa.JobOrchestrator.Api.Contracts;
 using Cortexa.JobOrchestrator.Application.Exceptions;
 using Cortexa.JobOrchestrator.Application.Handlers;
 using Cortexa.JobOrchestrator.Application.Models;
+using Cortexa.JobOrchestrator.Application.Settings;
+using Cortexa.JobOrchestrator.Application.Validation;
+using Microsoft.Extensions.Options;
 
 namespace Cortexa.JobOrchestrator.Api.Endpoints;
 
 public static class BatchLifecycleEndpoints
 {
+    private const string SavedRepositoriesField = "saved_repositories";
+
     public static void MapBatchLifecycleEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/batches").RequireAuthorization();
@@ -26,15 +31,20 @@ public static class BatchLifecycleEndpoints
     private static async Task<IResult> HandleCreateBatch(
         IFormCollection form,
         CreateBatchHandler handler,
+        IOptions<OrchestratorSettings> settings,
         HttpContext ctx,
         CancellationToken ct)
     {
         var correlationId = GetCorrelationId(ctx);
         var files = form.Files;
         var repoUrl = form["repo_url"].ToString();
+        var saved = SavedRepositoryParser.Parse(form[SavedRepositoriesField].ToArray(), settings.Value.MaxSavedRepositoriesPerBatch);
 
-        if (files.Count == 0 && string.IsNullOrWhiteSpace(repoUrl))
-            return Results.BadRequest(ApiResponse<object>.Fail("VALIDATION_ERROR", "At least one file or a repository URL is required.", correlationId));
+        if (saved.Error is not null)
+            return Results.BadRequest(ApiResponse<object>.Fail("VALIDATION_ERROR", saved.Error, correlationId));
+
+        if (files.Count == 0 && string.IsNullOrWhiteSpace(repoUrl) && saved.Repositories.Count == 0)
+            return Results.BadRequest(ApiResponse<object>.Fail("VALIDATION_ERROR", "At least one file, a repository URL, or a saved repository is required.", correlationId));
 
         var fileInputs = files
             .Select(f => (f.FileName, f.OpenReadStream() as Stream, f.ContentType ?? "application/octet-stream"))
@@ -51,7 +61,8 @@ public static class BatchLifecycleEndpoints
             GitBranch: form["git_branch"].ToString() is { Length: > 0 } gb ? gb : null,
             GitPatRaw: form["git_pat"].ToString() is { Length: > 0 } pat ? pat : null,
             OrgId: ctx.Request.Headers["X-Org-Id"].ToString() is { Length: > 0 } orgId ? orgId : null,
-            UserId: ctx.Request.Headers["X-User-Id"].ToString() is { Length: > 0 } userId ? userId : null);
+            UserId: ctx.Request.Headers["X-User-Id"].ToString() is { Length: > 0 } userId ? userId : null,
+            SavedRepositories: saved.Repositories);
 
         var result = await handler.HandleAsync(command, ct);
         return Results.Ok(ApiResponse<CreateBatchResponse>.Ok(result, correlationId));

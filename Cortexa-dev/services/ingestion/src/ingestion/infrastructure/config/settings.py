@@ -1,5 +1,6 @@
 from typing import Literal
 
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 
@@ -84,6 +85,8 @@ class IngestionSettings(BaseSettings):
     s3_region: str = "us-east-1"
     s3_clone_bucket: str = "cortexa"
     clone_list_limit: int = 100
+    # Parallel file uploads/downloads when saving or loading a repository folder.
+    clone_transfer_concurrency: int = Field(default=16, ge=1, le=64)
 
     # Local file system scan connects to a caller-supplied VM over SSH/SFTP per
     # request; nothing here is persisted between requests.

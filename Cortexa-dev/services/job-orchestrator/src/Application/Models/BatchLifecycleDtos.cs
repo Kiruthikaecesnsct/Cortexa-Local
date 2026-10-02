@@ -11,7 +11,8 @@ public sealed record CreateBatchCommand(
     string? GitBranch = null,
     string? GitPatRaw = null,
     string? OrgId = null,
-    string? UserId = null);
+    string? UserId = null,
+    IReadOnlyList<SavedRepositoryRef>? SavedRepositories = null);
 
 public sealed record CreateBatchResponse(string BatchId, int DocumentCount, string Status);
 

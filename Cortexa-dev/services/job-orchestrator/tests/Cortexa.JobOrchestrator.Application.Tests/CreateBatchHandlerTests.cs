@@ -146,4 +146,39 @@ public sealed class CreateBatchHandlerTests
         capturedSaga!.WantsHarvesting.Should().BeFalse();
         capturedSaga.WantsSeeding.Should().BeTrue();
     }
+
+    [Fact]
+    public async Task HandleAsync_SavedRepositories_CreatesOneCodeDocumentEach()
+    {
+        IReadOnlyList<DocumentRecord>? captured = null;
+        await _documents.CreateManyAsync(Arg.Do<IReadOnlyList<DocumentRecord>>(r => captured = r), Arg.Any<CancellationToken>());
+        var github = new SavedRepositoryRef("github", "acme", "api", "main");
+        var azure = new SavedRepositoryRef("azure-devops", "contoso", "Platform/api", "release/1");
+
+        var command = BuildCommand(0) with { SavedRepositories = [github, azure] };
+        var result = await _handler.HandleAsync(command, CancellationToken.None);
+
+        result.DocumentCount.Should().Be(2);
+        captured.Should().NotBeNull();
+        captured!.Select(d => d.SavedRepository).Should().Equal(github, azure);
+        captured!.Should().OnlyContain(d => d.SourceKind == "code" && d.BlobUri == string.Empty);
+        captured!.Select(d => d.Filename).Should().Equal("acme-api@main", "contoso-Platform-api@release/1");
+        await _blob.DidNotReceiveWithAnyArgs().SaveRawAsync(default!, default!, default!, default!, default);
+    }
+
+    [Fact]
+    public async Task HandleAsync_FilesAndSavedRepositories_AreAnalyzedTogether()
+    {
+        _blob.SaveRawAsync(Arg.Any<string>(), Arg.Any<string>(), Arg.Any<Stream>(), Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns("https://storage.example.com/raw/doc");
+        BatchSaga? capturedSaga = null;
+        await _sagas.CreateAsync(Arg.Do<BatchSaga>(s => capturedSaga = s), Arg.Any<CancellationToken>());
+
+        var command = BuildCommand(2) with { SavedRepositories = [new SavedRepositoryRef("github", "acme", "api", "main")] };
+        var result = await _handler.HandleAsync(command, CancellationToken.None);
+
+        result.DocumentCount.Should().Be(3);
+        capturedSaga!.Metadata!.TotalDocumentCount.Should().Be(3);
+        capturedSaga.Metadata.GitRepoUrl.Should().BeNull();
+    }
 }

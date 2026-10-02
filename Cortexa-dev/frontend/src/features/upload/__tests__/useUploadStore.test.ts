@@ -290,4 +290,44 @@ describe('useUploadStore', () => {
       })
     );
   });
+
+  it('adds saved repositories once, enables submit, and sends them on submit', async () => {
+    mockCreateBatch.mockResolvedValueOnce({
+      ok: true,
+      data: { batch_id: 'b3', document_count: 2, status: 'started' },
+    });
+    const github = { provider: 'github' as const, owner: 'acme', repository: 'api', branch: 'main' };
+    const azure = { provider: 'azure-devops' as const, owner: 'contoso', repository: 'Platform/api', branch: 'dev' };
+    const { result } = renderHook(() => useUploadStore());
+
+    act(() => {
+      result.current.addSavedRepositories([github, azure]);
+      result.current.addSavedRepositories([github]);
+    });
+
+    expect(result.current.savedRepositories).toEqual([github, azure]);
+    expect(result.current.canSubmit).toBe(true);
+
+    await act(async () => {
+      await result.current.submit();
+    });
+
+    expect(mockCreateBatch).toHaveBeenCalledWith(
+      expect.objectContaining({ files: [], savedRepositories: [github, azure] })
+    );
+  });
+
+  it('removes a saved repository by key', () => {
+    const { result } = renderHook(() => useUploadStore());
+
+    act(() => {
+      result.current.addSavedRepositories([{ provider: 'github', owner: 'acme', repository: 'api', branch: 'main' }]);
+    });
+    act(() => {
+      result.current.removeSavedRepository('github/acme/api@main');
+    });
+
+    expect(result.current.savedRepositories).toEqual([]);
+    expect(result.current.canSubmit).toBe(false);
+  });
 });

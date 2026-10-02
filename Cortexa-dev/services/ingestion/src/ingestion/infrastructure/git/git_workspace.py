@@ -1,14 +1,14 @@
 import asyncio
 import logging
-import os
-import tempfile
+import stat
+from collections.abc import Iterator
 from pathlib import Path
 
 from ingestion.domain.enums.git_host import GitHost
 from ingestion.domain.errors.clone_errors import CloneTimeoutError, GitExecutionError
 from ingestion.domain.errors.scan_errors import CloneExecutionError
 from ingestion.domain.models.clone_request import RepoRef
-from ingestion.domain.models.repository_clone import CheckoutSpec, PackedArchive
+from ingestion.domain.models.repository_clone import CheckoutSpec, RepositoryCheckout
 from ingestion.infrastructure.config.settings import IngestionSettings
 from ingestion.infrastructure.git import git_runner
 from ingestion.infrastructure.git.clone_cleanup import remove_clone
@@ -18,27 +18,43 @@ _logger = logging.getLogger(__name__)
 _HOST_NAMES = {GitHost.GITHUB: "GitHub", GitHost.AZURE_DEVOPS: "Azure DevOps"}
 
 
-class GitRepositoryWorkspace:
-    """Shallow-clones one branch, then packs only tracked files with `git archive`.
+def _regular_files(root: Path, listing: str) -> Iterator[str]:
+    """Tracked entries that are plain files inside the checkout.
 
-    `git archive` stores symlinks as links and never follows them, so a hostile
-    repository cannot pull files from this server into the archive.
+    Symlinks and submodule links are skipped, so a hostile repository cannot point
+    the upload at files elsewhere on this server.
     """
+    resolved_root = root.resolve()
+    for name in filter(None, listing.split("\0")):
+        if "\\" in name:
+            continue  # Not a portable path; storage could not list it back.
+        path = root / name
+        try:
+            mode = path.lstat().st_mode
+        except OSError:
+            continue
+        if stat.S_ISREG(mode) and path.resolve().is_relative_to(resolved_root):
+            yield name
+
+
+class GitRepositoryWorkspace:
+    """Shallow-clones one branch and lists the tracked files to save as a folder."""
 
     def __init__(self, settings: IngestionSettings) -> None:
         self._settings = settings
         self._semaphore = asyncio.Semaphore(settings.clone_max_concurrency)
 
-    async def clone_and_pack(self, spec: CheckoutSpec) -> PackedArchive:
+    async def checkout(self, spec: CheckoutSpec) -> RepositoryCheckout:
         async with self._semaphore:
-            checkout = await self._clone(spec)
+            path = await self._clone(spec)
             try:
-                return await self._pack(checkout)
-            finally:
-                remove_clone(str(checkout))
+                return await self._describe(path)
+            except BaseException:
+                remove_clone(str(path))
+                raise
 
-    def discard(self, archive: PackedArchive) -> None:
-        archive.path.unlink(missing_ok=True)
+    def discard(self, checkout: RepositoryCheckout) -> None:
+        remove_clone(str(checkout.path))
 
     async def _clone(self, spec: CheckoutSpec) -> Path:
         # git_runner only uses the URL; owner/repo are informational on this path.
@@ -57,17 +73,10 @@ class GitRepositoryWorkspace:
                 "it and that the branch still exists."
             ) from exc
 
-    async def _pack(self, checkout: Path) -> PackedArchive:
-        commit_sha = (await self._git(checkout, "rev-parse", "HEAD")).strip()
-        fd, zip_name = tempfile.mkstemp(suffix=".zip", dir=self._settings.clone_workdir)
-        os.close(fd)
-        archive = PackedArchive(path=Path(zip_name), commit_sha=commit_sha)
-        try:
-            await self._git(checkout, "archive", "--format=zip", "-o", zip_name, "HEAD")
-        except BaseException:
-            self.discard(archive)
-            raise
-        return archive
+    async def _describe(self, path: Path) -> RepositoryCheckout:
+        commit_sha = (await self._git(path, "rev-parse", "HEAD")).strip()
+        listing = await self._git(path, "ls-files", "-z")
+        return RepositoryCheckout(path, commit_sha, tuple(_regular_files(path, listing)))
 
     async def _git(self, cwd: Path, *args: str) -> str:
         proc = await asyncio.create_subprocess_exec(
@@ -83,8 +92,8 @@ class GitRepositoryWorkspace:
             )
         except TimeoutError as exc:
             proc.kill()
-            raise CloneExecutionError("Packing the repository timed out.") from exc
+            raise CloneExecutionError("Reading the repository timed out.") from exc
         if proc.returncode != 0:
             _logger.warning("git %s failed: %s", args[0], stderr.decode(errors="replace"))
-            raise CloneExecutionError("Packing the repository failed.")
+            raise CloneExecutionError("Reading the repository failed.")
         return stdout.decode(errors="replace")

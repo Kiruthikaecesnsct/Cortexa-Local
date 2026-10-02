@@ -98,7 +98,7 @@ export function AppShell({ children, fullWidth = false }: { children: ReactNode;
       items: [
         { to: '/batches/new', label: 'New Analysis', icon: <IconUpload />, show: canUpload },
         { to: '/batches', label: 'Batch History', icon: <IconHistory />, show: true, end: true },
-        { to: '/scan', label: 'Scan', icon: <IconScan />, show: canUpload },
+        { to: '/scan', label: 'Source Connectors', icon: <IconScan />, show: canUpload },
       ],
     },
     {

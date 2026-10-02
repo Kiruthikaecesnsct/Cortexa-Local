@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Badge, Button, IconBranch, InlineMessage, Spinner } from '../../shared/ds';
 import { SectionCard } from '../../shared/layout/PageHeader';
 import { relativeTime } from '../../shared/utils';
+import { useOpenInNewAnalysis } from '../upload/savedRepositories';
 import { formatBytes } from '../upload/uploadValidation';
 import { isInProgress, shortSha, statusLabel } from './cloneFormat';
 import type { Loadable, RepositoryCloneDto, ScanError } from './scanTypes';
@@ -27,15 +28,51 @@ function CloneMeta({ clone }: { clone: RepositoryCloneDto }) {
   return <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>{parts.join(' · ')}</span>;
 }
 
-interface CloneRowProps {
-  clone: RepositoryCloneDto;
-  downloading: boolean;
+/** What a row can do; shared by every row in the list. */
+interface RowActions {
+  downloading: string | null;
+  selected: ReadonlySet<string>;
   onDownload: (clone: RepositoryCloneDto) => void;
+  onToggle: (clone: RepositoryCloneDto) => void;
+  onAnalyze: (clones: RepositoryCloneDto[]) => void;
 }
 
-function CloneRow({ clone, downloading, onDownload }: CloneRowProps) {
+function cloneLabel(clone: RepositoryCloneDto): string {
+  return `${clone.owner}/${clone.repository} (${clone.branch})`;
+}
+
+function SelectBox({ clone, actions }: { clone: RepositoryCloneDto; actions: RowActions }) {
+  const stored = clone.status === 'stored';
+  return (
+    <input
+      type="checkbox"
+      checked={stored && actions.selected.has(clone.clone_id)}
+      disabled={!stored}
+      onChange={() => actions.onToggle(clone)}
+      aria-label={`Select ${cloneLabel(clone)} for analysis`}
+      style={{ width: 16, height: 16, flexShrink: 0, cursor: stored ? 'pointer' : 'not-allowed', accentColor: 'var(--accent-primary)' }}
+    />
+  );
+}
+
+function StoredActions({ clone, actions }: { clone: RepositoryCloneDto; actions: RowActions }) {
+  const downloading = actions.downloading === clone.clone_id;
+  return (
+    <span style={{ display: 'inline-flex', gap: 8 }}>
+      <Button size="sm" variant="primary" onClick={() => actions.onAnalyze([clone])} title={`Analyze ${cloneLabel(clone)}`}>
+        Analyze
+      </Button>
+      <Button size="sm" variant="secondary" disabled={downloading} onClick={() => actions.onDownload(clone)}>
+        {downloading ? 'Downloading…' : 'Download .zip'}
+      </Button>
+    </span>
+  );
+}
+
+function CloneRow({ clone, actions }: { clone: RepositoryCloneDto; actions: RowActions }) {
   return (
     <li style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 4px', borderTop: '1px solid var(--border-subtle)' }}>
+      <SelectBox clone={clone} actions={actions} />
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-mono)', fontSize: 'var(--text-sm)' }}>
           <span style={{ color: 'var(--text-muted)' }}>{clone.owner} /</span>
@@ -48,23 +85,18 @@ function CloneRow({ clone, downloading, onDownload }: CloneRowProps) {
         {clone.status === 'failed' && clone.error && <span style={{ fontSize: 'var(--text-xs)', color: 'var(--status-danger-fg)' }}>{clone.error}</span>}
       </div>
       <CloneStatusView clone={clone} />
-      {clone.status === 'stored' && (
-        <Button size="sm" variant="secondary" disabled={downloading} onClick={() => onDownload(clone)}>
-          {downloading ? 'Downloading…' : 'Download .zip'}
-        </Button>
-      )}
+      {clone.status === 'stored' && <StoredActions clone={clone} actions={actions} />}
     </li>
   );
 }
 
 interface PanelBodyProps {
   clones: Loadable<RepositoryCloneDto[]>;
-  downloading: string | null;
-  onDownload: (clone: RepositoryCloneDto) => void;
+  actions: RowActions;
   onRetry: () => void;
 }
 
-function PanelBody({ clones, downloading, onDownload, onRetry }: PanelBodyProps) {
+function PanelBody({ clones, actions, onRetry }: PanelBodyProps) {
   if (clones.status === 'loading' || clones.status === 'idle') {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
@@ -94,10 +126,21 @@ function PanelBody({ clones, downloading, onDownload, onRetry }: PanelBodyProps)
   return (
     <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
       {clones.data.map((clone) => (
-        <CloneRow key={clone.clone_id} clone={clone} downloading={downloading === clone.clone_id} onDownload={onDownload} />
+        <CloneRow key={clone.clone_id} clone={clone} actions={actions} />
       ))}
     </ul>
   );
+}
+
+function selectedStoredClones(clones: Loadable<RepositoryCloneDto[]>, selected: ReadonlySet<string>): RepositoryCloneDto[] {
+  if (clones.status !== 'loaded') return [];
+  return clones.data.filter((c) => c.status === 'stored' && selected.has(c.clone_id));
+}
+
+function toggled(selected: ReadonlySet<string>, id: string): Set<string> {
+  const next = new Set(selected);
+  if (!next.delete(id)) next.add(id);
+  return next;
 }
 
 interface ClonesPanelProps {
@@ -109,6 +152,8 @@ interface ClonesPanelProps {
 
 export function ClonesPanel({ clones, downloading, onDownload, onRetry }: ClonesPanelProps) {
   const [error, setError] = useState<ScanError | undefined>();
+  const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
+  const openInNewAnalysis = useOpenInNewAnalysis();
 
   async function handleDownload(clone: RepositoryCloneDto) {
     setError(undefined);
@@ -116,10 +161,24 @@ export function ClonesPanel({ clones, downloading, onDownload, onRetry }: Clones
     if (!result.ok) setError(result.error);
   }
 
+  const chosen = selectedStoredClones(clones, selected);
+  const actions: RowActions = {
+    downloading,
+    selected,
+    onDownload: (c) => void handleDownload(c),
+    onToggle: (c) => setSelected((current) => toggled(current, c.clone_id)),
+    onAnalyze: openInNewAnalysis,
+  };
+
   const count = clones.status === 'loaded' ? clones.data.length : undefined;
-  const actions = (
+  const headerActions = (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
       {count !== undefined && <Badge tone="neutral">{count} saved</Badge>}
+      {chosen.length > 0 && (
+        <Button size="sm" variant="primary" onClick={() => openInNewAnalysis(chosen)}>
+          Analyze selected ({chosen.length})
+        </Button>
+      )}
       <Button size="sm" variant="ghost" onClick={onRetry}>
         Refresh
       </Button>
@@ -127,14 +186,18 @@ export function ClonesPanel({ clones, downloading, onDownload, onRetry }: Clones
   );
 
   return (
-    <SectionCard title="Saved repositories" subtitle="Branches saved by your team. Saving a branch again replaces its zip." actions={actions}>
+    <SectionCard
+      title="Saved repositories"
+      subtitle="Branches saved by your team as folders. Saving a branch again replaces its folder. Select one or more to start a new analysis."
+      actions={headerActions}
+    >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {error && (
           <InlineMessage variant="danger" correlationId={error.correlationId}>
             {error.message}
           </InlineMessage>
         )}
-        <PanelBody clones={clones} downloading={downloading} onDownload={(c) => void handleDownload(c)} onRetry={onRetry} />
+        <PanelBody clones={clones} actions={actions} onRetry={onRetry} />
       </div>
     </SectionCard>
   );

@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Protocol
 
 from pydantic import SecretStr
@@ -6,7 +7,7 @@ from ingestion.domain.enums.source_provider import SourceProvider
 from ingestion.domain.models.repository_clone import (
     ArchiveDownload,
     CheckoutSpec,
-    PackedArchive,
+    RepositoryCheckout,
     RepositoryClone,
     SaveTarget,
 )
@@ -44,19 +45,25 @@ class RepositorySource(Protocol):
 
 
 class RepositoryWorkspace(Protocol):
-    """Clones a branch and packs its tracked files into a zip archive."""
+    """Clones a branch to local disk and lists the tracked files to save."""
 
-    async def clone_and_pack(self, spec: CheckoutSpec) -> PackedArchive: ...
+    async def checkout(self, spec: CheckoutSpec) -> RepositoryCheckout: ...
 
-    def discard(self, archive: PackedArchive) -> None: ...
+    def discard(self, checkout: RepositoryCheckout) -> None: ...
 
 
-class CloneArchiveStore(Protocol):
-    """Object storage for saved branches, one zip per provider/owner/repository/branch."""
+class SavedFolderReader(Protocol):
+    """Copies a saved branch's folder from storage to local disk."""
+
+    async def fetch_folder(self, target: SaveTarget, destination: Path) -> None: ...
+
+
+class CloneFolderStore(SavedFolderReader, Protocol):
+    """Object storage for saved branches, one folder per provider/owner/repository/branch."""
 
     async def ensure_ready(self) -> None: ...
 
-    async def save(self, archive: PackedArchive, clone: RepositoryClone) -> int: ...
+    async def save(self, checkout: RepositoryCheckout, clone: RepositoryClone) -> int: ...
 
     async def list_clones(self, provider: SourceProvider) -> list[RepositoryClone]: ...
 

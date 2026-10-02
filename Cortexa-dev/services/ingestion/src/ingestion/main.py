@@ -128,6 +128,7 @@ async def lifespan(app: FastAPI):
             store_handler=store_handler,
             ingestor_config=ingestor_config,
             clone_adapter=clone_adapter,
+            saved_repositories=scan_services.saved_repositories,
         )
     )
     consumer = ServiceBusConsumer(

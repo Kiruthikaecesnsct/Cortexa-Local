@@ -57,3 +57,8 @@ export const batchDeleteTimeoutMs: number = parsePositiveInt(
   import.meta.env['VITE_BATCH_DELETE_TIMEOUT_MS'] as string | undefined,
   120000
 );
+
+export const maxSavedRepositoriesPerBatch: number = parsePositiveInt(
+  import.meta.env['VITE_MAX_SAVED_REPOSITORIES_PER_BATCH'] as string | undefined,
+  25
+);

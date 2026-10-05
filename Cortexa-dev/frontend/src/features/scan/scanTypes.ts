@@ -57,6 +57,11 @@ export interface CloneListDto {
   clones: RepositoryCloneDto[];
 }
 
+/** Flat list of repo-relative file paths saved for one clone; the UI groups them into folders. */
+export interface CloneFilesDto {
+  files: string[];
+}
+
 export type TreeEntryType = 'blob' | 'tree' | 'commit';
 
 export interface TreeEntryDto {

@@ -29,6 +29,10 @@ class CloneListResponse(BaseModel):
     clones: list[RepositoryClone]
 
 
+class CloneFilesResponse(BaseModel):
+    files: list[str]
+
+
 class ListBranchesResponse(BaseModel):
     repository: str
     branches: list[BranchSummary]

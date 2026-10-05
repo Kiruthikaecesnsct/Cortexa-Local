@@ -78,6 +78,13 @@ class RepositoryCloneHandler:
         target = self._deps.source.target_from_names(owner, repository, branch)
         return await self._deps.store.open_download(target)
 
+    async def list_files(
+        self, user_id: str | None, owner: str, repository: str, branch: str
+    ) -> list[str]:
+        validate_user_id(user_id)
+        target = self._deps.source.target_from_names(owner, repository, branch)
+        return await self._deps.store.list_files(target)
+
     async def _check_size(self, target: SaveTarget, token: str) -> None:
         size_bytes = await self._deps.source.repository_size_bytes(target, token)
         if size_bytes > self._deps.max_repo_bytes:

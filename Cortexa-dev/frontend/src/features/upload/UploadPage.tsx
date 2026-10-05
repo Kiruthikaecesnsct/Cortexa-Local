@@ -260,6 +260,7 @@ export function UploadPage() {
         repositories={store.savedRepositories}
         maxCount={maxSavedRepositoriesPerBatch}
         onRemove={store.removeSavedRepository}
+        onSelectFiles={store.setSavedRepositoryFiles}
       />
 
       {/* Batch name */}
@@ -373,6 +374,7 @@ function findDisabledReason(store: ReturnType<typeof useUploadStore>): DisabledR
     [Boolean(store.fieldErrors.batchName), { message: 'Fix the batch name to continue.', danger: true }],
     [isOverFileLimits(store), { message: 'Reduce the batch — over the file count or size limit.', danger: true }],
     [!store.withinSavedCap, { message: 'Remove some saved repositories — over the per-batch limit.', danger: true }],
+    [!store.savedRepositoriesHaveFiles, { message: 'Select at least one file for each saved repository, or remove it.', danger: true }],
   ];
   return rules.find(([applies]) => applies)?.[1];
 }

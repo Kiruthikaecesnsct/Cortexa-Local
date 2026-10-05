@@ -20,6 +20,9 @@ public static class SavedRepositoryParser
     private const string GitHub = "github";
     private const string AzureDevOps = "azure-devops";
     private const string Malformed = "Each saved repository must be a JSON object with provider, owner, repository and branch.";
+    private const int MaxSelectedFileLength = 1024;
+    private const int MaxSelectedFiles = 5000;
+    private const string InvalidSelectedFiles = "Saved repository selected files are not valid.";
 
     public static SavedRepositoryParseResult Parse(IReadOnlyList<string?> rawValues, int maxCount)
     {
@@ -32,7 +35,7 @@ public static class SavedRepositoryParser
             var repository = ParseOne(raw);
             if (repository is null)
                 return SavedRepositoryParseResult.Fail(Malformed);
-            var error = Validate(repository);
+            var error = Validate(repository) ?? ValidateSelectedFiles(repository.SelectedFiles);
             if (error is not null)
                 return SavedRepositoryParseResult.Fail(error);
             parsed.Add(repository);
@@ -50,6 +53,9 @@ public static class SavedRepositoryParser
             var dto = JsonSerializer.Deserialize<SavedRepositoryDto>(raw);
             return dto is { Provider: not null, Owner: not null, Repository: not null, Branch: not null }
                 ? new SavedRepositoryRef(dto.Provider, dto.Owner, dto.Repository, dto.Branch)
+                {
+                    SelectedFiles = dto.SelectedFiles
+                }
                 : null;
         }
         catch (JsonException)
@@ -83,11 +89,32 @@ public static class SavedRepositoryParser
         && !value.Any(char.IsControl)
         && !value.Split('/').Any(segment => segment is "." or "..");
 
+    // Null means "whole folder" and is always valid; an empty or malformed list is rejected
+    // here so a document never reaches ingestion with a selection it cannot act on.
+    private static string? ValidateSelectedFiles(IReadOnlyList<string>? files)
+    {
+        if (files is null)
+            return null;
+        if (files.Count == 0 || files.Count > MaxSelectedFiles)
+            return InvalidSelectedFiles;
+        return files.Any(path => !IsSelectedFilePath(path)) ? InvalidSelectedFiles : null;
+    }
+
+    private static bool IsSelectedFilePath(string? path) =>
+        path is not null
+        && path.Length > 0
+        && path.Length <= MaxSelectedFileLength
+        && path.Trim() == path
+        && !path.StartsWith('/')
+        && !path.Any(char.IsControl)
+        && !path.Split('/').Any(segment => segment is "" or "." or "..");
+
     private sealed class SavedRepositoryDto
     {
         [JsonPropertyName("provider")] public string? Provider { get; init; }
         [JsonPropertyName("owner")] public string? Owner { get; init; }
         [JsonPropertyName("repository")] public string? Repository { get; init; }
         [JsonPropertyName("branch")] public string? Branch { get; init; }
+        [JsonPropertyName("selected_files")] public IReadOnlyList<string>? SelectedFiles { get; init; }
     }
 }

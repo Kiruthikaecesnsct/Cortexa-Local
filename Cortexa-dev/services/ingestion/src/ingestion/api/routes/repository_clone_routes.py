@@ -14,7 +14,7 @@ from ingestion.api.routes.scan_responses import (
 from ingestion.application.dtos.azure_devops_scan_dtos import (
     RepositoryTreeRequest as AzureDevOpsSaveRequest,
 )
-from ingestion.application.dtos.github_scan_dtos import CloneListResponse
+from ingestion.application.dtos.github_scan_dtos import CloneFilesResponse, CloneListResponse
 from ingestion.application.dtos.github_scan_dtos import (
     RepositoryTreeRequest as GitHubSaveRequest,
 )
@@ -75,6 +75,12 @@ def build_clone_router(config: CloneRouteConfig) -> APIRouter:
     async def listed(request: Request) -> CloneListResponse:
         return CloneListResponse(clones=await handler(request).list_clones(_user_id(request)))
 
+    async def listed_files(
+        request: Request, owner: str, repository: str, branch: str
+    ) -> CloneFilesResponse:
+        files = await handler(request).list_files(_user_id(request), owner, repository, branch)
+        return CloneFilesResponse(files=files)
+
     @router.post("")
     async def start_clone(body: request_model, request: Request) -> JSONResponse:  # type: ignore[valid-type]
         operation = handler(request).start(body, _user_id(request))
@@ -83,6 +89,15 @@ def build_clone_router(config: CloneRouteConfig) -> APIRouter:
     @router.get("")
     async def list_clones(request: Request) -> JSONResponse:
         return await respond(request, listed(request))
+
+    @router.get("/files")
+    async def get_files(
+        request: Request,
+        owner: str = Query(max_length=_MAX_OWNER),
+        repository: str = Query(max_length=_MAX_REPOSITORY),
+        branch: str = Query(max_length=_MAX_BRANCH),
+    ) -> JSONResponse:
+        return await respond(request, listed_files(request, owner, repository, branch))
 
     @router.get("/download", response_model=None)
     async def download_clone(

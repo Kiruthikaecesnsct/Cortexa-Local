@@ -114,6 +114,10 @@ internal sealed class CosmosSavedRepository
     [JsonPropertyName("repository")] public string Repository { get; set; } = string.Empty;
     [JsonPropertyName("branch")] public string Branch { get; set; } = string.Empty;
 
+    [JsonPropertyName("selected_files")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<string>? SelectedFiles { get; set; }
+
     public static CosmosSavedRepository? FromDomain(SavedRepositoryRef? saved) =>
         saved is null
             ? null
@@ -122,8 +126,9 @@ internal sealed class CosmosSavedRepository
                 Provider = saved.Provider,
                 Owner = saved.Owner,
                 Repository = saved.Repository,
-                Branch = saved.Branch
+                Branch = saved.Branch,
+                SelectedFiles = saved.SelectedFiles
             };
 
-    public SavedRepositoryRef ToDomain() => new(Provider, Owner, Repository, Branch);
+    public SavedRepositoryRef ToDomain() => new(Provider, Owner, Repository, Branch) { SelectedFiles = SelectedFiles };
 }

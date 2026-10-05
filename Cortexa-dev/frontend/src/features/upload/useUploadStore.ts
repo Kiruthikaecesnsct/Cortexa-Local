@@ -1,6 +1,11 @@
 import { useCallback, useReducer, type Dispatch } from 'react';
 import { maxSavedRepositoriesPerBatch } from '../../core/config/env';
-import { mergeSavedRepositories, savedRepositoryKey, type SavedRepositorySelection } from './savedRepositories';
+import {
+  mergeSavedRepositories,
+  savedRepositoryKey,
+  withSavedRepositoryFiles,
+  type SavedRepositorySelection,
+} from './savedRepositories';
 import { createBatch, resumeBatch } from './uploadRepository';
 import type {
   AnalysisEngine,
@@ -42,6 +47,7 @@ type UploadAction =
   | { type: 'SET_GIT_PARAMS'; payload: GitParams | null }
   | { type: 'ADD_SAVED_REPOSITORIES'; repositories: SavedRepositorySelection[] }
   | { type: 'REMOVE_SAVED_REPOSITORY'; key: string }
+  | { type: 'SET_SAVED_REPOSITORY_FILES'; key: string; files: string[] | undefined }
   | { type: 'SET_DRAG_ACTIVE'; value: boolean }
   | { type: 'ADD_FILES'; files: SelectedFile[]; zoneError?: string }
   | { type: 'REMOVE_FILE'; id: string }
@@ -119,6 +125,8 @@ function savedRepositoriesReducer(state: UploadState, action: UploadAction): Upl
     }
     case 'REMOVE_SAVED_REPOSITORY':
       return { ...state, savedRepositories: state.savedRepositories.filter((r) => savedRepositoryKey(r) !== action.key) };
+    case 'SET_SAVED_REPOSITORY_FILES':
+      return { ...state, savedRepositories: withSavedRepositoryFiles(state.savedRepositories, action.key, action.files) };
     default:
       return state;
   }
@@ -235,6 +243,10 @@ export function useUploadStore() {
     []
   );
   const removeSavedRepository = useCallback((key: string) => dispatch({ type: 'REMOVE_SAVED_REPOSITORY', key }), []);
+  const setSavedRepositoryFiles = useCallback(
+    (key: string, files: string[] | undefined) => dispatch({ type: 'SET_SAVED_REPOSITORY_FILES', key, files }),
+    []
+  );
 
   const validFiles = state.files.filter((f) => f.valid).map((f) => f.file);
   const filesOk = state.files.every((f) => f.valid);
@@ -243,9 +255,17 @@ export function useUploadStore() {
   const hasAnyInput = hasValidFiles || hasValidRepo || state.savedRepositories.length > 0;
   const caps = checkBatchCaps(validFiles);
   const withinSavedCap = state.savedRepositories.length <= maxSavedRepositoriesPerBatch;
+  const savedRepositoriesHaveFiles = state.savedRepositories.every((r) => r.selectedFiles === undefined || r.selectedFiles.length > 0);
   const noFieldErrors = Object.keys(state.fieldErrors).length === 0;
   const canSubmit =
-    hasAnyInput && filesOk && caps.withinCount && caps.withinSize && withinSavedCap && noFieldErrors && state.status !== 'uploading';
+    hasAnyInput &&
+    filesOk &&
+    caps.withinCount &&
+    caps.withinSize &&
+    withinSavedCap &&
+    savedRepositoriesHaveFiles &&
+    noFieldErrors &&
+    state.status !== 'uploading';
 
   const submit = useCallback(async () => {
     if (state.pendingBatchId) {
@@ -295,7 +315,9 @@ export function useUploadStore() {
     removeFile,
     addSavedRepositories,
     removeSavedRepository,
+    setSavedRepositoryFiles,
     withinSavedCap,
+    savedRepositoriesHaveFiles,
     clearSubmitError,
     submit,
   };

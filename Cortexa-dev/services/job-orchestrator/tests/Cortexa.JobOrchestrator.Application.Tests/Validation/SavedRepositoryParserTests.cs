@@ -12,6 +12,9 @@ public sealed class SavedRepositoryParserTests
     private static string Json(string provider, string owner, string repository, string branch) =>
         $$"""{"provider":"{{provider}}","owner":"{{owner}}","repository":"{{repository}}","branch":"{{branch}}"}""";
 
+    private static string JsonWithFiles(string provider, string owner, string repository, string branch, string filesJson) =>
+        $$"""{"provider":"{{provider}}","owner":"{{owner}}","repository":"{{repository}}","branch":"{{branch}}","selected_files":{{filesJson}}}""";
+
     [Fact]
     public void Parse_NoValues_ReturnsEmptyWithoutError()
     {
@@ -76,5 +79,30 @@ public sealed class SavedRepositoryParserTests
     public void Parse_InvalidNames_Fail(string provider, string owner, string repository, string branch)
     {
         SavedRepositoryParser.Parse([Json(provider, owner, repository, branch)], MaxCount).Error.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void Parse_WithSelectedFiles_KeepsThemOnTheRef()
+    {
+        var result = SavedRepositoryParser.Parse(
+            [JsonWithFiles("github", "acme", "api", "main", """["src/app.py","README.md"]""")],
+            MaxCount);
+
+        result.Error.Should().BeNull();
+        result.Repositories.Should().ContainSingle()
+            .Which.SelectedFiles.Should().Equal("src/app.py", "README.md");
+    }
+
+    [Theory]
+    [InlineData("[]")]
+    [InlineData("""["../../etc/passwd"]""")]
+    [InlineData("""["/etc/passwd"]""")]
+    [InlineData("""[""]""")]
+    [InlineData("""["src/./app.py"]""")]
+    public void Parse_InvalidSelectedFiles_Fail(string filesJson)
+    {
+        var result = SavedRepositoryParser.Parse([JsonWithFiles("github", "acme", "api", "main", filesJson)], MaxCount);
+
+        result.Error.Should().NotBeNull();
     }
 }

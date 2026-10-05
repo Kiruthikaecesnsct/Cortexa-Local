@@ -9,6 +9,8 @@ export interface SavedRepositorySelection {
   owner: string;
   repository: string;
   branch: string;
+  /** Repo-relative paths to analyze. Undefined (the default) means the whole folder. */
+  selectedFiles?: string[];
 }
 
 /** Router state key the Saved repositories list uses to hand folders to New Analysis. */
@@ -18,6 +20,15 @@ const PROVIDERS: ReadonlySet<string> = new Set<SavedRepositoryProvider>(['github
 
 export function savedRepositoryKey(repo: SavedRepositorySelection): string {
   return `${repo.provider}/${repo.owner}/${repo.repository}@${repo.branch}`;
+}
+
+/** Sets (or clears, when `files` is undefined) the file selection for one saved repository. */
+export function withSavedRepositoryFiles(
+  current: SavedRepositorySelection[],
+  key: string,
+  files: string[] | undefined
+): SavedRepositorySelection[] {
+  return current.map((repo) => (savedRepositoryKey(repo) === key ? { ...repo, selectedFiles: files } : repo));
 }
 
 /** Appends the incoming repositories that are not already in the list. */

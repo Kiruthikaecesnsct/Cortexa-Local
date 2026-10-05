@@ -165,8 +165,13 @@ class S3CloneFolderStore:
             filename=legacy_zip_name(target),
         )
 
-    async def fetch_folder(self, target: SaveTarget, destination: Path) -> None:
-        await self._call(self._fetch_sync, target, destination)
+    async def list_files(self, target: SaveTarget) -> list[str]:
+        return await self._call(self._manifest, target)
+
+    async def fetch_folder(
+        self, target: SaveTarget, destination: Path, files: list[str] | None = None
+    ) -> None:
+        await self._call(self._fetch_sync, target, destination, files)
 
     def _ensure_bucket(self) -> None:
         try:
@@ -239,9 +244,15 @@ class S3CloneFolderStore:
             raise
         return folder, zip_path
 
-    def _fetch_sync(self, target: SaveTarget, destination: Path) -> None:
+    def _fetch_sync(
+        self, target: SaveTarget, destination: Path, files: list[str] | None
+    ) -> None:
+        manifest = self._manifest(target)
+        # A selection narrows to files that are actually saved; an unknown requested
+        # path is silently dropped rather than failing the whole fetch.
+        wanted = manifest if files is None else [name for name in manifest if name in set(files)]
         pairs = []
-        for name in self._manifest(target):
+        for name in wanted:
             path = local_path(destination, name)
             if path is None:
                 _logger.warning("Skipped unsafe saved path %r in %s", name, target.clone_id)
@@ -274,10 +285,15 @@ class UnconfiguredCloneStore:
     async def list_clones(self, provider: SourceProvider) -> list[RepositoryClone]:
         raise CloneStorageUnavailableError(self._MESSAGE)
 
+    async def list_files(self, target: SaveTarget) -> list[str]:
+        raise CloneStorageUnavailableError(self._MESSAGE)
+
     async def open_download(self, target: SaveTarget) -> ArchiveDownload:
         raise CloneStorageUnavailableError(self._MESSAGE)
 
-    async def fetch_folder(self, target: SaveTarget, destination: Path) -> None:
+    async def fetch_folder(
+        self, target: SaveTarget, destination: Path, files: list[str] | None = None
+    ) -> None:
         raise CloneStorageUnavailableError(self._MESSAGE)
 
 

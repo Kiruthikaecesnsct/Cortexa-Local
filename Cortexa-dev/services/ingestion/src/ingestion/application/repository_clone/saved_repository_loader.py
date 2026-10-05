@@ -35,7 +35,7 @@ class SavedRepositoryLoader:
         Path(self._workdir).mkdir(parents=True, exist_ok=True)
         folder = Path(tempfile.mkdtemp(prefix="saved-", dir=self._workdir))
         try:
-            await self._reader.fetch_folder(target, folder)
+            await self._reader.fetch_folder(target, folder, ref.selected_files)
             yield folder
         finally:
             remove_clone(str(folder))

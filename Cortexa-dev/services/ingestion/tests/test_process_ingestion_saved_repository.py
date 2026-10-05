@@ -32,10 +32,12 @@ SAVED = SavedRepositoryRef(
 class FakeReader:
     def __init__(self, error: Exception | None = None) -> None:
         self.error = error
-        self.fetched: list[tuple[SaveTarget, Path]] = []
+        self.fetched: list[tuple[SaveTarget, Path, list[str] | None]] = []
 
-    async def fetch_folder(self, target: SaveTarget, destination: Path) -> None:
-        self.fetched.append((target, destination))
+    async def fetch_folder(
+        self, target: SaveTarget, destination: Path, files: list[str] | None = None
+    ) -> None:
+        self.fetched.append((target, destination, files))
         if self.error:
             raise self.error
         (destination / "src").mkdir()
@@ -87,7 +89,8 @@ async def test_saved_repository_is_ingested_as_code_and_temp_folder_removed(
     outcome = await handler.handle(_envelope())
 
     assert outcome == ProcessOutcome.SUCCESS
-    [(target, folder)] = reader.fetched
+    [(target, folder, files)] = reader.fetched
+    assert files is None
     assert target == SaveTarget(SourceProvider.AZURE_DEVOPS, "contoso", "Platform/api", "main")
     assert folder.parent == tmp_path
     assert not folder.exists()
@@ -112,6 +115,17 @@ async def test_storage_errors_are_classified(
     assert await handler.handle(_envelope()) == expected
     store_handler.handle.assert_not_awaited()
     assert list(tmp_path.iterdir()) == []
+
+
+async def test_selected_files_are_passed_through_to_the_reader(tmp_path: Path) -> None:
+    reader = FakeReader()
+    narrowed = SAVED.model_copy(update={"selected_files": ["src/app.py"]})
+    handler, _, _ = _handler(narrowed, _loader(reader, tmp_path))
+
+    await handler.handle(_envelope())
+
+    [(_, _, files)] = reader.fetched
+    assert files == ["src/app.py"]
 
 
 async def test_invalid_saved_names_fail_permanently_without_fetching(tmp_path: Path) -> None:

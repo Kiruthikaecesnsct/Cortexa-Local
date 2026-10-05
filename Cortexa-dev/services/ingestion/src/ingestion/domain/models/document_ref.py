@@ -12,6 +12,8 @@ class SavedRepositoryRef(BaseModel):
     owner: str = Field(min_length=1, max_length=64)
     repository: str = Field(min_length=1, max_length=129)
     branch: str = Field(min_length=1, max_length=255)
+    # None means the whole saved folder; otherwise only these repo-relative paths are ingested.
+    selected_files: list[str] | None = None
 
 
 class DocumentRef(BaseModel):

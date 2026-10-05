@@ -7,5 +7,8 @@ namespace Cortexa.JobOrchestrator.Application.Models;
 /// </summary>
 public sealed record SavedRepositoryRef(string Provider, string Owner, string Repository, string Branch)
 {
+    /// <summary>Repo-relative paths to ingest. Null means the whole saved folder.</summary>
+    public IReadOnlyList<string>? SelectedFiles { get; init; }
+
     public string DisplayName => $"{Owner}-{Repository.Replace('/', '-')}@{Branch}";
 }

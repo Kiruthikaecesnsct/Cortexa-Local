@@ -1,0 +1,10 @@
+{
+  "id": "doc-2|0",
+  "batch_id": "batch-1",
+  "chunk_id": "doc-2|0",
+  "source_kind": "code",
+  "order_index": 0,
+  "doc_id": "doc-2",
+  "file_path": "src/a.py",
+  "line_range": [10, 20]
+}

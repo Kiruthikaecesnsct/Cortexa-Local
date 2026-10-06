@@ -1,0 +1,27 @@
+{
+  "id": "doc-1|0",
+  "batch_id": "batch-1",
+  "document_id": "doc-1",
+  "text": "logic: Spectral Method\nSummary text\nDetail text\nExcerpt: Key excerpt",
+  "order_index": 0,
+  "start_char": 0,
+  "end_char": 68,
+  "token_count": 17,
+  "page_number": 3,
+  "section_hint": "Methods",
+  "knowledge": {
+    "kind": "logic",
+    "unit_kind": "section",
+    "title": "Spectral Method",
+    "summary": "Summary text",
+    "details": "Detail text",
+    "excerpt": "Key excerpt",
+    "source": {
+      "page_number": 3,
+      "section": "Methods"
+    },
+    "provider": "claude",
+    "model": "claude-test-model",
+    "prompt_version": "v1"
+  }
+}

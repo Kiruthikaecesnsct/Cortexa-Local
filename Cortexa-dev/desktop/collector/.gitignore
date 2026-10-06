@@ -1,0 +1,4 @@
+bin/
+obj/
+TestResults/
+!.env.collector-server.example

@@ -1,0 +1,2 @@
+# Keep JSON and prose byte-identical across Windows and Linux.
+* -text

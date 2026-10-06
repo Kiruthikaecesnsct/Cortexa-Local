@@ -1,0 +1,13 @@
+{
+  "_comment": "Reference shape only. Cards are written by ~/.claude/team-card.sh - never by hand, never by an agent. status: planning | implementing | review | reviewing | blocked. env: baremetal | docker | windows. started is set once and preserved; heartbeat refreshes on every claim and on the Stop hook.",
+  "itemId": "US042",
+  "dev": "git user.name",
+  "machine": "normalized machine id",
+  "env": "baremetal",
+  "branch": "develop/US042",
+  "status": "implementing",
+  "files": ["path/to/a.cs", "path/to/b.cs"],
+  "started": "2026-09-07T09:00:00Z",
+  "heartbeat": "2026-09-07T09:20:00Z",
+  "schema": 2
+}

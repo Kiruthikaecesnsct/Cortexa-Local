@@ -2,3 +2,4 @@ bin/
 obj/
 TestResults/
 !.env.collector-server.example
+appsettings.local.json

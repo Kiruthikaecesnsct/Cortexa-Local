@@ -1,0 +1,158 @@
+<Window x:Class="Collector.Presentation.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:res="clr-namespace:Collector.Presentation.Resources"
+        xmlns:vm="clr-namespace:Collector.Presentation.ViewModels"
+        Title="{x:Static res:ShellStrings.AppName}"
+        Width="{StaticResource Size.WindowDefaultWidth}"
+        Height="{StaticResource Size.WindowDefaultHeight}"
+        MinWidth="{StaticResource Size.WindowMinWidth}"
+        MinHeight="{StaticResource Size.WindowMinHeight}"
+        Background="{DynamicResource Brush.Surface.Page}"
+        FontFamily="{StaticResource Font.Body}"
+        FontSize="{StaticResource FontSize.Body}"
+        SizeChanged="OnSizeChanged"
+        WindowStartupLocation="CenterScreen">
+    <Window.InputBindings>
+        <KeyBinding Key="OemComma" Command="{Binding OpenSettingsCommand}" Modifiers="Control" />
+    </Window.InputBindings>
+    <Window.Resources>
+        <Style x:Key="Rail.Surface" TargetType="Border">
+            <Setter Property="Width" Value="{StaticResource Size.RailExpanded}" />
+            <Setter Property="Background" Value="{DynamicResource Brush.Surface.Rail}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsRailCompact}" Value="True">
+                    <Setter Property="Width" Value="{StaticResource Size.RailCompact}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="Rail.Header" TargetType="TextBlock" BasedOn="{StaticResource Text.Subtitle}">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="{StaticResource Thickness.Inset}" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="TextWrapping" Value="NoWrap" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsRailCompact}" Value="True">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="Content.Host" TargetType="Border">
+            <Setter Property="Padding" Value="{StaticResource Thickness.ContentPadding}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsRailCompact}" Value="True">
+                    <Setter Property="Padding" Value="{StaticResource Thickness.ContentPaddingCompact}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="Badge.Glyph" TargetType="TextBlock" BasedOn="{StaticResource Text.Glyph}">
+            <Setter Property="Margin" Value="{StaticResource Thickness.InlineGapLarge}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Kind}" Value="{x:Static vm:BadgeKind.SignedIn}">
+                    <Setter Property="Foreground" Value="{DynamicResource Brush.Success}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Kind}" Value="{x:Static vm:BadgeKind.Expired}">
+                    <Setter Property="Foreground" Value="{DynamicResource Brush.Warning}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="Badge.Line2" TargetType="TextBlock" BasedOn="{StaticResource Text.Caption}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Kind}" Value="{x:Static vm:BadgeKind.Expired}">
+                    <Setter Property="Foreground" Value="{DynamicResource Brush.Warning}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <DataTemplate x:Key="Badge.Template" DataType="{x:Type vm:SessionBadge}">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Style="{StaticResource Badge.Glyph}" Text="{Binding Glyph}" />
+                <StackPanel Margin="{StaticResource Thickness.InlineGapLarge}" VerticalAlignment="Center">
+                    <TextBlock MaxWidth="{StaticResource Size.EmailMaxWidth}"
+                               Style="{StaticResource Text.Label}"
+                               Text="{Binding Line1}"
+                               TextTrimming="CharacterEllipsis"
+                               TextWrapping="NoWrap"
+                               ToolTip="{Binding Line1}" />
+                    <TextBlock Style="{StaticResource Badge.Line2}"
+                               Text="{Binding Line2}"
+                               Visibility="{Binding Line2, Converter={StaticResource NotEmptyToVisibility}}" />
+                </StackPanel>
+                <Button AutomationProperties.Name="{x:Static res:ShellStrings.SignOut}"
+                        Command="{Binding DataContext.SignOutCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                        Content="{x:Static res:ShellStrings.SignOut}"
+                        IsEnabled="{Binding CanSignOut}"
+                        Style="{StaticResource Button.Secondary}"
+                        Visibility="{Binding ShowSignOut, Converter={StaticResource BoolToVisibility}}" />
+                <Button AutomationProperties.Name="{Binding SignInActionText}"
+                        Command="{Binding DataContext.OpenSignInCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                        Content="{Binding SignInActionText}"
+                        Style="{StaticResource Button.Link}"
+                        Visibility="{Binding ShowSignInAction, Converter={StaticResource BoolToVisibility}}" />
+            </StackPanel>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="{StaticResource GridLength.TopBar}" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.RowSpan="2" Grid.Column="0" Style="{StaticResource Rail.Surface}">
+            <DockPanel>
+                <TextBlock DockPanel.Dock="Top"
+                           Height="{StaticResource Size.TopBar}"
+                           Style="{StaticResource Rail.Header}"
+                           Text="{x:Static res:ShellStrings.AppName}" />
+                <ListBox DockPanel.Dock="Bottom"
+                         AutomationProperties.Name="{x:Static res:ShellStrings.FooterNavName}"
+                         ItemsSource="{Binding FooterItems}"
+                         Style="{StaticResource NavRail}" />
+                <ListBox AutomationProperties.Name="{x:Static res:ShellStrings.MainNavName}"
+                         ItemsSource="{Binding MainItems}"
+                         Style="{StaticResource NavRail}" />
+            </DockPanel>
+        </Border>
+
+        <Border Grid.Row="0"
+                Grid.Column="1"
+                Background="{DynamicResource Brush.Surface.Card}"
+                BorderBrush="{DynamicResource Brush.Border.Subtle}"
+                BorderThickness="{StaticResource Thickness.BottomBorder}">
+            <Grid Margin="{StaticResource Thickness.TopBarPadding}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0"
+                           VerticalAlignment="Center"
+                           AutomationProperties.HeadingLevel="Level1"
+                           AutomationProperties.Name="{Binding Title}"
+                           Style="{StaticResource Text.Title}"
+                           Text="{Binding Title}" />
+                <ContentControl Grid.Column="1"
+                                VerticalAlignment="Center"
+                                AutomationProperties.ItemStatus="{Binding Badge.ItemStatus}"
+                                AutomationProperties.Name="{x:Static res:ShellStrings.SessionAutomationName}"
+                                Content="{Binding Badge}"
+                                ContentTemplate="{StaticResource Badge.Template}"
+                                Focusable="False"
+                                IsTabStop="False" />
+            </Grid>
+        </Border>
+
+        <ScrollViewer Grid.Row="1"
+                      Grid.Column="1"
+                      Focusable="False"
+                      HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto">
+            <Border Style="{StaticResource Content.Host}">
+                <ContentControl Content="{Binding CurrentScreen}" Focusable="False" IsTabStop="False" />
+            </Border>
+        </ScrollViewer>
+    </Grid>
+</Window>

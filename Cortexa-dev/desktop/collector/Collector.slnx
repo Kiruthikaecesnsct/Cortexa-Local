@@ -2,6 +2,11 @@
   <Folder Name="/src/">
     <Project Path="src/Collector.Domain/Collector.Domain.csproj" />
   </Folder>
+  <Folder Name="/desktop/">
+    <Project Path="src/Collector.Application/Collector.Application.csproj" />
+    <Project Path="src/Collector.Infrastructure/Collector.Infrastructure.csproj" />
+    <Project Path="src/Collector.Presentation/Collector.Presentation.csproj" />
+  </Folder>
   <Folder Name="/server/">
     <Project Path="server/Collector.Server.Api/Collector.Server.Api.csproj" />
     <Project Path="server/Collector.Server.Application/Collector.Server.Application.csproj" />
@@ -9,5 +14,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Collector.Server.Tests/Collector.Server.Tests.csproj" />
+    <Project Path="tests/Collector.Tests/Collector.Tests.csproj" />
   </Folder>
 </Solution>

@@ -135,6 +135,9 @@ public class WriteKnowledgeBatchHandlerTests
             calls.Add(SagaCall);
             return SagaFailure is null ? Task.CompletedTask : Task.FromException(SagaFailure);
         }
+
+        public Task<SagaRow?> GetSagaAsync(string batchId, CancellationToken cancellationToken) =>
+            Task.FromResult<SagaRow?>(null);
     }
 
     private sealed class RecordingPublisher(List<string> calls, List<EventEnvelope> published) : IIngestionEventPublisher

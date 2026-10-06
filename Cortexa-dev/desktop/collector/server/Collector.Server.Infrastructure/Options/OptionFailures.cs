@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.Extensions.Options;
 
 namespace Collector.Server.Infrastructure.Options;
@@ -19,6 +20,22 @@ internal sealed class OptionFailures
         if (value <= 0)
         {
             _failures.Add($"{optionName} must be greater than zero.");
+        }
+    }
+
+    public void RequireNonNegative(int value, string optionName)
+    {
+        if (value < 0)
+        {
+            _failures.Add($"{optionName} must not be negative.");
+        }
+    }
+
+    public void RequireMinBytes(string? value, int minimumBytes, string optionName)
+    {
+        if (string.IsNullOrEmpty(value) || Encoding.UTF8.GetByteCount(value) < minimumBytes)
+        {
+            _failures.Add($"{optionName} must be at least {minimumBytes} bytes.");
         }
     }
 

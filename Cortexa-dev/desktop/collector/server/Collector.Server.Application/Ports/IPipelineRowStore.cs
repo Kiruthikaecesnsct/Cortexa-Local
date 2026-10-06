@@ -11,4 +11,6 @@ public interface IPipelineRowStore
     Task UpsertProvenanceAsync(IReadOnlyList<ProvenanceRow> rows, CancellationToken cancellationToken);
 
     Task CreateSagaAsync(SagaRow saga, CancellationToken cancellationToken);
+
+    Task<SagaRow?> GetSagaAsync(string batchId, CancellationToken cancellationToken);
 }

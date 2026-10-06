@@ -51,6 +51,28 @@ public sealed class CosmosPipelineRowStore : IPipelineRowStore
         }
     }
 
+    public async Task<SagaRow?> GetSagaAsync(string batchId, CancellationToken cancellationToken)
+    {
+        var container = _client.GetContainer(_options.Database, _options.BatchesContainer);
+
+        try
+        {
+            var response = await container.ReadItemAsync<SagaRow>(
+                batchId,
+                new PartitionKey(batchId),
+                cancellationToken: cancellationToken);
+            return response.Resource;
+        }
+        catch (CosmosException exception) when (exception.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+        catch (CosmosException exception)
+        {
+            throw new PipelineWriteException(batchId, SagaStage, exception);
+        }
+    }
+
     private async Task UpsertAllAsync<T>(
         string containerName,
         string stage,

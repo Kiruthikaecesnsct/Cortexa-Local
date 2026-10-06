@@ -16,16 +16,7 @@ public class HealthEndpointTests
     private const string ReadyPath = "/health/ready";
     private const string CosmosEndpointKey = "Cosmos:Endpoint";
 
-    private static readonly Dictionary<string, string?> ValidSettings = new()
-    {
-        [CosmosEndpointKey] = "https://localhost:8081",
-        ["Cosmos:Key"] = "dGVzdC1rZXk=",
-        ["Messaging:RabbitMq:HostName"] = "localhost",
-        ["Messaging:RabbitMq:Port"] = "5672",
-        ["Messaging:RabbitMq:VirtualHost"] = "/",
-        ["Messaging:RabbitMq:UserName"] = "collector",
-        ["Messaging:RabbitMq:Password"] = "test-password"
-    };
+    private static readonly Dictionary<string, string?> ValidSettings = TestSettings.Create();
 
     [Fact]
     public async Task Live_ReturnsOkEvenWhenDependenciesAreUnhealthy()

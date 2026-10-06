@@ -20,6 +20,8 @@ public sealed class CosmosOptions
 
     public string BatchesContainer { get; set; } = string.Empty;
 
+    public string ConfigContainer { get; set; } = string.Empty;
+
     public ConnectionMode ConnectionMode { get; set; } = ConnectionMode.Direct;
 
     public bool LimitToEndpoint { get; set; }

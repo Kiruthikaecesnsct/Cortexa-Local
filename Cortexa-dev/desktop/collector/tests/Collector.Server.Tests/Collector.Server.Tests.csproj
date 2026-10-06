@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\server\Collector.Server.Application\Collector.Server.Application.csproj" />
+    <ProjectReference Include="..\..\server\Collector.Server.Infrastructure\Collector.Server.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\server\Collector.Server.Api\Collector.Server.Api.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Content Include="Contracts\Fixtures\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

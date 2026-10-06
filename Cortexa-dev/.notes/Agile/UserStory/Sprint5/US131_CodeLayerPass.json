@@ -1,0 +1,190 @@
+{
+  "id": "US131",
+  "workItemType": "User Story",
+  "Title": "Code layer pass",
+  "Description": "As a desktop user, I want to extract architectural layer knowledge from multi-folder code repositories so that patent candidates understand the system architecture. The app groups file-level knowledge by top folder/project (3+ files only), sends items (no code) with layer-prompt.v1.json, and produces layer items. The Review screen shows them.",
+  "AcceptanceCriteria": [
+    "File-level knowledge items are grouped by top folder/project",
+    "Only repos with 3+ files in a folder are processed for layers",
+    "Layer prompt (layer-prompt.v1.json) is loaded from embedded resources",
+    "Prompt builder includes file paths and knowledge summaries (no full code)",
+    "Layer items are produced with kind=layer and folder file_path",
+    "Review screen filters and displays layer items separately",
+    "Layer items are included in upload batch",
+    "End-to-end check: multi-folder code repo produces layer items and uploads",
+    "All code for this story lives inside Cortexa-dev/desktop/collector; nothing in services/, contracts/, frontend/ or deploy/ is edited or referenced (outside logic is re-implemented inside)"
+  ],
+  "Planning": {
+    "StoryPoints": 1.5,
+    "Priority": 2
+  },
+  "Classification": {
+    "RemainingWork": 12.0
+  },
+  "Dependencies": {
+    "Feature": "code-layers",
+    "Contract": "exists:POST /batches/knowledge (module/layer items)",
+    "DependsOn": [
+      "US126",
+      "US130"
+    ],
+    "Blocks": []
+  },
+  "Tags": [
+    "US131",
+    "desktop",
+    "code-layers"
+  ],
+  "TalkingPoints": "Implementing a second-pass code layer extraction that groups file-level knowledge by folder and generates architectural layer knowledge. Loading layer-prompt.v1.json and producing layer items without exposing full code.",
+  "Tasks": [
+    {
+      "Title": "Implement folder grouping logic",
+      "Description": "Group file-level knowledge items by top folder; filter for 3+ files per folder.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Build layer prompt builder",
+      "Description": "Load layer-prompt.v1.json; build prompt with file paths and knowledge summaries (no code).",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Extract layer items via Claude",
+      "Description": "Call Claude provider with layer prompt; parse response; produce layer items with kind=layer.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Display layer items in Review screen",
+      "Description": "Filter Review screen to show layer items; include folder path and description.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Include layer items in batch upload",
+      "Description": "Add layer items to batch payload with unit_kind=module, kind=layer, and folder file_path.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Test layer extraction and upload",
+      "Description": "Verify layer items are correctly extracted, displayed, and uploaded.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Testing"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    }
+  ],
+  "Tests": [
+    {
+      "Title": "Files are grouped by folder correctly",
+      "Steps": [
+        {
+          "Action": "Load a repo with 3+ files in multiple folders",
+          "Expected": "Files are grouped by top folder; only folders with 3+ files are included"
+        }
+      ]
+    },
+    {
+      "Title": "Layer items are extracted",
+      "Steps": [
+        {
+          "Action": "Run layer extraction on grouped knowledge",
+          "Expected": "Layer items are produced with architecture-level insights"
+        }
+      ]
+    },
+    {
+      "Title": "Review screen shows layer items",
+      "Steps": [
+        {
+          "Action": "Open Review after layer extraction",
+          "Expected": "Layer items are displayed separately with folder path and description"
+        }
+      ]
+    },
+    {
+      "Title": "Layer items are uploaded with correct metadata",
+      "Steps": [
+        {
+          "Action": "Upload batch including layer items",
+          "Expected": "layer-prompt version and folder file_path are preserved in batch"
+        }
+      ]
+    },
+    {
+      "Title": "End-to-end check",
+      "Steps": [
+        {
+          "Action": "Load a multi-folder code repository (e.g., a small monorepo with 3+ folders)",
+          "Expected": "Files are parsed into units"
+        },
+        {
+          "Action": "Extract knowledge (file-level items are produced)",
+          "Expected": "Review shows file-level items by folder"
+        },
+        {
+          "Action": "Run layer extraction",
+          "Expected": "Layer items appear in Review with folder-level insights (no code content)"
+        },
+        {
+          "Action": "Upload batch with both file and layer items",
+          "Expected": "POST /batches/knowledge includes layer items; batch_id returned"
+        },
+        {
+          "Action": "Check Cosmos chunks container for layer items",
+          "Expected": "Rows with kind=layer and folder file_path are present; candidates reference them"
+        }
+      ]
+    }
+  ],
+  "createdDate": "2026-10-06",
+  "state": "New"
+}

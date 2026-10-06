@@ -1,0 +1,192 @@
+{
+  "id": "US129",
+  "workItemType": "User Story",
+  "Title": "Gemini and Bedrock providers",
+  "Description": "As a desktop user, I want to choose between Claude, Gemini, and Bedrock as my AI provider so that I can use the model that works best for me. The app supports Google Gemini via Google.GenAI 1.13.0, Claude on Bedrock via AWSSDK.BedrockRuntime with IAM Identity Center SSO, and per-run provider/model picker. Token estimates are shown before extraction runs.",
+  "AcceptanceCriteria": [
+    "Settings screen allows provider selection (Claude, Gemini, Bedrock)",
+    "Gemini provider uses Google.GenAI 1.13.0 with API key from Credential Manager",
+    "Bedrock provider uses AWSSDK.BedrockRuntime with IAM Identity Center SSO",
+    "Bedrock requires no static AWS keys; uses session credentials from SSO",
+    "Per-run model picker shows available models for selected provider",
+    "Token estimator calculates prompt + expected output tokens before extraction",
+    "Token estimate is displayed in the Extract Knowledge screen",
+    "All three providers produce compatible knowledge item structure",
+    "Each batch shows provider and model in History",
+    "End-to-end check: run same folder with each provider and verify batches appear with correct provider/model",
+    "All code for this story lives inside Cortexa-dev/desktop/collector; nothing in services/, contracts/, frontend/ or deploy/ is edited or referenced (outside logic is re-implemented inside)"
+  ],
+  "Planning": {
+    "StoryPoints": 2.0,
+    "Priority": 2
+  },
+  "Classification": {
+    "RemainingWork": 16.0
+  },
+  "Dependencies": {
+    "Feature": "ai-providers",
+    "Contract": "None",
+    "DependsOn": [
+      "US126"
+    ],
+    "Blocks": []
+  },
+  "Tags": [
+    "US129",
+    "desktop",
+    "ai-providers"
+  ],
+  "TalkingPoints": "Implementing Gemini and Bedrock providers alongside the existing Claude provider. Gemini uses the official Google SDK; Bedrock uses AWS SDK with IAM Identity Center SSO for secure credential handling. Per-run provider/model selection and token estimation.",
+  "Tasks": [
+    {
+      "Title": "Implement Gemini provider using Google.GenAI 1.13.0",
+      "Description": "Create GoogleGeminiProvider; integrate with Google.GenAI SDK; handle API key from Credential Manager.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 3.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Implement Bedrock provider with IAM Identity Center",
+      "Description": "Create BedrockClaudeProvider; use AWSSDK.BedrockRuntime; integrate with IAM Identity Center SSO for credentials.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 4.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Build provider and model selector UI",
+      "Description": "Add settings and per-run picker; show available models for selected provider.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Implement token estimator",
+      "Description": "Calculate tokens for prompt + expected output; show estimate before extraction starts.",
+      "Planning": {
+        "Priority": 2,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Store and display provider/model in batch metadata",
+      "Description": "Include provider and model in batch upload and History display.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Test provider switching and compatibility",
+      "Description": "Verify all three providers produce compatible knowledge item structures.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Testing"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Handle Bedrock IAM session and credentials",
+      "Description": "Manage IAM Identity Center session lifecycle; refresh credentials; handle expired sessions.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    }
+  ],
+  "Tests": [
+    {
+      "Title": "Gemini provider extracts knowledge",
+      "Steps": [
+        {
+          "Action": "Select Gemini as provider; choose available model; extract knowledge",
+          "Expected": "Knowledge items are produced; batch shows Gemini as provider"
+        }
+      ]
+    },
+    {
+      "Title": "Bedrock provider authenticates and extracts",
+      "Steps": [
+        {
+          "Action": "Select Bedrock; authenticate via IAM Identity Center; extract knowledge",
+          "Expected": "Bedrock authenticates without static keys; knowledge is extracted; batch shows Bedrock as provider"
+        }
+      ]
+    },
+    {
+      "Title": "Token estimate is shown before extraction",
+      "Steps": [
+        {
+          "Action": "Open Extract Knowledge screen with units loaded",
+          "Expected": "Token estimate is displayed (prompt tokens + estimated output tokens)"
+        }
+      ]
+    },
+    {
+      "Title": "End-to-end check",
+      "Steps": [
+        {
+          "Action": "Load same folder; extract with Claude provider",
+          "Expected": "Batch created with provider: Claude"
+        },
+        {
+          "Action": "Repeat with Gemini provider",
+          "Expected": "Batch created with provider: Gemini"
+        },
+        {
+          "Action": "Repeat with Bedrock provider",
+          "Expected": "Batch created with provider: Bedrock; SSO authentication succeeded"
+        },
+        {
+          "Action": "Check History; verify all three batches show their respective provider and model",
+          "Expected": "Each batch displays correct provider/model pair"
+        }
+      ]
+    }
+  ],
+  "createdDate": "2026-10-06",
+  "state": "New"
+}

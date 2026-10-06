@@ -1,0 +1,206 @@
+{
+  "id": "US126",
+  "workItemType": "User Story",
+  "Title": "Extract knowledge and upload",
+  "Description": "As a desktop user, I want to extract knowledge from prepared units and upload them to Cortexa so that the platform can find patent candidates. The app implements the untrusted source guard, loads the knowledge prompt resource, builds structured JSON prompts, calls an AI provider, parses responses, locates anchors in source files, merges duplicates, and uploads batches via POST /batches/knowledge. A review screen filters and deselects items. The History screen polls batch status.",
+  "AcceptanceCriteria": [
+    "Untrusted source guard neutralizes user input and adds security sentinels",
+    "Knowledge prompt (knowledge-prompt.v1.json) is loaded from embedded resources",
+    "Prompt builder creates structured JSON (what/why/how) for each unit",
+    "Claude direct provider uses the official Anthropic C# SDK",
+    "Response parser extracts items from JSON; empty responses are allowed",
+    "Anchor locator verifies anchor_quote by substring search; falls back to unit range",
+    "Merger deduplicates knowledge items by kind + title within a document",
+    "Review screen shows items by kind; users can deselect before upload",
+    "Upload client sends batches to the collector server POST /collector/batches/knowledge with Idempotency-Key",
+    "End-to-end check: pick a local folder, extract knowledge, upload, and verify chunks in Cosmos",
+    "All code for this story lives inside Cortexa-dev/desktop/collector; nothing in services/, contracts/, frontend/ or deploy/ is edited or referenced (outside logic is re-implemented inside)"
+  ],
+  "Planning": {
+    "StoryPoints": 2.0,
+    "Priority": 1
+  },
+  "Classification": {
+    "RemainingWork": 14.0
+  },
+  "Dependencies": {
+    "Feature": "knowledge-intake",
+    "Contract": "POST /collector/batches/knowledge",
+    "DependsOn": [
+      "US125",
+      "US123"
+    ],
+    "Blocks": [
+      "US128",
+      "US129",
+      "US131",
+      "US133",
+      "US136"
+    ]
+  },
+  "Tags": [
+    "US126",
+    "desktop",
+    "knowledge-intake"
+  ],
+  "TalkingPoints": "Extracting knowledge from document units using the Anthropic SDK, implementing the untrusted source guard, merging duplicates, and uploading batches to Cortexa. Building review and history screens. Full integration with POST /batches/knowledge endpoint.",
+  "Tasks": [
+    {
+      "Title": "Implement untrusted source guard and prompt builder",
+      "Description": "Re-implement the backend neutralization logic inside the collector; load knowledge-prompt.v1.json; build structured JSON with unit metadata.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 3.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Integrate Anthropic C# SDK for Claude",
+      "Description": "Set up the official SDK, handle API keys from Credential Manager, implement retry logic and error handling.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 3.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Build IAiProvider port and Claude provider implementation",
+      "Description": "Create interface for AI providers; implement Claude provider with concurrency 4, temp 0.2, max output 8192 tokens.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Implement response parser and anchor locator",
+      "Description": "Parse JSON response; extract knowledge items; verify anchor_quote by substring search; fall back to unit range.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Build knowledge merger for deduplication",
+      "Description": "Merge items with same kind + title within a document; consolidate sources and excerpts.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Create review screen and upload client",
+      "Description": "UI to filter/deselect items by kind; upload client sends POST /collector/batches/knowledge with Idempotency-Key; handle responses.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 3.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    }
+  ],
+  "Tests": [
+    {
+      "Title": "Knowledge extraction returns expected item structure",
+      "Steps": [
+        {
+          "Action": "Extract knowledge from a sample unit",
+          "Expected": "Response contains items with kind, title, summary, details, source, excerpt, provider, model"
+        }
+      ]
+    },
+    {
+      "Title": "Anchor locator finds source location",
+      "Steps": [
+        {
+          "Action": "Extract item with anchor_quote and verify it in original file",
+          "Expected": "Anchor is found; line_range is narrowed to location"
+        }
+      ]
+    },
+    {
+      "Title": "Duplicates are merged",
+      "Steps": [
+        {
+          "Action": "Extract two units that produce items with same kind + title",
+          "Expected": "Only one merged item appears in review"
+        }
+      ]
+    },
+    {
+      "Title": "Review screen allows selective upload",
+      "Steps": [
+        {
+          "Action": "Display review screen and deselect one item",
+          "Expected": "Deselected item is not included in upload"
+        }
+      ]
+    },
+    {
+      "Title": "End-to-end check",
+      "Steps": [
+        {
+          "Action": "Start native Cortexa stack with: pwsh -NoProfile -File Cortexa-dev/deploy/local/native/run-local.ps1 start",
+          "Expected": "All services start; gateway is listening on localhost:5080"
+        },
+        {
+          "Action": "Sign in to desktop collector and pick a local folder (e.g., a small repo or sample docs)",
+          "Expected": "Files are parsed into units; unit count and token preview are shown"
+        },
+        {
+          "Action": "Click Extract Knowledge and review items by kind",
+          "Expected": "Knowledge items appear with logic/algorithm/method/layer kinds; each has title, summary, details"
+        },
+        {
+          "Action": "Proceed to upload without deselecting",
+          "Expected": "POST /batches/knowledge is called; batch_id is returned"
+        },
+        {
+          "Action": "Open History screen",
+          "Expected": "Batch appears with Ingested status; UI polls and updates stage as pipeline progresses"
+        },
+        {
+          "Action": "Check Cosmos emulator Data Explorer at https://localhost:8081/_explorer; navigate to chunks container",
+          "Expected": "New rows have knowledge field populated with extracted items; no original file content is present"
+        },
+        {
+          "Action": "Verify MinIO object browser at http://localhost:9001",
+          "Expected": "No original files stored in buckets; only metadata"
+        }
+      ]
+    }
+  ],
+  "createdDate": "2026-10-06",
+  "state": "New"
+}

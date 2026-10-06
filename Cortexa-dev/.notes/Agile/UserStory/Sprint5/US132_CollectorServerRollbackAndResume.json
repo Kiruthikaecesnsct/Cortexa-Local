@@ -1,0 +1,116 @@
+{
+  "id": "US132",
+  "workItemType": "User Story",
+  "Title": "Collector server rollback and resume",
+  "Description": "As a desktop user, I want a failed upload to leave no half-written batch in Cortexa, and a repeat upload to finish the job, handled inside the collector server.",
+  "AcceptanceCriteria": [
+    "A failure before any ingestion.completed is published deletes written rows in reverse order (saga, provenance_maps, chunks, documents); not atomic across containers, best effort with errors logged by id",
+    "A publish failure after rows are written is never rolled back; replaying with the same Idempotency-Key republishes ingestion.completed (the orchestrator treats duplicates as already applied)",
+    "Error codes: 400/422 validation, 401/403 auth, 409 conflicting replay, 5xx storage or bus failure, each with a clear message",
+    "No pipeline retry for collector documents; re-upload is the recovery path (documented limit: web Retry stalls until the watchdog fails the batch)",
+    "All code for this story lives inside Cortexa-dev/desktop/collector; nothing in services/, contracts/, frontend/ or deploy/ is edited or referenced (outside logic is re-implemented inside)"
+  ],
+  "Planning": {
+    "StoryPoints": 1.0,
+    "Priority": 2
+  },
+  "Classification": {
+    "RemainingWork": 8.0
+  },
+  "Dependencies": {
+    "Feature": "upload-rollback",
+    "Contract": "POST /collector/batches/knowledge (rollback and resume)",
+    "DependsOn": [
+      "US123"
+    ],
+    "Blocks": [
+      "US133"
+    ]
+  },
+  "Tags": [
+    "US132",
+    "backend",
+    "upload-rollback"
+  ],
+  "TalkingPoints": "Rollback deletes in reverse write order; after publish, the safe path is republish, not delete.",
+  "Tasks": [
+    {
+      "Title": "Reverse-order rollback",
+      "Description": "Track written rows and delete them in reverse order on failure before publish.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 3.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "Republish on replay",
+      "Description": "Detect existing saga on replay and republish ingestion.completed for docs not yet Ingested.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "Error mapping",
+      "Description": "Map validation, auth, conflict, storage and bus errors to status codes and messages.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "Rollback tests",
+      "Description": "Fail at each write step and at publish; verify cleanup and replay.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "test"
+      ]
+    }
+  ],
+  "Tests": [
+    {
+      "Title": "Failure before publish leaves nothing",
+      "Steps": [
+        {
+          "Action": "Force a chunk write failure",
+          "Expected": "No rows remain for the batch; 5xx returned"
+        }
+      ]
+    },
+    {
+      "Title": "Replay after publish failure finishes the batch",
+      "Steps": [
+        {
+          "Action": "Force a publish failure, then replay with the same key",
+          "Expected": "ingestion.completed is published and the batch advances"
+        }
+      ]
+    }
+  ],
+  "createdDate": "2026-10-06",
+  "state": "New"
+}

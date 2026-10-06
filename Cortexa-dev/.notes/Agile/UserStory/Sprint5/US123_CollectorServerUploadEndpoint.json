@@ -1,0 +1,159 @@
+{
+  "id": "US123",
+  "workItemType": "User Story",
+  "Title": "Collector server upload endpoint",
+  "Description": "As a desktop user, I want to upload extracted knowledge to the collector server so it lands in Cortexa without my original files leaving the machine.",
+  "AcceptanceCriteria": [
+    "POST /collector/batches/knowledge on the collector server accepts {batch_name, collector{app_version,provider,model,prompt_version}, documents[{client_document_id, filename, source_kind, source_type, knowledge_items[]}]} and returns {batch_id, document_ids[]}",
+    "JWT check re-implemented from the gateway (HS256 signature, issuer, audience, expiry) plus the identity stamp check (fail closed); token must carry org_id and perms must include jobs:submit",
+    "Validation: source_kind (paper, code) and source_type (local, github, azure_devops, ssh, cortexa_repo) as separate fields; kinds, unit_kind x source_kind rules, excerpt <=400 chars, size caps from config; documents with zero items are dropped",
+    "Filename is sanitized on the server (control and bidi characters removed)",
+    "Idempotency-Key header is required; batch_id = UUIDv5(user id + key); an existing saga returns the original result",
+    "Engine must be harvesting, seeding or dual; saga carries org_id, owner_user_id, batch_name, created_at and model fields from the config row",
+    "Calls the US122 writers and publishers; never logs excerpts, knowledge text or tokens",
+    "All code for this story lives inside Cortexa-dev/desktop/collector; nothing in services/, contracts/, frontend/ or deploy/ is edited or referenced (outside logic is re-implemented inside)"
+  ],
+  "Planning": {
+    "StoryPoints": 1.5,
+    "Priority": 1
+  },
+  "Classification": {
+    "RemainingWork": 12.0
+  },
+  "Dependencies": {
+    "Feature": "knowledge-intake",
+    "Contract": "POST /collector/batches/knowledge",
+    "DependsOn": [
+      "US122"
+    ],
+    "Blocks": [
+      "US126",
+      "US127",
+      "US130",
+      "US132"
+    ]
+  },
+  "Tags": [
+    "US123",
+    "backend",
+    "knowledge-intake"
+  ],
+  "TalkingPoints": "The desktop uploads straight to the collector server. Sign-in stays on the gateway; the server validates the same JWT with re-implemented logic.",
+  "Tasks": [
+    {
+      "Title": "Minimal API endpoint and DTO validation",
+      "Description": "POST /collector/batches/knowledge with all field and cross-field rules.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 3.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "JWT and stamp check",
+      "Description": "Re-implement gateway JWT validation and identity stamp check; require org_id and jobs:submit.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 3.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "Idempotency by UUIDv5",
+      "Description": "Derive batch_id from user id + Idempotency-Key; return existing result on replay.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.5
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "Filename sanitizer and engine/model resolution",
+      "Description": "Server-side filename cleanup; read engine and model fields from the config row.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.5
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "Wire to US122 writers",
+      "Description": "Map the request to row writers and publish ingestion.completed per document.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "Endpoint tests",
+      "Description": "Validation matrix, auth failures, idempotent replay.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "test"
+      ]
+    }
+  ],
+  "Tests": [
+    {
+      "Title": "Upload creates a batch",
+      "Steps": [
+        {
+          "Action": "POST a valid batch with a signed-in token and an Idempotency-Key",
+          "Expected": "201 with batch_id and document_ids; rows appear in Cosmos"
+        }
+      ]
+    },
+    {
+      "Title": "Replay is idempotent",
+      "Steps": [
+        {
+          "Action": "POST the same body with the same Idempotency-Key",
+          "Expected": "Same batch_id returned; no duplicate rows"
+        }
+      ]
+    },
+    {
+      "Title": "Auth is enforced",
+      "Steps": [
+        {
+          "Action": "POST without a token, or with a token lacking jobs:submit",
+          "Expected": "401 / 403"
+        }
+      ]
+    }
+  ],
+  "createdDate": "2026-10-06",
+  "state": "New"
+}

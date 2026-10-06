@@ -1,0 +1,182 @@
+{
+  "id": "US128",
+  "workItemType": "User Story",
+  "Title": "Show batch progress and candidates in History",
+  "Description": "As a desktop user, I want to see the progress of uploaded batches and the candidates they produced so that I can track extraction results. The History screen polls GET /batches and GET /batches/{id}/results, displaying the saga stage (Ingested, Extracted, Scored, Harvested, Seeded) and a candidate list with linked knowledge items and source locations.",
+  "AcceptanceCriteria": [
+    "History screen polls GET /collector/batches to list all user's batches",
+    "Batch list shows batch_id, batch_name, created_at, and current saga stage",
+    "Clicking a batch fetches candidates from GET /collector/batches/{id}/results",
+    "Candidate list shows title, kind, evidence count, score, and patentability",
+    "Clicking a candidate shows linked knowledge item and source location (page/lines)",
+    "Source location is clickable and opens the original file in local editor if available",
+    "UI auto-updates every 5 seconds while batches are in progress",
+    "End-to-end check: upload a batch, monitor stages in History, verify candidates appear",
+    "All code for this story lives inside Cortexa-dev/desktop/collector; nothing in services/, contracts/, frontend/ or deploy/ is edited or referenced (outside logic is re-implemented inside)"
+  ],
+  "Planning": {
+    "StoryPoints": 1.5,
+    "Priority": 1
+  },
+  "Classification": {
+    "RemainingWork": 12.0
+  },
+  "Dependencies": {
+    "Feature": "candidates-from-knowledge",
+    "Contract": "GET /collector/batches, GET /collector/batches/{id}/results",
+    "DependsOn": [
+      "US127",
+      "US126"
+    ],
+    "Blocks": []
+  },
+  "Tags": [
+    "US128",
+    "desktop",
+    "candidates-from-knowledge"
+  ],
+  "TalkingPoints": "Building the History screen to poll batch status and display candidates with their linked knowledge and source locations. Auto-refresh every 5 seconds. Full end-to-end integration with the extraction results API.",
+  "Tasks": [
+    {
+      "Title": "Implement batch polling and list view",
+      "Description": "Create History screen; poll GET /collector/batches; display batch_id, name, created_at, and saga stage.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Fetch and display candidate list",
+      "Description": "On batch selection, call GET /collector/batches/{id}/results; show title, kind, evidence_count, score, patentability.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Display linked knowledge and source location",
+      "Description": "When candidate is selected, show knowledge item title, summary, and source page/lines.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Integrate source location navigation",
+      "Description": "Make source location clickable; open original file in default editor or display file path.",
+      "Planning": {
+        "Priority": 2,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Implement auto-refresh polling",
+      "Description": "Auto-refresh batch list and candidate counts every 5 seconds while any batch is in progress.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Handle API errors and loading states",
+      "Description": "Show loading spinners, retry on 5xx, and display user-friendly error messages.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    }
+  ],
+  "Tests": [
+    {
+      "Title": "Batch list is fetched and displayed",
+      "Steps": [
+        {
+          "Action": "Open History screen",
+          "Expected": "GET /batches is called; list shows all user batches with name and stage"
+        }
+      ]
+    },
+    {
+      "Title": "Candidates are fetched on batch selection",
+      "Steps": [
+        {
+          "Action": "Click a batch in History",
+          "Expected": "GET /batches/{id}/results is called; candidate list appears"
+        }
+      ]
+    },
+    {
+      "Title": "Knowledge and source location are shown",
+      "Steps": [
+        {
+          "Action": "Click a candidate to expand its details",
+          "Expected": "Knowledge item title, summary, and source page/lines are displayed"
+        }
+      ]
+    },
+    {
+      "Title": "Auto-refresh updates batch stages",
+      "Steps": [
+        {
+          "Action": "Observe History for 10 seconds during an active batch",
+          "Expected": "Batch stage updates from Ingested to Extracted to Scored without manual refresh"
+        }
+      ]
+    },
+    {
+      "Title": "End-to-end check",
+      "Steps": [
+        {
+          "Action": "Upload a batch from the Extract Knowledge screen",
+          "Expected": "Batch appears immediately in History with Ingested status"
+        },
+        {
+          "Action": "Wait for stages to progress (Extracted, Scored, Harvested, Seeded)",
+          "Expected": "Each stage is reflected in the UI; candidate count increases as stages complete"
+        },
+        {
+          "Action": "Click a candidate and verify source location",
+          "Expected": "Knowledge item and source page/lines are shown; source is clickable"
+        }
+      ]
+    }
+  ],
+  "createdDate": "2026-10-06",
+  "state": "New"
+}

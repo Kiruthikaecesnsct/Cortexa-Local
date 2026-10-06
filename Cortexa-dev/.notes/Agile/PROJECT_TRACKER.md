@@ -231,6 +231,30 @@ _All dev CD failure bugs resolved._
 
 ---
 
+## Backlog — Sprint 5: desktop knowledge collector
+
+_Backend and desktop only. Features in order; backend before desktop in each. The last story of each feature holds the end-to-end check. Plan: `.notes/informations/Architectures/Desktop_Knowledge_Collector_Plan.pdf`._
+
+| ID | Title | Layer | Feature | Depends on | Status |
+|---|---|---|---|---|---|
+| US122 | Write knowledge rows and saga from collector server | backend | knowledge-intake | - | New |
+| US123 | Collector server upload endpoint | backend | knowledge-intake | US122 | New |
+| US124 | Desktop collector shell and sign-in | desktop | knowledge-intake | US122 | New |
+| US125 | Parse files into extraction units | desktop | knowledge-intake | US124 | New |
+| US126 | Extract knowledge and upload | desktop | knowledge-intake | US125, US123 | New |
+| US127 | Collector server history and results with knowledge links | backend | candidates-from-knowledge | US123 | New |
+| US128 | Show batch progress and candidates in History | desktop | candidates-from-knowledge | US127, US126 | New |
+| US129 | Gemini and Bedrock providers | desktop | ai-providers | US126 | New |
+| US130 | Accept module layer knowledge | backend | code-layers | US123 | New |
+| US131 | Code layer pass | desktop | code-layers | US126, US130 | New |
+| US132 | Collector server rollback and resume | backend | upload-rollback | US123 | New |
+| US133 | Upload failure handling and resume | desktop | upload-rollback | US132, US126 | New |
+| US134 | GitHub and Azure DevOps collectors | desktop | remote-sources | US125 | New |
+| US135 | SSH collector | desktop | remote-sources | US125 | New |
+| US136 | Cortexa saved repository collector | desktop | remote-sources | US126, US134, US135 | New |
+
+---
+
 ## Session Notes
 
 _Older session notes are deleted. Full history is in git._

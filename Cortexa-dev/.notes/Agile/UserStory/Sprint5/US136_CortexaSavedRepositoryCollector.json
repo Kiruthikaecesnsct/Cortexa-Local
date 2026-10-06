@@ -1,0 +1,173 @@
+{
+  "id": "US136",
+  "workItemType": "User Story",
+  "Title": "Cortexa saved repository collector",
+  "Description": "As a desktop user, I want to collect code from repositories already saved in Cortexa so that I can analyze projects that colleagues have ingested. The app uses the existing clone endpoints GET {prefix}/files and GET {prefix}/download through the API gateway. Files are cached locally and processed like other sources.",
+  "AcceptanceCriteria": [
+    "Desktop app calls the existing clone /files endpoint to list repository contents",
+    "Desktop app calls clone /download endpoint to fetch file contents",
+    "All calls go through the API gateway (localhost:5080)",
+    "Files are cached in SQLite with Cortexa repository metadata",
+    "Source_type is set to cortexa_repo in the batch upload",
+    "End-to-end check: all 4 remote sources work and upload with correct source types",
+    "All code for this story lives inside Cortexa-dev/desktop/collector; nothing in services/, contracts/, frontend/ or deploy/ is edited or referenced (outside logic is re-implemented inside)"
+  ],
+  "Planning": {
+    "StoryPoints": 1.0,
+    "Priority": 2
+  },
+  "Classification": {
+    "RemainingWork": 8.0
+  },
+  "Dependencies": {
+    "Feature": "remote-sources",
+    "Contract": "exists:gateway clone /files and /download (called over HTTP, no code reference)",
+    "DependsOn": [
+      "US126",
+      "US134",
+      "US135"
+    ],
+    "Blocks": []
+  },
+  "Tags": [
+    "US136",
+    "desktop",
+    "remote-sources"
+  ],
+  "TalkingPoints": "Integrating Cortexa saved repository collection via the existing clone API endpoints. Files are fetched through the gateway and cached locally. Completing all four remote sources (GitHub, Azure DevOps, SSH, and Cortexa).",
+  "Tasks": [
+    {
+      "Title": "Implement Cortexa repository client",
+      "Description": "Call GET {prefix}/files and /download through the API gateway; handle authentication.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Cache Cortexa repository files",
+      "Description": "Store files with repository ID, branch, path, and Cortexa metadata in SQLite.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Set source_type to cortexa_repo in batch upload",
+      "Description": "When uploading Cortexa-sourced knowledge, set source_type=cortexa_repo.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Build Cortexa repository picker UI",
+      "Description": "Show available Cortexa repositories; allow user to select and fetch.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Test Cortexa repository collection and end-to-end sources",
+      "Description": "Verify all four sources (local, GitHub, Azure DevOps, SSH, Cortexa) collect and upload with correct source types.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Testing"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    }
+  ],
+  "Tests": [
+    {
+      "Title": "Cortexa repository files are fetched and cached",
+      "Steps": [
+        {
+          "Action": "Select a Cortexa repository in the picker",
+          "Expected": "GET {prefix}/files is called; file tree is fetched and cached"
+        }
+      ]
+    },
+    {
+      "Title": "Source_type is set correctly",
+      "Steps": [
+        {
+          "Action": "Upload knowledge from Cortexa source",
+          "Expected": "Batch includes source_type=cortexa_repo"
+        }
+      ]
+    },
+    {
+      "Title": "End-to-end check covering all four remote sources",
+      "Steps": [
+        {
+          "Action": "Start native stack: pwsh -NoProfile -File Cortexa-dev/deploy/local/native/run-local.ps1 start",
+          "Expected": "All services start; gateway on localhost:5080"
+        },
+        {
+          "Action": "Sign in to desktop collector; load a local folder",
+          "Expected": "Folder is parsed into units; ready for extraction"
+        },
+        {
+          "Action": "Extract knowledge; upload batch with source_type=local",
+          "Expected": "Batch appears in History with source_type=local"
+        },
+        {
+          "Action": "Load a GitHub repository (requires GitHub PAT in settings)",
+          "Expected": "Files are fetched; extract knowledge; upload with source_type=github"
+        },
+        {
+          "Action": "Load an Azure DevOps repository (requires Azure DevOps PAT in settings)",
+          "Expected": "Files are fetched; extract knowledge; upload with source_type=azure_devops"
+        },
+        {
+          "Action": "Load via SSH (requires host, key file, and fingerprint in settings)",
+          "Expected": "Files are fetched; extract knowledge; upload with source_type=ssh"
+        },
+        {
+          "Action": "Load a Cortexa saved repository",
+          "Expected": "Files are fetched from clone /files and /download; extract knowledge; upload with source_type=cortexa_repo"
+        },
+        {
+          "Action": "Check History; verify all four batches appear with distinct source_type",
+          "Expected": "Four batches shown: local, github, azure_devops, ssh, cortexa_repo"
+        },
+        {
+          "Action": "Check Cosmos chunks container; verify four sets of knowledge items with different source types",
+          "Expected": "Knowledge items grouped by source_type; each carries correct provenance"
+        }
+      ]
+    }
+  ],
+  "createdDate": "2026-10-06",
+  "state": "New"
+}

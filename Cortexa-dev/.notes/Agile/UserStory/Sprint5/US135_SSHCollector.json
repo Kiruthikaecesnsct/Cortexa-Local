@@ -1,0 +1,180 @@
+{
+  "id": "US135",
+  "workItemType": "User Story",
+  "Title": "SSH collector",
+  "Description": "As a desktop user, I want to fetch code from remote servers via SSH so that I can analyze on-premise repositories. The app uses SSH.NET for SFTP, requires a pinned host-key fingerprint, accepts a private key file and optional passphrase, and never loads ssh-agent or ssh config. Files are cached locally.",
+  "AcceptanceCriteria": [
+    "SSH collector uses SSH.NET for SFTP only (not SSH shell)",
+    "Host-key fingerprint is pinned and verified before connection",
+    "Private key is loaded from a user-selected file",
+    "Private key passphrase is stored in Credential Manager",
+    "SSH agent and system ssh config are never accessed",
+    "SFTP file tree is fetched recursively",
+    "Files are downloaded and cached in SQLite with metadata",
+    "Collector UI allows user to enter host, port, username, key file, and fingerprint",
+    "All code for this story lives inside Cortexa-dev/desktop/collector; nothing in services/, contracts/, frontend/ or deploy/ is edited or referenced (outside logic is re-implemented inside)"
+  ],
+  "Planning": {
+    "StoryPoints": 1.5,
+    "Priority": 2
+  },
+  "Classification": {
+    "RemainingWork": 12.0
+  },
+  "Dependencies": {
+    "Feature": "remote-sources",
+    "Contract": "None",
+    "DependsOn": [
+      "US125"
+    ],
+    "Blocks": [
+      "US136"
+    ]
+  },
+  "Tags": [
+    "US135",
+    "desktop",
+    "remote-sources"
+  ],
+  "TalkingPoints": "Building an SSH collector using SSH.NET with host-key pinning for security. Private keys are loaded from files; passphrases stored in Credential Manager. System ssh-agent and config are never accessed.",
+  "Tasks": [
+    {
+      "Title": "Implement SSH.NET SFTP client",
+      "Description": "Use SSH.NET for SFTP; fetch file tree and contents recursively.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Implement host-key fingerprint pinning",
+      "Description": "Verify server fingerprint before allowing connection; store pinned fingerprints in settings.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Load private key from file with optional passphrase",
+      "Description": "File picker for key file; passphrase input; store passphrase in Credential Manager.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Ensure no ssh-agent or ssh config access",
+      "Description": "Verify no code reads from ssh-agent socket or ~/.ssh/config.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Cache SFTP files in SQLite",
+      "Description": "Store files with host, port, username, path, and fingerprint metadata.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Build SSH collector UI",
+      "Description": "Settings panel for host, port, username, key file picker, fingerprint input.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Test SSH connection and file fetching",
+      "Description": "Verify connection, fingerprint verification, and file cache.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Testing"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    }
+  ],
+  "Tests": [
+    {
+      "Title": "SSH connection succeeds with correct fingerprint",
+      "Steps": [
+        {
+          "Action": "Enter SSH credentials and pinned host-key fingerprint",
+          "Expected": "SSH.NET connects via SFTP; file tree is fetched"
+        }
+      ]
+    },
+    {
+      "Title": "Host-key verification rejects wrong fingerprint",
+      "Steps": [
+        {
+          "Action": "Enter incorrect fingerprint",
+          "Expected": "Connection fails with fingerprint mismatch error"
+        }
+      ]
+    },
+    {
+      "Title": "Private key passphrase is handled correctly",
+      "Steps": [
+        {
+          "Action": "Load encrypted private key; enter passphrase",
+          "Expected": "Key is unlocked; SSH connection succeeds"
+        }
+      ]
+    },
+    {
+      "Title": "Files are cached in SQLite",
+      "Steps": [
+        {
+          "Action": "Fetch files from SSH server",
+          "Expected": "Files appear in SQLite cache with host/path metadata"
+        }
+      ]
+    }
+  ],
+  "createdDate": "2026-10-06",
+  "state": "New"
+}

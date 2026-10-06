@@ -1,0 +1,180 @@
+{
+  "id": "US134",
+  "workItemType": "User Story",
+  "Title": "GitHub and Azure DevOps collectors",
+  "Description": "As a desktop user, I want to collect code from GitHub and Azure DevOps repositories so that I can analyze cloud-hosted projects. The app stores PAT (Personal Access Token) in Credential Manager, fetches tree and file contents via REST APIs, handles rate limits, and caches results in SQLite. Each source is selectable from the collector UI.",
+  "AcceptanceCriteria": [
+    "Settings screen allows GitHub PAT and Azure DevOps PAT configuration",
+    "PATs are stored securely in Windows Credential Manager",
+    "GitHub REST API (tree, blob, contents) is used to fetch repository data",
+    "Azure DevOps REST API (items, contents) is used to fetch repository data",
+    "Rate limiting is respected; requests pause or queue if limit is approaching",
+    "Fetched files are cached in SQLite with repository metadata",
+    "Collector UI allows user to pick GitHub or Azure DevOps repository",
+    "Repository picker shows available repos via authenticated API call",
+    "All code for this story lives inside Cortexa-dev/desktop/collector; nothing in services/, contracts/, frontend/ or deploy/ is edited or referenced (outside logic is re-implemented inside)"
+  ],
+  "Planning": {
+    "StoryPoints": 2.0,
+    "Priority": 2
+  },
+  "Classification": {
+    "RemainingWork": 16.0
+  },
+  "Dependencies": {
+    "Feature": "remote-sources",
+    "Contract": "None",
+    "DependsOn": [
+      "US125"
+    ],
+    "Blocks": [
+      "US136"
+    ]
+  },
+  "Tags": [
+    "US134",
+    "desktop",
+    "remote-sources"
+  ],
+  "TalkingPoints": "Building GitHub and Azure DevOps collectors that authenticate via PAT, fetch repository contents via REST APIs, and cache locally. Rate limiting and secure credential storage in Credential Manager.",
+  "Tasks": [
+    {
+      "Title": "Implement GitHub API client",
+      "Description": "Use GitHub REST API v3 to fetch tree, blobs, and repo metadata. Handle pagination and rate limits.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 3.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Implement Azure DevOps API client",
+      "Description": "Use Azure DevOps REST API to fetch items, contents, and repo metadata. Handle pagination and rate limits.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 3.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Build rate limit handling",
+      "Description": "Monitor rate limit headers; pause requests if approaching limit; queue or retry after reset.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Store GitHub and Azure DevOps PATs in Credential Manager",
+      "Description": "Add PAT configuration to settings screen; store in Windows Credential Manager.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Cache remote repository files in SQLite",
+      "Description": "Store fetched files with source metadata (repo URL, branch, commit hash, path).",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Build repository picker UI",
+      "Description": "Show available GitHub/Azure DevOps repos; allow user to select and fetch.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Test GitHub and Azure DevOps collectors",
+      "Description": "Verify files are fetched, cached, and used in extraction.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Testing"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    }
+  ],
+  "Tests": [
+    {
+      "Title": "GitHub PAT authenticates and fetches repos",
+      "Steps": [
+        {
+          "Action": "Configure GitHub PAT; fetch public repo",
+          "Expected": "Files are fetched via GitHub REST API"
+        }
+      ]
+    },
+    {
+      "Title": "Azure DevOps PAT authenticates and fetches repos",
+      "Steps": [
+        {
+          "Action": "Configure Azure DevOps PAT; fetch repo",
+          "Expected": "Files are fetched via Azure DevOps REST API"
+        }
+      ]
+    },
+    {
+      "Title": "Rate limits are respected",
+      "Steps": [
+        {
+          "Action": "Trigger multiple rapid fetches to approach rate limit",
+          "Expected": "Requests pause or queue when limit is near"
+        }
+      ]
+    },
+    {
+      "Title": "Repository files are cached",
+      "Steps": [
+        {
+          "Action": "Fetch repo and check SQLite cache",
+          "Expected": "Files are present with source metadata"
+        }
+      ]
+    }
+  ],
+  "createdDate": "2026-10-06",
+  "state": "New"
+}

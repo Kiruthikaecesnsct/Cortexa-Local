@@ -1,0 +1,105 @@
+{
+  "id": "US130",
+  "workItemType": "User Story",
+  "Title": "Accept module layer knowledge",
+  "Description": "As a backend engineer, I want to accept module-level and layer-level knowledge items from the desktop so that the system understands architectural layers. The upload validation accepts unit_kind=module and kind=layer with folder file_path. Ingestion maps them to chunks with provenance at folder level.",
+  "AcceptanceCriteria": [
+    "Collector server POST /collector/batches/knowledge validation accepts unit_kind=module",
+    "Validation accepts kind=layer for architectural layer knowledge",
+    "Layer items must have a folder file_path, not a specific file",
+    "Chunks are created with provenance.file_path pointing to the folder",
+    "provenance_maps rows for layer items carry the folder file_path and a line_range filled per the US122 shape rules",
+    "Provenance.section_hint is not used for layer items",
+    "Layer items are treated as document-level knowledge, not unit-level",
+    "All code for this story lives inside Cortexa-dev/desktop/collector; nothing in services/, contracts/, frontend/ or deploy/ is edited or referenced (outside logic is re-implemented inside)"
+  ],
+  "Planning": {
+    "StoryPoints": 0.5,
+    "Priority": 2
+  },
+  "Classification": {
+    "RemainingWork": 4.0
+  },
+  "Dependencies": {
+    "Feature": "code-layers",
+    "Contract": "POST /collector/batches/knowledge (module/layer items)",
+    "DependsOn": [
+      "US123"
+    ],
+    "Blocks": [
+      "US131"
+    ]
+  },
+  "Tags": [
+    "US130",
+    "backend",
+    "code-layers"
+  ],
+  "TalkingPoints": "Extending the knowledge batch upload to accept module-level and layer-level knowledge items with folder-level provenance. Backend ingestion stores these as chunks with architectural scope.",
+  "Tasks": [
+    {
+      "Title": "Extend upload validation for module and layer kinds",
+      "Description": "Accept unit_kind=module; accept kind=layer; require file_path to be a folder for layer items.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "Map layer items to chunks with folder provenance",
+      "Description": "Store layer items in chunks with provenance.file_path as folder path; set document-level scope.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "Test layer item ingestion",
+      "Description": "Verify layer items are correctly stored and can be queried.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Testing"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    }
+  ],
+  "Tests": [
+    {
+      "Title": "Layer items are accepted in batch upload",
+      "Steps": [
+        {
+          "Action": "POST /batches/knowledge with kind=layer and folder file_path",
+          "Expected": "Endpoint returns 201; layer items are stored"
+        }
+      ]
+    },
+    {
+      "Title": "Layer provenance is folder-level",
+      "Steps": [
+        {
+          "Action": "Query chunks container for layer items",
+          "Expected": "Provenance.file_path is a folder path, not a file"
+        }
+      ]
+    }
+  ],
+  "createdDate": "2026-10-06",
+  "state": "New"
+}

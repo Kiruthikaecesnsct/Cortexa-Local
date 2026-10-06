@@ -1,0 +1,208 @@
+{
+  "id": "US133",
+  "workItemType": "User Story",
+  "Title": "Upload failure handling and resume",
+  "Description": "As a desktop user, I want to recover from upload failures without losing my work so that I can retry without re-extracting. If POST /batches/knowledge fails, the app shows the failure, keeps knowledge in the local SQLite cache, and allows retry or resume without calling the AI provider again.",
+  "AcceptanceCriteria": [
+    "Upload client detects and displays failure messages",
+    "Knowledge items remain in local cache on failure",
+    "User can click Retry to re-upload without re-extraction",
+    "Retry uses the same Idempotency-Key for deduplication",
+    "Resume workflow allows uploading deselected items if desired",
+    "History screen shows failed batches with error message and retry button",
+    "No AI calls occur during retry; only POST /collector/batches/knowledge is retried",
+    "End-to-end check: force failure during upload, restart service, verify retry succeeds",
+    "All code for this story lives inside Cortexa-dev/desktop/collector; nothing in services/, contracts/, frontend/ or deploy/ is edited or referenced (outside logic is re-implemented inside)"
+  ],
+  "Planning": {
+    "StoryPoints": 1.5,
+    "Priority": 2
+  },
+  "Classification": {
+    "RemainingWork": 12.0
+  },
+  "Dependencies": {
+    "Feature": "upload-rollback",
+    "Contract": "exists:POST /collector/batches/knowledge (rollback and resume)",
+    "DependsOn": [
+      "US132",
+      "US126"
+    ],
+    "Blocks": []
+  },
+  "Tags": [
+    "US133",
+    "desktop",
+    "upload-rollback"
+  ],
+  "TalkingPoints": "Handling upload failures gracefully by keeping knowledge in the local cache and allowing retry without re-extraction. Idempotency-Key prevents duplicates on retry. Users can resume upload with the same or modified selection.",
+  "Tasks": [
+    {
+      "Title": "Implement upload error detection and display",
+      "Description": "Catch HTTP errors from POST /collector/batches/knowledge; show failure message and error details.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Persist knowledge in local cache on failure",
+      "Description": "Keep knowledge items in SQLite; mark as 'pending_upload' or similar state.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Build retry UI and logic",
+      "Description": "Show Retry button in error message; re-submit with same Idempotency-Key.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Implement resume workflow",
+      "Description": "Allow user to go back to Review, modify selection, and retry upload.",
+      "Planning": {
+        "Priority": 2,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Update History screen for failed batches",
+      "Description": "Show failed batches with error message; include Retry button.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Test failure recovery and idempotency",
+      "Description": "Verify retry with same Idempotency-Key doesn't create duplicate batch.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Testing"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Ensure no AI calls on retry",
+      "Description": "Verify only POST /collector/batches/knowledge is called; no provider API calls.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Testing"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    }
+  ],
+  "Tests": [
+    {
+      "Title": "Upload failure is detected and displayed",
+      "Steps": [
+        {
+          "Action": "Trigger upload with network down or invalid token",
+          "Expected": "Error message is shown; knowledge items are retained"
+        }
+      ]
+    },
+    {
+      "Title": "Knowledge items are cached after failure",
+      "Steps": [
+        {
+          "Action": "Check SQLite after failed upload",
+          "Expected": "Knowledge items are present with pending status"
+        }
+      ]
+    },
+    {
+      "Title": "Retry uploads without re-extraction",
+      "Steps": [
+        {
+          "Action": "Click Retry after failure",
+          "Expected": "POST /batches/knowledge is called; no AI provider call"
+        }
+      ]
+    },
+    {
+      "Title": "Idempotency-Key prevents duplicates",
+      "Steps": [
+        {
+          "Action": "Retry upload and allow both to complete",
+          "Expected": "Same batch_id is returned; no duplicate batch in Cosmos"
+        }
+      ]
+    },
+    {
+      "Title": "End-to-end check",
+      "Steps": [
+        {
+          "Action": "Start native stack: pwsh -NoProfile -File Cortexa-dev/deploy/local/native/run-local.ps1 start",
+          "Expected": "All services start"
+        },
+        {
+          "Action": "Load a folder, extract knowledge, and begin upload",
+          "Expected": "Upload progress is shown"
+        },
+        {
+          "Action": "Stop the entire stack: pwsh -NoProfile -File Cortexa-dev/deploy/local/native/run-local.ps1 stop",
+          "Expected": "All services stop; active upload fails"
+        },
+        {
+          "Action": "Desktop shows failure message; click Retry",
+          "Expected": "Retry is blocked (services down); knowledge is cached"
+        },
+        {
+          "Action": "Start the stack again: pwsh -NoProfile -File Cortexa-dev/deploy/local/native/run-local.ps1 start",
+          "Expected": "All services restart"
+        },
+        {
+          "Action": "Click Retry in the History screen",
+          "Expected": "Upload succeeds; batch_id matches original; no duplicate batch in Cosmos"
+        }
+      ]
+    }
+  ],
+  "createdDate": "2026-10-06",
+  "state": "New"
+}

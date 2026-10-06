@@ -1,0 +1,117 @@
+{
+  "id": "US127",
+  "workItemType": "User Story",
+  "Title": "Collector server history and results with knowledge links",
+  "Description": "As a desktop user, I want to list my collector batches and see candidates linked back to the knowledge item and local source they came from, served by the collector server.",
+  "AcceptanceCriteria": [
+    "US122 chunk writer prefixes chunk text with a context line: 'Structured knowledge summary from page N' or 'from file X (lines a-b)'",
+    "GET /collector/batches returns only the caller's batches (owner_user_id and org_id from the token) with batch_id, batch_name, created_at, saga state and per-stage counts",
+    "GET /collector/batches/{id}/results returns harvesting/seeding results joined to chunk rows: knowledge item (kind, title, summary) and source (page or file + lines); knowledge item id = chunk id {document_id}|{source_chunk_index}",
+    "Results for another user's batch return 404",
+    "Same JWT and stamp check as US123",
+    "All code for this story lives inside Cortexa-dev/desktop/collector; nothing in services/, contracts/, frontend/ or deploy/ is edited or referenced (outside logic is re-implemented inside)"
+  ],
+  "Planning": {
+    "StoryPoints": 1.5,
+    "Priority": 1
+  },
+  "Classification": {
+    "RemainingWork": 10.0
+  },
+  "Dependencies": {
+    "Feature": "candidates-from-knowledge",
+    "Contract": "GET /collector/batches, GET /collector/batches/{id}/results",
+    "DependsOn": [
+      "US123"
+    ],
+    "Blocks": [
+      "US128"
+    ]
+  },
+  "Tags": [
+    "US127",
+    "backend",
+    "candidates-from-knowledge"
+  ],
+  "TalkingPoints": "Extraction is unchanged; the context line rides in chunk text and the knowledge link is built in the collector server by joining results to chunk rows. Limit: the context line also shows in web excerpts.",
+  "Tasks": [
+    {
+      "Title": "Context line in chunk text",
+      "Description": "Extend the US122 chunk writer to prefix the context line; keep offsets consistent.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "Owner-filtered batch list",
+      "Description": "GET /collector/batches reading saga rows filtered by owner and org.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 3.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "Results join",
+      "Description": "GET /collector/batches/{id}/results joining harvesting/seeding rows to chunk rows.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 4.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "Endpoint tests",
+      "Description": "Owner filter, 404 for foreign batch, join correctness.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "test"
+      ]
+    }
+  ],
+  "Tests": [
+    {
+      "Title": "History lists only my batches",
+      "Steps": [
+        {
+          "Action": "Upload as user A and B; call GET /collector/batches as A",
+          "Expected": "Only A's batches are returned"
+        }
+      ]
+    },
+    {
+      "Title": "Results link to knowledge",
+      "Steps": [
+        {
+          "Action": "Run a batch to harvesting; call results",
+          "Expected": "Each candidate shows its knowledge item and page/lines"
+        }
+      ]
+    }
+  ],
+  "createdDate": "2026-10-06",
+  "state": "New"
+}

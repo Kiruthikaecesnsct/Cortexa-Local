@@ -1,0 +1,221 @@
+{
+  "id": "US124",
+  "workItemType": "User Story",
+  "Title": "Desktop collector shell and sign-in",
+  "Description": "As a desktop user, I want to authenticate to Cortexa and configure my local knowledge extraction so that I can start collecting. The WPF desktop app initializes with a Generic Host, appsettings options, Windows Credential Manager store for secrets, SQLite cache, a settings screen, and Cortexa sign-in with JWT token refresh.",
+  "AcceptanceCriteria": [
+    "WPF projects src/Collector.Application, src/Collector.Infrastructure, src/Collector.Presentation (net10.0-windows) and tests/Collector.Tests are added to the US122 solution; Clean Architecture references (Domain <- Application <- Infrastructure; Presentation -> Application + Infrastructure)",
+    "dotnet build -warnaserror and dotnet test pass from Cortexa-dev/desktop/collector",
+    "Project CLAUDE.md claude-config gains a desktop entry (build, test, format, lint, audit run from desktop/collector); this config edit is the only allowed change outside the folder",
+    "WPF application shell is responsive and displays main screens",
+    "Generic Host dependency injection container is initialized",
+    "appsettings.json and appsettings.local.json configuration is loaded",
+    "Windows Credential Manager securely stores AI keys and Cortexa token",
+    "SQLite local cache is initialized with correct schema",
+    "Settings screen allows configuration of API keys, gateway URL and collector server URL",
+    "Cortexa sign-in screen uses the gateway POST /auth/login endpoint",
+    "JWT token refresh is automatic via POST /auth/refresh",
+    "All code for this story lives inside Cortexa-dev/desktop/collector; nothing in services/, contracts/, frontend/ or deploy/ is edited or referenced (outside logic is re-implemented inside)"
+  ],
+  "Planning": {
+    "StoryPoints": 2.25,
+    "Priority": 1
+  },
+  "Classification": {
+    "RemainingWork": 18.0
+  },
+  "Dependencies": {
+    "Feature": "knowledge-intake",
+    "Contract": "exists:POST /auth/login, POST /auth/refresh",
+    "DependsOn": [
+      "US122"
+    ],
+    "Blocks": [
+      "US125"
+    ]
+  },
+  "Tags": [
+    "US124",
+    "desktop",
+    "knowledge-intake"
+  ],
+  "TalkingPoints": "Building the WPF desktop app shell with Generic Host, config management, Credential Manager integration for secrets, SQLite caching, settings screen, and Cortexa authentication with JWT refresh. The app is production-ready with clean dependency injection.",
+  "Tasks": [
+    {
+      "Title": "Add WPF projects to the collector solution",
+      "Description": "Add the desktop Application, Infrastructure, Presentation and test projects to Collector.sln from US122; wire references; add the desktop entry to project CLAUDE.md claude-config.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Set up WPF application and Generic Host",
+      "Description": "Create WPF MainWindow, initialize Generic Host, register services, set up app.xaml and app.xaml.cs.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 3.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Configure appsettings and dependency injection",
+      "Description": "Load appsettings.json and appsettings.local.json; register options and services via HostApplicationBuilder.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Implement Windows Credential Manager store",
+      "Description": "Create secure credential storage using System.Net.CredentialCache and Windows DPAPI for AI keys and tokens.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 3.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Initialize SQLite local cache",
+      "Description": "Set up Microsoft.Data.Sqlite database with schema for documents, units, and batch status.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Build settings screen and Cortexa sign-in",
+      "Description": "Create UI for API keys, gateway URL, collector server URL and sign-in form. Integrate gateway POST /auth/login and /auth/refresh.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 4.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Implement token refresh mechanism",
+      "Description": "Auto-refresh JWT before expiry; handle 401 responses by prompting re-login.",
+      "Planning": {
+        "Priority": 2,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    }
+  ],
+  "Tests": [
+    {
+      "Title": "Solution scaffolding builds and tests cleanly",
+      "Steps": [
+        {
+          "Action": "From Cortexa-dev/desktop/collector run dotnet build -warnaserror",
+          "Expected": "All five projects build with zero warnings"
+        },
+        {
+          "Action": "Run dotnet test",
+          "Expected": "Collector.Tests runs and passes"
+        },
+        {
+          "Action": "Inspect project references of Collector.Domain and Collector.Application",
+          "Expected": "Domain references nothing; Application references only Domain"
+        },
+        {
+          "Action": "Open the project CLAUDE.md claude-config block",
+          "Expected": "A desktop entry lists build, test, format, lint and audit commands"
+        }
+      ]
+    },
+    {
+      "Title": "Application shell initializes without errors",
+      "Steps": [
+        {
+          "Action": "Start the desktop collector application",
+          "Expected": "WPF window appears; no initialization errors in logs"
+        },
+        {
+          "Action": "Inspect registered services in dependency container",
+          "Expected": "All expected services are registered"
+        }
+      ]
+    },
+    {
+      "Title": "Credential Manager stores and retrieves secrets",
+      "Steps": [
+        {
+          "Action": "Store a test credential via the settings screen",
+          "Expected": "Credential is encrypted and stored in Windows Credential Manager"
+        },
+        {
+          "Action": "Retrieve the credential from memory",
+          "Expected": "Credential matches the stored value"
+        }
+      ]
+    },
+    {
+      "Title": "SQLite cache is initialized",
+      "Steps": [
+        {
+          "Action": "Check for the local SQLite file after first run",
+          "Expected": "Database file exists at configured path with correct schema"
+        }
+      ]
+    },
+    {
+      "Title": "Sign-in with valid credentials succeeds",
+      "Steps": [
+        {
+          "Action": "Enter valid Cortexa credentials in sign-in screen",
+          "Expected": "POST /auth/login is called; JWT token is received and stored"
+        }
+      ]
+    },
+    {
+      "Title": "Token refresh is automatic",
+      "Steps": [
+        {
+          "Action": "Wait for token expiry time",
+          "Expected": "POST /auth/refresh is called automatically before expiry"
+        }
+      ]
+    }
+  ],
+  "createdDate": "2026-10-06",
+  "state": "New"
+}

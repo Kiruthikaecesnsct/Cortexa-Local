@@ -1,0 +1,161 @@
+{
+  "id": "US122",
+  "workItemType": "User Story",
+  "Title": "Write knowledge rows and saga from collector server",
+  "Description": "As a backend engineer, I want a collector server inside desktop/collector that writes desktop knowledge into Cortexa's Cosmos and publishes ingestion.completed, so the existing, unchanged pipeline (extraction, evidence, scoring, harvesting/seeding) finds candidates from it. This story also scaffolds the collector solution shared by the server and the WPF app.",
+  "AcceptanceCriteria": [
+    "Solution Collector.sln in desktop/collector with src/Collector.Domain (shared), server/Collector.Server.Api, server/Collector.Server.Application, server/Collector.Server.Infrastructure and tests/Collector.Server.Tests; Directory.Build.props (net10.0, nullable, warnings as errors) and Directory.Packages.props; dotnet build -warnaserror and dotnet test pass",
+    "Collector.Domain holds the knowledge item, upload contract and enums (KnowledgeKind, UnitKind, SourceKind, SourceType, CollectorProvider) shared by server and desktop",
+    "Writes rows in order: documents (status completed, blob_uri empty) -> chunks (one per knowledge item, id {document_id}|{order_index}, contiguous order_index, running start_char/end_char, token_count, page_number, section_hint, knowledge object with provider/model/prompt_version) -> provenance_maps (one per chunk) -> batches saga (InProgress, every doc Queued, active/queued lists empty, every list [] never null)",
+    "Cosmos rows use a System.Text.Json serializer re-implemented from the orchestrator so field names and enum strings match exactly (InProgress, Queued)",
+    "Publishes one ingestion.completed per document with chunk_count equal to its chunk rows: RabbitMQ locally (session_id and batch_id headers, persistent) and a Service Bus option (SessionId = batch_id); topic names from config",
+    "ingestion.requested and batch.created are never published for collector batches",
+    "Runs locally via desktop/collector/server/run-server.ps1 on localhost:5091 with its own git-ignored .env.collector-server (Cosmos emulator, RabbitMQ, identity); run-local.ps1 is not changed",
+    "Contract test inside desktop/collector pins the copied saga, chunk, document and event shapes",
+    "All code for this story lives inside Cortexa-dev/desktop/collector; nothing in services/, contracts/, frontend/ or deploy/ is edited or referenced (outside logic is re-implemented inside)"
+  ],
+  "Planning": {
+    "StoryPoints": 2.0,
+    "Priority": 1
+  },
+  "Classification": {
+    "RemainingWork": 16.0
+  },
+  "Dependencies": {
+    "Feature": "knowledge-intake",
+    "Contract": "Cosmos rows + ingestion.completed (Cortexa pipeline, unchanged)",
+    "DependsOn": [],
+    "Blocks": [
+      "US123",
+      "US124"
+    ]
+  },
+  "Tags": [
+    "US122",
+    "backend",
+    "knowledge-intake"
+  ],
+  "TalkingPoints": "The collector server writes Cortexa-compatible rows and events from inside desktop/collector, so the existing pipeline runs unchanged. Known limits: web Retry on a collector doc stalls until the watchdog fails the batch; the web document viewer returns 404 (no blob).",
+  "Tasks": [
+    {
+      "Title": "Scaffold solution, shared Domain and server projects",
+      "Description": "Create Collector.sln, Directory.Build.props, Directory.Packages.props, src/Collector.Domain, server/Collector.Server.{Api,Application,Infrastructure}, tests/Collector.Server.Tests. Remove .gitkeep. Verify package versions online.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 3.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Shared Domain contract and enums",
+      "Description": "Knowledge item, source, collector info, upload contract and enums in Collector.Domain.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "Cosmos client and serializer",
+      "Description": "Cosmos client from config, System.Text.Json serializer re-implemented from the orchestrator, partition key /batch_id.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "Row writers for documents, chunks, provenance and saga",
+      "Description": "Build and write rows in the required order with the exact shapes and rules.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 4.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "ingestion.completed publishers",
+      "Description": "RabbitMQ and Service Bus publishers behind one port; topic names from config.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "Local run script and env file",
+      "Description": "run-server.ps1, .env.collector-server.example, git-ignore the real env file; port 5091.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "backend"
+      ]
+    },
+    {
+      "Title": "Contract and writer tests",
+      "Description": "Contract test for copied shapes; unit tests for row building (contiguous order_index, offsets, empty lists).",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "test"
+      ]
+    }
+  ],
+  "Tests": [
+    {
+      "Title": "Rows are written in Cortexa shape",
+      "Steps": [
+        {
+          "Action": "Call the writer with a sample document of 3 knowledge items against the Cosmos emulator",
+          "Expected": "documents, 3 chunks, 3 provenance_maps and 1 saga row exist with snake_case fields and exact enum strings"
+        }
+      ]
+    },
+    {
+      "Title": "Pipeline picks the batch up",
+      "Steps": [
+        {
+          "Action": "Publish ingestion.completed and watch the orchestrator",
+          "Expected": "Doc moves Queued->Ingested and extraction.requested is sent; no ingestion.requested appears"
+        }
+      ]
+    }
+  ],
+  "createdDate": "2026-10-06",
+  "state": "New"
+}

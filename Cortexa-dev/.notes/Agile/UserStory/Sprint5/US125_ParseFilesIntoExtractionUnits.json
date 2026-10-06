@@ -1,0 +1,192 @@
+{
+  "id": "US125",
+  "workItemType": "User Story",
+  "Title": "Parse files into extraction units",
+  "Description": "As a desktop user, I want to select local files and have them automatically split into extraction units so that the AI can process them efficiently. The app normalizes text, detects headings, parses PDFs with PdfPig, DOCXs with DocumentFormat.OpenXml, and walks code trees with language-specific patterns. Large files are split by code structure or fixed token windows. The app shows a unit preview and stores units in the SQLite cache.",
+  "AcceptanceCriteria": [
+    "Text normalizer removes whitespace anomalies and ensures UTF-8 encoding",
+    "Heading detector identifies section boundaries in text documents",
+    "PDF parser extracts text using PdfPig 0.1.14 (text only)",
+    "DOCX parser extracts text using DocumentFormat.OpenXml 3.5.1",
+    "Code walker splits files by function/class starts using language patterns",
+    "Code files larger than 1 MiB are skipped; NUL bytes in first 8000 bytes trigger skip",
+    "Tokenizer uses Microsoft.ML.Tokenizers 2.0.0 with Data.Cl100kBase 2.0.0",
+    "Unit preview shows page/section/file boundaries and token count",
+    "Units are stored in SQLite cache with document metadata",
+    "All code for this story lives inside Cortexa-dev/desktop/collector; nothing in services/, contracts/, frontend/ or deploy/ is edited or referenced (outside logic is re-implemented inside)"
+  ],
+  "Planning": {
+    "StoryPoints": 2.0,
+    "Priority": 1
+  },
+  "Classification": {
+    "RemainingWork": 16.0
+  },
+  "Dependencies": {
+    "Feature": "knowledge-intake",
+    "Contract": "None",
+    "DependsOn": [
+      "US124"
+    ],
+    "Blocks": [
+      "US126",
+      "US134",
+      "US135"
+    ]
+  },
+  "Tags": [
+    "US125",
+    "desktop",
+    "knowledge-intake"
+  ],
+  "TalkingPoints": "Porting the backend text normalization, heading detection, PDF/DOCX parsing, and code-splitting logic to C# desktop. Integrating PdfPig and OpenXml libraries. Splitting large code files by structure and showing unit preview in the UI. Storing units in local SQLite cache.",
+  "Tasks": [
+    {
+      "Title": "Port text normalizer and heading detector",
+      "Description": "Implement C# versions of text_normalizer and heading_detector from backend services/ingestion.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Implement PDF and DOCX parsers",
+      "Description": "Use PdfPig 0.1.14 for PDF text extraction and DocumentFormat.OpenXml 3.5.1 for DOCX parsing.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 3.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Build code walker with language-specific patterns",
+      "Description": "Detect function/class starts in C#/Java/JS/TS/Go/Rust/C/C++ using braces; use indentation for Python; fall back to fixed windows for large functions.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 3.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Integrate tokenizer and unit builder",
+      "Description": "Use Microsoft.ML.Tokenizers 2.0.0 to count tokens; build units with page/section/file/module boundaries.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 3.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Implement file size and content validation",
+      "Description": "Skip files >1 MiB or with NUL bytes in first 8000 bytes; ensure UTF-8 encoding.",
+      "Planning": {
+        "Priority": 2,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Build unit preview screen",
+      "Description": "Display selected files, unit boundaries, token counts, and a sample of unit text in the UI.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 3.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Store units in SQLite cache",
+      "Description": "Persist units with document ID, unit kind, page/file/module metadata, and token count.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    }
+  ],
+  "Tests": [
+    {
+      "Title": "PDF text is correctly extracted",
+      "Steps": [
+        {
+          "Action": "Load a multi-page PDF and inspect extracted text",
+          "Expected": "Text from all pages is present; page_number is recorded in unit metadata"
+        }
+      ]
+    },
+    {
+      "Title": "Code file is split by function boundaries",
+      "Steps": [
+        {
+          "Action": "Load a C# file with 3 functions and inspect units",
+          "Expected": "Each function is in its own unit; unit boundaries align with function starts"
+        }
+      ]
+    },
+    {
+      "Title": "Token count is accurate",
+      "Steps": [
+        {
+          "Action": "Create a unit with known text and check token count",
+          "Expected": "Token count matches manual tokenizer run"
+        }
+      ]
+    },
+    {
+      "Title": "Large code files are skipped",
+      "Steps": [
+        {
+          "Action": "Try to load a file >1 MiB",
+          "Expected": "File is skipped with clear error message"
+        }
+      ]
+    },
+    {
+      "Title": "Units are stored in SQLite",
+      "Steps": [
+        {
+          "Action": "Load files and inspect SQLite cache",
+          "Expected": "Units table contains document_id, unit_kind, metadata, token_count"
+        }
+      ]
+    }
+  ],
+  "createdDate": "2026-10-06",
+  "state": "New"
+}

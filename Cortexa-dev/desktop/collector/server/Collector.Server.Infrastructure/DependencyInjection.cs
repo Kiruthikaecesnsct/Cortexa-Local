@@ -3,6 +3,7 @@ using Azure.Messaging.ServiceBus;
 using Collector.Server.Application.Ports;
 using Collector.Server.Infrastructure.Cosmos;
 using Collector.Server.Infrastructure.Health;
+using Collector.Server.Infrastructure.Identity;
 using Collector.Server.Infrastructure.Messaging.RabbitMq;
 using Collector.Server.Infrastructure.Messaging.ServiceBus;
 using Collector.Server.Infrastructure.Options;
@@ -22,6 +23,7 @@ public static class DependencyInjection
     {
         AddValidatedOptions(services, configuration);
         AddCosmos(services);
+        AddIdentity(services);
         AddMessaging(services, configuration);
         AddHealth(services);
         services.AddSingleton<IClock, SystemClock>();
@@ -38,6 +40,10 @@ public static class DependencyInjection
             .ValidateOnStart();
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<CosmosOptions>, CosmosOptionsValidator>());
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<MessagingOptions>, MessagingOptionsValidator>());
+        services.AddOptions<IdentityOptions>()
+            .Bind(configuration.GetSection(IdentityOptions.SectionName))
+            .ValidateOnStart();
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<IValidateOptions<IdentityOptions>, IdentityOptionsValidator>());
     }
 
     private static void AddCosmos(IServiceCollection services)
@@ -45,6 +51,18 @@ public static class DependencyInjection
         services.AddSingleton<CosmosClient>(provider =>
             CosmosClientFactory.Create(provider.GetRequiredService<IOptions<CosmosOptions>>().Value));
         services.AddSingleton<IPipelineRowStore, CosmosPipelineRowStore>();
+        services.AddSingleton<IModelConfigReader, CosmosModelConfigReader>();
+    }
+
+    private static void AddIdentity(IServiceCollection services)
+    {
+        services.AddMemoryCache();
+        services.AddHttpClient<IUserStatusReader, HttpUserStatusReader>((provider, client) =>
+        {
+            var options = provider.GetRequiredService<IOptions<IdentityOptions>>().Value;
+            client.BaseAddress = new Uri(options.BaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(options.StatusTimeoutSeconds);
+        });
     }
 
     private static void AddMessaging(IServiceCollection services, IConfiguration configuration)

@@ -37,7 +37,7 @@ _The backlog table of contents and resume state. `/init-project new --continue` 
 
 | ID | Title | Type | Status |
 |----|-------|------|--------|
-| — | — | — | — |
+| - | - | - | - |
 
 ---
 
@@ -235,8 +235,6 @@ _All dev CD failure bugs resolved._
 
 _Older session notes are deleted. Full history is in git._
 
+**2026-10-06 (354)**: US123 ✅ Done. Added `POST /collector/batches/knowledge` to the collector server: gateway-equivalent HS256 JWT check plus a fail-closed identity stamp check (`jobs:submit`, `org_id`), field and unit_kind x source_kind validation, server-side filename cleanup, Idempotency-Key replay via UUIDv5 batch ids with a saga lookup before any write, and engine/model fields from the Cosmos config row. Gates: 207/208 tests (emulator test skipped), build -warnaserror and format clean, review PASS. Verified live against identity: 201 create, 200 replay with no duplicate rows, 401/400/422 paths, bidi filename stripped.
+
 **2026-10-06 (353)**: US122 ✅ Done. Added the collector server under `desktop/collector` (.NET 10, `Collector.slnx`): shared Domain contract, row builders that write documents, chunks, provenance_maps and the batch saga into Cortexa Cosmos in pipeline shape, and an `ingestion.completed` publisher (RabbitMQ with confirms, Service Bus option). Contract tests pin the copied shapes. Gates: 47 tests (incl. emulator write), build -warnaserror and format clean, review PASS. Verified live: orchestrator moved the doc Queued -> Ingested and sent `extraction.requested`; no `ingestion.requested`.
-
-**2026-07-13 (352)**: US061 ✅ Done. Built a Playwright E2E suite under `tests/e2e/` covering the full journey (upload → dashboard → drilldown → PDF/JSON export), wired to run only as a CD gate on the dev→qa PR (`cd.yml`) against the stable dev SWA, plus a `frontend-validate` static check of the PR preview slot. Removed all Azure DevOps pipelines so GitHub Actions is the sole CI/CD platform.
-
-

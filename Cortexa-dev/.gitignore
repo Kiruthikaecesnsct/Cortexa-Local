@@ -170,6 +170,8 @@ appsettings.*.local.json
 # Test Data
 .notes/testdata
 .notes/informations/GroundWorkFindings
+.notes
+
 # GCP service-account key (US107 seed-corpus loading) — never commit
 white-hub-501206-d5-82e49e302370.json
 credentials/

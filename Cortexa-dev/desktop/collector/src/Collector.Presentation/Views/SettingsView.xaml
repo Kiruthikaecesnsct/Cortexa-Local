@@ -1,0 +1,116 @@
+<UserControl x:Class="Collector.Presentation.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:b="clr-namespace:Collector.Presentation.Behaviors"
+             xmlns:res="clr-namespace:Collector.Presentation.Resources"
+             b:FocusRouter.IsHost="True"
+             Focusable="False"
+             IsTabStop="False">
+    <UserControl.Resources>
+        <Style x:Key="Settings.Progress" TargetType="ProgressBar" BasedOn="{StaticResource Progress.Thin}">
+            <Setter Property="Visibility" Value="Hidden" />
+            <Setter Property="AutomationProperties.Name" Value="{x:Static res:SettingsStrings.SavingName}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsSaving}" Value="True">
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <StackPanel MaxWidth="{StaticResource Size.ContentMaxWidth}" HorizontalAlignment="Left">
+        <Border Style="{StaticResource Card}">
+            <StackPanel>
+                <ProgressBar Margin="{StaticResource Thickness.StackGap}" Style="{StaticResource Settings.Progress}" />
+                <StackPanel Margin="{StaticResource Thickness.StackGap}" Orientation="Horizontal">
+                    <TextBlock Margin="{StaticResource Thickness.InlineGapLarge}"
+                               Style="{StaticResource Text.Glyph.Header}"
+                               Text="{x:Static res:Glyphs.Globe}" />
+                    <TextBlock AutomationProperties.HeadingLevel="Level2"
+                               Style="{StaticResource Text.Subtitle}"
+                               Text="{x:Static res:SettingsStrings.ConnectionsTitle}" />
+                </StackPanel>
+                <TextBlock Margin="{StaticResource Thickness.StackGapLarge}"
+                           Style="{StaticResource Text.Helper}"
+                           Text="{x:Static res:SettingsStrings.ConnectionsIntro}" />
+
+                <HeaderedContentControl Header="{x:Static res:SettingsStrings.GatewayLabel}"
+                                        Style="{StaticResource FormField}"
+                                        b:FieldState.Error="{Binding GatewayError}"
+                                        b:FieldState.Helper="{x:Static res:SettingsStrings.GatewayHelper}">
+                    <TextBox AutomationProperties.HelpText="{Binding GatewayHelp}"
+                             AutomationProperties.Name="{x:Static res:SettingsStrings.GatewayName}"
+                             IsEnabled="{Binding AreFieldsEnabled}"
+                             Style="{StaticResource TextBox.Url}"
+                             Text="{Binding GatewayUrl, UpdateSourceTrigger=PropertyChanged}"
+                             b:CommandBehaviors.LostFocusCommand="{Binding ValidateGatewayCommand}"
+                             b:FieldState.HasError="{Binding GatewayError, Converter={StaticResource NotEmptyToBool}}"
+                             b:FocusRouter.Key="GatewayUrl" />
+                </HeaderedContentControl>
+                <TextBlock Margin="{StaticResource Thickness.HintPull}"
+                           Style="{StaticResource Text.Helper}"
+                           Text="{x:Static res:SettingsStrings.GatewayHint}"
+                           Visibility="{Binding ShowGatewayHint, Converter={StaticResource BoolToVisibility}}" />
+
+                <HeaderedContentControl Header="{x:Static res:SettingsStrings.CollectorLabel}"
+                                        Style="{StaticResource FormField}"
+                                        b:FieldState.Error="{Binding CollectorError}"
+                                        b:FieldState.Helper="{x:Static res:SettingsStrings.CollectorHelper}">
+                    <TextBox AutomationProperties.HelpText="{Binding CollectorHelp}"
+                             AutomationProperties.Name="{x:Static res:SettingsStrings.CollectorName}"
+                             IsEnabled="{Binding AreFieldsEnabled}"
+                             Style="{StaticResource TextBox.Url}"
+                             Text="{Binding CollectorServerUrl, UpdateSourceTrigger=PropertyChanged}"
+                             b:CommandBehaviors.LostFocusCommand="{Binding ValidateCollectorCommand}"
+                             b:FieldState.HasError="{Binding CollectorError, Converter={StaticResource NotEmptyToBool}}"
+                             b:FocusRouter.Key="CollectorUrl" />
+                </HeaderedContentControl>
+
+                <ContentControl Margin="{StaticResource Thickness.FieldGap}"
+                                Content="{Binding SaveBanner}"
+                                Focusable="False"
+                                IsTabStop="False" />
+
+                <StackPanel Orientation="Horizontal">
+                    <Button Margin="{StaticResource Thickness.InlineGapLarge}"
+                            AutomationProperties.Name="{x:Static res:SettingsStrings.SaveName}"
+                            Command="{Binding SaveEndpointsCommand}"
+                            Content="{Binding SaveLabel}"
+                            IsDefault="{Binding IsSaveDefault}"
+                            Style="{StaticResource Button.Primary}" />
+                    <Button Margin="{StaticResource Thickness.InlineGapLarge}"
+                            AutomationProperties.Name="{x:Static res:SettingsStrings.DiscardName}"
+                            Command="{Binding DiscardCommand}"
+                            Content="{x:Static res:SettingsStrings.Discard}"
+                            IsEnabled="{Binding AreFieldsEnabled}"
+                            Style="{StaticResource Button.Secondary}"
+                            Visibility="{Binding IsDirty, Converter={StaticResource BoolToVisibility}}" />
+                    <TextBlock VerticalAlignment="Center"
+                               Style="{StaticResource Text.Caption}"
+                               Text="{x:Static res:SettingsStrings.Unsaved}"
+                               Visibility="{Binding IsDirty, Converter={StaticResource BoolToVisibility}}" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <Border Margin="{StaticResource Thickness.SectionTop}" Style="{StaticResource Card}">
+            <StackPanel>
+                <StackPanel Margin="{StaticResource Thickness.StackGap}" Orientation="Horizontal">
+                    <TextBlock Margin="{StaticResource Thickness.InlineGapLarge}"
+                               Style="{StaticResource Text.Glyph.Header}"
+                               Text="{x:Static res:Glyphs.Key}" />
+                    <TextBlock AutomationProperties.HeadingLevel="Level2"
+                               Style="{StaticResource Text.Subtitle}"
+                               Text="{x:Static res:SettingsStrings.KeysTitle}" />
+                </StackPanel>
+                <TextBlock Margin="{StaticResource Thickness.StackGap}"
+                           Style="{StaticResource Text.Helper}"
+                           Text="{x:Static res:SettingsStrings.KeysIntro}" />
+                <ItemsControl AlternationCount="100"
+                              Focusable="False"
+                              IsTabStop="False"
+                              ItemsSource="{Binding Rows}" />
+            </StackPanel>
+        </Border>
+    </StackPanel>
+</UserControl>

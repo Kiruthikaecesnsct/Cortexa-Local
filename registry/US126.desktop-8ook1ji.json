@@ -4,9 +4,22 @@
   "machine": "desktop-8ook1ji",
   "env": "windows",
   "branch": "develop/US126",
-  "status": "planning",
-  "files": [],
+  "status": "implementing",
+  "files": [
+    "Cortexa-dev/desktop/collector/Directory.Packages.props",
+    "Cortexa-dev/desktop/collector/src/Collector.Application/Knowledge/",
+    "Cortexa-dev/desktop/collector/src/Collector.Application/Upload/",
+    "Cortexa-dev/desktop/collector/src/Collector.Application/Ports/",
+    "Cortexa-dev/desktop/collector/src/Collector.Application/DependencyInjection.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Infrastructure/Ai/",
+    "Cortexa-dev/desktop/collector/src/Collector.Infrastructure/Upload/",
+    "Cortexa-dev/desktop/collector/src/Collector.Infrastructure/Cache/",
+    "Cortexa-dev/desktop/collector/src/Collector.Infrastructure/Options/",
+    "Cortexa-dev/desktop/collector/src/Collector.Infrastructure/DependencyInjection.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/",
+    "Cortexa-dev/desktop/collector/tests/Collector.Tests/"
+  ],
   "started": "2026-10-07T08:23:30Z",
-  "heartbeat": "2026-10-07T08:23:31Z",
+  "heartbeat": "2026-10-07T08:33:01Z",
   "schema": 2
 }

@@ -74,8 +74,26 @@ public sealed class ExtractionService(
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogWarning(ex, "Extraction failed for {FilePath}.", filePath);
-            await documentStore.UpdateStatusAsync(documentId, DocumentStatus.Failed, cancellationToken);
+            await TrySetStatusAsync(documentId, DocumentStatus.Failed, filePath);
             return new ExtractionResult { SourcePath = filePath, DocumentId = documentId, Status = DocumentStatus.Failed, Reason = ex.Message };
+        }
+        catch (OperationCanceledException)
+        {
+            await TrySetStatusAsync(documentId, DocumentStatus.Pending, filePath);
+            throw;
+        }
+    }
+
+    // Runs on the error path, so it must not throw and must not depend on the caller's token.
+    private async Task TrySetStatusAsync(string documentId, DocumentStatus status, string filePath)
+    {
+        try
+        {
+            await documentStore.UpdateStatusAsync(documentId, status, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Could not set status {Status} for {FilePath}.", status, filePath);
         }
     }
 

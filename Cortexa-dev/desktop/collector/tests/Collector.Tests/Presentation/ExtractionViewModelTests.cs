@@ -152,4 +152,26 @@ public sealed class ExtractionViewModelTests : IDisposable
         Assert.NotNull(viewModel.SelectedDocument);
         Assert.NotEqual(selected, viewModel.SelectedDocument);
     }
+
+    [Fact]
+    public async Task Selecting_another_document_before_a_slow_preview_load_finishes_keeps_only_the_latest_units()
+    {
+        var first = WriteFile("first.txt", System.Text.Encoding.UTF8.GetBytes("first content"));
+        var second = WriteFile("second.txt", System.Text.Encoding.UTF8.GetBytes("second content"));
+        var viewModel = CreateViewModel(first, second);
+        await viewModel.PickFilesCommand.ExecuteAsync(null);
+        var rowA = viewModel.Documents.Single(d => d.Filename == "first.txt");
+        var rowB = viewModel.Documents.Single(d => d.Filename == "second.txt");
+        viewModel.SelectedDocument = rowB;
+        var gate = new TaskCompletionSource();
+        _unitStore.Gates[rowA.DocumentId!] = gate;
+        viewModel.SelectedDocument = rowA;
+
+        viewModel.SelectedDocument = rowB;
+        gate.SetResult();
+        await Task.Yield();
+
+        Assert.NotEmpty(viewModel.PreviewUnits);
+        Assert.All(viewModel.PreviewUnits, u => Assert.Contains("second", u.Snippet, StringComparison.Ordinal));
+    }
 }

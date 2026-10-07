@@ -9,6 +9,25 @@ public sealed partial class HeadingDetector
         "a", "an", "the", "and", "or", "but", "of", "to", "in", "on", "at", "for", "with", "by", "from",
     };
 
+    private const int MinAllCapsLength = 4;
+    private const int MaxAllCapsLength = 100;
+    private const int MinTitleLength = 10;
+    private const int MaxTitleLength = 80;
+    private const int MinTitleWords = 3;
+    private const int MaxTitleWords = 12;
+    private const double MinCapitalizedRatio = 0.7;
+    private const string SentenceEndings = ".?!";
+
+    // Ordered rules; the first one that returns heading text wins.
+    private static readonly Func<string, string?, string?>[] HeadingRules =
+    [
+        (line, _) => AtxHeading().IsMatch(line) ? ExtractAtxText(line) : null,
+        (line, nextLine) => IsMarkdownSetextHeading(line, nextLine) ? line.Trim() : null,
+        (line, _) => NumberedSection().IsMatch(line) ? line.Trim() : null,
+        (line, _) => IsAllCapsSection(line) ? line.Trim() : null,
+        (line, nextLine) => IsTitleCaseHeading(line, nextLine) ? line.Trim() : null,
+    ];
+
     public IReadOnlyList<Heading> DetectHeadings(string text)
     {
         if (string.IsNullOrWhiteSpace(text))
@@ -66,35 +85,17 @@ public sealed partial class HeadingDetector
 
     private static (bool IsHeading, string Text) ClassifyHeading(string line, string? nextLine)
     {
-        if (IsMarkdownAtxHeading(line))
+        foreach (var rule in HeadingRules)
         {
-            return (true, ExtractAtxText(line));
-        }
-
-        if (IsMarkdownSetextHeading(line, nextLine))
-        {
-            return (true, line.Trim());
-        }
-
-        if (IsNumberedSection(line))
-        {
-            return (true, line.Trim());
-        }
-
-        if (IsAllCapsSection(line))
-        {
-            return (true, line.Trim());
-        }
-
-        if (IsTitleCaseHeading(line, nextLine))
-        {
-            return (true, line.Trim());
+            var text = rule(line, nextLine);
+            if (text is not null)
+            {
+                return (true, text);
+            }
         }
 
         return (false, string.Empty);
     }
-
-    private static bool IsMarkdownAtxHeading(string line) => AtxHeading().IsMatch(line);
 
     private static bool IsMarkdownSetextHeading(string line, string? nextLine)
     {
@@ -109,77 +110,66 @@ public sealed partial class HeadingDetector
         return isUnderline && hasContent;
     }
 
-    private static bool IsNumberedSection(string line) => NumberedSection().IsMatch(line);
-
     private static bool IsAllCapsSection(string line)
     {
         var stripped = line.Trim();
-        if (stripped.Length < 4 || stripped.Length > 100)
+        if (stripped.Length is < MinAllCapsLength or > MaxAllCapsLength)
         {
             return false;
         }
 
-        var words = stripped.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
-        if (words.Length == 0)
-        {
-            return false;
-        }
-
-        var alphaWords = words.Where(w => w.Any(char.IsLetter)).ToArray();
-        if (alphaWords.Length == 0)
-        {
-            return false;
-        }
-
-        var allUpper = alphaWords.All(w => w == w.ToUpperInvariant() && w != w.ToLowerInvariant());
-        var hasAlpha = stripped.Any(char.IsLetter);
-        return allUpper && hasAlpha;
+        var alphaWords = SplitWords(stripped).Where(w => w.Any(char.IsLetter)).ToArray();
+        return alphaWords.Length > 0 && alphaWords.All(IsUpperCaseWord);
     }
+
+    private static bool IsUpperCaseWord(string word) =>
+        word == word.ToUpperInvariant() && word != word.ToLowerInvariant();
 
     private static bool IsTitleCaseHeading(string line, string? nextLine)
     {
         var stripped = line.Trim();
-        if (stripped.Length < 10 || stripped.Length > 80)
+        return stripped.Length is >= MinTitleLength and <= MaxTitleLength
+            && !EndsWithSentencePunctuation(stripped)
+            && HasTitleCaseWords(stripped)
+            && NextLineStartsUpper(nextLine);
+    }
+
+    private static bool EndsWithSentencePunctuation(string text) =>
+        text.Length > 0 && SentenceEndings.Contains(text[^1]);
+
+    private static bool HasTitleCaseWords(string text)
+    {
+        var words = SplitWords(text).Where(w => w.All(char.IsLetter)).ToArray();
+        if (words.Length is < MinTitleWords or > MaxTitleWords)
         {
             return false;
         }
 
-        if (stripped.EndsWith('.') || stripped.EndsWith('?') || stripped.EndsWith('!'))
-        {
-            return false;
-        }
+        return CapitalizedRatio(words) >= MinCapitalizedRatio;
+    }
 
-        var words = stripped.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
-            .Where(w => w.Length > 0 && w.All(char.IsLetter))
-            .ToArray();
-        if (words.Length < 3 || words.Length > 12)
-        {
-            return false;
-        }
-
+    private static double CapitalizedRatio(string[] words)
+    {
         var significantWords = words
             .Where(w => !ArticlesAndPrepositions.Contains(w) || w.Length > 3)
             .ToArray();
         if (significantWords.Length == 0)
         {
-            return false;
+            return 0;
         }
 
         var capitalizedCount = significantWords.Count(w => char.IsUpper(w[0]));
-        var ratio = (double)capitalizedCount / significantWords.Length;
-        if (ratio < 0.7)
-        {
-            return false;
-        }
-
-        var nextTrimmed = nextLine?.Trim();
-        if (!string.IsNullOrEmpty(nextTrimmed) && !char.IsUpper(nextTrimmed[0]))
-        {
-            return false;
-        }
-
-        return true;
+        return (double)capitalizedCount / significantWords.Length;
     }
+
+    private static bool NextLineStartsUpper(string? nextLine)
+    {
+        var nextTrimmed = nextLine?.Trim();
+        return string.IsNullOrEmpty(nextTrimmed) || char.IsUpper(nextTrimmed[0]);
+    }
+
+    private static string[] SplitWords(string text) =>
+        text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
 
     private static string ExtractAtxText(string line) => AtxPrefix().Replace(line, string.Empty).Trim();
 

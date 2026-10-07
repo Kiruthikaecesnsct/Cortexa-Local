@@ -10,8 +10,10 @@ internal sealed class FakePdfTextExtractor : IPdfTextExtractor
 {
     public ParsedDocument Result { get; set; } = new() { Text = string.Empty };
 
+    public Exception? Failure { get; set; }
+
     public Task<ParsedDocument> ExtractAsync(string filePath, CancellationToken cancellationToken) =>
-        Task.FromResult(Result);
+        Failure is null ? Task.FromResult(Result) : Task.FromException<ParsedDocument>(Failure);
 }
 
 internal sealed class FakeDocxTextExtractor : IDocxTextExtractor
@@ -37,6 +39,10 @@ internal sealed class InMemoryDocumentStore : IDocumentStore
     public Dictionary<string, CollectorDocument> ByPath { get; } = [];
 
     public List<(string Id, DocumentStatus Status)> StatusHistory { get; } = [];
+
+    public DocumentStatus? ThrowOnStatus { get; set; }
+
+    public CancellationToken? LastStatusToken { get; private set; }
 
     public Task<CollectorDocument> UpsertAsync(
         SourceType sourceType,
@@ -70,6 +76,12 @@ internal sealed class InMemoryDocumentStore : IDocumentStore
 
     public Task UpdateStatusAsync(string documentId, DocumentStatus status, CancellationToken cancellationToken)
     {
+        LastStatusToken = cancellationToken;
+        if (status == ThrowOnStatus)
+        {
+            return Task.FromException(new InvalidOperationException("Status write failed."));
+        }
+
         StatusHistory.Add((documentId, status));
         var entry = ByPath.Values.FirstOrDefault(d => d.Id == documentId);
         if (entry is not null)
@@ -91,6 +103,15 @@ internal sealed class InMemoryUnitStore : IUnitStore
         return Task.CompletedTask;
     }
 
-    public Task<IReadOnlyList<ExtractionUnit>> GetByDocumentIdAsync(string documentId, CancellationToken cancellationToken) =>
-        Task.FromResult<IReadOnlyList<ExtractionUnit>>(ByDocumentId.TryGetValue(documentId, out var units) ? units : []);
+    public Dictionary<string, TaskCompletionSource> Gates { get; } = [];
+
+    public async Task<IReadOnlyList<ExtractionUnit>> GetByDocumentIdAsync(string documentId, CancellationToken cancellationToken)
+    {
+        if (Gates.TryGetValue(documentId, out var gate))
+        {
+            await gate.Task;
+        }
+
+        return ByDocumentId.TryGetValue(documentId, out var units) ? units : [];
+    }
 }

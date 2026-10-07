@@ -123,4 +123,46 @@ public sealed class ExtractionServiceTests : IDisposable
         Assert.NotNull(results[0].Reason);
         Assert.Equal(DocumentStatus.Extracted, results[1].Status);
     }
+
+    [Fact]
+    public async Task Failed_status_write_error_does_not_stop_the_batch()
+    {
+        _docxExtractor.Result = null!;
+        _documentStore.ThrowOnStatus = DocumentStatus.Failed;
+        var broken = WriteFile("broken.docx", [0x50, 0x4b]);
+        var present = WriteFile("notes.txt", "plain notes text"u8.ToArray());
+
+        var results = await _service.ExtractAsync([broken, present], SourceType.Local, SourceKind.Paper, TestSupport.Ct);
+
+        Assert.Equal(2, results.Count);
+        Assert.Equal(DocumentStatus.Failed, results[0].Status);
+        Assert.Equal(DocumentStatus.Extracted, results[1].Status);
+        Assert.NotEmpty(_unitStore.ByDocumentId[results[1].DocumentId!]);
+    }
+
+    [Fact]
+    public async Task Cancelled_parse_resets_status_to_pending_and_rethrows()
+    {
+        _pdfExtractor.Failure = new OperationCanceledException();
+        var path = WriteFile("doc.pdf", [0x25, 0x50, 0x44, 0x46]);
+
+        var act = () => _service.ExtractAsync([path], SourceType.Local, SourceKind.Paper, TestSupport.Ct);
+
+        await Assert.ThrowsAsync<OperationCanceledException>(act);
+        Assert.Equal(DocumentStatus.Pending, _documentStore.StatusHistory[^1].Status);
+    }
+
+    [Fact]
+    public async Task Cancelled_parse_writes_pending_status_with_an_uncancellable_token()
+    {
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+        _pdfExtractor.Failure = new OperationCanceledException(cts.Token);
+        var path = WriteFile("doc.pdf", [0x25, 0x50, 0x44, 0x46]);
+
+        var act = () => _service.ExtractAsync([path], SourceType.Local, SourceKind.Paper, TestSupport.Ct);
+
+        await Assert.ThrowsAsync<OperationCanceledException>(act);
+        Assert.False(_documentStore.LastStatusToken!.Value.CanBeCanceled);
+    }
 }

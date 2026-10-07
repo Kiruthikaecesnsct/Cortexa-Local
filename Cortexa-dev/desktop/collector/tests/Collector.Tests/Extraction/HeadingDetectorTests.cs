@@ -79,4 +79,85 @@ public sealed class HeadingDetectorTests
 
         Assert.Null(result);
     }
+
+    [Theory]
+    [InlineData("Ab Cd Efgh", true)]
+    [InlineData("Ab Cd Efg", false)]
+    public void Title_case_line_is_a_heading_only_from_ten_characters(string line, bool expected)
+    {
+        var headings = _detector.DetectHeadings($"{line}\nBody follows.");
+
+        Assert.Equal(expected, headings.Count == 1);
+    }
+
+    [Theory]
+    [InlineData(80, true)]
+    [InlineData(81, false)]
+    public void Title_case_line_is_a_heading_only_up_to_eighty_characters(int length, bool expected)
+    {
+        var line = TitleCaseLineOfLength(length);
+
+        var headings = _detector.DetectHeadings($"{line}\nBody follows.");
+
+        Assert.Equal(expected, headings.Count == 1);
+    }
+
+    [Theory]
+    [InlineData("Experimental Results Discussion?")]
+    [InlineData("Experimental Results Discussion.")]
+    [InlineData("Experimental Results Discussion!")]
+    public void Title_case_line_ending_in_sentence_punctuation_is_not_a_heading(string line)
+    {
+        var headings = _detector.DetectHeadings($"{line}\nBody follows.");
+
+        Assert.Empty(headings);
+    }
+
+    [Theory]
+    [InlineData(3, true)]
+    [InlineData(2, false)]
+    [InlineData(12, true)]
+    [InlineData(13, false)]
+    public void Title_case_line_is_a_heading_only_for_three_to_twelve_words(int wordCount, bool expected)
+    {
+        var line = string.Join(' ', Enumerable.Repeat("Alpha", wordCount));
+
+        var headings = _detector.DetectHeadings($"{line}\nBody follows.");
+
+        Assert.Equal(expected, headings.Count == 1);
+    }
+
+    [Fact]
+    public void Title_case_line_followed_by_a_lowercase_line_is_not_a_heading()
+    {
+        var headings = _detector.DetectHeadings("Experimental Results Discussion\nbody starts lowercase.");
+
+        Assert.Empty(headings);
+    }
+
+    [Theory]
+    [InlineData("ABC", false)]
+    [InlineData("ABCD", true)]
+    public void All_caps_line_is_a_heading_only_from_four_characters(string line, bool expected)
+    {
+        var headings = _detector.DetectHeadings($"{line}\nbody text follows.");
+
+        Assert.Equal(expected, headings.Count == 1);
+    }
+
+    [Fact]
+    public void Digits_only_line_is_not_an_all_caps_heading()
+    {
+        var headings = _detector.DetectHeadings("12345\nbody text follows.");
+
+        Assert.Empty(headings);
+    }
+
+    private static string TitleCaseLineOfLength(int length)
+    {
+        var words = new List<string> { "Alpha", "Beta" };
+        var filler = new string('x', length - "Alpha Beta ".Length);
+        words.Add($"G{filler[1..]}");
+        return string.Join(' ', words);
+    }
 }

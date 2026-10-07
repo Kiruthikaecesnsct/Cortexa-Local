@@ -225,7 +225,7 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
     private async Task LoadPreviewAsync(DocumentRowViewModel? row, CancellationToken cancellationToken)
     {
         PreviewUnits.Clear();
-        if (row is null || row.Status != DocumentStatus.Extracted || row.DocumentId is null)
+        if (row?.DocumentId is null || row.Status != DocumentStatus.Extracted)
         {
             return;
         }
@@ -233,14 +233,25 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
         try
         {
             var units = await _unitStore.GetByDocumentIdAsync(row.DocumentId, cancellationToken);
-            foreach (var unit in units.OrderBy(u => u.Ordinal))
-            {
-                PreviewUnits.Add(new UnitPreviewItemViewModel(unit, row.SourcePath));
-            }
+            ShowPreviewIfStillSelected(row, units);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             _logger.LogWarning(ex, "Could not load extraction units for {DocumentId}.", row.DocumentId);
+        }
+    }
+
+    // A newer selection may have started its own load while this one awaited the store.
+    private void ShowPreviewIfStillSelected(DocumentRowViewModel row, IReadOnlyList<Domain.Extraction.ExtractionUnit> units)
+    {
+        if (!ReferenceEquals(row, SelectedDocument))
+        {
+            return;
+        }
+
+        foreach (var unit in units.OrderBy(u => u.Ordinal))
+        {
+            PreviewUnits.Add(new UnitPreviewItemViewModel(unit, row.SourcePath));
         }
     }
 

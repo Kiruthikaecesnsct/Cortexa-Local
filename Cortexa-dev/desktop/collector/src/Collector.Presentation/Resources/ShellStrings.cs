@@ -5,6 +5,7 @@ public static class ShellStrings
     public const string AppName = "Cortexa Collector";
     public const string SignIn = "Sign in";
     public const string Settings = "Settings";
+    public const string Extract = "Extract";
     public const string SignedIn = "Signed in";
     public const string NotSignedIn = "Not signed in";
     public const string SessionExpired = "Session expired";

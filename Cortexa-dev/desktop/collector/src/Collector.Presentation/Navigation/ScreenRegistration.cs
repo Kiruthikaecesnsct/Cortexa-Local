@@ -27,4 +27,5 @@ public static class ScreenKeys
 {
     public const string SignIn = "signin";
     public const string Settings = "settings";
+    public const string Extract = "extract";
 }

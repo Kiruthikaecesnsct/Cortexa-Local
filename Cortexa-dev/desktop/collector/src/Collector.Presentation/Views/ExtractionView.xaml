@@ -1,0 +1,437 @@
+<UserControl x:Class="Collector.Presentation.Views.ExtractionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:b="clr-namespace:Collector.Presentation.Behaviors"
+             xmlns:enums="clr-namespace:Collector.Domain.Enums;assembly=Collector.Domain"
+             xmlns:res="clr-namespace:Collector.Presentation.Resources"
+             xmlns:vm="clr-namespace:Collector.Presentation.ViewModels"
+             b:FocusRouter.IsHost="True"
+             Focusable="False"
+             IsTabStop="False">
+    <UserControl.Resources>
+        <Style x:Key="Stat.Tile" TargetType="StackPanel">
+            <Setter Property="Margin" Value="{StaticResource Thickness.SectionTop}" />
+            <Setter Property="MinWidth" Value="96" />
+        </Style>
+
+        <Style x:Key="StatusBadge.Surface" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource Brush.Surface.Sunken}" />
+            <Setter Property="CornerRadius" Value="{StaticResource Radius.Chip}" />
+            <Setter Property="Padding" Value="{StaticResource Thickness.ChipPadding}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Text.Muted}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Status}" Value="{x:Static enums:DocumentStatus.Extracting}">
+                    <Setter Property="Background" Value="{DynamicResource Brush.Info.Surface}" />
+                    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Accent}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Status}" Value="{x:Static enums:DocumentStatus.Extracted}">
+                    <Setter Property="Background" Value="{DynamicResource Brush.Success.Surface}" />
+                    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Success}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Status}" Value="{x:Static enums:DocumentStatus.Failed}">
+                    <Setter Property="Background" Value="{DynamicResource Brush.Danger.Surface}" />
+                    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Danger}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Status}" Value="{x:Static enums:DocumentStatus.Excluded}">
+                    <Setter Property="Background" Value="{DynamicResource Brush.Warning.Surface}" />
+                    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Warning}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="StatusBadge.Glyph" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{StaticResource Font.Icon}" />
+            <Setter Property="FontSize" Value="{StaticResource FontSize.IconSmall}" />
+            <Setter Property="Margin" Value="{StaticResource Thickness.InlineGap}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Text" Value="{x:Static res:Glyphs.Clock}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Status}" Value="{x:Static enums:DocumentStatus.Extracting}">
+                    <Setter Property="Text" Value="{x:Static res:Glyphs.Refresh}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Status}" Value="{x:Static enums:DocumentStatus.Extracted}">
+                    <Setter Property="Text" Value="{x:Static res:Glyphs.Success}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Status}" Value="{x:Static enums:DocumentStatus.Failed}">
+                    <Setter Property="Text" Value="{x:Static res:Glyphs.Error}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Status}" Value="{x:Static enums:DocumentStatus.Excluded}">
+                    <Setter Property="Text" Value="{x:Static res:Glyphs.Warning}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="KindChip.Surface" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource Brush.Surface.Sunken}" />
+            <Setter Property="CornerRadius" Value="{StaticResource Radius.Chip}" />
+            <Setter Property="Padding" Value="{StaticResource Thickness.ChipPadding}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="KindChip.Glyph" TargetType="TextBlock" BasedOn="{StaticResource Text.Glyph}">
+            <Setter Property="FontSize" Value="{StaticResource FontSize.IconSmall}" />
+            <Setter Property="Text" Value="{x:Static res:Glyphs.Document}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding UnitKind}" Value="{x:Static enums:UnitKind.Section}">
+                    <Setter Property="Text" Value="{x:Static res:Glyphs.BulletedList}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding UnitKind}" Value="{x:Static enums:UnitKind.Module}">
+                    <Setter Property="Text" Value="{x:Static res:Glyphs.Code}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="Document.Row" TargetType="ListBoxItem">
+            <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Default}" />
+            <Setter Property="AutomationProperties.Name" Value="{Binding AutomationName}" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Padding" Value="{StaticResource Thickness.None}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Highlight" Padding="{StaticResource Thickness.RowPadding}" SnapsToDevicePixels="True">
+                            <StackPanel>
+                                <Grid MinHeight="{StaticResource Size.RowMin}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0"
+                                               Margin="{StaticResource Thickness.InlineGapLarge}"
+                                               VerticalAlignment="Center"
+                                               Style="{StaticResource Text.Glyph}"
+                                               Text="{x:Static res:Glyphs.Document}" />
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock Style="{StaticResource Text.Label}"
+                                                   Text="{Binding Filename}"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   TextWrapping="NoWrap" />
+                                        <TextBlock Style="{StaticResource Text.Caption}"
+                                                   Text="{Binding SourcePath}"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   TextWrapping="NoWrap" />
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="2"
+                                               Margin="{StaticResource Thickness.InlineGapLarge}"
+                                               VerticalAlignment="Center"
+                                               Style="{StaticResource Text.Caption}">
+                                        <TextBlock.Text>
+                                            <MultiBinding StringFormat="{}{0} units · {1} tokens">
+                                                <Binding Path="UnitCount" />
+                                                <Binding Path="TokenCount" />
+                                            </MultiBinding>
+                                        </TextBlock.Text>
+                                    </TextBlock>
+                                    <Border Grid.Column="3" AutomationProperties.Name="{Binding StatusLabel}" Style="{StaticResource StatusBadge.Surface}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Style="{StaticResource StatusBadge.Glyph}" />
+                                            <TextBlock VerticalAlignment="Center"
+                                                       FontFamily="{StaticResource Font.Body}"
+                                                       FontSize="{StaticResource FontSize.Caption}"
+                                                       Text="{Binding StatusLabel}" />
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                                <ProgressBar>
+                                    <ProgressBar.Style>
+                                        <Style TargetType="ProgressBar" BasedOn="{StaticResource Progress.Thin}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Status}" Value="{x:Static enums:DocumentStatus.Extracting}">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ProgressBar.Style>
+                                </ProgressBar>
+                            </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Highlight" Property="Background" Value="{DynamicResource Brush.Surface.Selected}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Highlight" Property="Background" Value="{DynamicResource Brush.Surface.Selected}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="Documents.List" TargetType="ListBox">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="{StaticResource Thickness.None}" />
+            <Setter Property="SelectionMode" Value="Single" />
+            <Setter Property="ItemContainerStyle" Value="{StaticResource Document.Row}" />
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Disabled" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        </Style>
+    </UserControl.Resources>
+
+    <StackPanel MaxWidth="{StaticResource Size.WorkspaceMaxWidth}" HorizontalAlignment="Left">
+
+        <Border Style="{StaticResource Card}" Visibility="{Binding IsEmptyState, Converter={StaticResource BoolToVisibility}}">
+            <StackPanel HorizontalAlignment="Center">
+                <TextBlock Margin="{StaticResource Thickness.StackGap}"
+                           HorizontalAlignment="Center"
+                           FontFamily="{StaticResource Font.Icon}"
+                           FontSize="40"
+                           Foreground="{DynamicResource Brush.Text.Muted}"
+                           Text="{x:Static res:Glyphs.Document}" />
+                <TextBlock Margin="{StaticResource Thickness.StackGap}"
+                           HorizontalAlignment="Center"
+                           AutomationProperties.HeadingLevel="Level2"
+                           Style="{StaticResource Text.Subtitle}"
+                           Text="{x:Static res:ExtractionStrings.EmptyTitle}" />
+                <TextBlock Margin="{StaticResource Thickness.StackGapLarge}"
+                           HorizontalAlignment="Center"
+                           Style="{StaticResource Text.Body}"
+                           Text="{x:Static res:ExtractionStrings.EmptyBody}"
+                           TextAlignment="Center" />
+                <Button HorizontalAlignment="Center"
+                        AutomationProperties.Name="{x:Static res:ExtractionStrings.PickFilesName}"
+                        Command="{Binding PickFilesCommand}"
+                        Content="{x:Static res:ExtractionStrings.PickFiles}"
+                        Style="{StaticResource Button.Primary}" />
+            </StackPanel>
+        </Border>
+
+        <StackPanel Visibility="{Binding HasDocuments, Converter={StaticResource BoolToVisibility}}">
+
+            <Grid Margin="{StaticResource Thickness.StackGap}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <Button Margin="{StaticResource Thickness.InlineGapLarge}"
+                            AutomationProperties.Name="{x:Static res:ExtractionStrings.PickFilesName}"
+                            Command="{Binding PickFilesCommand}"
+                            Content="{x:Static res:ExtractionStrings.PickFiles}"
+                            Style="{StaticResource Button.Secondary}" />
+                    <Button AutomationProperties.Name="{x:Static res:ExtractionStrings.ClearAllName}"
+                            Command="{Binding ClearAllCommand}"
+                            Content="{x:Static res:ExtractionStrings.ClearAll}"
+                            Style="{StaticResource Button.Link}" />
+                </StackPanel>
+                <TextBlock Grid.Column="1"
+                           HorizontalAlignment="Right"
+                           VerticalAlignment="Center"
+                           Style="{StaticResource Text.Caption}"
+                           Text="{Binding StatusCaption}" />
+            </Grid>
+
+            <Border Margin="{StaticResource Thickness.SectionTop}" Style="{StaticResource Card}">
+                <StackPanel Orientation="Horizontal">
+                    <StackPanel Style="{StaticResource Stat.Tile}">
+                        <TextBlock Style="{StaticResource Text.Title}" Text="{Binding FilesCount}" />
+                        <TextBlock Style="{StaticResource Text.Caption}" Text="{x:Static res:ExtractionStrings.StatFiles}" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Stat.Tile}">
+                        <TextBlock Style="{StaticResource Text.Title}" Text="{Binding ExtractedCount}" />
+                        <TextBlock Style="{StaticResource Text.Caption}" Text="{x:Static res:ExtractionStrings.StatExtracted}" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Stat.Tile}">
+                        <TextBlock Style="{StaticResource Text.Title}" Text="{Binding TotalUnits}" />
+                        <TextBlock Style="{StaticResource Text.Caption}" Text="{x:Static res:ExtractionStrings.StatUnits}" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Stat.Tile}">
+                        <TextBlock Style="{StaticResource Text.Title}" Text="{Binding TotalTokens}" />
+                        <TextBlock Style="{StaticResource Text.Caption}" Text="{x:Static res:ExtractionStrings.StatTokens}" />
+                    </StackPanel>
+                    <StackPanel Style="{StaticResource Stat.Tile}">
+                        <TextBlock Style="{StaticResource Text.Title}" Text="{Binding SkippedCount}" />
+                        <TextBlock Style="{StaticResource Text.Caption}" Text="{x:Static res:ExtractionStrings.StatSkipped}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Margin="{StaticResource Thickness.SectionTop}" Style="{StaticResource Card}">
+                <StackPanel>
+                    <StackPanel Margin="{StaticResource Thickness.StackGap}" Orientation="Horizontal">
+                        <TextBlock Margin="{StaticResource Thickness.InlineGapLarge}"
+                                   Style="{StaticResource Text.Glyph.Header}"
+                                   Text="{x:Static res:Glyphs.Document}" />
+                        <TextBlock AutomationProperties.HeadingLevel="Level2"
+                                   Style="{StaticResource Text.Subtitle}"
+                                   Text="{x:Static res:ExtractionStrings.DocumentsTitle}" />
+                    </StackPanel>
+                    <ListBox AutomationProperties.Name="{x:Static res:ExtractionStrings.DocumentsTitle}"
+                             ItemsSource="{Binding Documents}"
+                             SelectedItem="{Binding SelectedDocument}"
+                             Style="{StaticResource Documents.List}" />
+                </StackPanel>
+            </Border>
+
+            <Border Margin="{StaticResource Thickness.SectionTop}" Style="{StaticResource Card}">
+                <StackPanel>
+                    <StackPanel Margin="{StaticResource Thickness.StackGap}" Orientation="Horizontal">
+                        <TextBlock Margin="{StaticResource Thickness.InlineGapLarge}"
+                                   Style="{StaticResource Text.Glyph.Header}"
+                                   Text="{x:Static res:Glyphs.BulletedList}" />
+                        <StackPanel>
+                            <TextBlock AutomationProperties.HeadingLevel="Level2"
+                                       Style="{StaticResource Text.Subtitle}"
+                                       Text="{x:Static res:ExtractionStrings.UnitPreviewTitle}" />
+                            <TextBlock Style="{StaticResource Text.Caption}"
+                                       Text="{Binding PreviewHeader}"
+                                       Visibility="{Binding ShowPreviewUnits, Converter={StaticResource BoolToVisibility}}" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel HorizontalAlignment="Center" Visibility="{Binding ShowPreviewPlaceholder, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Margin="{StaticResource Thickness.StackGap}"
+                                   HorizontalAlignment="Center"
+                                   FontFamily="{StaticResource Font.Icon}"
+                                   FontSize="28"
+                                   Foreground="{DynamicResource Brush.Text.Muted}"
+                                   Text="{x:Static res:Glyphs.BulletedList}" />
+                        <TextBlock HorizontalAlignment="Center" Style="{StaticResource Text.Helper}" Text="{x:Static res:ExtractionStrings.PreviewEmptyBody}" />
+                    </StackPanel>
+
+                    <StackPanel HorizontalAlignment="Center" Visibility="{Binding ShowPreviewEmpty, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Margin="{StaticResource Thickness.StackGap}"
+                                   HorizontalAlignment="Center"
+                                   FontFamily="{StaticResource Font.Icon}"
+                                   FontSize="28"
+                                   Foreground="{DynamicResource Brush.Warning}"
+                                   Text="{x:Static res:Glyphs.Warning}" />
+                        <TextBlock HorizontalAlignment="Center"
+                                   AutomationProperties.HeadingLevel="Level2"
+                                   Style="{StaticResource Text.Label}"
+                                   Text="{x:Static res:ExtractionStrings.PreviewEmptyTitle}" />
+                        <TextBlock HorizontalAlignment="Center" Style="{StaticResource Text.Helper}" Text="{x:Static res:ExtractionStrings.PreviewEmptyBody}" />
+                    </StackPanel>
+
+                    <ItemsControl AlternationCount="100"
+                                  Focusable="False"
+                                  IsTabStop="False"
+                                  ItemsSource="{Binding PreviewUnits}"
+                                  Visibility="{Binding ShowPreviewUnits, Converter={StaticResource BoolToVisibility}}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <VirtualizingStackPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:UnitPreviewItemViewModel}">
+                                <StackPanel>
+                                    <Border Style="{StaticResource Divider}"
+                                            Visibility="{Binding (ItemsControl.AlternationIndex), RelativeSource={RelativeSource AncestorType=ContentPresenter}, Converter={StaticResource NotZeroToVisibility}}" />
+                                    <Grid Margin="{StaticResource Thickness.RowPadding}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0"
+                                                   Margin="{StaticResource Thickness.InlineGapLarge}"
+                                                   VerticalAlignment="Top"
+                                                   FontFamily="{StaticResource Font.Mono}"
+                                                   FontSize="{StaticResource FontSize.Caption}"
+                                                   Foreground="{DynamicResource Brush.Text.Muted}"
+                                                   Text="{Binding Ordinal}" />
+                                        <StackPanel Grid.Column="1" Margin="{StaticResource Thickness.InlineGapLarge}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Border Style="{StaticResource KindChip.Surface}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Style="{StaticResource KindChip.Glyph}" />
+                                                        <TextBlock VerticalAlignment="Center"
+                                                                   FontFamily="{StaticResource Font.Body}"
+                                                                   FontSize="{StaticResource FontSize.Caption}"
+                                                                   Text="{Binding KindLabel}" />
+                                                    </StackPanel>
+                                                </Border>
+                                                <TextBlock Margin="{StaticResource Thickness.InlineGapLarge}"
+                                                           VerticalAlignment="Center"
+                                                           Style="{StaticResource Text.Label}"
+                                                           Text="{Binding BoundaryLabel}"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           TextWrapping="NoWrap" />
+                                            </StackPanel>
+                                            <Border Margin="{StaticResource Thickness.HelperGap}"
+                                                    Background="{DynamicResource Brush.Surface.Sunken}"
+                                                    CornerRadius="{StaticResource Radius.Control}"
+                                                    Padding="{StaticResource Thickness.ControlPadding}">
+                                                <TextBlock FontFamily="{StaticResource Font.Mono}"
+                                                           FontSize="{StaticResource FontSize.Caption}"
+                                                           Foreground="{DynamicResource Brush.Text.Body}"
+                                                           MaxHeight="54"
+                                                           Text="{Binding Snippet}"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           TextWrapping="Wrap" />
+                                            </Border>
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="2" VerticalAlignment="Top" HorizontalAlignment="Right">
+                                            <TextBlock HorizontalAlignment="Right"
+                                                       FontFamily="{StaticResource Font.Mono}"
+                                                       Style="{StaticResource Text.Label}"
+                                                       Text="{Binding TokenCount}" />
+                                            <TextBlock HorizontalAlignment="Right" Style="{StaticResource Text.Caption}" Text="{x:Static res:ExtractionStrings.TokensSuffix}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Border Margin="{StaticResource Thickness.SectionTop}"
+                    Style="{StaticResource Card}"
+                    Visibility="{Binding HasSkipped, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel>
+                    <ContentControl Content="{Binding SkipBanner}" Focusable="False" IsTabStop="False" />
+                    <ItemsControl AlternationCount="100"
+                                  Focusable="False"
+                                  IsTabStop="False"
+                                  ItemsSource="{Binding SkipRows}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:DocumentRowViewModel}">
+                                <StackPanel>
+                                    <Border Style="{StaticResource Divider}"
+                                            Visibility="{Binding (ItemsControl.AlternationIndex), RelativeSource={RelativeSource AncestorType=ContentPresenter}, Converter={StaticResource NotZeroToVisibility}}" />
+                                    <Grid MinHeight="{StaticResource Size.RowMin}" Margin="{StaticResource Thickness.RowPadding}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Border Grid.Column="0"
+                                                Margin="{StaticResource Thickness.InlineGapLarge}"
+                                                AutomationProperties.Name="{Binding StatusLabel}"
+                                                Style="{StaticResource StatusBadge.Surface}">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Style="{StaticResource StatusBadge.Glyph}" />
+                                                <TextBlock VerticalAlignment="Center"
+                                                           FontFamily="{StaticResource Font.Body}"
+                                                           FontSize="{StaticResource FontSize.Caption}"
+                                                           Text="{Binding StatusLabel}" />
+                                            </StackPanel>
+                                        </Border>
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Style="{StaticResource Text.Label}" Text="{Binding Filename}" />
+                                            <TextBlock Style="{StaticResource Text.Caption}" Text="{Binding SkipReasonText}" />
+                                        </StackPanel>
+                                        <Button Grid.Column="2"
+                                                Width="{StaticResource Size.RowAction}"
+                                                Height="{StaticResource Size.RowAction}"
+                                                AutomationProperties.Name="{Binding RemoveAutomationName}"
+                                                Command="{Binding DataContext.RemoveDocumentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"
+                                                Content="{x:Static res:Glyphs.Close}"
+                                                Style="{StaticResource Button.Icon}" />
+                                    </Grid>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+    </StackPanel>
+</UserControl>

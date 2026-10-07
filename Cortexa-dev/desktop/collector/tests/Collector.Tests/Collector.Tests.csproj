@@ -11,6 +11,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Collector.Application\Collector.Application.csproj" />
     <ProjectReference Include="..\..\src\Collector.Infrastructure\Collector.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Collector.Presentation\Collector.Presentation.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Xunit" />

@@ -12,4 +12,11 @@ public static class Glyphs
     public const string Close = "";
     public const string Globe = "";
     public const string Key = "";
+    public const string Document = "";
+    public const string FolderOpen = "";
+    public const string BulletedList = "";
+    public const string Code = "";
+    public const string Clock = "";
+    public const string Refresh = "";
 }
+

@@ -61,6 +61,7 @@
     <sys:Double x:Key="Size.RailCompact">64</sys:Double>
     <sys:Double x:Key="Size.SignInCardWidth">400</sys:Double>
     <sys:Double x:Key="Size.ContentMaxWidth">720</sys:Double>
+    <sys:Double x:Key="Size.WorkspaceMaxWidth">960</sys:Double>
     <sys:Double x:Key="Size.EmailMaxWidth">280</sys:Double>
     <sys:Double x:Key="Size.WindowMinWidth">880</sys:Double>
     <sys:Double x:Key="Size.WindowMinHeight">600</sys:Double>

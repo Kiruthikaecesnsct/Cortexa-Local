@@ -14,7 +14,7 @@ test_cmd: per-stack — see build_commands below
 format_cmd: per-stack — see build_commands below
 lint_cmd: per-stack — see build_commands below
 solution_file: none (independent per-service projects)
-stacks: [python3.14-fastapi, dotnet8, react-typescript-vite, terraform]
+stacks: [python3.14-fastapi, dotnet8, dotnet10-wpf, react-typescript-vite, terraform]
 build_commands:
   python:
     build: uv sync
@@ -23,6 +23,12 @@ build_commands:
     lint: uv run ruff check .
     audit: uv run pip-audit
   dotnet:
+    build: dotnet build -warnaserror
+    test: dotnet test
+    format: dotnet format --verify-no-changes
+    lint: dotnet build -warnaserror
+    audit: dotnet list package --vulnerable
+  desktop:  # run from desktop/collector
     build: dotnet build -warnaserror
     test: dotnet test
     format: dotnet format --verify-no-changes

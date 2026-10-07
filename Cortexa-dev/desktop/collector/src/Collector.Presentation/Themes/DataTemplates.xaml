@@ -1,0 +1,63 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:b="clr-namespace:Collector.Presentation.Behaviors"
+                    xmlns:res="clr-namespace:Collector.Presentation.Resources"
+                    xmlns:vm="clr-namespace:Collector.Presentation.ViewModels"
+                    xmlns:views="clr-namespace:Collector.Presentation.Views">
+
+    <DataTemplate DataType="{x:Type vm:SignInViewModel}">
+        <views:SignInView />
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
+        <views:SettingsView />
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:BannerViewModel}">
+        <views:BannerView />
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:AiKeyRowViewModel}">
+        <views:AiKeyRowView />
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:KeyEditorViewModel}">
+        <StackPanel Margin="{StaticResource Thickness.SectionTop}">
+            <StackPanel.InputBindings>
+                <KeyBinding Key="Escape" Command="{Binding CancelCommand}" />
+            </StackPanel.InputBindings>
+            <HeaderedContentControl Header="{Binding Labels.Label}"
+                                    Style="{StaticResource FormField}"
+                                    b:FieldState.Error="{Binding Error}"
+                                    b:FieldState.Helper="{x:Static res:SettingsStrings.EditorHelper}">
+                <PasswordBox AutomationProperties.HelpText="{Binding Error}"
+                             AutomationProperties.Name="{Binding Labels.AutomationName}"
+                             IsEnabled="{Binding IsEditable}"
+                             Style="{StaticResource PasswordBox.Field}"
+                             b:FieldState.HasError="{Binding Error, Converter={StaticResource NotEmptyToBool}}"
+                             b:FocusRouter.Key="Editor"
+                             b:PasswordBoxBinding.AutoFocus="True"
+                             b:PasswordBoxBinding.IsEnabled="True">
+                    <PasswordBox.InputBindings>
+                        <KeyBinding Key="Enter" Command="{Binding SaveCommand}" />
+                    </PasswordBox.InputBindings>
+                </PasswordBox>
+            </HeaderedContentControl>
+            <StackPanel Orientation="Horizontal">
+                <Button MinHeight="{StaticResource Size.RowAction}"
+                        Margin="{StaticResource Thickness.InlineGap}"
+                        AutomationProperties.Name="{Binding Labels.SaveName}"
+                        Command="{Binding SaveCommand}"
+                        Content="{Binding SaveLabel}"
+                        IsDefault="True"
+                        Style="{StaticResource Button.Primary}" />
+                <Button MinHeight="{StaticResource Size.RowAction}"
+                        AutomationProperties.Name="{Binding Labels.CancelName}"
+                        Command="{Binding CancelCommand}"
+                        Content="{x:Static res:SettingsStrings.Cancel}"
+                        IsEnabled="{Binding IsEditable}"
+                        Style="{StaticResource Button.Secondary}" />
+            </StackPanel>
+        </StackPanel>
+    </DataTemplate>
+</ResourceDictionary>

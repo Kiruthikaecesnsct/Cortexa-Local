@@ -48,3 +48,19 @@ public sealed class NotZeroToVisibilityConverter : IValueConverter
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         throw new NotSupportedException();
 }
+
+public sealed class ViewportFitConverter : IMultiValueConverter
+{
+    public object Convert(object?[] values, Type targetType, object? parameter, CultureInfo culture)
+    {
+        if (values is not [double viewport, Thickness padding])
+        {
+            return double.NaN;
+        }
+
+        return Math.Max(0d, viewport - padding.Top - padding.Bottom);
+    }
+
+    public object[] ConvertBack(object? value, Type[] targetTypes, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}

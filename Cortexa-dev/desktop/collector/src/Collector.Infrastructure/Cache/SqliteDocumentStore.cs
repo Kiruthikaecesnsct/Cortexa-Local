@@ -47,6 +47,20 @@ public sealed class SqliteDocumentStore(SqliteConnectionFactory connections, Tim
         return ReadDocument(reader);
     }
 
+    public async Task<CollectorDocument?> GetAsync(string documentId, CancellationToken cancellationToken)
+    {
+        await using var connection = await connections.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText =
+            """
+            SELECT id, source_type, source_kind, source_path, filename, content_hash, size_bytes, status, created_at, updated_at
+            FROM documents WHERE id = $id;
+            """;
+        command.Parameters.AddWithValue("$id", documentId);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        return await reader.ReadAsync(cancellationToken) ? ReadDocument(reader) : null;
+    }
+
     public async Task UpdateStatusAsync(string documentId, DocumentStatus status, CancellationToken cancellationToken)
     {
         await using var connection = await connections.OpenAsync(cancellationToken);

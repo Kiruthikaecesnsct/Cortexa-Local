@@ -2,12 +2,16 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:b="clr-namespace:Collector.Presentation.Behaviors"
+             xmlns:sys="clr-namespace:System;assembly=System.Runtime"
              xmlns:enums="clr-namespace:Collector.Domain.Enums;assembly=Collector.Domain"
              xmlns:res="clr-namespace:Collector.Presentation.Resources"
              xmlns:vm="clr-namespace:Collector.Presentation.ViewModels"
              b:FocusRouter.IsHost="True"
              Focusable="False"
              IsTabStop="False">
+    <UserControl.InputBindings>
+        <KeyBinding Key="Escape" Command="{Binding Knowledge.ExtractKnowledgeCancelCommand}" />
+    </UserControl.InputBindings>
     <UserControl.Resources>
         <Style x:Key="Stat.Tile" TargetType="StackPanel">
             <Setter Property="Margin" Value="{StaticResource Thickness.SectionTop}" />
@@ -61,12 +65,7 @@
             </Style.Triggers>
         </Style>
 
-        <Style x:Key="KindChip.Surface" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource Brush.Surface.Sunken}" />
-            <Setter Property="CornerRadius" Value="{StaticResource Radius.Chip}" />
-            <Setter Property="Padding" Value="{StaticResource Thickness.ChipPadding}" />
-            <Setter Property="VerticalAlignment" Value="Center" />
-        </Style>
+        <Style x:Key="KindChip.Surface" TargetType="Border" BasedOn="{StaticResource Tag.Surface}" />
         <Style x:Key="KindChip.Glyph" TargetType="TextBlock" BasedOn="{StaticResource Text.Glyph}">
             <Setter Property="FontSize" Value="{StaticResource FontSize.IconSmall}" />
             <Setter Property="Text" Value="{x:Static res:Glyphs.Document}" />
@@ -201,6 +200,8 @@
 
         <StackPanel Visibility="{Binding HasDocuments, Converter={StaticResource BoolToVisibility}}">
 
+            <ContentControl Content="{Binding Knowledge.Banner}" Style="{StaticResource Banner.Slot}" />
+
             <Grid Margin="{StaticResource Thickness.StackGap}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -217,12 +218,54 @@
                             Content="{x:Static res:ExtractionStrings.ClearAll}"
                             Style="{StaticResource Button.Link}" />
                 </StackPanel>
-                <TextBlock Grid.Column="1"
-                           HorizontalAlignment="Right"
-                           VerticalAlignment="Center"
-                           Style="{StaticResource Text.Caption}"
-                           Text="{Binding StatusCaption}" />
+                <StackPanel Grid.Column="1"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Orientation="Horizontal">
+                    <TextBlock VerticalAlignment="Center"
+                               Style="{StaticResource Text.Caption}"
+                               Text="{Binding StatusCaption}" />
+                    <Button Margin="{StaticResource Thickness.LeadingGap}"
+                            AutomationProperties.HelpText="{Binding Knowledge.ExtractHelp, TargetNullValue={x:Static sys:String.Empty}}"
+                            AutomationProperties.Name="{x:Static res:ExtractionStrings.ExtractKnowledgeName}"
+                            Command="{Binding Knowledge.ExtractKnowledgeCommand}"
+                            Content="{x:Static res:ExtractionStrings.ExtractKnowledge}"
+                            Style="{StaticResource Button.Primary}"
+                            ToolTip="{Binding Knowledge.ExtractHelp}"
+                            ToolTipService.ShowOnDisabled="True" />
+                </StackPanel>
             </Grid>
+
+            <Border Margin="{StaticResource Thickness.StackGap}"
+                    Style="{StaticResource Card}"
+                    Visibility="{Binding Knowledge.IsRunning, Converter={StaticResource BoolToVisibility}}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                        <TextBlock Margin="{StaticResource Thickness.StackGap}"
+                                   Style="{StaticResource Text.Label}"
+                                   Text="{x:Static res:ExtractionStrings.RunTitle}" />
+                        <ProgressBar Margin="{StaticResource Thickness.StackGap}"
+                                     AutomationProperties.Name="{x:Static res:ExtractionStrings.RunProgressName}"
+                                     IsIndeterminate="False"
+                                     Maximum="{Binding Knowledge.ProgressMaximum, Mode=OneWay}"
+                                     Style="{StaticResource Progress.Thin}"
+                                     Value="{Binding Knowledge.CompletedUnits, Mode=OneWay}" />
+                        <TextBlock Style="{StaticResource Text.Caption}" Text="{Binding Knowledge.ProgressText}" />
+                    </StackPanel>
+                    <Button Grid.Column="1"
+                            Margin="{StaticResource Thickness.LeadingGap}"
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name="{x:Static res:ExtractionStrings.CancelName}"
+                            Command="{Binding Knowledge.ExtractKnowledgeCancelCommand}"
+                            Content="{x:Static res:ExtractionStrings.Cancel}"
+                            Style="{StaticResource Button.Secondary}"
+                            b:FocusRouter.Key="Cancel" />
+                </Grid>
+            </Border>
 
             <Border Margin="{StaticResource Thickness.SectionTop}" Style="{StaticResource Card}">
                 <StackPanel Orientation="Horizontal">

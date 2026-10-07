@@ -1,6 +1,8 @@
 using Collector.Application.Auth;
 using Collector.Application.Extraction;
+using Collector.Application.Knowledge;
 using Collector.Application.Settings;
+using Collector.Application.Upload;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Collector.Application;
@@ -16,6 +18,7 @@ public static class DependencyInjection
         services.AddSingleton<ISessionState>(sp => sp.GetRequiredService<SessionService>());
         services.AddSingleton<SettingsService>();
         services.AddCollectorExtraction();
+        services.AddCollectorKnowledge();
         return services;
     }
 
@@ -28,5 +31,24 @@ public static class DependencyInjection
         services.AddSingleton<UnitBuilder>();
         services.AddSingleton<DocumentStatusRules>();
         services.AddSingleton<ExtractionService>();
+    }
+
+    private static void AddCollectorKnowledge(this IServiceCollection services)
+    {
+        services.AddOptions<KnowledgeExtractionOptions>();
+        services.AddSingleton(_ => KnowledgePromptLoader.Load());
+        services.AddSingleton<UntrustedSourceGuard>();
+        services.AddSingleton<KnowledgePromptBuilder>();
+        services.AddSingleton<KnowledgeParser>();
+        services.AddSingleton<AnchorLocator>();
+        services.AddSingleton<ExcerptCutter>();
+        services.AddSingleton<IdentifierEchoDetector>();
+        services.AddSingleton<KnowledgeMerger>();
+        services.AddSingleton<UnitSplitter>();
+        services.AddSingleton<UnitItemAssembler>();
+        services.AddSingleton<UnitExtractionRunner>();
+        services.AddSingleton<ExtractKnowledgeHandler>();
+        services.AddSingleton<UploadBatchPlanner>();
+        services.AddSingleton<UploadKnowledgeHandler>();
     }
 }

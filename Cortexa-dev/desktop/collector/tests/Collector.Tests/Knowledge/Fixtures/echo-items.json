@@ -1,0 +1,96 @@
+{
+  "_note": "Hand-written fixture, not a recorded model response. Every case must be flagged by IdentifierEchoDetector with the listed reason. Reasons are checked in order: title_is_identifier, title_identifier_share, summary_identifier_share, summary_copied; the first hit wins.",
+  "detector_spec": {
+    "constants": { "TitleEchoRatio": 0.5, "SummaryEchoRatio": 0.3, "SummaryCopyRatio": 0.6, "MinCopyCheckLength": 40 },
+    "comparison": "Every ratio rule uses strict greater-than. A ratio equal to its threshold passes.",
+    "tokenize": "Split title or summary on whitespace. From each raw token trim leading chars in [\" ' ` ( [ { < “ ‘]. Then repeatedly trim one trailing char while it is in [\" ' ` , ; : ! ? . ] } > ” ’], or it is ')' and the token does not end with '()'. Keep tokens that contain at least one letter or digit (word tokens). The share denominator is the count of all word tokens; no stopword list.",
+    "identifierShape": [
+      "call: ends with '()' and has a letter before it",
+      "camel hump: a lowercase letter immediately followed by an uppercase letter (ExecuteAsync, maxBytes, GitHub)",
+      "snake: contains '_' and at least one letter (split_into_batches)",
+      "screaming: [A-Z][A-Z0-9]*(_[A-Z0-9]+)+ (already covered by snake; listed for clarity). Plain all-caps words such as HTTP, JSON, API are NOT identifier-shaped",
+      "dot path: contains a match of [A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)+ with at least one segment of 2 or more chars. Excludes e.g, i.e, U.S; numbers like 3.2 never match"
+    ],
+    "presence": "A token is an echo identifier when it is identifier-shaped AND present in the ORIGINAL unit.Text: strip a trailing '()' then ordinal (case-sensitive) Contains. For a dot path that is not found whole, it is present when every '.'-separated segment is found by ordinal Contains (catches composed Class.Method titles).",
+    "rules": [
+      "title_is_identifier: the title has exactly 1 word token and it is an echo identifier",
+      "title_identifier_share: echo identifiers / title word tokens > TitleEchoRatio",
+      "summary_identifier_share: echo identifiers / summary word tokens > SummaryEchoRatio",
+      "summary_copied: normalize summary and unit.Text (ToLowerInvariant, collapse whitespace runs to one space, trim); if normalized summary length >= MinCopyCheckLength and longest common substring (characters) / normalized summary length > SummaryCopyRatio"
+    ],
+    "scope": "Only title and summary are checked. details and anchor_quote are never checked (anchor_quote is meant to be verbatim; details may hold up to 2 backticked identifiers).",
+    "lcsNote": "Summary is at most 2000 chars but unit text can be long; use a suffix automaton over the unit text or rolling-hash binary search rather than a full O(n*m) table."
+  },
+  "cases": [
+    {
+      "name": "title is a bare method name",
+      "unit_kind": "file",
+      "unit_text": "public sealed class RetryPolicy\n{\n    private const int MaxAttempts = 5;\n    private static readonly TimeSpan BaseDelay = TimeSpan.FromMilliseconds(200);\n    private static readonly TimeSpan MaxDelay = TimeSpan.FromSeconds(10);\n\n    public async Task<HttpResponseMessage> ExecuteAsync(Func<Task<HttpResponseMessage>> send, CancellationToken ct)\n    {\n        for (var attempt = 0; ; attempt++)\n        {\n            var response = await send();\n            if (!IsTransient(response.StatusCode) || attempt + 1 >= MaxAttempts)\n            {\n                return response;\n            }\n\n            var delayMs = Math.Min(MaxDelay.TotalMilliseconds, BaseDelay.TotalMilliseconds * Math.Pow(2, attempt));\n            await Task.Delay(TimeSpan.FromMilliseconds(delayMs + Random.Shared.Next(0, 100)), ct);\n        }\n    }\n\n    private static bool IsTransient(HttpStatusCode code) =>\n        code is HttpStatusCode.TooManyRequests or HttpStatusCode.ServiceUnavailable;\n}\n",
+      "item": { "kind": "method", "title": "ExecuteAsync", "summary": "Failed calls are retried only for temporary failures, waiting longer after each attempt.", "details": "", "anchor_quote": null },
+      "expected": { "is_echo": true, "reason": "title_is_identifier" }
+    },
+    {
+      "name": "title is a composed dot path whose segments are in source",
+      "unit_kind": "file",
+      "unit_text": "public sealed class RetryPolicy\n{\n    private const int MaxAttempts = 5;\n    private static readonly TimeSpan BaseDelay = TimeSpan.FromMilliseconds(200);\n    private static readonly TimeSpan MaxDelay = TimeSpan.FromSeconds(10);\n\n    public async Task<HttpResponseMessage> ExecuteAsync(Func<Task<HttpResponseMessage>> send, CancellationToken ct)\n    {\n        for (var attempt = 0; ; attempt++)\n        {\n            var response = await send();\n            if (!IsTransient(response.StatusCode) || attempt + 1 >= MaxAttempts)\n            {\n                return response;\n            }\n\n            var delayMs = Math.Min(MaxDelay.TotalMilliseconds, BaseDelay.TotalMilliseconds * Math.Pow(2, attempt));\n            await Task.Delay(TimeSpan.FromMilliseconds(delayMs + Random.Shared.Next(0, 100)), ct);\n        }\n    }\n\n    private static bool IsTransient(HttpStatusCode code) =>\n        code is HttpStatusCode.TooManyRequests or HttpStatusCode.ServiceUnavailable;\n}\n",
+      "item": { "kind": "method", "title": "`RetryPolicy.ExecuteAsync()`", "summary": "Failed calls are retried only for temporary failures, waiting longer after each attempt.", "details": "", "anchor_quote": null },
+      "expected": { "is_echo": true, "reason": "title_is_identifier" }
+    },
+    {
+      "name": "title is a SCREAMING_CASE constant",
+      "unit_kind": "file",
+      "unit_text": "MAX_BATCH_SIZE = 50\n\n\ndef split_into_batches(documents, max_bytes):\n    \"\"\"Group documents so each batch stays under both the count and size limits.\"\"\"\n    batches, current, current_bytes = [], [], 0\n    for doc in documents:\n        size = len(doc.payload)\n        if current and (len(current) == MAX_BATCH_SIZE or current_bytes + size > max_bytes):\n            batches.append(current)\n            current, current_bytes = [], 0\n        current.append(doc)\n        current_bytes += size\n    if current:\n        batches.append(current)\n    return batches\n",
+      "item": { "kind": "logic", "title": "MAX_BATCH_SIZE", "summary": "A batch is closed as soon as it reaches the document limit or would exceed the byte limit.", "details": "", "anchor_quote": null },
+      "expected": { "is_echo": true, "reason": "title_is_identifier" }
+    },
+    {
+      "name": "title share above threshold (2 of 3)",
+      "unit_kind": "file",
+      "unit_text": "MAX_BATCH_SIZE = 50\n\n\ndef split_into_batches(documents, max_bytes):\n    \"\"\"Group documents so each batch stays under both the count and size limits.\"\"\"\n    batches, current, current_bytes = [], [], 0\n    for doc in documents:\n        size = len(doc.payload)\n        if current and (len(current) == MAX_BATCH_SIZE or current_bytes + size > max_bytes):\n            batches.append(current)\n            current, current_bytes = [], 0\n        current.append(doc)\n        current_bytes += size\n    if current:\n        batches.append(current)\n    return batches\n",
+      "item": { "kind": "algorithm", "title": "split_into_batches with MAX_BATCH_SIZE", "summary": "Documents are packed greedily into batches that respect both a count limit and a size limit.", "details": "", "anchor_quote": null },
+      "expected": { "is_echo": true, "reason": "title_identifier_share" }
+    },
+    {
+      "name": "title share with call-style tokens (2 of 3)",
+      "unit_kind": "file",
+      "unit_text": "public sealed class RetryPolicy\n{\n    private const int MaxAttempts = 5;\n    private static readonly TimeSpan BaseDelay = TimeSpan.FromMilliseconds(200);\n    private static readonly TimeSpan MaxDelay = TimeSpan.FromSeconds(10);\n\n    public async Task<HttpResponseMessage> ExecuteAsync(Func<Task<HttpResponseMessage>> send, CancellationToken ct)\n    {\n        for (var attempt = 0; ; attempt++)\n        {\n            var response = await send();\n            if (!IsTransient(response.StatusCode) || attempt + 1 >= MaxAttempts)\n            {\n                return response;\n            }\n\n            var delayMs = Math.Min(MaxDelay.TotalMilliseconds, BaseDelay.TotalMilliseconds * Math.Pow(2, attempt));\n            await Task.Delay(TimeSpan.FromMilliseconds(delayMs + Random.Shared.Next(0, 100)), ct);\n        }\n    }\n\n    private static bool IsTransient(HttpStatusCode code) =>\n        code is HttpStatusCode.TooManyRequests or HttpStatusCode.ServiceUnavailable;\n}\n",
+      "item": { "kind": "logic", "title": "ExecuteAsync() calls IsTransient()", "summary": "Only rate-limit and unavailable responses count as temporary and are retried.", "details": "", "anchor_quote": null },
+      "expected": { "is_echo": true, "reason": "title_identifier_share" }
+    },
+    {
+      "name": "summary narrates identifiers (5 of 14)",
+      "unit_kind": "file",
+      "unit_text": "public sealed class RetryPolicy\n{\n    private const int MaxAttempts = 5;\n    private static readonly TimeSpan BaseDelay = TimeSpan.FromMilliseconds(200);\n    private static readonly TimeSpan MaxDelay = TimeSpan.FromSeconds(10);\n\n    public async Task<HttpResponseMessage> ExecuteAsync(Func<Task<HttpResponseMessage>> send, CancellationToken ct)\n    {\n        for (var attempt = 0; ; attempt++)\n        {\n            var response = await send();\n            if (!IsTransient(response.StatusCode) || attempt + 1 >= MaxAttempts)\n            {\n                return response;\n            }\n\n            var delayMs = Math.Min(MaxDelay.TotalMilliseconds, BaseDelay.TotalMilliseconds * Math.Pow(2, attempt));\n            await Task.Delay(TimeSpan.FromMilliseconds(delayMs + Random.Shared.Next(0, 100)), ct);\n        }\n    }\n\n    private static bool IsTransient(HttpStatusCode code) =>\n        code is HttpStatusCode.TooManyRequests or HttpStatusCode.ServiceUnavailable;\n}\n",
+      "item": { "kind": "method", "title": "Retry only temporary HTTP failures", "summary": "ExecuteAsync loops until IsTransient returns false or MaxAttempts is reached, using BaseDelay and MaxDelay.", "details": "", "anchor_quote": null },
+      "expected": { "is_echo": true, "reason": "summary_identifier_share" }
+    },
+    {
+      "name": "summary share just above threshold (3 of 9)",
+      "unit_kind": "file",
+      "unit_text": "MAX_BATCH_SIZE = 50\n\n\ndef split_into_batches(documents, max_bytes):\n    \"\"\"Group documents so each batch stays under both the count and size limits.\"\"\"\n    batches, current, current_bytes = [], [], 0\n    for doc in documents:\n        size = len(doc.payload)\n        if current and (len(current) == MAX_BATCH_SIZE or current_bytes + size > max_bytes):\n            batches.append(current)\n            current, current_bytes = [], 0\n        current.append(doc)\n        current_bytes += size\n    if current:\n        batches.append(current)\n    return batches\n",
+      "item": { "kind": "logic", "title": "Batch splitting under count and size limits", "summary": "split_into_batches flushes current when MAX_BATCH_SIZE or max_bytes is hit.", "details": "", "anchor_quote": null },
+      "expected": { "is_echo": true, "reason": "summary_identifier_share" }
+    },
+    {
+      "name": "summary copies a docstring",
+      "unit_kind": "file",
+      "unit_text": "MAX_BATCH_SIZE = 50\n\n\ndef split_into_batches(documents, max_bytes):\n    \"\"\"Group documents so each batch stays under both the count and size limits.\"\"\"\n    batches, current, current_bytes = [], [], 0\n    for doc in documents:\n        size = len(doc.payload)\n        if current and (len(current) == MAX_BATCH_SIZE or current_bytes + size > max_bytes):\n            batches.append(current)\n            current, current_bytes = [], 0\n        current.append(doc)\n        current_bytes += size\n    if current:\n        batches.append(current)\n    return batches\n",
+      "item": { "kind": "algorithm", "title": "Greedy batch packing", "summary": "Group documents so each batch stays under both the count and size limits.", "details": "", "anchor_quote": null },
+      "expected": { "is_echo": true, "reason": "summary_copied" }
+    },
+    {
+      "name": "summary copies a paper sentence",
+      "unit_kind": "page",
+      "unit_text": "4 Incremental Indexing\nOur approach builds the index incrementally. Instead of rebuilding the full inverted index after every update, new documents are written to a small in-memory segment that is merged into the main index once it exceeds a size threshold. This keeps write latency low while bounding the number of segments a query must scan.\nIn our experiments the merge threshold of 64 MB gave the best balance between write throughput and query latency (see Table 2).",
+      "item": { "kind": "method", "title": "Incremental index building", "summary": "Instead of rebuilding the full inverted index after every update, new documents are written to a small in-memory segment.", "details": "", "anchor_quote": "new documents are written to a small in-memory segment" },
+      "expected": { "is_echo": true, "reason": "summary_copied" }
+    },
+    {
+      "name": "summary copy above threshold (0.79), case and spacing differ",
+      "unit_kind": "page",
+      "unit_text": "4 Incremental Indexing\nOur approach builds the index incrementally. Instead of rebuilding the full inverted index after every update, new documents are written to a small in-memory segment that is merged into the main index once it exceeds a size threshold. This keeps write latency low while bounding the number of segments a query must scan.\nIn our experiments the merge threshold of 64 MB gave the best balance between write throughput and query latency (see Table 2).",
+      "item": { "kind": "method", "title": "Small write segments merged later", "summary": "THIS KEEPS  WRITE LATENCY LOW while bounding the number of segments a query must scan, at modest merge cost.", "details": "", "anchor_quote": null },
+      "expected": { "is_echo": true, "reason": "summary_copied" }
+    }
+  ]
+}

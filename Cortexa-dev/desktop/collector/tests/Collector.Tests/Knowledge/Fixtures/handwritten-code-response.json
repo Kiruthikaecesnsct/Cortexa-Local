@@ -1,0 +1,47 @@
+{
+  "_note": "Hand-written fixture, not a recorded model response. Shows the expected style for a code file unit under prompt knowledge.v1. Replace or extend with recorded responses once the provider exists.",
+  "prompt_version": "knowledge.v1",
+  "unit": {
+    "id": "unit-code-0001",
+    "document_id": "doc-code-0001",
+    "ordinal": 3,
+    "unit_kind": "file",
+    "file_path": "src/Http/RetryPolicy.cs",
+    "start_line": 41,
+    "end_line": 64,
+    "text": "public sealed class RetryPolicy\n{\n    private const int MaxAttempts = 5;\n    private static readonly TimeSpan BaseDelay = TimeSpan.FromMilliseconds(200);\n    private static readonly TimeSpan MaxDelay = TimeSpan.FromSeconds(10);\n\n    public async Task<HttpResponseMessage> ExecuteAsync(Func<Task<HttpResponseMessage>> send, CancellationToken ct)\n    {\n        for (var attempt = 0; ; attempt++)\n        {\n            var response = await send();\n            if (!IsTransient(response.StatusCode) || attempt + 1 >= MaxAttempts)\n            {\n                return response;\n            }\n\n            var delayMs = Math.Min(MaxDelay.TotalMilliseconds, BaseDelay.TotalMilliseconds * Math.Pow(2, attempt));\n            await Task.Delay(TimeSpan.FromMilliseconds(delayMs + Random.Shared.Next(0, 100)), ct);\n        }\n    }\n\n    private static bool IsTransient(HttpStatusCode code) =>\n        code is HttpStatusCode.TooManyRequests or HttpStatusCode.ServiceUnavailable;\n}"
+  },
+  "response": {
+    "items": [
+      {
+        "kind": "method",
+        "title": "Retry transient failures with capped, jittered exponential backoff",
+        "summary": "A request that fails for a temporary reason is sent again, each wait twice as long as the last up to a ceiling, with a little randomness added so many clients do not retry at the same moment.",
+        "details": "- The first wait is short and doubles per attempt until it reaches a fixed ceiling.\n- Random jitter of up to a tenth of a second spreads out retries from many callers.\n- A fixed attempt limit bounds the total delay, and the wait stops early on cancellation.",
+        "anchor_quote": "Math.Min(MaxDelay.TotalMilliseconds, BaseDelay.TotalMilliseconds * Math.Pow(2, attempt))"
+      },
+      {
+        "kind": "logic",
+        "title": "Only rate limiting and outages count as temporary",
+        "summary": "Only a too-many-requests or service-unavailable response is treated as a sign that the service needs time; every other result is returned at once, so real errors are not hidden behind retries.",
+        "details": "After the last allowed attempt the final response is returned as is, even if it is still a temporary failure, so the caller decides what to do next.",
+        "anchor_quote": "code is HttpStatusCode.TooManyRequests or HttpStatusCode.ServiceUnavailable;"
+      },
+      {
+        "kind": "interface",
+        "title": "Retry wrapper accepts any caller-supplied send operation",
+        "summary": "The policy does not build or send requests itself; the caller passes in the operation to repeat, which keeps retry behavior separate from transport details and reusable across endpoints.",
+        "details": "The caller's operation is invoked again on each attempt, so it must be safe to repeat.",
+        "anchor_quote": "public async Task<HttpResponseMessage> ExecuteAsync(Func<Task<HttpResponseMessage>> send, CancellationToken ct)"
+      }
+    ]
+  },
+  "expected": {
+    "anchors": [
+      { "item_index": 0, "line_start": 57, "line_end": 57 },
+      { "item_index": 1, "line_start": 63, "line_end": 63 },
+      { "item_index": 2, "line_start": 47, "line_end": 47 }
+    ],
+    "all_items_pass_echo_detector": true
+  }
+}

@@ -74,6 +74,9 @@ internal sealed class InMemoryDocumentStore : IDocumentStore
         return Task.FromResult(document);
     }
 
+    public Task<CollectorDocument?> GetAsync(string documentId, CancellationToken cancellationToken) =>
+        Task.FromResult(ByPath.Values.FirstOrDefault(d => d.Id == documentId));
+
     public Task UpdateStatusAsync(string documentId, DocumentStatus status, CancellationToken cancellationToken)
     {
         LastStatusToken = cancellationToken;

@@ -17,6 +17,10 @@
         <views:ExtractionView />
     </DataTemplate>
 
+    <DataTemplate DataType="{x:Type vm:ReviewViewModel}">
+        <views:ReviewView />
+    </DataTemplate>
+
     <DataTemplate DataType="{x:Type vm:BannerViewModel}">
         <views:BannerView />
     </DataTemplate>

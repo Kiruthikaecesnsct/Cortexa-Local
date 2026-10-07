@@ -18,6 +18,18 @@ public static class CommandBehaviors
         typeof(CommandBehaviors),
         new PropertyMetadata(null, OnActivateCommandChanged));
 
+    public static readonly DependencyProperty SpaceCommandProperty = DependencyProperty.RegisterAttached(
+        "SpaceCommand",
+        typeof(ICommand),
+        typeof(CommandBehaviors),
+        new PropertyMetadata(null, OnSpaceCommandChanged));
+
+    public static ICommand? GetSpaceCommand(DependencyObject element) =>
+        (ICommand?)element.GetValue(SpaceCommandProperty);
+
+    public static void SetSpaceCommand(DependencyObject element, ICommand? value) =>
+        element.SetValue(SpaceCommandProperty, value);
+
     public static ICommand? GetLostFocusCommand(DependencyObject element) =>
         (ICommand?)element.GetValue(LostFocusCommandProperty);
 
@@ -63,6 +75,31 @@ public static class CommandBehaviors
 
         item.PreviewMouseLeftButtonUp += OnMouseActivate;
         item.KeyDown += OnKeyActivate;
+    }
+
+    private static void OnSpaceCommandChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is not ListBoxItem item)
+        {
+            return;
+        }
+
+        item.KeyDown -= OnSpaceKeyDown;
+        if (e.NewValue is not null)
+        {
+            item.KeyDown += OnSpaceKeyDown;
+        }
+    }
+
+    private static void OnSpaceKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Space || e.OriginalSource != sender)
+        {
+            return;
+        }
+
+        e.Handled = true;
+        Execute(GetSpaceCommand((DependencyObject)sender));
     }
 
     private static void OnMouseActivate(object sender, MouseButtonEventArgs e) =>

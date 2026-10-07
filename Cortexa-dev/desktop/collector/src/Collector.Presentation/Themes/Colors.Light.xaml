@@ -42,6 +42,7 @@
     <SolidColorBrush x:Key="Brush.Text.Body" Color="{StaticResource Color.Text.Body}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Text.Muted" Color="{StaticResource Color.Text.Muted}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Text.Disabled" Color="{StaticResource Color.Text.Disabled}" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Text.OnSelected" Color="{StaticResource Color.Text.Primary}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Text.OnAccent" Color="{StaticResource Color.Text.OnAccent}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Text.Link" Color="{StaticResource Color.Text.Link}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Accent" Color="{StaticResource Color.Accent}" po:Freeze="True" />

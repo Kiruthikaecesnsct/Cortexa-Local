@@ -17,6 +17,11 @@ public static class Glyphs
     public const string BulletedList = "";
     public const string Code = "";
     public const string Clock = "";
+    public const string Lightbulb = "";
+    public const string Upload = "";
+    public const string Copy = "";
+    public const string CheckMark = "";
+    public const string Dash = "";
     public const string Refresh = "";
 }
 

@@ -6,6 +6,7 @@ public static class ShellStrings
     public const string SignIn = "Sign in";
     public const string Settings = "Settings";
     public const string Extract = "Extract";
+    public const string Review = "Review";
     public const string SignedIn = "Signed in";
     public const string NotSignedIn = "Not signed in";
     public const string SessionExpired = "Session expired";

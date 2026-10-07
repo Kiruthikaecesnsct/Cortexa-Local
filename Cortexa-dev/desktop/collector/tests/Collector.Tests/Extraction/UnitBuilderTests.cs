@@ -86,4 +86,18 @@ public sealed class UnitBuilderTests
         Assert.Equal(1, drafts[0].StartLine);
         Assert.Equal(3, drafts[1].StartLine);
     }
+
+    [Fact]
+    public void Keeps_text_before_the_first_heading_as_its_own_section_unit()
+    {
+        const string text = "Project overview intro paragraph.\n\n# Methods\nMethod details.\n\n# Results\nResult details.";
+
+        var drafts = _builder.BuildFromSections(text);
+
+        Assert.Equal(UnitKind.Section, drafts[0].UnitKind);
+        Assert.Null(drafts[0].SectionTitle);
+        Assert.Equal("Project overview intro paragraph.", drafts[0].Text);
+        Assert.Contains(drafts, d => d.SectionTitle == "Methods");
+        Assert.Contains(drafts, d => d.SectionTitle == "Results");
+    }
 }

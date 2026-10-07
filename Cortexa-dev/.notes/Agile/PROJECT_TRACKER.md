@@ -37,7 +37,7 @@ _The backlog table of contents and resume state. `/init-project new --continue` 
 
 | ID | Title | Type | Status |
 |----|-------|------|--------|
-| US125 | Parse files into extraction units | User Story | In Progress |
+| - | - | - | - |
 
 ---
 
@@ -235,6 +235,7 @@ _All dev CD failure bugs resolved._
 
 _Older session notes are deleted. Full history is in git._
 
+**2026-10-07 (356)**: US125 ✅ Done. Desktop collector parses local files into extraction units: text normalizer and heading detector, PdfPig page units, OpenXml DOCX sections, brace and indentation code splitting with line-aligned 2000-token windows for big functions, 1 MiB and NUL-byte skip guard, cl100k token counts, SQLite unit cache that replaces units on re-extraction, and an Extract screen with unit preview. Review fixes: re-extraction no longer hits the unique constraint, text before the first heading is kept, a file that can't be opened fails alone, and code windows keep correct line numbers. Gates: 407/408 tests (emulator test skipped), build 0 warnings, review PASS. Verified end to end on PDF, DOCX, C#, Python, TXT, oversized, binary and missing files. Known gap: DOCX heading styles are not used as section breaks (same as the backend).
+
 **2026-10-06 (355)**: US124 ✅ Done. Added the WPF desktop collector shell (Application, Infrastructure, Presentation on net10.0-windows plus Collector.Tests): Generic Host with appsettings, appsettings.local and usersettings layering, Windows Credential Manager store via LibraryImport (UTF-8, 2560-byte cap), SQLite cache schema v1 with versioned runner, gateway `/auth/login` sign-in and single-flight `/auth/refresh` with the refresh cookie handled manually, background refresh worker, bearer handler for the collector server client, and sign-in and settings screens with light and high-contrast themes. Gates: 311/312 tests (emulator test skipped), build -warnaserror and format clean, review PASS. Verified live: app launches, cache created, login route reached through the gateway.
 
-**2026-10-06 (354)**: US123 ✅ Done. Added `POST /collector/batches/knowledge` to the collector server: gateway-equivalent HS256 JWT check plus a fail-closed identity stamp check (`jobs:submit`, `org_id`), field and unit_kind x source_kind validation, server-side filename cleanup, Idempotency-Key replay via UUIDv5 batch ids with a saga lookup before any write, and engine/model fields from the Cosmos config row. Gates: 207/208 tests (emulator test skipped), build -warnaserror and format clean, review PASS. Verified live against identity: 201 create, 200 replay with no duplicate rows, 401/400/422 paths, bidi filename stripped.

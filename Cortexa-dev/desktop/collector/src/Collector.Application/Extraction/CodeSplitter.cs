@@ -94,24 +94,31 @@ public sealed partial class CodeSplitter(ITokenCounter tokenCounter)
             yield break;
         }
 
-        var tokens = tokenCounter.Encode(unit.Text);
-        var currentLine = unit.StartLine;
-        for (var offset = 0; offset < tokens.Count; offset += FallbackWindowTokens)
+        var lines = unit.Text.Split('\n');
+        var windowStart = 0;
+        var windowTokens = 0;
+        for (var i = 0; i < lines.Length; i++)
         {
-            var window = tokens.Skip(offset).Take(FallbackWindowTokens).ToArray();
-            var windowText = tokenCounter.Decode(window);
-            var lineSpan = CountLines(windowText);
-            yield return new CodeUnit
+            var lineTokens = tokenCounter.Count(lines[i]) + 1;
+            if (windowTokens > 0 && windowTokens + lineTokens > FallbackWindowTokens)
             {
-                Text = windowText,
-                StartLine = currentLine,
-                EndLine = Math.Min(currentLine + lineSpan - 1, unit.EndLine),
-            };
-            currentLine += lineSpan;
+                yield return OffsetWindow(lines, windowStart, i - 1, unit.StartLine);
+                windowStart = i;
+                windowTokens = 0;
+            }
+
+            windowTokens += lineTokens;
         }
+
+        yield return OffsetWindow(lines, windowStart, lines.Length - 1, unit.StartLine);
     }
 
-    private static int CountLines(string text) => text.Count(c => c == '\n') + 1;
+    private static CodeUnit OffsetWindow(string[] lines, int startIndex, int endIndex, int unitStartLine)
+    {
+        var window = SliceUnit(lines, startIndex, endIndex);
+        var lineOffset = unitStartLine - 1;
+        return window with { StartLine = window.StartLine + lineOffset, EndLine = window.EndLine + lineOffset };
+    }
 
     [GeneratedRegex(@"^\s*(?:(?:public|private|protected|internal|static|sealed|abstract|virtual|override|async|unsafe|partial|readonly|extern|export|default|final|pub)\s+)*(?:class|interface|struct|enum|record|trait|impl)\s+[A-Za-z_]\w*")]
     private static partial Regex BraceClassStart();

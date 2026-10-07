@@ -59,8 +59,31 @@ public sealed class CodeSplitterTests
 
         var units = splitter.Split(source, CSharp);
 
-        Assert.Equal(2, units.Count);
-        Assert.Equal(source, string.Concat(units.Select(u => u.Text)));
+        Assert.True(units.Count > 1);
+        Assert.Equal(source, string.Join('\n', units.Select(u => u.Text)));
+    }
+
+    [Fact]
+    public void Token_windows_cut_on_line_boundaries_with_contiguous_line_numbers()
+    {
+        var bodyLines = Enumerable.Range(0, 300).Select(i => $"    var value{i:D3} = \"{new string('y', 20)}\";");
+        var source = "public static void Big()\n{\n" + string.Join('\n', bodyLines) + "\n}";
+        var sourceLines = source.Split('\n');
+        var splitter = new CodeSplitter(new CharTokenCounter());
+
+        var units = splitter.Split(source, CSharp);
+
+        Assert.True(units.Count > 1);
+        Assert.Equal(1, units[0].StartLine);
+        Assert.Equal(sourceLines.Length, units[^1].EndLine);
+        for (var i = 1; i < units.Count; i++)
+        {
+            Assert.Equal(units[i - 1].EndLine + 1, units[i].StartLine);
+        }
+
+        Assert.All(units, u => Assert.Equal(
+            string.Join('\n', sourceLines[(u.StartLine - 1)..u.EndLine]),
+            u.Text));
     }
 
     [Fact]

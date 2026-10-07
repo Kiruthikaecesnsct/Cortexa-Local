@@ -8,15 +8,40 @@ namespace Collector.Infrastructure.Cache;
 
 public sealed class SqliteUnitStore(SqliteConnectionFactory connections) : IUnitStore
 {
-    public async Task InsertAsync(string documentId, IReadOnlyList<ExtractionUnit> units, CancellationToken cancellationToken)
-    {
-        if (units.Count == 0)
-        {
-            return;
-        }
+    private static readonly string[] InsertParameterNames =
+    [
+        "$id", "$document_id", "$ordinal", "$unit_kind", "$page_number", "$section_title",
+        "$file_path", "$start_line", "$end_line", "$text", "$token_count", "$status",
+    ];
 
+    public async Task ReplaceAsync(string documentId, IReadOnlyList<ExtractionUnit> units, CancellationToken cancellationToken)
+    {
         await using var connection = await connections.OpenAsync(cancellationToken);
         await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken);
+        await DeleteByDocumentIdAsync(connection, transaction, documentId, cancellationToken);
+        await InsertUnitsAsync(connection, transaction, new UnitBatch(documentId, units), cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+    }
+
+    private static async Task DeleteByDocumentIdAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        string documentId,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = "DELETE FROM units WHERE document_id = $document_id;";
+        command.Parameters.AddWithValue("$document_id", documentId);
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private static async Task InsertUnitsAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        UnitBatch batch,
+        CancellationToken cancellationToken)
+    {
         await using var command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText =
@@ -24,63 +49,35 @@ public sealed class SqliteUnitStore(SqliteConnectionFactory connections) : IUnit
             INSERT INTO units (id, document_id, ordinal, unit_kind, page_number, section_title, file_path, start_line, end_line, text, token_count, status)
             VALUES ($id, $document_id, $ordinal, $unit_kind, $page_number, $section_title, $file_path, $start_line, $end_line, $text, $token_count, $status);
             """;
+        var parameters = InsertParameterNames.Select(name => command.Parameters.Add(new SqliteParameter { ParameterName = name })).ToArray();
 
-        var id = command.CreateParameter();
-        id.ParameterName = "$id";
-        command.Parameters.Add(id);
-        var docId = command.CreateParameter();
-        docId.ParameterName = "$document_id";
-        command.Parameters.Add(docId);
-        var ordinal = command.CreateParameter();
-        ordinal.ParameterName = "$ordinal";
-        command.Parameters.Add(ordinal);
-        var unitKind = command.CreateParameter();
-        unitKind.ParameterName = "$unit_kind";
-        command.Parameters.Add(unitKind);
-        var pageNumber = command.CreateParameter();
-        pageNumber.ParameterName = "$page_number";
-        command.Parameters.Add(pageNumber);
-        var sectionTitle = command.CreateParameter();
-        sectionTitle.ParameterName = "$section_title";
-        command.Parameters.Add(sectionTitle);
-        var filePath = command.CreateParameter();
-        filePath.ParameterName = "$file_path";
-        command.Parameters.Add(filePath);
-        var startLine = command.CreateParameter();
-        startLine.ParameterName = "$start_line";
-        command.Parameters.Add(startLine);
-        var endLine = command.CreateParameter();
-        endLine.ParameterName = "$end_line";
-        command.Parameters.Add(endLine);
-        var text = command.CreateParameter();
-        text.ParameterName = "$text";
-        command.Parameters.Add(text);
-        var tokenCount = command.CreateParameter();
-        tokenCount.ParameterName = "$token_count";
-        command.Parameters.Add(tokenCount);
-        var status = command.CreateParameter();
-        status.ParameterName = "$status";
-        command.Parameters.Add(status);
-
-        foreach (var unit in units)
+        foreach (var unit in batch.Units)
         {
-            id.Value = unit.Id;
-            docId.Value = documentId;
-            ordinal.Value = unit.Ordinal;
-            unitKind.Value = unit.UnitKind.ToWire();
-            pageNumber.Value = unit.PageNumber ?? (object)DBNull.Value;
-            sectionTitle.Value = unit.SectionTitle ?? (object)DBNull.Value;
-            filePath.Value = unit.FilePath ?? (object)DBNull.Value;
-            startLine.Value = unit.StartLine ?? (object)DBNull.Value;
-            endLine.Value = unit.EndLine ?? (object)DBNull.Value;
-            text.Value = unit.Text;
-            tokenCount.Value = unit.TokenCount;
-            status.Value = unit.Status.ToWire();
+            var values = ToRowValues(batch.DocumentId, unit);
+            for (var i = 0; i < parameters.Length; i++)
+            {
+                parameters[i].Value = values[i];
+            }
+
             await command.ExecuteNonQueryAsync(cancellationToken);
         }
-
-        await transaction.CommitAsync(cancellationToken);
     }
+
+    private static object[] ToRowValues(string documentId, ExtractionUnit unit) =>
+    [
+        unit.Id,
+        documentId,
+        unit.Ordinal,
+        unit.UnitKind.ToWire(),
+        unit.PageNumber ?? (object)DBNull.Value,
+        unit.SectionTitle ?? (object)DBNull.Value,
+        unit.FilePath ?? (object)DBNull.Value,
+        unit.StartLine ?? (object)DBNull.Value,
+        unit.EndLine ?? (object)DBNull.Value,
+        unit.Text,
+        unit.TokenCount,
+        unit.Status.ToWire(),
+    ];
 
     public async Task<IReadOnlyList<ExtractionUnit>> GetByDocumentIdAsync(string documentId, CancellationToken cancellationToken)
     {
@@ -120,4 +117,6 @@ public sealed class SqliteUnitStore(SqliteConnectionFactory connections) : IUnit
         TokenCount = reader.GetInt32(10),
         Status = EnumWire.FromWire<DocumentStatus>(reader.GetString(11)),
     };
+
+    private sealed record UnitBatch(string DocumentId, IReadOnlyList<ExtractionUnit> Units);
 }

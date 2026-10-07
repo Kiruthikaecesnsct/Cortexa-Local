@@ -108,4 +108,19 @@ public sealed class ExtractionServiceTests : IDisposable
         Assert.Equal(DocumentStatus.Failed, results[0].Status);
         Assert.NotNull(results[0].Reason);
     }
+
+    [Fact]
+    public async Task Returns_failed_result_for_a_missing_file_and_still_extracts_the_rest_of_the_batch()
+    {
+        var missing = Path.Combine(_directory, "missing.txt");
+        var present = WriteFile("notes.txt", "plain notes text"u8.ToArray());
+
+        var results = await _service.ExtractAsync([missing, present], SourceType.Local, SourceKind.Paper, TestSupport.Ct);
+
+        Assert.Equal(2, results.Count);
+        Assert.Equal(DocumentStatus.Failed, results[0].Status);
+        Assert.Null(results[0].DocumentId);
+        Assert.NotNull(results[0].Reason);
+        Assert.Equal(DocumentStatus.Extracted, results[1].Status);
+    }
 }

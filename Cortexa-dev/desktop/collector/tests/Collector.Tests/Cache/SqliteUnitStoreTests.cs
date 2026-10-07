@@ -73,7 +73,7 @@ public sealed class SqliteUnitStoreTests : IDisposable
             },
         };
 
-        await _store.InsertAsync(documentId, units, TestSupport.Ct);
+        await _store.ReplaceAsync(documentId, units, TestSupport.Ct);
         var persisted = await _store.GetByDocumentIdAsync(documentId, TestSupport.Ct);
 
         Assert.Equal(2, persisted.Count);
@@ -107,7 +107,7 @@ public sealed class SqliteUnitStoreTests : IDisposable
             },
         };
 
-        await _store.InsertAsync(documentId, units, TestSupport.Ct);
+        await _store.ReplaceAsync(documentId, units, TestSupport.Ct);
         var persisted = await _store.GetByDocumentIdAsync(documentId, TestSupport.Ct);
 
         Assert.Single(persisted);
@@ -115,6 +115,42 @@ public sealed class SqliteUnitStoreTests : IDisposable
         Assert.Equal(1, persisted[0].StartLine);
         Assert.Equal(10, persisted[0].EndLine);
     }
+
+    [Fact]
+    public async Task Replacing_units_for_the_same_document_overwrites_the_previous_set()
+    {
+        var documentId = await SeedDocumentAsync();
+        await _store.ReplaceAsync(documentId, [PageUnit(documentId, "first-0", 0), PageUnit(documentId, "first-1", 1)], TestSupport.Ct);
+
+        await _store.ReplaceAsync(documentId, [PageUnit(documentId, "second-0", 0)], TestSupport.Ct);
+        var persisted = await _store.GetByDocumentIdAsync(documentId, TestSupport.Ct);
+
+        Assert.Single(persisted);
+        Assert.Equal("second-0", persisted[0].Id);
+    }
+
+    [Fact]
+    public async Task Replacing_with_an_empty_list_clears_existing_units()
+    {
+        var documentId = await SeedDocumentAsync();
+        await _store.ReplaceAsync(documentId, [PageUnit(documentId, "only", 0)], TestSupport.Ct);
+
+        await _store.ReplaceAsync(documentId, [], TestSupport.Ct);
+
+        Assert.Empty(await _store.GetByDocumentIdAsync(documentId, TestSupport.Ct));
+    }
+
+    private static ExtractionUnit PageUnit(string documentId, string id, int ordinal) => new()
+    {
+        Id = id,
+        DocumentId = documentId,
+        Ordinal = ordinal,
+        UnitKind = UnitKind.Page,
+        PageNumber = ordinal + 1,
+        Text = $"text {id}",
+        TokenCount = 2,
+        Status = DocumentStatus.Extracted,
+    };
 
     [Fact]
     public async Task Returns_empty_list_when_document_has_no_units()

@@ -85,7 +85,7 @@ internal sealed class InMemoryUnitStore : IUnitStore
 {
     public Dictionary<string, List<ExtractionUnit>> ByDocumentId { get; } = [];
 
-    public Task InsertAsync(string documentId, IReadOnlyList<ExtractionUnit> units, CancellationToken cancellationToken)
+    public Task ReplaceAsync(string documentId, IReadOnlyList<ExtractionUnit> units, CancellationToken cancellationToken)
     {
         ByDocumentId[documentId] = units.ToList();
         return Task.CompletedTask;

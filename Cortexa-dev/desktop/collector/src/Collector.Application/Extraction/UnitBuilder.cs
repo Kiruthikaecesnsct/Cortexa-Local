@@ -60,7 +60,13 @@ public sealed class UnitBuilder(HeadingDetector headingDetector)
             return [new UnitDraft { UnitKind = UnitKind.File, Text = normalizedText }];
         }
 
-        var drafts = new List<UnitDraft>(headings.Count);
+        var drafts = new List<UnitDraft>(headings.Count + 1);
+        var preamble = normalizedText[..headings[0].StartChar].Trim();
+        if (preamble.Length > 0)
+        {
+            drafts.Add(new UnitDraft { UnitKind = UnitKind.Section, Text = preamble });
+        }
+
         for (var i = 0; i < headings.Count; i++)
         {
             var start = headings[i].StartChar;

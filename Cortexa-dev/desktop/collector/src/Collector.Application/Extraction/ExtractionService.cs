@@ -40,27 +40,42 @@ public sealed class ExtractionService(
         SourceKind sourceKind,
         CancellationToken cancellationToken)
     {
-        var document = await RegisterDocumentAsync(filePath, sourceType, sourceKind, cancellationToken);
+        Domain.Documents.CollectorDocument document;
+        try
+        {
+            document = await RegisterDocumentAsync(filePath, sourceType, sourceKind, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "Could not register {FilePath} for extraction.", filePath);
+            return new ExtractionResult { SourcePath = filePath, Status = DocumentStatus.Failed, Reason = ex.Message };
+        }
+
+        return await ExtractRegisteredAsync(filePath, document.Id, cancellationToken);
+    }
+
+    private async Task<ExtractionResult> ExtractRegisteredAsync(string filePath, string documentId, CancellationToken cancellationToken)
+    {
         try
         {
             var outcome = await ParseIntoDraftsAsync(filePath, cancellationToken);
             if (outcome.SkipReason is { } reason)
             {
                 var skipStatus = statusRules.ForSkip(reason);
-                await documentStore.UpdateStatusAsync(document.Id, skipStatus, cancellationToken);
-                return new ExtractionResult { SourcePath = filePath, DocumentId = document.Id, Status = skipStatus, Reason = reason.ToString() };
+                await documentStore.UpdateStatusAsync(documentId, skipStatus, cancellationToken);
+                return new ExtractionResult { SourcePath = filePath, DocumentId = documentId, Status = skipStatus, Reason = reason.ToString() };
             }
 
-            var units = BuildExtractionUnits(document.Id, outcome.Drafts!);
-            await unitStore.InsertAsync(document.Id, units, cancellationToken);
-            await documentStore.UpdateStatusAsync(document.Id, DocumentStatus.Extracted, cancellationToken);
-            return new ExtractionResult { SourcePath = filePath, DocumentId = document.Id, Status = DocumentStatus.Extracted };
+            var units = BuildExtractionUnits(documentId, outcome.Drafts!);
+            await unitStore.ReplaceAsync(documentId, units, cancellationToken);
+            await documentStore.UpdateStatusAsync(documentId, DocumentStatus.Extracted, cancellationToken);
+            return new ExtractionResult { SourcePath = filePath, DocumentId = documentId, Status = DocumentStatus.Extracted };
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogWarning(ex, "Extraction failed for {FilePath}.", filePath);
-            await documentStore.UpdateStatusAsync(document.Id, DocumentStatus.Failed, cancellationToken);
-            return new ExtractionResult { SourcePath = filePath, DocumentId = document.Id, Status = DocumentStatus.Failed, Reason = ex.Message };
+            await documentStore.UpdateStatusAsync(documentId, DocumentStatus.Failed, cancellationToken);
+            return new ExtractionResult { SourcePath = filePath, DocumentId = documentId, Status = DocumentStatus.Failed, Reason = ex.Message };
         }
     }
 

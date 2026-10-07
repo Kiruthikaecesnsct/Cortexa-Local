@@ -1,0 +1,224 @@
+{
+  "id": "US126",
+  "workItemType": "User Story",
+  "Title": "Extract knowledge and upload",
+  "Description": "As a desktop user, I want to extract knowledge from prepared units and upload them to Cortexa so that the platform can find patent candidates. The app implements the untrusted source guard, loads the knowledge prompt resource, builds structured JSON prompts, calls an AI provider, parses responses, locates anchors in source files, merges duplicates, and uploads batches via POST /collector/batches/knowledge. A review screen filters and deselects items.",
+  "AcceptanceCriteria": [
+    "Untrusted source guard neutralizes user input and adds security sentinels",
+    "Knowledge prompt (knowledge-prompt.v1.json) is loaded from embedded resources",
+    "Prompt builder creates structured JSON (what/why/how) for each unit",
+    "Claude direct provider uses the official Anthropic C# SDK",
+    "Gemini direct provider uses the official Google Gen AI .NET SDK with the API key from Credential Manager; provider is selected by Ai:Provider (Claude | Gemini) and Claude remains supported",
+    "Response parser extracts items from JSON; empty responses are allowed",
+    "Anchor locator verifies anchor_quote by substring search; falls back to unit range",
+    "Merger deduplicates knowledge items by kind + title within a document",
+    "Review screen shows items by kind; users can deselect before upload",
+    "Upload client sends batches to the collector server POST /collector/batches/knowledge with Idempotency-Key",
+    "End-to-end check: pick a local folder, extract knowledge, upload, and verify chunks in Cosmos",
+    "All code for this story lives inside Cortexa-dev/desktop/collector; nothing in services/, contracts/, frontend/ or deploy/ is edited or referenced (outside logic is re-implemented inside)"
+  ],
+  "Planning": {
+    "StoryPoints": 2.0,
+    "Priority": 1
+  },
+  "Classification": {
+    "RemainingWork": 17.0
+  },
+  "Dependencies": {
+    "Feature": "knowledge-intake",
+    "Contract": "POST /collector/batches/knowledge",
+    "DependsOn": [
+      "US125",
+      "US123"
+    ],
+    "Blocks": [
+      "US128",
+      "US129",
+      "US131",
+      "US133",
+      "US136"
+    ]
+  },
+  "Tags": [
+    "US126",
+    "desktop",
+    "knowledge-intake"
+  ],
+  "TalkingPoints": "Extracting knowledge from document units using Claude (Anthropic SDK) or Gemini (Google Gen AI SDK) with provider selection, implementing the untrusted source guard, merging duplicates, and uploading batches to Cortexa. Building review and history screens. Full integration with POST /batches/knowledge endpoint.",
+  "Tasks": [
+    {
+      "Title": "Implement untrusted source guard and prompt builder",
+      "Description": "Re-implement the backend neutralization logic inside the collector; load knowledge-prompt.v1.json; build structured JSON with unit metadata.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 3.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Integrate Anthropic C# SDK for Claude",
+      "Description": "Set up the official SDK, handle API keys from Credential Manager, implement retry logic and error handling.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 3.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Build IAiProvider port and Claude provider implementation",
+      "Description": "Create interface for AI providers; implement Claude provider with concurrency 4, temperature left at the model default (claude-sonnet-5-5 rejects non-default temperature; configurable via Ai:Claude:Temperature), max output 8192 tokens.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Add Gemini direct provider",
+      "Description": "Implement Gemini provider using the official Google Gen AI .NET SDK with API key from Credential Manager; support provider selection via Ai:Provider config setting (Claude | Gemini).",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 3.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Implement response parser and anchor locator",
+      "Description": "Parse JSON response; extract knowledge items; verify anchor_quote by substring search; fall back to unit range.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 2.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Build knowledge merger for deduplication",
+      "Description": "Merge items with same kind + title within a document; consolidate sources and excerpts.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 1.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    },
+    {
+      "Title": "Create review screen and upload client",
+      "Description": "UI to filter/deselect items by kind; upload client sends POST /collector/batches/knowledge with Idempotency-Key; handle responses.",
+      "Planning": {
+        "Priority": 1,
+        "Activity": "Development"
+      },
+      "Efforts": {
+        "OriginalEstimate": 3.0
+      },
+      "Tags": [
+        "desktop"
+      ]
+    }
+  ],
+  "Tests": [
+    {
+      "Title": "Knowledge extraction returns expected item structure",
+      "Steps": [
+        {
+          "Action": "Extract knowledge from a sample unit",
+          "Expected": "Response contains items with kind, title, summary, details, source, excerpt, provider, model"
+        }
+      ]
+    },
+    {
+      "Title": "Anchor locator finds source location",
+      "Steps": [
+        {
+          "Action": "Extract item with anchor_quote and verify it in original file",
+          "Expected": "Anchor is found; line_range is narrowed to location"
+        }
+      ]
+    },
+    {
+      "Title": "Duplicates are merged",
+      "Steps": [
+        {
+          "Action": "Extract two units that produce items with same kind + title",
+          "Expected": "Only one merged item appears in review"
+        }
+      ]
+    },
+    {
+      "Title": "Review screen allows selective upload",
+      "Steps": [
+        {
+          "Action": "Display review screen and deselect one item",
+          "Expected": "Deselected item is not included in upload"
+        }
+      ]
+    },
+    {
+      "Title": "End-to-end check",
+      "Steps": [
+        {
+          "Action": "Start native Cortexa stack with: pwsh -NoProfile -File Cortexa-dev/deploy/local/native/run-local.ps1 start. Also start the collector server separately on localhost:5091",
+          "Expected": "All services start; gateway is listening on localhost:5080 and collector server on localhost:5091"
+        },
+        {
+          "Action": "Sign in to desktop collector and pick a local folder (e.g., a small repo or sample docs)",
+          "Expected": "Files are parsed into units; unit count and token preview are shown"
+        },
+        {
+          "Action": "Click Extract Knowledge and review items by kind",
+          "Expected": "Knowledge items appear with logic/algorithm/method/data_model/interface/workflow/key_content kinds (layer kind arrives with US130/US131); each has title, summary, details"
+        },
+        {
+          "Action": "Proceed to upload without deselecting",
+          "Expected": "POST /collector/batches/knowledge is called; batch_id is returned"
+        },
+        {
+          "Action": "Check Cosmos emulator Data Explorer at https://localhost:8081/_explorer; navigate to chunks container",
+          "Expected": "New rows have knowledge field populated with extracted items; no original file content is present"
+        },
+        {
+          "Action": "Verify MinIO object browser at http://localhost:9001",
+          "Expected": "No original files stored in buckets; only metadata"
+        }
+      ]
+    }
+  ],
+  "ReviewNotes": [
+    {
+      "date": "2026-10-07",
+      "note": "Code review of develop/US126 confirms all 12 acceptance criteria are met, including the Gemini direct provider. The prior commit message ('Gemini implementation is in halfway') is stale: GeminiDirectProvider, GeminiClientFactory, GeminiRequestFactory, GeminiResponseReader, GeminiErrorMapper and GeminiProviderOptionsValidator are complete against the official Google.GenAI SDK (v1.24.0, verified official on nuget.org), registered in DI alongside ClaudeDirectProvider (official Anthropic SDK v12.53.0), and both provider paths are covered by tests (DependencyInjectionTests.AiProvider_ProviderSetting_ResolvesMatchingImplementation, AiProvider_BothImplementations_AreBuildable). No blockers found. Non-blocking note: appsettings.json model IDs ('claude-sonnet-5-5', 'gemini-3.8-flash') look like placeholders and should be confirmed against the live provider APIs before shipping."
+    }
+  ],
+  "createdDate": "2026-10-06",
+  "state": "New"
+}
+ 

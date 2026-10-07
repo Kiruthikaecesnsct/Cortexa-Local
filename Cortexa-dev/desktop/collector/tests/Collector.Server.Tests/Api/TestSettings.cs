@@ -12,6 +12,7 @@ internal static class TestSettings
         {
             ["Cosmos:Endpoint"] = "https://localhost:8081",
             ["Cosmos:Key"] = "dGVzdC1rZXk=",
+            ["Cosmos:ReportsContainer"] = "reports",
             ["Messaging:RabbitMq:HostName"] = "localhost",
             ["Messaging:RabbitMq:Port"] = "5672",
             ["Messaging:RabbitMq:VirtualHost"] = "/",

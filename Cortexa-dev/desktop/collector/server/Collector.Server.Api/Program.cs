@@ -23,6 +23,7 @@ app.MapHealthChecks(
     "/health/ready",
     new HealthCheckOptions { Predicate = registration => registration.Tags.Contains(HealthTags.Ready) });
 app.MapKnowledgeUploadEndpoints();
+app.MapCollectorBatchesEndpoints();
 
 app.Run();
 

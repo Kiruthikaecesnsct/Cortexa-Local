@@ -12,6 +12,9 @@ public static class ErrorResponses
     public static IResult Forbidden(string error, string message) =>
         Build(StatusCodes.Status403Forbidden, error, message, []);
 
+    public static IResult NotFound(string error, string message) =>
+        Build(StatusCodes.Status404NotFound, error, message, []);
+
     public static IResult PayloadTooLarge(string message) =>
         Build(StatusCodes.Status413PayloadTooLarge, "payload_too_large", message, []);
 

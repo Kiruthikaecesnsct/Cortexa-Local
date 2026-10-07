@@ -1,8 +1,10 @@
 using System.IO;
 using Collector.Application;
+using Collector.Application.Ports;
 using Collector.Infrastructure;
 using Collector.Infrastructure.Options;
 using Collector.Presentation.Navigation;
+using Collector.Presentation.Services;
 using Collector.Presentation.ViewModels;
 using Collector.Presentation.Views;
 using Microsoft.Extensions.Configuration;
@@ -68,6 +70,7 @@ public static class CollectorHost
 
     private static IServiceCollection AddCollectorPresentation(this IServiceCollection services)
     {
+        services.AddSingleton<IFilePicker, WpfFilePicker>();
         services.AddScreens();
         services.AddSingleton<ShellViewModel>();
         services.AddSingleton<MainWindow>();

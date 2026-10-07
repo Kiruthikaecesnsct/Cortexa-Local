@@ -2,6 +2,7 @@ using Collector.Application.Auth;
 using Collector.Application.Ports;
 using Collector.Infrastructure.Auth;
 using Collector.Infrastructure.Cache;
+using Collector.Infrastructure.Extraction;
 using Collector.Infrastructure.Http;
 using Collector.Infrastructure.Options;
 using Collector.Infrastructure.Secrets;
@@ -30,6 +31,11 @@ public static class DependencyInjection
         services.AddSingleton<IUserSettingsStore, JsonUserSettingsStore>();
         services.AddSingleton<SqliteConnectionFactory>();
         services.AddSingleton<ILocalCacheInitializer, SqliteCacheInitializer>();
+        services.AddSingleton<IDocumentStore, SqliteDocumentStore>();
+        services.AddSingleton<IUnitStore, SqliteUnitStore>();
+        services.AddSingleton<IPdfTextExtractor, PdfPigTextExtractor>();
+        services.AddSingleton<IDocxTextExtractor, OpenXmlTextExtractor>();
+        services.AddSingleton<ITokenCounter, MlTokenizerCounter>();
         services.AddHostedService<TokenRefreshWorker>();
         return services;
     }

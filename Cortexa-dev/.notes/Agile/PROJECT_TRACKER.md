@@ -37,7 +37,7 @@ _The backlog table of contents and resume state. `/init-project new --continue` 
 
 | ID | Title | Type | Status |
 |----|-------|------|--------|
-| - | - | - | - |
+| US125 | Parse files into extraction units | User Story | In Progress |
 
 ---
 

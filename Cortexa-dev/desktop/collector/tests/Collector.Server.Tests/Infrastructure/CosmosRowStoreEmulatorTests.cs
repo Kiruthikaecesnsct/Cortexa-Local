@@ -51,6 +51,7 @@ public class CosmosRowStoreEmulatorTests
         ChunksContainer = "chunks",
         ProvenanceMapsContainer = "provenance_maps",
         BatchesContainer = "batches",
+        ReportsContainer = "reports",
         ConnectionMode = ConnectionMode.Gateway,
         LimitToEndpoint = true,
         MaxConcurrentWrites = WriteConcurrency

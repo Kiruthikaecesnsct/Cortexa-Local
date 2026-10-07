@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using Collector.Server.Application.Ports;
 using Collector.Server.Infrastructure.Health;
 using Collector.Server.Tests.Fakes;
@@ -31,6 +32,18 @@ internal sealed class CollectorServerFactory(IReadOnlyDictionary<string, string?
     {
         using var client = CreateClient();
         using var request = call.ToRequest();
+        return await client.SendAsync(request, TestContext.Current.CancellationToken);
+    }
+
+    public async Task<HttpResponseMessage> GetAsync(string path, string? token = null)
+    {
+        using var client = CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Get, path);
+        if (token is not null)
+        {
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        }
+
         return await client.SendAsync(request, TestContext.Current.CancellationToken);
     }
 

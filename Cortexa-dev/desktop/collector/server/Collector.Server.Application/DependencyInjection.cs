@@ -23,6 +23,8 @@ public static class DependencyInjection
         services.AddScoped<UploadPreparer>();
         services.AddScoped<WriteKnowledgeBatchHandler>();
         services.AddScoped<SubmitKnowledgeUploadHandler>();
+        services.AddScoped<ListBatchesHandler>();
+        services.AddScoped<GetBatchResultsHandler>();
         return services;
     }
 }

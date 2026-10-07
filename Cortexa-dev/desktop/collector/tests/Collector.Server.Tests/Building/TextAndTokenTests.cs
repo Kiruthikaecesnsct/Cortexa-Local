@@ -23,7 +23,9 @@ public class TextAndTokenTests
     {
         var text = ChunkTextRenderer.Render(TestData.PaperItem());
 
-        Assert.Equal("logic: Spectral Method\nSummary text\nDetail text\nExcerpt: Key excerpt", text);
+        Assert.Equal(
+            "Structured knowledge summary from page 3\nlogic: Spectral Method\nSummary text\nDetail text\nExcerpt: Key excerpt",
+            text);
     }
 
     [Fact]

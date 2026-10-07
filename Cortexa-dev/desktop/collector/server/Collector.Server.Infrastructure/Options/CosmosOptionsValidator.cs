@@ -14,6 +14,7 @@ public sealed class CosmosOptionsValidator : IValidateOptions<CosmosOptions>
         failures.RequireText(options.ProvenanceMapsContainer, $"{CosmosOptions.SectionName}:{nameof(CosmosOptions.ProvenanceMapsContainer)}");
         failures.RequireText(options.BatchesContainer, $"{CosmosOptions.SectionName}:{nameof(CosmosOptions.BatchesContainer)}");
         failures.RequireText(options.ConfigContainer, $"{CosmosOptions.SectionName}:{nameof(CosmosOptions.ConfigContainer)}");
+        failures.RequireText(options.ReportsContainer, $"{CosmosOptions.SectionName}:{nameof(CosmosOptions.ReportsContainer)}");
         failures.RequirePositive(options.MaxConcurrentWrites, $"{CosmosOptions.SectionName}:{nameof(CosmosOptions.MaxConcurrentWrites)}");
         return failures.ToResult();
     }

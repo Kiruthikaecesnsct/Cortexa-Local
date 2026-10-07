@@ -138,6 +138,18 @@ public class WriteKnowledgeBatchHandlerTests
 
         public Task<SagaRow?> GetSagaAsync(string batchId, CancellationToken cancellationToken) =>
             Task.FromResult<SagaRow?>(null);
+
+        public Task<IReadOnlyList<SagaRow>> ListSagasByOwnerAsync(
+            string ownerUserId,
+            string orgId,
+            CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<SagaRow>>([]);
+
+        public Task<IReadOnlyList<ChunkRow>> GetChunksByBatchAsync(string batchId, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<ChunkRow>>(Chunks);
+
+        public Task<IReadOnlyList<BatchResultJoinRow>> GetResultsByBatchAsync(string batchId, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<BatchResultJoinRow>>([]);
     }
 
     private sealed class RecordingPublisher(List<string> calls, List<EventEnvelope> published) : IIngestionEventPublisher

@@ -14,6 +14,8 @@ internal sealed class FakePipelineRowStore : IPipelineRowStore
 
     public Dictionary<string, SagaRow> Sagas { get; } = [];
 
+    public Dictionary<string, List<BatchResultJoinRow>> Results { get; } = [];
+
     public int WriteCalls { get; private set; }
 
     public SagaRow? RaceWinner { get; set; }
@@ -60,4 +62,29 @@ internal sealed class FakePipelineRowStore : IPipelineRowStore
 
     public Task<SagaRow?> GetSagaAsync(string batchId, CancellationToken cancellationToken) =>
         Task.FromResult(Sagas.GetValueOrDefault(batchId));
+
+    public Task<IReadOnlyList<SagaRow>> ListSagasByOwnerAsync(
+        string ownerUserId,
+        string orgId,
+        CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<SagaRow>>(
+            [.. Sagas.Values.Where(saga => saga.OwnerUserId == ownerUserId && saga.OrgId == orgId)]);
+
+    public Task<IReadOnlyList<ChunkRow>> GetChunksByBatchAsync(string batchId, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<ChunkRow>>([.. Chunks.Where(chunk => chunk.BatchId == batchId)]);
+
+    public Task<IReadOnlyList<BatchResultJoinRow>> GetResultsByBatchAsync(string batchId, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<BatchResultJoinRow>>(
+            Results.TryGetValue(batchId, out var rows) ? rows : []);
+
+    public void AddResult(string batchId, BatchResultJoinRow row)
+    {
+        if (!Results.TryGetValue(batchId, out var rows))
+        {
+            rows = [];
+            Results[batchId] = rows;
+        }
+
+        rows.Add(row);
+    }
 }

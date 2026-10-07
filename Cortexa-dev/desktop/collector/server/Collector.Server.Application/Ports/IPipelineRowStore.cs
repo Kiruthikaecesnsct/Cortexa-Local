@@ -13,4 +13,10 @@ public interface IPipelineRowStore
     Task CreateSagaAsync(SagaRow saga, CancellationToken cancellationToken);
 
     Task<SagaRow?> GetSagaAsync(string batchId, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<SagaRow>> ListSagasByOwnerAsync(string ownerUserId, string orgId, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<ChunkRow>> GetChunksByBatchAsync(string batchId, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<BatchResultJoinRow>> GetResultsByBatchAsync(string batchId, CancellationToken cancellationToken);
 }

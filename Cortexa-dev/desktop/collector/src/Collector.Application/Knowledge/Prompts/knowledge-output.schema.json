@@ -1,0 +1,30 @@
+{
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["logic", "algorithm", "method", "data_model", "interface", "workflow", "key_content"]
+          },
+          "title": { "type": "string" },
+          "summary": { "type": "string" },
+          "details": { "type": "string" },
+          "anchor_quote": {
+            "anyOf": [
+              { "type": "string" },
+              { "type": "null" }
+            ]
+          }
+        },
+        "required": ["kind", "title", "summary", "details", "anchor_quote"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["items"],
+  "additionalProperties": false
+}

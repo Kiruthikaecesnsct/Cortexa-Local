@@ -68,9 +68,22 @@ public static class CollectorHost
         }
     }
 
+    private static IServiceCollection AddKnowledgeServices(this IServiceCollection services)
+    {
+        services.AddSingleton<KnowledgeRunState>();
+        services.AddSingleton<IAppVersion, AssemblyAppVersion>();
+        services.AddSingleton<IClipboard, WpfClipboard>();
+        services.AddSingleton<IKnowledgeRunner, KnowledgeRunner>();
+        services.AddSingleton<ReviewUploader>();
+        services.AddSingleton<ExtractionDependencies>();
+        services.AddSingleton<KnowledgeRunViewModel>();
+        return services;
+    }
+
     private static IServiceCollection AddCollectorPresentation(this IServiceCollection services)
     {
         services.AddSingleton<IFilePicker, WpfFilePicker>();
+        services.AddKnowledgeServices();
         services.AddScreens();
         services.AddSingleton<ShellViewModel>();
         services.AddSingleton<MainWindow>();

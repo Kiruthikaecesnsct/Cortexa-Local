@@ -14,5 +14,7 @@ public interface IDocumentStore
         long sizeBytes,
         CancellationToken cancellationToken);
 
+    Task<CollectorDocument?> GetAsync(string documentId, CancellationToken cancellationToken);
+
     Task UpdateStatusAsync(string documentId, DocumentStatus status, CancellationToken cancellationToken);
 }

@@ -1,5 +1,7 @@
 using Collector.Application.Auth;
+using Collector.Application.Knowledge;
 using Collector.Application.Ports;
+using Collector.Infrastructure.Ai;
 using Collector.Infrastructure.Auth;
 using Collector.Infrastructure.Cache;
 using Collector.Infrastructure.Extraction;
@@ -7,6 +9,7 @@ using Collector.Infrastructure.Http;
 using Collector.Infrastructure.Options;
 using Collector.Infrastructure.Secrets;
 using Collector.Infrastructure.Settings;
+using Collector.Infrastructure.Upload;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -17,7 +20,7 @@ namespace Collector.Infrastructure;
 
 public static class DependencyInjection
 {
-    private static readonly string[] RedactedHeaders = ["Authorization", "Cookie", "Set-Cookie"];
+    private static readonly string[] RedactedHeaders = ["Authorization", "Cookie", "Set-Cookie", "x-goog-api-key"];
 
     public static IServiceCollection AddCollectorInfrastructure(
         this IServiceCollection services,
@@ -33,9 +36,12 @@ public static class DependencyInjection
         services.AddSingleton<ILocalCacheInitializer, SqliteCacheInitializer>();
         services.AddSingleton<IDocumentStore, SqliteDocumentStore>();
         services.AddSingleton<IUnitStore, SqliteUnitStore>();
+        services.AddSingleton<IBatchStore, SqliteBatchStore>();
         services.AddSingleton<IPdfTextExtractor, PdfPigTextExtractor>();
         services.AddSingleton<IDocxTextExtractor, OpenXmlTextExtractor>();
         services.AddSingleton<ITokenCounter, MlTokenizerCounter>();
+        services.AddAiProviders();
+        services.AddSingleton<IKnowledgeUploadClient, CollectorUploadClient>();
         services.AddHostedService<TokenRefreshWorker>();
         return services;
     }
@@ -52,6 +58,25 @@ public static class DependencyInjection
             configuration,
             UserSettingsOptions.SectionName);
         services.AddValidatedOptions<AuthOptions, AuthOptionsValidator>(configuration, AuthOptions.SectionName);
+        services.AddValidatedOptions<AiProviderOptions, AiProviderOptionsValidator>(
+            configuration,
+            AiProviderOptions.SectionName);
+        services.AddValidatedOptions<GeminiProviderOptions, GeminiProviderOptionsValidator>(
+            configuration,
+            GeminiProviderOptions.SectionName);
+        services.AddValidatedOptions<AiOptions, AiOptionsValidator>(configuration, AiOptions.SectionName);
+        services.AddOptions<KnowledgeExtractionOptions>()
+            .Configure<IOptions<AiOptions>, IOptions<AiProviderOptions>, IOptions<GeminiProviderOptions>>(
+                (extraction, ai, claude, gemini) => AiProviderSelection.Apply(extraction, ai.Value, claude.Value, gemini.Value));
+    }
+
+    private static void AddAiProviders(this IServiceCollection services)
+    {
+        services.AddSingleton<AnthropicClientFactory>();
+        services.AddSingleton<ClaudeDirectProvider>();
+        services.AddSingleton<GeminiClientFactory>();
+        services.AddSingleton<GeminiDirectProvider>();
+        services.AddSingleton<IAiProvider>(AiProviderSelection.Resolve);
     }
 
     private static void AddValidatedOptions<TOptions, TValidator>(
@@ -76,6 +101,11 @@ public static class DependencyInjection
         services.AddHttpClient(HttpClientNames.CollectorServer)
             .ConfigurePrimaryHttpMessageHandler(CreateCookielessHandler)
             .AddHttpMessageHandler<BearerTokenHandler>()
+            .RedactLoggedHeaders(name => RedactedHeaders.Contains(name, StringComparer.OrdinalIgnoreCase));
+        services.AddHttpClient(HttpClientNames.Gemini)
+            .ConfigureHttpClient((sp, client) =>
+                client.Timeout = TimeSpan.FromSeconds(sp.GetRequiredService<IOptions<GeminiProviderOptions>>().Value.TimeoutSeconds))
+            .ConfigurePrimaryHttpMessageHandler(CreateCookielessHandler)
             .RedactLoggedHeaders(name => RedactedHeaders.Contains(name, StringComparer.OrdinalIgnoreCase));
     }
 

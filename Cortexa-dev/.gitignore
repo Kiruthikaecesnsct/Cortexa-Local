@@ -13,6 +13,9 @@ Thumbs.db
 !.env.example
 *.local
 .notes/logs
+.notes/instruction.xml
+.notes/Agile/PROJECT_TRACKER.md
+.notes/Agile/UserStory/
 
 # Editors / IDEs
 .vscode/*

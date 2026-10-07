@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using Collector.Application.Extraction;
 using Collector.Application.Ports;
 using Collector.Domain.Enums;
@@ -9,6 +10,12 @@ using Microsoft.Extensions.Logging;
 
 namespace Collector.Presentation.ViewModels;
 
+public sealed record ExtractionDependencies(
+    ExtractionService ExtractionService,
+    IUnitStore UnitStore,
+    IFilePicker FilePicker,
+    ILogger<ExtractionViewModel> Logger);
+
 public sealed partial class ExtractionViewModel : FocusableViewModel
 {
     private readonly ExtractionService _extractionService;
@@ -16,19 +23,20 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
     private readonly IFilePicker _filePicker;
     private readonly ILogger<ExtractionViewModel> _logger;
 
-    public ExtractionViewModel(
-        ExtractionService extractionService,
-        IUnitStore unitStore,
-        IFilePicker filePicker,
-        ILogger<ExtractionViewModel> logger)
+    public ExtractionViewModel(ExtractionDependencies dependencies, KnowledgeRunViewModel knowledge)
     {
-        _extractionService = extractionService;
-        _unitStore = unitStore;
-        _filePicker = filePicker;
-        _logger = logger;
+        _extractionService = dependencies.ExtractionService;
+        _unitStore = dependencies.UnitStore;
+        _filePicker = dependencies.FilePicker;
+        _logger = dependencies.Logger;
+        Knowledge = knowledge;
         Documents = [];
         PreviewUnits = [];
+        knowledge.FocusRequested += (_, key) => RequestFocus(key);
+        knowledge.PropertyChanged += OnKnowledgeChanged;
     }
+
+    public KnowledgeRunViewModel Knowledge { get; }
 
     public ObservableCollection<DocumentRowViewModel> Documents { get; }
 
@@ -56,6 +64,8 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
 
     public string StatusCaption => IsExtracting ? ProgressText : ExtractionStrings.ReadyStatus(FilesCount);
 
+    public bool CanEditDocuments => !IsExtracting && !Knowledge.IsRunning;
+
     public bool ShowPreviewPlaceholder => SelectedDocument is null;
 
     public bool ShowPreviewEmpty => SelectedDocument is not null && SelectedDocument.Status != DocumentStatus.Extracted;
@@ -75,8 +85,8 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
     public partial DocumentRowViewModel? SelectedDocument { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(StatusCaption))]
-    [NotifyCanExecuteChangedFor(nameof(PickFilesCommand))]
+    [NotifyPropertyChangedFor(nameof(StatusCaption), nameof(CanEditDocuments))]
+    [NotifyCanExecuteChangedFor(nameof(PickFilesCommand), nameof(ClearAllCommand), nameof(RemoveDocumentCommand))]
     public partial bool IsExtracting { get; set; }
 
     [ObservableProperty]
@@ -85,6 +95,8 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
 
     [ObservableProperty]
     public partial BannerViewModel? SkipBanner { get; set; }
+
+    partial void OnIsExtractingChanged(bool value) => Knowledge.IsParsing = value;
 
     partial void OnSelectedDocumentChanged(DocumentRowViewModel? value) => _ = LoadPreviewAsync(value, CancellationToken.None);
 
@@ -109,9 +121,9 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
         }
     }
 
-    private bool CanPickFiles() => !IsExtracting;
+    private bool CanPickFiles() => CanEditDocuments;
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanEditDocuments))]
     private void ClearAll()
     {
         foreach (var row in Documents)
@@ -126,7 +138,7 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
         RefreshDerived();
     }
 
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanEditDocuments))]
     private void RemoveDocument(DocumentRowViewModel? row)
     {
         if (row is null)
@@ -277,5 +289,25 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
         OnPropertyChanged(nameof(AllSkipped));
         OnPropertyChanged(nameof(StatusCaption));
         OnPropertyChanged(nameof(SkipRows));
+        SyncKnowledgeDocuments();
+    }
+
+    private void SyncKnowledgeDocuments()
+    {
+        Knowledge.SetDocuments(
+            [.. Documents.Where(row => row.Status == DocumentStatus.Extracted && row.DocumentId is not null).Select(row => row.DocumentId!)]);
+    }
+
+    private void OnKnowledgeChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(KnowledgeRunViewModel.IsRunning))
+        {
+            return;
+        }
+
+        OnPropertyChanged(nameof(CanEditDocuments));
+        PickFilesCommand.NotifyCanExecuteChanged();
+        ClearAllCommand.NotifyCanExecuteChanged();
+        RemoveDocumentCommand.NotifyCanExecuteChanged();
     }
 }

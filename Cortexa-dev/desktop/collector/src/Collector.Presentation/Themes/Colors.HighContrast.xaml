@@ -13,6 +13,7 @@
     <SolidColorBrush x:Key="Brush.Text.Body" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
     <SolidColorBrush x:Key="Brush.Text.Muted" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
     <SolidColorBrush x:Key="Brush.Text.Disabled" Color="{DynamicResource {x:Static SystemColors.GrayTextColorKey}}" />
+    <SolidColorBrush x:Key="Brush.Text.OnSelected" Color="{DynamicResource {x:Static SystemColors.HighlightTextColorKey}}" />
     <SolidColorBrush x:Key="Brush.Text.OnAccent" Color="{DynamicResource {x:Static SystemColors.HighlightTextColorKey}}" />
     <SolidColorBrush x:Key="Brush.Text.Link" Color="{DynamicResource {x:Static SystemColors.HotTrackColorKey}}" />
     <SolidColorBrush x:Key="Brush.Accent" Color="{DynamicResource {x:Static SystemColors.HighlightColorKey}}" />

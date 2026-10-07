@@ -10,4 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Collector.Domain\Collector.Domain.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Knowledge\Prompts\*.json" />
+  </ItemGroup>
 </Project>

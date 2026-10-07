@@ -1,0 +1,89 @@
+{
+  "_note": "Hand-written fixture, not a recorded model response. Every case must pass IdentifierEchoDetector (IsEcho false). Cases marked boundary sit exactly at or just under a threshold; they pass because each comparison is strictly greater-than.",
+  "cases": [
+    {
+      "name": "concept title and own-words summary for retry code",
+      "unit_kind": "file",
+      "unit_text": "public sealed class RetryPolicy\n{\n    private const int MaxAttempts = 5;\n    private static readonly TimeSpan BaseDelay = TimeSpan.FromMilliseconds(200);\n    private static readonly TimeSpan MaxDelay = TimeSpan.FromSeconds(10);\n\n    public async Task<HttpResponseMessage> ExecuteAsync(Func<Task<HttpResponseMessage>> send, CancellationToken ct)\n    {\n        for (var attempt = 0; ; attempt++)\n        {\n            var response = await send();\n            if (!IsTransient(response.StatusCode) || attempt + 1 >= MaxAttempts)\n            {\n                return response;\n            }\n\n            var delayMs = Math.Min(MaxDelay.TotalMilliseconds, BaseDelay.TotalMilliseconds * Math.Pow(2, attempt));\n            await Task.Delay(TimeSpan.FromMilliseconds(delayMs + Random.Shared.Next(0, 100)), ct);\n        }\n    }\n\n    private static bool IsTransient(HttpStatusCode code) =>\n        code is HttpStatusCode.TooManyRequests or HttpStatusCode.ServiceUnavailable;\n}\n",
+      "item": { "kind": "method", "title": "Retry transient HTTP failures with capped, jittered exponential backoff", "summary": "A request that fails for a temporary reason is sent again, with each wait twice as long as the last up to a ceiling, plus a little randomness so many clients do not retry at the same moment.", "details": "- Only rate-limit and service-unavailable responses are retried; other failures return at once.\n- The attempt limit (`MaxAttempts`) bounds the total delay.\n- The wait respects cancellation.", "anchor_quote": "Math.Min(MaxDelay.TotalMilliseconds, BaseDelay.TotalMilliseconds * Math.Pow(2, attempt))" },
+      "expected": { "is_echo": false, "reason": null }
+    },
+    {
+      "name": "logic item with acronyms in summary",
+      "unit_kind": "file",
+      "unit_text": "public sealed class RetryPolicy\n{\n    private const int MaxAttempts = 5;\n    private static readonly TimeSpan BaseDelay = TimeSpan.FromMilliseconds(200);\n    private static readonly TimeSpan MaxDelay = TimeSpan.FromSeconds(10);\n\n    public async Task<HttpResponseMessage> ExecuteAsync(Func<Task<HttpResponseMessage>> send, CancellationToken ct)\n    {\n        for (var attempt = 0; ; attempt++)\n        {\n            var response = await send();\n            if (!IsTransient(response.StatusCode) || attempt + 1 >= MaxAttempts)\n            {\n                return response;\n            }\n\n            var delayMs = Math.Min(MaxDelay.TotalMilliseconds, BaseDelay.TotalMilliseconds * Math.Pow(2, attempt));\n            await Task.Delay(TimeSpan.FromMilliseconds(delayMs + Random.Shared.Next(0, 100)), ct);\n        }\n    }\n\n    private static bool IsTransient(HttpStatusCode code) =>\n        code is HttpStatusCode.TooManyRequests or HttpStatusCode.ServiceUnavailable;\n}\n",
+      "item": { "kind": "logic", "title": "Only rate limiting and outages count as temporary", "summary": "The HTTP client treats a 429 or 503 response as a sign the service needs time, and treats every other status as final so real errors are not hidden behind retries.", "details": "", "anchor_quote": "code is HttpStatusCode.TooManyRequests or HttpStatusCode.ServiceUnavailable;" },
+      "expected": { "is_echo": false, "reason": null }
+    },
+    {
+      "name": "algorithm item for batching code",
+      "unit_kind": "file",
+      "unit_text": "MAX_BATCH_SIZE = 50\n\n\ndef split_into_batches(documents, max_bytes):\n    \"\"\"Group documents so each batch stays under both the count and size limits.\"\"\"\n    batches, current, current_bytes = [], [], 0\n    for doc in documents:\n        size = len(doc.payload)\n        if current and (len(current) == MAX_BATCH_SIZE or current_bytes + size > max_bytes):\n            batches.append(current)\n            current, current_bytes = [], 0\n        current.append(doc)\n        current_bytes += size\n    if current:\n        batches.append(current)\n    return batches\n",
+      "item": { "kind": "algorithm", "title": "Greedy packing of documents under a count and a size cap", "summary": "Documents are added in order to the open batch, and a new batch starts whenever the next document would break either limit, so no batch is too large or too long.", "details": "- One pass, linear in the number of documents.\n- A single document larger than the byte cap still forms its own batch rather than being dropped.", "anchor_quote": "if current and (len(current) == MAX_BATCH_SIZE or current_bytes + size > max_bytes):" },
+      "expected": { "is_echo": false, "reason": null }
+    },
+    {
+      "name": "paper method with e.g. and section number",
+      "unit_kind": "page",
+      "unit_text": "4 Incremental Indexing\nOur approach builds the index incrementally. Instead of rebuilding the full inverted index after every update, new documents are written to a small in-memory segment that is merged into the main index once it exceeds a size threshold. This keeps write latency low while bounding the number of segments a query must scan.\nIn our experiments the merge threshold of 64 MB gave the best balance between write throughput and query latency (see Table 2).",
+      "item": { "kind": "method", "title": "Buffer new documents in a small segment and merge later", "summary": "New writes land in a small memory segment that is folded into the main index only when it grows past a limit (e.g. 64 MB), which keeps writes fast without letting queries face too many segments.", "details": "The authors treat the size limit as the tuning point between write throughput and query latency.", "anchor_quote": "new documents are written to a small in-memory segment" },
+      "expected": { "is_echo": false, "reason": null }
+    },
+    {
+      "name": "paper key content with a short quoted number",
+      "unit_kind": "page",
+      "unit_text": "4 Incremental Indexing\nOur approach builds the index incrementally. Instead of rebuilding the full inverted index after every update, new documents are written to a small in-memory segment that is merged into the main index once it exceeds a size threshold. This keeps write latency low while bounding the number of segments a query must scan.\nIn our experiments the merge threshold of 64 MB gave the best balance between write throughput and query latency (see Table 2).",
+      "item": { "kind": "key_content", "title": "A 64 MB merge threshold balanced writes and queries best", "summary": "Among the thresholds the authors tried, merging at 64 MB gave the best trade-off between how fast documents can be written and how fast queries run.", "details": "", "anchor_quote": "the merge threshold of 64 MB gave the best balance" },
+      "expected": { "is_echo": false, "reason": null }
+    },
+    {
+      "name": "brand name with camel hump present in source",
+      "unit_kind": "section",
+      "unit_text": "We release the dataset on GitHub under a CC BY 4.0 license. Annotation files are stored as JSON and follow the schema described in Appendix B, e.g. one record per labeled span.",
+      "item": { "kind": "key_content", "title": "Dataset released openly with documented JSON annotations", "summary": "The authors publish the dataset on GitHub under a permissive license, with one annotation record per labeled span in a documented JSON format.", "details": "", "anchor_quote": "We release the dataset on GitHub under a CC BY 4.0 license." },
+      "expected": { "is_echo": false, "reason": null }
+    },
+    {
+      "name": "single plain word title",
+      "unit_kind": "file",
+      "unit_text": "public sealed class RetryPolicy\n{\n    private const int MaxAttempts = 5;\n    private static readonly TimeSpan BaseDelay = TimeSpan.FromMilliseconds(200);\n    private static readonly TimeSpan MaxDelay = TimeSpan.FromSeconds(10);\n\n    public async Task<HttpResponseMessage> ExecuteAsync(Func<Task<HttpResponseMessage>> send, CancellationToken ct)\n    {\n        for (var attempt = 0; ; attempt++)\n        {\n            var response = await send();\n            if (!IsTransient(response.StatusCode) || attempt + 1 >= MaxAttempts)\n            {\n                return response;\n            }\n\n            var delayMs = Math.Min(MaxDelay.TotalMilliseconds, BaseDelay.TotalMilliseconds * Math.Pow(2, attempt));\n            await Task.Delay(TimeSpan.FromMilliseconds(delayMs + Random.Shared.Next(0, 100)), ct);\n        }\n    }\n\n    private static bool IsTransient(HttpStatusCode code) =>\n        code is HttpStatusCode.TooManyRequests or HttpStatusCode.ServiceUnavailable;\n}\n",
+      "item": { "kind": "method", "title": "Backoff", "summary": "Waits grow after each failed attempt so a struggling service is not flooded with retries.", "details": "", "anchor_quote": null },
+      "expected": { "is_echo": false, "reason": null }
+    },
+    {
+      "name": "boundary: identifier-shaped title token absent from source",
+      "unit_kind": "file",
+      "unit_text": "public sealed class RetryPolicy\n{\n    private const int MaxAttempts = 5;\n    private static readonly TimeSpan BaseDelay = TimeSpan.FromMilliseconds(200);\n    private static readonly TimeSpan MaxDelay = TimeSpan.FromSeconds(10);\n\n    public async Task<HttpResponseMessage> ExecuteAsync(Func<Task<HttpResponseMessage>> send, CancellationToken ct)\n    {\n        for (var attempt = 0; ; attempt++)\n        {\n            var response = await send();\n            if (!IsTransient(response.StatusCode) || attempt + 1 >= MaxAttempts)\n            {\n                return response;\n            }\n\n            var delayMs = Math.Min(MaxDelay.TotalMilliseconds, BaseDelay.TotalMilliseconds * Math.Pow(2, attempt));\n            await Task.Delay(TimeSpan.FromMilliseconds(delayMs + Random.Shared.Next(0, 100)), ct);\n        }\n    }\n\n    private static bool IsTransient(HttpStatusCode code) =>\n        code is HttpStatusCode.TooManyRequests or HttpStatusCode.ServiceUnavailable;\n}\n",
+      "item": { "kind": "method", "title": "ExponentialBackoff", "summary": "Waits grow after each failed attempt so a struggling service is not flooded with retries.", "details": "", "anchor_quote": null },
+      "expected": { "is_echo": false, "reason": null }
+    },
+    {
+      "name": "boundary: title share exactly at threshold (1 of 2)",
+      "unit_kind": "file",
+      "unit_text": "MAX_BATCH_SIZE = 50\n\n\ndef split_into_batches(documents, max_bytes):\n    \"\"\"Group documents so each batch stays under both the count and size limits.\"\"\"\n    batches, current, current_bytes = [], [], 0\n    for doc in documents:\n        size = len(doc.payload)\n        if current and (len(current) == MAX_BATCH_SIZE or current_bytes + size > max_bytes):\n            batches.append(current)\n            current, current_bytes = [], 0\n        current.append(doc)\n        current_bytes += size\n    if current:\n        batches.append(current)\n    return batches\n",
+      "item": { "kind": "algorithm", "title": "Bounded split_into_batches", "summary": "Documents are packed greedily into batches that respect both a count limit and a size limit.", "details": "", "anchor_quote": null },
+      "expected": { "is_echo": false, "reason": null }
+    },
+    {
+      "name": "boundary: summary share exactly at threshold (3 of 10)",
+      "unit_kind": "file",
+      "unit_text": "MAX_BATCH_SIZE = 50\n\n\ndef split_into_batches(documents, max_bytes):\n    \"\"\"Group documents so each batch stays under both the count and size limits.\"\"\"\n    batches, current, current_bytes = [], [], 0\n    for doc in documents:\n        size = len(doc.payload)\n        if current and (len(current) == MAX_BATCH_SIZE or current_bytes + size > max_bytes):\n            batches.append(current)\n            current, current_bytes = [], 0\n        current.append(doc)\n        current_bytes += size\n    if current:\n        batches.append(current)\n    return batches\n",
+      "item": { "kind": "logic", "title": "Batch splitting under count and size limits", "summary": "The split_into_batches helper honors MAX_BATCH_SIZE and max_bytes limits together, always.", "details": "", "anchor_quote": null },
+      "expected": { "is_echo": false, "reason": null }
+    },
+    {
+      "name": "boundary: summary copy under threshold (0.55)",
+      "unit_kind": "page",
+      "unit_text": "4 Incremental Indexing\nOur approach builds the index incrementally. Instead of rebuilding the full inverted index after every update, new documents are written to a small in-memory segment that is merged into the main index once it exceeds a size threshold. This keeps write latency low while bounding the number of segments a query must scan.\nIn our experiments the merge threshold of 64 MB gave the best balance between write throughput and query latency (see Table 2).",
+      "item": { "kind": "method", "title": "Small write segments merged later", "summary": "This keeps write latency low while bounding the number of segments, which the authors trade against periodic merge work.", "details": "", "anchor_quote": null },
+      "expected": { "is_echo": false, "reason": null }
+    },
+    {
+      "name": "short summary (under 40 chars) skips the copy check",
+      "unit_kind": "page",
+      "unit_text": "4 Incremental Indexing\nOur approach builds the index incrementally. Instead of rebuilding the full inverted index after every update, new documents are written to a small in-memory segment that is merged into the main index once it exceeds a size threshold. This keeps write latency low while bounding the number of segments a query must scan.\nIn our experiments the merge threshold of 64 MB gave the best balance between write throughput and query latency (see Table 2).",
+      "item": { "kind": "method", "title": "Incremental index building", "summary": "Builds the index incrementally.", "details": "", "anchor_quote": null },
+      "expected": { "is_echo": false, "reason": null }
+    }
+  ]
+}

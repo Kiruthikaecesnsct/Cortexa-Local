@@ -1,5 +1,6 @@
 using Collector.Application.Extraction;
 using Collector.Domain.Enums;
+using Collector.Presentation.Services;
 using Collector.Presentation.ViewModels;
 using Collector.Tests.Extraction;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -11,6 +12,7 @@ public sealed class ExtractionViewModelTests : IDisposable
     private readonly string _directory = Path.Combine(Path.GetTempPath(), $"collector-extraction-vm-{Guid.NewGuid():N}");
     private readonly InMemoryUnitStore _unitStore = new();
     private readonly ExtractionService _extractionService;
+    private readonly KnowledgeHarness _knowledge = new();
 
     public ExtractionViewModelTests()
     {
@@ -46,7 +48,7 @@ public sealed class ExtractionViewModelTests : IDisposable
     }
 
     private ExtractionViewModel CreateViewModel(params string[] paths) =>
-        new(_extractionService, _unitStore, new FakeFilePicker(paths), NullLogger<ExtractionViewModel>.Instance);
+        new(new ExtractionDependencies(_extractionService, _unitStore, new FakeFilePicker(paths), NullLogger<ExtractionViewModel>.Instance), _knowledge.ViewModel);
 
     [Fact]
     public async Task Picking_files_extracts_each_one_and_populates_the_documents_list()
@@ -173,5 +175,63 @@ public sealed class ExtractionViewModelTests : IDisposable
 
         Assert.NotEmpty(viewModel.PreviewUnits);
         Assert.All(viewModel.PreviewUnits, u => Assert.Contains("second", u.Snippet, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task ExtractKnowledge_SkippedAndExtractedDocuments_PassesOnlyExtractedIds()
+    {
+        var huge = WriteFile("huge.cs", new byte[FileContentGuard.MaxFileBytes + 1]);
+        var ok = WriteFile("notes.txt", System.Text.Encoding.UTF8.GetBytes("some readable content"));
+        var viewModel = CreateViewModel(huge, ok);
+        await viewModel.PickFilesCommand.ExecuteAsync(null);
+        var extractedId = viewModel.Documents.Single(d => d.Status == DocumentStatus.Extracted).DocumentId!;
+
+        await viewModel.Knowledge.ExtractKnowledgeCommand.ExecuteAsync(null);
+
+        Assert.Equal([extractedId], _knowledge.Runner.LastDocumentIds);
+    }
+
+    [Fact]
+    public async Task DocumentCommands_KnowledgeRunInFlight_CannotExecute()
+    {
+        var ok = WriteFile("notes.txt", System.Text.Encoding.UTF8.GetBytes("some readable content"));
+        var viewModel = CreateViewModel(ok);
+        await viewModel.PickFilesCommand.ExecuteAsync(null);
+        var row = viewModel.Documents.Single();
+        _knowledge.Runner.Gate = new TaskCompletionSource<KnowledgeRunOutcome>();
+
+        var run = viewModel.Knowledge.ExtractKnowledgeCommand.ExecuteAsync(null);
+
+        Assert.False(viewModel.PickFilesCommand.CanExecute(null));
+        Assert.False(viewModel.ClearAllCommand.CanExecute(null));
+        Assert.False(viewModel.RemoveDocumentCommand.CanExecute(row));
+        _knowledge.Runner.Gate.SetResult(new KnowledgeRunOutcome(KnowledgeRunStatus.Failed));
+        await run;
+        Assert.True(viewModel.PickFilesCommand.CanExecute(null));
+        Assert.True(viewModel.ClearAllCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task ExtractKnowledge_RunStarted_ForwardsCancelFocusRequest()
+    {
+        var ok = WriteFile("notes.txt", System.Text.Encoding.UTF8.GetBytes("some readable content"));
+        var viewModel = CreateViewModel(ok);
+        await viewModel.PickFilesCommand.ExecuteAsync(null);
+        _knowledge.Runner.Gate = new TaskCompletionSource<KnowledgeRunOutcome>();
+
+        var run = viewModel.Knowledge.ExtractKnowledgeCommand.ExecuteAsync(null);
+
+        Assert.Equal(KnowledgeFocusKeys.Cancel, viewModel.PendingFocus);
+        _knowledge.Runner.Gate.SetResult(new KnowledgeRunOutcome(KnowledgeRunStatus.Failed));
+        await run;
+    }
+
+    [Fact]
+    public async Task ExtractKnowledge_NoFilesPicked_IsNotAvailable()
+    {
+        var viewModel = CreateViewModel();
+        await viewModel.PickFilesCommand.ExecuteAsync(null);
+
+        Assert.False(viewModel.Knowledge.CanExtract);
     }
 }

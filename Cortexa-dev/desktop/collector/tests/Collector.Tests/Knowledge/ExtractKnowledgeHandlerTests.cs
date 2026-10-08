@@ -23,12 +23,32 @@ public sealed class ExtractKnowledgeHandlerTests
         _units.ByDocumentId[id] = [.. unitTexts.Select((text, index) => TestData.FileUnit(text, id: $"{id}-u{index}", documentId: id) with { Ordinal = index })];
     }
 
+    private void AddDocumentWithFiles(string id, params string[] filePaths)
+    {
+        var document = TestData.Document(id);
+        _documents.ByPath[document.SourcePath] = document;
+        _units.ByDocumentId[id] =
+        [
+            .. filePaths.Select((filePath, index) =>
+                TestData.FileUnit($"text {index}", id: $"{id}-u{index}", documentId: id, filePath: filePath) with { Ordinal = index }),
+        ];
+    }
+
+    private static FuncAiProvider FolderAwareProvider() => new(async (request, _) =>
+    {
+        await Task.CompletedTask;
+        return request.UserText.Contains("\"folder\"", StringComparison.Ordinal)
+            ? Completions.Completed($"{{\"items\":[{{\"kind\":\"layer\",\"title\":\"Layer idea\",\"summary\":\"A module role.\",\"details\":\"\"}}]}}")
+            : Completions.Completed(TestData.Response(TestData.ItemJson($"File idea {Guid.NewGuid():N}")));
+    });
+
     private ExtractKnowledgeHandler Handler(IAiProvider provider, int concurrency = 1) => new(
         _documents,
         _units,
         KnowledgePipeline.Runner(provider, new CapturingLogger<UnitExtractionRunner>()),
         new KnowledgeMerger(),
         KnowledgePipeline.Prompt,
+        LayerPipeline.Runner(provider, new CapturingLogger<LayerExtractionRunner>()),
         new SingleProviderFactory(provider, concurrency));
 
     private static FuncAiProvider EchoProvider(Func<AiRequest, CancellationToken, Task<AiCompletion>>? inner = null) =>
@@ -176,6 +196,43 @@ public sealed class ExtractKnowledgeHandlerTests
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => Handler(EchoProvider()).ExtractAsync(Request("doc-a"), null, source.Token));
+    }
+
+    [Fact]
+    public async Task ExtractAsync_FolderWithThreeOrMoreFiles_AppendsLayerItems()
+    {
+        AddDocumentWithFiles("doc-a", "src/app/a.cs", "src/app/b.cs", "src/app/c.cs");
+
+        var result = await Handler(FolderAwareProvider()).ExtractAsync(Request("doc-a"), null, TestSupport.Ct);
+
+        Assert.Equal(3, result.Items.Count(item => item.Kind != Collector.Domain.Enums.KnowledgeKind.Layer));
+        var layerItem = Assert.Single(result.Items, item => item.Kind == Collector.Domain.Enums.KnowledgeKind.Layer);
+        Assert.Equal(Collector.Domain.Enums.UnitKind.Module, layerItem.UnitKind);
+        Assert.Equal("src/app/", layerItem.Source.FilePath);
+        Assert.Equal("layer.v1", layerItem.PromptVersion);
+    }
+
+    [Fact]
+    public async Task ExtractAsync_FolderWithFewerThanThreeFiles_NoLayerItems()
+    {
+        AddDocumentWithFiles("doc-a", "src/app/a.cs", "src/app/b.cs");
+
+        var result = await Handler(FolderAwareProvider()).ExtractAsync(Request("doc-a"), null, TestSupport.Ct);
+
+        Assert.DoesNotContain(result.Items, item => item.Kind == Collector.Domain.Enums.KnowledgeKind.Layer);
+    }
+
+    [Fact]
+    public async Task ExtractAsync_LayerPass_ExtendsProgressTotalBeyondFileUnits()
+    {
+        AddDocumentWithFiles("doc-a", "src/app/a.cs", "src/app/b.cs", "src/app/c.cs");
+        var progress = new RecordingProgress<ExtractionProgress>();
+
+        await Handler(FolderAwareProvider()).ExtractAsync(Request("doc-a"), progress, TestSupport.Ct);
+
+        Assert.Equal(4, progress.Reports.Count);
+        Assert.Equal(4, progress.Reports.Max(report => report.TotalUnits));
+        Assert.Equal(4, progress.Reports.Max(report => report.CompletedUnits));
     }
 
     [Fact]

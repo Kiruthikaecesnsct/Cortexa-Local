@@ -12,6 +12,7 @@ public sealed partial class KindFilterViewModel : ObservableObject
         KnowledgeKind.Logic,
         KnowledgeKind.Algorithm,
         KnowledgeKind.Method,
+        KnowledgeKind.Layer,
         KnowledgeKind.DataModel,
         KnowledgeKind.Interface,
         KnowledgeKind.Workflow,

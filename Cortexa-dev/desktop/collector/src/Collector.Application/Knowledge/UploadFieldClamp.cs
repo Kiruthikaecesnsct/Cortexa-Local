@@ -50,9 +50,17 @@ public static class UploadFieldClamp
                 PageNumber = source.PageNumber is >= MinPosition ? source.PageNumber : null,
                 Section = TruncateOptional(source.Section, UploadLimitsMirror.SectionMax) ?? FallbackSection,
             },
+            Domain.Enums.UnitKind.Module => ClampModuleSource(item),
             _ => ClampFileSource(item),
         };
     }
+
+    private static KnowledgeSource ClampModuleSource(ExtractedKnowledgeItem item) => new()
+    {
+        FilePath = Truncate(item.Source.FilePath ?? item.DocumentPath, UploadLimitsMirror.FilePathMax),
+        LineStart = null,
+        LineEnd = null,
+    };
 
     private static KnowledgeSource ClampFileSource(ExtractedKnowledgeItem item)
     {

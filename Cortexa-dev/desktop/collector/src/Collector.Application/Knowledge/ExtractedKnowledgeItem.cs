@@ -26,4 +26,6 @@ public sealed record ExtractedKnowledgeItem
     public string? Excerpt { get; init; }
 
     public required EchoVerdict EchoVerdict { get; init; }
+
+    public required string PromptVersion { get; init; }
 }

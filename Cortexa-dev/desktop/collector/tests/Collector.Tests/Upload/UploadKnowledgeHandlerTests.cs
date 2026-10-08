@@ -210,6 +210,42 @@ public sealed class UploadKnowledgeHandlerTests
     }
 
     [Fact]
+    public async Task PrepareAsync_ItemsWithDifferentPromptVersions_ProduceSeparateSingleVersionBatches()
+    {
+        var document = TestData.Document("doc-mixed");
+        _documents.ByPath[document.SourcePath] = document;
+        var items = new List<ExtractedKnowledgeItem>
+        {
+            TestData.Item("File idea", documentId: document.Id),
+            TestData.Item("Layer idea", documentId: document.Id, kind: KnowledgeKind.Layer) with { PromptVersion = "layer.v1" },
+        };
+
+        await Handler().PrepareAsync(Request(items), TestSupport.Ct);
+
+        Assert.Equal(2, _batches.Rows.Count);
+        Assert.Equal(["knowledge.v1", "layer.v1"], _batches.Rows.Select(row => row.Batch.PromptVersion).Order());
+        Assert.All(_batches.Rows, row => Assert.Single(row.Batch.DocumentIds));
+    }
+
+    [Fact]
+    public async Task PrepareAsync_DocumentMissingInOneVersionGroupOnly_IsReportedOnce()
+    {
+        var document = TestData.Document("doc-present");
+        _documents.ByPath[document.SourcePath] = document;
+        var items = new List<ExtractedKnowledgeItem>
+        {
+            TestData.Item("File idea", documentId: "doc-missing"),
+            TestData.Item("Layer idea", documentId: "doc-missing", kind: KnowledgeKind.Layer) with { PromptVersion = "layer.v1" },
+            TestData.Item("Fine", documentId: document.Id),
+        };
+
+        var session = await Handler().PrepareAsync(Request(items), TestSupport.Ct);
+
+        var blocked = Assert.Single(session.Blocked);
+        Assert.Equal("doc-missing", blocked.DocumentId);
+    }
+
+    [Fact]
     public async Task UploadPendingAsync_ClientCancelled_PropagatesOperationCanceled()
     {
         _client.FailNext(new OperationCanceledException());

@@ -1,0 +1,24 @@
+{
+  "type": "object",
+  "properties": {
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["layer"]
+          },
+          "title": { "type": "string" },
+          "summary": { "type": "string" },
+          "details": { "type": "string" }
+        },
+        "required": ["kind", "title", "summary", "details"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["items"],
+  "additionalProperties": false
+}

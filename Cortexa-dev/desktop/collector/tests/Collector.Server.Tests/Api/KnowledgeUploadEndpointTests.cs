@@ -5,6 +5,7 @@ using Collector.Domain.Serialization;
 using Collector.Domain.Upload;
 using Collector.Server.Application.Ports;
 using Collector.Server.Application.Upload;
+using Collector.Server.Tests.Fakes;
 using Collector.Server.Tests.Upload;
 using Microsoft.IdentityModel.Tokens;
 
@@ -18,6 +19,7 @@ public class KnowledgeUploadEndpointTests
     private const string SecretExcerpt = "EXCERPT-MUST-NOT-BE-LOGGED";
     private const string SecretKey = "IDEMPOTENCY-KEY-MUST-NOT-BE-LOGGED";
     private const int OverLongKeyLength = 129;
+    private const int ReplayedPublishCount = 2;
     private const long TinyBodyLimit = 256;
 
     [Fact]
@@ -79,6 +81,48 @@ public class KnowledgeUploadEndpointTests
         Assert.Equal(HttpStatusCode.OK, second.StatusCode);
         Assert.Equal(firstBody, await ReadTextAsync(second));
         Assert.Equal(writesAfterFirst, factory.Store.WriteCalls);
+        Assert.Equal(ReplayedPublishCount, factory.Publisher.Published.Count);
+    }
+
+    [Fact]
+    public async Task Post_SameKeyDifferentBody_Returns409IdempotencyKeyReused()
+    {
+        await using var factory = new CollectorServerFactory();
+        using var first = await factory.PostAsync(new UploadCall());
+        var different = new UploadCall().WithRequest(UploadRequests.Valid(UploadRequests.PaperDocument(), UploadRequests.CodeDocument()));
+
+        using var second = await factory.PostAsync(different);
+
+        Assert.Equal(HttpStatusCode.Conflict, second.StatusCode);
+        Assert.Equal("idempotency_key_reused", await ReadErrorCodeAsync(second));
+    }
+
+    [Fact]
+    public async Task Post_ChunkWriteFails_Returns503StorageUnavailableAndLeavesNoRows()
+    {
+        await using var factory = new CollectorServerFactory();
+        factory.Store.FailAtStage = FakePipelineRowStore.ChunksStage;
+
+        using var response = await factory.PostAsync(new UploadCall());
+
+        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        Assert.Equal("storage_unavailable", await ReadErrorCodeAsync(response));
+        Assert.Equal(0, factory.Store.RowCount);
+    }
+
+    [Fact]
+    public async Task Post_PublishFailsThenSameKeyReplays_Returns502ThenOkAndPublishes()
+    {
+        await using var factory = new CollectorServerFactory();
+        factory.Publisher.FailAfter = 0;
+        using var failed = await factory.PostAsync(new UploadCall());
+        factory.Publisher.FailAfter = null;
+
+        using var replay = await factory.PostAsync(new UploadCall());
+
+        Assert.Equal(HttpStatusCode.BadGateway, failed.StatusCode);
+        Assert.Equal("publish_failed", await ReadErrorCodeAsync(failed));
+        Assert.Equal(HttpStatusCode.OK, replay.StatusCode);
         Assert.Single(factory.Publisher.Published);
     }
 

@@ -14,6 +14,25 @@ public interface IPipelineRowStore
 
     Task<SagaRow?> GetSagaAsync(string batchId, CancellationToken cancellationToken);
 
+    Task<IReadOnlyList<string>> DeleteSagaAsync(string batchId, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<string>> DeleteProvenanceAsync(
+        string batchId,
+        IReadOnlyList<string> ids,
+        CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<string>> DeleteChunksAsync(
+        string batchId,
+        IReadOnlyList<string> ids,
+        CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<string>> DeleteDocumentsAsync(
+        string batchId,
+        IReadOnlyList<string> ids,
+        CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<DocumentRow>> GetDocumentsByBatchAsync(string batchId, CancellationToken cancellationToken);
+
     Task<IReadOnlyList<SagaRow>> ListSagasByOwnerAsync(string ownerUserId, string orgId, CancellationToken cancellationToken);
 
     Task<BatchResultRows> GetResultsByBatchAsync(string batchId, CancellationToken cancellationToken);

@@ -27,4 +27,6 @@ public sealed record SagaMetadataInput
     public required CollectorProvider CollectorProvider { get; init; }
 
     public required string CollectorModel { get; init; }
+
+    public string? RequestFingerprint { get; init; }
 }

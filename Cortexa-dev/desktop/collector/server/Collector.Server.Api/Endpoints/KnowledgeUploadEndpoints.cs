@@ -31,12 +31,30 @@ public static class KnowledgeUploadEndpoints
             return input.Failure!;
         }
 
-        var outcome = await handler.HandleAsync(input.Command, cancellationToken);
-        return ToResult(outcome);
+        try
+        {
+            var outcome = await handler.HandleAsync(input.Command, cancellationToken);
+            return ToResult(outcome);
+        }
+        catch (Exception exception)
+        {
+            var failure = UploadFailureResults.TryMap(exception);
+            if (failure is null)
+            {
+                throw;
+            }
+
+            return failure;
+        }
     }
 
     private static IResult ToResult(UploadOutcome outcome)
     {
+        if (outcome.IsConflict)
+        {
+            return UploadFailureResults.KeyReused();
+        }
+
         if (outcome.Result is null)
         {
             return ErrorResponses.Unprocessable(outcome.Errors);

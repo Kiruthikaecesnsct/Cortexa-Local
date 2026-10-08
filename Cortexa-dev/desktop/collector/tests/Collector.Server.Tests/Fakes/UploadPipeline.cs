@@ -14,16 +14,18 @@ internal sealed class UploadPipeline
     {
         var options = Options.Create(UploadTestOptions.Create(configure));
         Preparer = new UploadPreparer(new KnowledgeUploadValidator(options), Models, options, new FixedTimeProvider());
-        var writer = new WriteKnowledgeBatchHandler(
-            Store,
+        var dispatcher = new IngestionEventDispatcher(
             Publisher,
             new FixedClock(),
-            NullLogger<WriteKnowledgeBatchHandler>.Instance);
-        Handler = new SubmitKnowledgeUploadHandler(
+            NullLogger<IngestionEventDispatcher>.Instance);
+        var writer = new WriteKnowledgeBatchHandler(
             Store,
-            Preparer,
-            writer,
-            NullLogger<SubmitKnowledgeUploadHandler>.Instance);
+            dispatcher,
+            new BatchRollback(Store, NullLogger<BatchRollback>.Instance),
+            new FixedClock(),
+            NullLogger<WriteKnowledgeBatchHandler>.Instance);
+        var replayer = new UploadReplayHandler(Store, dispatcher, NullLogger<UploadReplayHandler>.Instance);
+        Handler = new SubmitKnowledgeUploadHandler(Store, Preparer, writer, replayer);
     }
 
     public FakePipelineRowStore Store { get; } = new();

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>US128 History - design prototype</title>
+<style>
+/* Tokens mirror Themes/Colors.Light.xaml and Styles.xaml. Prototype only. */
+:root{
+  --surface-page:#F6F7FC;--surface-card:#FFFFFF;--surface-rail:#EEF0FA;--surface-sunken:#EEF0F8;--surface-selected:#E3E6FB;
+  --border-subtle:#E3E6F0;--border-control:#8A93A8;--border-focus:#4653E8;
+  --text-primary:#171A30;--text-body:#464D6E;--text-muted:#5F6684;--text-disabled:#9AA1B8;--text-link:#3945D6;
+  --accent:#4653E8;--danger:#C4283F;--danger-surface:#FCEBED;--success:#0B7A53;--success-surface:#E7F5EF;
+  --warning:#9A4A08;--warning-surface:#FEF3E2;--info-surface:#EAECFD;--info:#3945D6;
+  --fs-caption:12px;--fs-body:14px;--fs-subtitle:18px;--fs-title:24px;
+  --s-xs:4px;--s-s:8px;--s-m:12px;--s-l:16px;--s-xl:24px;--s-xxl:32px;
+  --r-control:8px;--r-card:14px;--r-chip:999px;
+  --batch-pane:300px;
+}
+*{box-sizing:border-box}
+body{margin:0;font:var(--fs-body)/1.4 "Segoe UI Variable Text","Segoe UI",sans-serif;color:var(--text-body);background:var(--surface-page)}
+.mono{font-family:"Cascadia Mono",Consolas,monospace}
+.proto-bar{background:#171A30;color:#fff;padding:8px 16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12px}
+.proto-bar button{font:inherit;padding:4px 10px;border-radius:6px;border:1px solid #8A93A8;background:#2a2f52;color:#fff;cursor:pointer}
+.proto-bar button[aria-pressed=true]{background:#4653E8;border-color:#4653E8}
+.window{display:grid;grid-template-columns:232px 1fr;min-height:calc(100vh - 40px);min-width:880px}
+.rail{background:var(--surface-rail);padding:16px 0}
+.rail .nav{height:44px;display:flex;align-items:center;gap:12px;padding:0 12px 0 24px;color:var(--text-primary);position:relative}
+.rail .nav.sel{background:var(--surface-selected);font-weight:600}
+.rail .nav.sel::before{content:"";position:absolute;left:8px;top:12px;bottom:12px;width:3px;border-radius:2px;background:var(--accent)}
+.content{padding:24px 32px 32px}
+.ws{max-width:960px}
+h1{font:600 var(--fs-title) "Segoe UI Variable Display","Segoe UI";color:var(--text-primary);margin:0}
+h2{font:600 var(--fs-subtitle) "Segoe UI Variable Display","Segoe UI";color:var(--text-primary);margin:0}
+.toprow{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.toprow .spacer{flex:1}
+.caption{font-size:var(--fs-caption);color:var(--text-muted)}
+.label{font-weight:600;color:var(--text-primary)}
+.card{background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--r-card);padding:24px}
+.icon-btn{width:40px;height:40px;display:inline-grid;place-items:center;border:0;background:transparent;border-radius:8px;cursor:pointer;color:var(--text-primary);font-size:16px}
+.icon-btn:hover{background:var(--surface-selected)}
+:focus-visible{outline:2px solid var(--border-focus);outline-offset:2px;border-radius:10px}
+.link-btn{border:0;background:transparent;color:var(--text-link);font:inherit;padding:8px 12px;min-height:40px;cursor:pointer}
+.link-btn:hover{text-decoration:underline}
+.link-btn:disabled{color:var(--text-disabled);cursor:default;text-decoration:none}
+.btn-secondary{border:1px solid var(--border-control);background:var(--surface-card);color:var(--text-primary);border-radius:8px;padding:8px 16px;min-height:40px;font:inherit;font-weight:600;cursor:pointer}
+.banner{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--warning);background:var(--warning-surface);border-radius:8px;padding:12px 12px 12px 16px;margin-bottom:8px}
+.banner .g{color:var(--warning)}
+.banner .msg{flex:1}
+.panes{display:grid;grid-template-columns:var(--batch-pane) 1fr;gap:24px;align-items:start}
+.list{padding:0;overflow:hidden}
+.row{padding:12px 16px;border-bottom:1px solid var(--border-subtle);cursor:pointer;min-height:64px}
+.row:hover,.row.sel{background:var(--surface-selected)}
+.row .t{font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .meta{display:flex;align-items:center;gap:8px;margin-top:4px;flex-wrap:wrap}
+.tag{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:var(--r-chip);font-size:12px;background:var(--surface-sunken);color:var(--text-muted);border:1px solid transparent;white-space:nowrap}
+.tag.info{background:var(--info-surface);color:var(--info)}
+.tag.success{background:var(--success-surface);color:var(--success)}
+.tag.danger{background:var(--danger-surface);color:var(--danger)}
+.idline{display:flex;align-items:center;gap:4px}
+.stepper{display:grid;grid-template-columns:repeat(5,1fr);margin:16px 0 8px}
+.step{position:relative;padding-top:28px;text-align:left;padding-right:8px}
+.step .mk{position:absolute;top:0;left:0;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;background:var(--surface-card)}
+.step::after{content:"";position:absolute;top:10px;left:24px;right:4px;height:1px;background:var(--border-subtle)}
+.step:last-child::after{display:none}
+.step.done .mk{background:var(--success);color:#fff}
+.step.current .mk{border:2px solid var(--accent);color:var(--accent)}
+.step.current .mk::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.step.pending .mk{border:1px solid var(--border-control)}
+.step.skipped .mk{border:1px dashed var(--border-control);color:var(--text-muted)}
+.step.failed .mk{background:var(--danger);color:#fff}
+.step.stopped .mk{border:1px solid var(--border-control);color:var(--text-muted)}
+.step .sl{font-size:12px;font-weight:600;color:var(--text-primary)}
+.step .sc{font-size:12px;color:var(--text-muted)}
+.progress{height:2px;background:var(--surface-sunken);margin:8px 0 4px;position:relative;overflow:hidden}
+.progress span{position:absolute;left:0;top:0;bottom:0;background:var(--accent)}
+.progress.ind span{width:30%;animation:ind 1.4s linear infinite}
+@keyframes ind{from{left:-30%}to{left:100%}}
+.cands{margin-top:8px;padding:0}
+.cands .hdr{padding:16px 16px 8px;display:flex;align-items:baseline;gap:8px}
+.cand{border-top:1px solid var(--border-subtle)}
+.cand>button{all:unset;box-sizing:border-box;display:grid;grid-template-columns:24px 1fr auto;gap:12px;width:100%;padding:12px 16px;cursor:pointer;min-height:64px;align-items:center}
+.cand>button:hover{background:var(--surface-selected)}
+.cand>button:focus-visible{outline:2px solid var(--border-focus);outline-offset:-2px}
+.chev{color:var(--text-muted);transition:transform .12s}
+.cand[data-open=true] .chev{transform:rotate(90deg)}
+.metrics{display:flex;gap:16px}
+.metric{min-width:64px;text-align:right}
+.metric .v{font-weight:600;color:var(--text-primary);font-variant-numeric:tabular-nums}
+.metric .v.null{color:var(--text-muted);font-weight:400}
+.links{padding:0 16px 16px 52px;display:none}
+.cand[data-open=true] .links{display:block}
+.link{background:var(--surface-sunken);border-radius:8px;padding:12px;margin-top:8px}
+.link .src{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px}
+.empty{text-align:center;padding:40px 24px}
+.empty .big{font-size:40px;color:var(--text-muted);margin-bottom:8px}
+.placeholder{display:grid;place-items:center;min-height:240px;text-align:center}
+.annot{margin-top:24px;font-size:12px;color:var(--text-muted);border-left:3px solid var(--accent);padding-left:12px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="proto-bar" role="toolbar" aria-label="Prototype states">
+  <strong>US128 History prototype</strong>
+  <button data-state="progress" aria-pressed="true">In progress</button>
+  <button data-state="completed" aria-pressed="false">Completed</button>
+  <button data-state="nocands" aria-pressed="false">No candidates yet</button>
+  <button data-state="failed" aria-pressed="false">Failed</button>
+  <button data-state="notfound" aria-pressed="false">Not found (404)</button>
+  <button data-state="stale" aria-pressed="false">Refresh error</button>
+  <button data-state="loading" aria-pressed="false">First load</button>
+  <button data-state="firsterror" aria-pressed="false">First load error</button>
+  <button data-state="empty" aria-pressed="false">No batches</button>
+</div>
+<div class="window">
+  <nav class="rail" aria-label="Screens">
+    <div class="nav">Sign in</div><div class="nav">Extract</div><div class="nav">Review</div>
+    <div class="nav sel" aria-current="page">History</div>
+  </nav>
+  <main class="content"><div class="ws">
+    <div class="toprow">
+      <h1>History</h1><span class="spacer"></span>
+      <span class="caption" id="updated" aria-live="off">Updating every 5 seconds · Last updated 2:14:05 PM</span>
+      <button class="icon-btn" title="Refresh (F5)" aria-label="Refresh history">&#x21bb;</button>
+    </div>
+
+    <div class="banner" id="banner" hidden role="status">
+      <span class="g" aria-hidden="true">&#x26A0;</span>
+      <div class="msg"><div class="label" id="bTitle">Couldn't refresh history</div><div id="bMsg">Showing what loaded at 2:13:55 PM. Trying again in 5 seconds.</div></div>
+      <button class="link-btn">Retry</button>
+    </div>
+
+    <div class="card" id="loading" hidden>
+      <div class="label">Loading history…</div>
+      <div class="progress ind" role="progressbar" aria-label="Loading history"><span></span></div>
+    </div>
+
+    <div class="card empty" id="empty" hidden>
+      <div class="big" aria-hidden="true">&#x1F552;</div>
+      <h2>No batches yet</h2>
+      <p>Batches you upload from the Review screen show up here, with their progress and the candidates they produce.</p>
+      <button class="btn-secondary">Go to Review</button>
+    </div>
+
+    <div class="panes" id="panes">
+      <div class="card list" role="listbox" aria-label="Batches" id="batchList"></div>
+      <div id="detail"></div>
+    </div>
+
+    <div class="annot">
+      Prototype only. Window shown at 1120 px with the rail expanded. At the 880 px minimum the rail is compact (64 px), leaving 752 px: batch pane 300 + gap 24 + detail 428.
+      Stage markers differ by shape and text, never by color alone. Click a candidate to expand its knowledge links.
+    </div>
+  </div></main>
+</div>
+
+<script>
+const batches=[
+ {id:"b7f3c2e1-4a90-4d6e-9c11-2f8e5a7b0c34",name:"Ingest pipeline docs",created:"Oct 8, 2026, 2:02 PM",state:"InProgress",stage:"Scored",
+  c:{ext:[12,12],emb:[96,140],ev:31,har:[0,8],seed:[0,0]}},
+ {id:"0c9d8a77-1b2e-4f50-8a3d-6e7f9012ab56",name:"Pricing engine (src)",created:"Oct 7, 2026, 4:41 PM",state:"Completed",stage:"Seeded",
+  c:{ext:[40,40],emb:[512,512],ev:58,har:[6,6],seed:[3,3]}},
+ {id:"5e2a1b90-77cd-4e18-b3f0-9a8c6d5e4f21",name:"Patent prior art set A",created:"Oct 6, 2026, 9:15 AM",state:"Failed",stage:"Extracted",
+  c:{ext:[5,5],emb:[10,64],ev:0,har:[0,4],seed:[0,0]}},
+ {id:"9a1f6c3d-2e4b-4c7a-8d90-1b2c3d4e5f60",name:"Queued: design notes",created:"Oct 8, 2026, 2:13 PM",state:"Queued",stage:"Ingested",
+  c:{ext:[0,3],emb:[0,0],ev:0,har:[0,0],seed:[0,0]}}
+];
+const cands=[
+ {id:"c1",engine:"Harvesting",kind:"Method",title:"Adaptive chunk sizing based on heading depth",ev:4,score:78.4,pat:64,links:[
+   {kind:"Algorithm",title:"Heading-aware splitter",summary:"Splits documents at heading boundaries and merges short sections until a token budget is reached.",src:"Page 4",path:null,open:true},
+   {kind:"Logic",title:"Token budget guard",summary:"Stops a unit from growing past the configured token limit and carries the remainder forward.",src:"src/Extraction/UnitBuilder.cs · lines 41–88",path:"src/Extraction/UnitBuilder.cs",open:false}]},
+ {id:"c2",engine:"Harvesting",kind:"System",title:"Deterministic document identity across re-uploads",ev:2,score:61.0,pat:null,links:[
+   {kind:"Data model",title:"Derived document IDs",summary:"Builds a stable server document ID from the batch ID and the client document ID.",src:"src/Upload/UploadCommandMapper.cs · lines 30–36",path:"src/Upload/UploadCommandMapper.cs",open:true}]},
+ {id:"c3",engine:"Seeding",kind:"Process",title:"Echo detection for copied identifiers",ev:1,score:null,pat:null,links:[]}
+];
+const stepNames=["Ingested","Extracted","Scored","Harvested","Seeded"];
+let sel=0, open=new Set(["c1"]), state="progress";
+
+function stateTag(s){
+ const m={Queued:["","&#x1F552;","Queued"],InProgress:["info","&#x21BB;","In progress"],Completed:["success","&#x2713;","Completed"],Failed:["danger","&#x2715;","Failed"],Cancelled:["","&#x2014;","Cancelled"]}[s];
+ return `<span class="tag ${m[0]}"><span aria-hidden="true">${m[1]}</span>${m[2]}</span>`;
+}
+function counts(b){return [null,b.c.ext,b.c.emb,b.c.har,b.c.seed];}
+function steps(b){
+ const idx=stepNames.indexOf(b.stage), cs=counts(b);
+ return stepNames.map((n,i)=>{
+  const c=cs[i]; const unused=c&&c[1]===0&&i>=3;
+  let st, txt;
+  if(i<=idx){st="done";txt=c?`${c[0]} of ${c[1]}`:"Received";}
+  else if(unused && (b.state==="Completed"||i>idx)){st="skipped";txt="Not used";}
+  else if(i===idx+1 && b.state==="InProgress"){st="current";txt=c?`${c[0]} of ${c[1]}`:"";}
+  else if(i===idx+1 && b.state==="Failed"){st="failed";txt="Stopped here";}
+  else if(i===idx+1 && b.state==="Cancelled"){st="stopped";txt="Cancelled";}
+  else if(b.state==="Queued" && i===0){st="current";txt="Waiting";}
+  else {st="pending";txt="Not started";}
+  if(i===2 && st!=="pending" && st!=="skipped") txt+=` · ${b.c.ev} evidence`;
+  const mk={done:"&#x2713;",current:"",pending:"",skipped:"&#x2013;",failed:"!",stopped:"&#x2715;"}[st];
+  return `<div class="step ${st}" aria-label="${n}, ${st==='done'?'done':st}, ${txt}"><span class="mk" aria-hidden="true">${mk}</span><div class="sl">${n}</div><div class="sc">${txt}</div></div>`;
+ }).join("");
+}
+function stageLine(b){
+ const idx=stepNames.indexOf(b.stage), nx=stepNames[idx+1], c=counts(b)[idx+1];
+ if(b.state==="InProgress"&&c) return `${b.stage} · ${c[0]} of ${c[1]} ${nx==="Scored"?"scored":nx.toLowerCase()}`;
+ if(b.state==="Failed") return `Failed after ${b.stage}`;
+ return b.stage;
+}
+function renderList(){
+ document.getElementById("batchList").innerHTML=batches.map((b,i)=>`
+  <div class="row ${i===sel?'sel':''}" role="option" aria-selected="${i===sel}" tabindex="${i===sel?0:-1}" data-i="${i}">
+   <div class="t">${b.name}</div>
+   <div class="caption">${b.created}</div>
+   <div class="caption mono" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${b.id}</div>
+   <div class="meta">${stateTag(b.state)}<span class="caption">${stageLine(b)}</span></div>
+  </div>`).join("");
+ document.querySelectorAll(".row").forEach(r=>r.onclick=()=>{sel=+r.dataset.i;render();});
+}
+function fmtScore(v){return v==null?'<span class="v null" title="Not scored yet">&#x2014;</span>':`<span class="v">${Math.round(v)}</span>`;}
+function candHtml(c){
+ const o=open.has(c.id);
+ const links=c.links.length?c.links.map(l=>`
+   <div class="link">
+    <span class="tag">${l.kind}</span>
+    <div class="label" style="margin-top:6px">${l.title}</div>
+    <div>${l.summary}</div>
+    <div class="src">
+     <span class="caption ${l.path?'mono':''}">${l.src}</span>
+     ${l.open?`<button class="link-btn" aria-label="Open source for ${l.title}">Open source</button>`:
+       `<button class="link-btn" disabled aria-label="Open source for ${l.title}" aria-describedby="nf-${c.id}">Open source</button><span class="caption" id="nf-${c.id}">&#x24D8; Not found on this computer</span>`}
+    </div>
+   </div>`).join(""):`<div class="caption" style="margin-top:8px">No linked knowledge items.</div>`;
+ return `<div class="cand" data-open="${o}">
+  <button aria-expanded="${o}" data-id="${c.id}">
+   <span class="chev" aria-hidden="true">&#x203A;</span>
+   <span><span class="label">${c.title}</span><span class="meta" style="display:flex;gap:8px;margin-top:4px"><span class="tag">${c.engine}</span><span class="tag">${c.kind}</span><span class="caption">${c.links.length} linked items</span></span></span>
+   <span class="metrics">
+    <span class="metric">${fmtScore(c.score)}<div class="caption">Score</div></span>
+    <span class="metric">${fmtScore(c.pat)}<div class="caption">Patentability</div></span>
+    <span class="metric"><span class="v">${c.ev}</span><div class="caption">Evidence</div></span>
+   </span>
+  </button>
+  <div class="links">${links}</div></div>`;
+}
+function renderDetail(){
+ const b=batches[sel], d=document.getElementById("detail");
+ let candBlock;
+ if(state==="notfound"){
+  d.innerHTML=`<div class="card empty"><div class="big" aria-hidden="true">&#x26A0;</div><h2>This batch isn't available</h2><p>The server couldn't find it for your account. It may have been removed, or it was uploaded by someone else.</p></div>`;return;
+ }
+ if(state==="nocands"||b.state==="Queued") candBlock=`<div class="empty"><h2>No candidates yet</h2><p>Candidates appear after the Harvested or Seeded stage. This page updates on its own.</p></div>`;
+ else if(b.state==="Failed") candBlock=`<div class="empty"><h2>No candidates</h2><p>This batch stopped after the ${b.stage} stage, so it produced no candidates.</p></div>`;
+ else candBlock=cands.map(candHtml).join("");
+ d.innerHTML=`<div class="card">
+   <div style="display:flex;align-items:center;gap:8px"><h2 style="flex:1">${b.name}</h2>${stateTag(b.state)}</div>
+   <div class="caption">Uploaded ${b.created}</div>
+   <div class="idline caption"><span>Batch ID</span><span class="mono">${b.id}</span><button class="icon-btn" aria-label="Copy batch ID" title="Copy batch ID">&#x2398;</button></div>
+   <div class="stepper" role="list" aria-label="Pipeline stages">${steps(b)}</div>
+   ${b.state==="InProgress"?`<div class="progress" role="progressbar" aria-label="Scoring progress" aria-valuenow="96" aria-valuemax="140"><span style="width:${96/140*100}%"></span></div>`:""}
+   <div class="caption" aria-live="polite">${b.state==="InProgress"?"Stage: Scored next. The list updates every 5 seconds.":""}</div>
+  </div>
+  <div class="card cands"><div class="hdr"><h2>Candidates</h2><span class="caption">${(state==="nocands"||b.state!=="Completed"&&b.state!=="InProgress")?0:cands.length}</span></div>${candBlock}</div>`;
+ d.querySelectorAll(".cand>button").forEach(btn=>btn.onclick=()=>{const id=btn.dataset.id;open.has(id)?open.delete(id):open.add(id);renderDetail();});
+}
+function render(){
+ const show=id=>v=>document.getElementById(id).hidden=!v;
+ show("loading")(state==="loading"); show("empty")(state==="empty");
+ show("panes")(!["loading","empty","firsterror"].includes(state));
+ show("banner")(state==="stale"||state==="firsterror");
+ document.getElementById("bTitle").textContent=state==="firsterror"?"Couldn't load history":"Couldn't refresh history";
+ document.getElementById("bMsg").textContent=state==="firsterror"?"Check your connection, then try again.":"Showing what loaded at 2:13:55 PM. Trying again in 5 seconds.";
+ document.getElementById("banner").style.borderColor=state==="firsterror"?"var(--danger)":"var(--warning)";
+ document.getElementById("banner").style.background=state==="firsterror"?"var(--danger-surface)":"var(--warning-surface)";
+ if(state==="completed") sel=1; else if(state==="failed") sel=2; else if(["progress","nocands","stale","notfound"].includes(state)&&sel>0&&!["completed","failed"].includes(state)) {}
+ renderList(); renderDetail();
+}
+document.querySelectorAll(".proto-bar button").forEach(b=>b.onclick=()=>{
+ document.querySelectorAll(".proto-bar button").forEach(x=>x.setAttribute("aria-pressed","false"));
+ b.setAttribute("aria-pressed","true"); state=b.dataset.state; if(["progress","nocands","stale","notfound"].includes(state)) sel=0; render();});
+render();
+</script>
+</body>
+</html>

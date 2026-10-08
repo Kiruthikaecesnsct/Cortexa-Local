@@ -42,4 +42,25 @@ internal static class TestSagas
                 })
             ]
         };
+
+    public static SagaRow WithDocumentState(SagaRow saga, string documentId, string state) =>
+        saga with
+        {
+            Documents =
+            [
+                .. saga.Documents.Select(document =>
+                    document.DocumentId == documentId ? document with { State = state } : document)
+            ]
+        };
+
+    public static DocumentRow DocumentFor(string batchId, string documentId) => new()
+    {
+        Id = documentId,
+        BatchId = batchId,
+        Filename = "seeded.pdf",
+        SourceKind = Collector.Domain.Enums.SourceKind.Paper,
+        ProvenanceMapId = $"{documentId}|0",
+        ChunkCount = 1,
+        CreatedAt = TestData.FixedTime
+    };
 }

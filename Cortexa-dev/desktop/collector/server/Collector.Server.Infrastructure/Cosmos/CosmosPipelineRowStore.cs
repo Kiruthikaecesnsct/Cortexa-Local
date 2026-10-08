@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using Collector.Server.Application.Errors;
 using Collector.Server.Application.Ports;
@@ -23,6 +24,7 @@ public sealed class CosmosPipelineRowStore : IPipelineRowStore
         "SELECT c.candidate_id, ARRAY_LENGTH(c.hits) AS hit_count FROM c WHERE c.batch_id = @batchId";
     private const string ChunkKnowledgeQuery =
         "SELECT c.id, c.document_id, c.knowledge FROM c WHERE c.batch_id = @batchId";
+    private const string DocumentsByBatchQuery = "SELECT * FROM c WHERE c.batch_id = @batchId";
     private const string ReportCandidateDocType = "report_candidate";
     private const string BatchIdParameter = "@batchId";
     private const string OwnerUserIdParameter = "@ownerUserId";
@@ -63,6 +65,49 @@ public sealed class CosmosPipelineRowStore : IPipelineRowStore
         catch (CosmosException exception)
         {
             throw new PipelineWriteException(saga.BatchId, SagaStage, exception);
+        }
+        catch (OperationCanceledException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new PipelineWriteException(saga.BatchId, SagaStage, exception);
+        }
+    }
+
+    public Task<IReadOnlyList<string>> DeleteSagaAsync(string batchId, CancellationToken cancellationToken) =>
+        DeleteAllAsync(_options.BatchesContainer, batchId, [batchId], cancellationToken);
+
+    public Task<IReadOnlyList<string>> DeleteProvenanceAsync(
+        string batchId,
+        IReadOnlyList<string> ids,
+        CancellationToken cancellationToken) =>
+        DeleteAllAsync(_options.ProvenanceMapsContainer, batchId, ids, cancellationToken);
+
+    public Task<IReadOnlyList<string>> DeleteChunksAsync(
+        string batchId,
+        IReadOnlyList<string> ids,
+        CancellationToken cancellationToken) =>
+        DeleteAllAsync(_options.ChunksContainer, batchId, ids, cancellationToken);
+
+    public Task<IReadOnlyList<string>> DeleteDocumentsAsync(
+        string batchId,
+        IReadOnlyList<string> ids,
+        CancellationToken cancellationToken) =>
+        DeleteAllAsync(_options.DocumentsContainer, batchId, ids, cancellationToken);
+
+    public async Task<IReadOnlyList<DocumentRow>> GetDocumentsByBatchAsync(
+        string batchId,
+        CancellationToken cancellationToken)
+    {
+        var container = _client.GetContainer(_options.Database, _options.DocumentsContainer);
+        var query = new QueryDefinition(DocumentsByBatchQuery).WithParameter(BatchIdParameter, batchId);
+        var requestOptions = new QueryRequestOptions { PartitionKey = new PartitionKey(batchId) };
+
+        try
+        {
+            return await ReadAllAsync<DocumentRow>(container, query, requestOptions, cancellationToken);
+        }
+        catch (CosmosException exception)
+        {
+            throw new PipelineWriteException(batchId, DocumentsStage, exception);
         }
     }
 
@@ -240,6 +285,65 @@ public sealed class CosmosPipelineRowStore : IPipelineRowStore
         catch (CosmosException exception)
         {
             throw new PipelineWriteException(rows[0].BatchId, stage, exception);
+        }
+        catch (OperationCanceledException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new PipelineWriteException(rows[0].BatchId, stage, exception);
+        }
+    }
+
+    private async Task<IReadOnlyList<string>> DeleteAllAsync(
+        string containerName,
+        string batchId,
+        IReadOnlyList<string> ids,
+        CancellationToken cancellationToken)
+    {
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        var container = _client.GetContainer(_options.Database, containerName);
+        var failed = new ConcurrentBag<string>();
+        var parallelism = new ParallelOptions
+        {
+            MaxDegreeOfParallelism = _options.MaxConcurrentWrites,
+            CancellationToken = cancellationToken
+        };
+
+        await Parallel.ForEachAsync(
+            ids,
+            parallelism,
+            async (id, token) =>
+            {
+                if (!await TryDeleteOneAsync(container, batchId, id, token))
+                {
+                    failed.Add(id);
+                }
+            });
+
+        return [.. failed];
+    }
+
+    private static async ValueTask<bool> TryDeleteOneAsync(
+        Container container,
+        string batchId,
+        string id,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await container.DeleteItemAsync<object>(id, new PartitionKey(batchId), cancellationToken: cancellationToken);
+            return true;
+        }
+        catch (CosmosException exception) when (exception.StatusCode == HttpStatusCode.NotFound)
+        {
+            return true;
+        }
+        catch (Exception exception) when (exception is CosmosException or HttpRequestException
+            || exception is OperationCanceledException && !cancellationToken.IsCancellationRequested)
+        {
+            return false;
         }
     }
 

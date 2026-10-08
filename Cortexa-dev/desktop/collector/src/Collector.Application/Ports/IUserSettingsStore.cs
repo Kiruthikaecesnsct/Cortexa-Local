@@ -7,4 +7,8 @@ public interface IUserSettingsStore
     EndpointSettings GetEndpoints();
 
     Task SaveEndpointsAsync(EndpointSettings settings, CancellationToken cancellationToken);
+
+    RemoteSourceSettings GetRemoteSources();
+
+    Task SaveRemoteSourcesAsync(RemoteSourceSettings settings, CancellationToken cancellationToken);
 }

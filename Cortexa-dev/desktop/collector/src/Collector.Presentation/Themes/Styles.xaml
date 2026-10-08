@@ -96,6 +96,7 @@
     <sys:Double x:Key="Size.SummaryMaxHeight">40</sys:Double>
     <sys:Double x:Key="Size.BatchPane">300</sys:Double>
     <sys:Double x:Key="Size.FailedListMaxHeight">288</sys:Double>
+    <sys:Double x:Key="Size.RepoListMaxHeight">352</sys:Double>
     <sys:Double x:Key="Size.LiveRegion">1</sys:Double>
     <sys:Double x:Key="Size.MetricMinWidth">64</sys:Double>
 

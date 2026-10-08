@@ -82,6 +82,9 @@
                 <TextBlock Style="{StaticResource Text.Label}" Text="{Binding Name}" />
                 <TextBlock Style="{StaticResource Text.Helper}" Text="{Binding Description}" />
                 <TextBlock Style="{StaticResource Text.Helper}"
+                           Text="{Binding Hint}"
+                           Visibility="{Binding HasHint, Converter={StaticResource BoolToVisibility}}" />
+                <TextBlock Style="{StaticResource Text.Helper}"
                            Text="{Binding StatusHelper}"
                            Visibility="{Binding ShowStatusHelper, Converter={StaticResource BoolToVisibility}}" />
                 <StackPanel Margin="{StaticResource Thickness.HelperGap}"
@@ -152,7 +155,7 @@
                 <Button MinHeight="{StaticResource Size.RowAction}"
                         AutomationProperties.Name="{Binding KeepAutomationName}"
                         Command="{Binding KeepKeyCommand}"
-                        Content="{x:Static res:SettingsStrings.KeepKey}"
+                        Content="{Binding KeepLabel}"
                         IsEnabled="{Binding IsConfirmEnabled}"
                         Style="{StaticResource Button.Secondary}"
                         b:FocusRouter.Key="Keep" />

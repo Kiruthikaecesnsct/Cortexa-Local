@@ -24,7 +24,7 @@ public sealed partial class KeyEditorViewModel : ObservableObject, IPasswordHost
 
     public bool IsEditable => !IsSaving;
 
-    public string SaveLabel => IsSaving ? Resources.SettingsStrings.Saving : Resources.SettingsStrings.SaveKey;
+    public string SaveLabel => IsSaving ? Resources.SettingsStrings.Saving : Labels.SaveText;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsEditable), nameof(SaveLabel))]
@@ -46,4 +46,10 @@ public sealed partial class KeyEditorViewModel : ObservableObject, IPasswordHost
     private void Cancel() => _cancel();
 }
 
-public sealed record KeyEditorLabels(string Label, string AutomationName, string SaveName, string CancelName);
+public sealed record KeyEditorLabels(
+    string Label,
+    string AutomationName,
+    string SaveName,
+    string CancelName,
+    string Helper,
+    string SaveText);

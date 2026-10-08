@@ -9,7 +9,7 @@ namespace Collector.Tests.Cache;
 
 public sealed class SqliteCacheInitializerTests : IDisposable
 {
-    private const int LatestVersion = 2;
+    private const int LatestVersion = 3;
 
     private readonly string _directory = Path.Combine(Path.GetTempPath(), $"collector-cache-{Guid.NewGuid():N}");
     private readonly SqliteConnectionFactory _factory;
@@ -60,9 +60,9 @@ public sealed class SqliteCacheInitializerTests : IDisposable
     {
         await _initializer.InitializeAsync(TestSupport.Ct);
 
-        Assert.Equal(["batch_documents", "batch_payloads", "batches", "documents", "units"], await NamesAsync("table"));
+        Assert.Equal(["batch_documents", "batch_payloads", "batches", "documents", "remote_files", "units"], await NamesAsync("table"));
         var indexes = (await NamesAsync("index")).Where(n => n.StartsWith("ix_", StringComparison.Ordinal)).ToList();
-        Assert.Equal(["ix_batches_retryable", "ix_batches_status", "ix_units_document_id"], indexes);
+        Assert.Equal(["ix_batches_retryable", "ix_batches_status", "ix_remote_files_local_path", "ix_units_document_id"], indexes);
         Assert.Equal(LatestVersion, await ScalarAsync("PRAGMA user_version"));
         Assert.Equal(1, await ScalarAsync("PRAGMA foreign_keys"));
     }

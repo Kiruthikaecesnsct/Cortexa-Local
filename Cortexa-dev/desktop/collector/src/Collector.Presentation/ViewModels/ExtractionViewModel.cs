@@ -19,7 +19,15 @@ public sealed record ExtractionDependencies(
     ExtractionService ExtractionService,
     IUnitStore UnitStore,
     IFilePicker FilePicker,
+    RemoteSourceViewModel Remote,
     ILogger<ExtractionViewModel> Logger);
+
+public sealed record ExtractionBatch(IReadOnlyList<string> Paths, SourceType Source, string? Origin = null);
+
+public static class ExtractionFocusKeys
+{
+    public const string Documents = "Documents";
+}
 
 public sealed record TokenEstimationDependencies(TokenEstimator Estimator, ProviderOutputLimits OutputLimits);
 
@@ -44,6 +52,7 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
         _unitStore = dependencies.UnitStore;
         _filePicker = dependencies.FilePicker;
         _logger = dependencies.Logger;
+        Remote = dependencies.Remote;
         _tokenEstimator = tokenEstimation.Estimator;
         _outputLimits = tokenEstimation.OutputLimits;
         _modelCatalog = modelCatalog.Value;
@@ -53,11 +62,16 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
         AvailableModels = [];
         knowledge.FocusRequested += (_, key) => RequestFocus(key);
         knowledge.PropertyChanged += OnKnowledgeChanged;
+        Remote.FocusRequested += (_, key) => RequestFocus(key);
+        Remote.PropertyChanged += OnRemoteChanged;
+        Remote.FilesFetched += OnFilesFetched;
         Knowledge.Provider = SelectedProvider;
         UpdateAvailableModels(SelectedProvider);
     }
 
     public KnowledgeRunViewModel Knowledge { get; }
+
+    public RemoteSourceViewModel Remote { get; }
 
     public ObservableCollection<DocumentRowViewModel> Documents { get; }
 
@@ -72,6 +86,8 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
     public bool HasDocuments => Documents.Count > 0;
 
     public bool IsEmptyState => !HasDocuments;
+
+    public bool ShowLocalEmpty => IsEmptyState && Remote.IsLocal;
 
     public int FilesCount => Documents.Count;
 
@@ -89,7 +105,7 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
 
     public string StatusCaption => IsExtracting ? ProgressText : ExtractionStrings.ReadyStatus(FilesCount);
 
-    public bool CanEditDocuments => !IsExtracting && !Knowledge.IsRunning;
+    public bool CanEditDocuments => !IsExtracting && !Knowledge.IsRunning && !Remote.IsFetching;
 
     public bool ShowPreviewPlaceholder => SelectedDocument is null;
 
@@ -137,7 +153,11 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
 
     public int TotalEstimatedTokens => PromptTokens + EstimatedOutputTokens;
 
-    partial void OnIsExtractingChanged(bool value) => Knowledge.IsParsing = value;
+    partial void OnIsExtractingChanged(bool value)
+    {
+        Knowledge.IsParsing = value;
+        SyncRemoteLock();
+    }
 
     partial void OnSelectedDocumentChanged(DocumentRowViewModel? value) => _ = LoadPreviewAsync(value, CancellationToken.None);
 
@@ -179,16 +199,38 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
             return;
         }
 
+        await RunExtractionAsync(new ExtractionBatch(paths, SourceType.Local), cancellationToken);
+    }
+
+    private async Task RunExtractionAsync(ExtractionBatch batch, CancellationToken cancellationToken)
+    {
         IsExtracting = true;
         try
         {
-            await ExtractAllAsync(paths, cancellationToken);
+            await ExtractAllAsync(batch, cancellationToken);
         }
         finally
         {
             IsExtracting = false;
             RefreshDerived();
         }
+    }
+
+    private void OnFilesFetched(object? sender, RemoteFilesFetchedEventArgs e) => _ = ExtractFetchedAsync(e);
+
+    private async Task ExtractFetchedAsync(RemoteFilesFetchedEventArgs fetched)
+    {
+        var batch = new ExtractionBatch(fetched.Paths, fetched.Source, fetched.Origin);
+        try
+        {
+            await RunExtractionAsync(batch, CancellationToken.None);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Extraction of fetched repository files failed.");
+        }
+
+        RequestFocus(ExtractionFocusKeys.Documents);
     }
 
     private bool CanPickFiles() => CanEditDocuments;
@@ -226,18 +268,18 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
         RefreshDerived();
     }
 
-    private async Task ExtractAllAsync(IReadOnlyList<string> paths, CancellationToken cancellationToken)
+    private async Task ExtractAllAsync(ExtractionBatch batch, CancellationToken cancellationToken)
     {
-        for (var i = 0; i < paths.Count; i++)
+        for (var i = 0; i < batch.Paths.Count; i++)
         {
-            ProgressText = ExtractionStrings.ParsingProgress(i + 1, paths.Count);
-            await ExtractOneAsync(paths[i], cancellationToken);
+            ProgressText = ExtractionStrings.ParsingProgress(i + 1, batch.Paths.Count);
+            await ExtractOneAsync(batch.Paths[i], batch, cancellationToken);
         }
     }
 
-    private async Task ExtractOneAsync(string path, CancellationToken cancellationToken)
+    private async Task ExtractOneAsync(string path, ExtractionBatch batch, CancellationToken cancellationToken)
     {
-        var row = new DocumentRowViewModel(path);
+        var row = new DocumentRowViewModel(path, batch.Origin);
         row.PropertyChanged += OnRowChanged;
         Documents.Add(row);
         RefreshDerived();
@@ -246,7 +288,7 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
         var sourceKind = FileClassifier.Classify(path) == FileClassification.Code ? SourceKind.Code : SourceKind.Paper;
         try
         {
-            var results = await _extractionService.ExtractAsync([path], SourceType.Local, sourceKind, cancellationToken);
+            var results = await _extractionService.ExtractAsync([path], batch.Source, sourceKind, cancellationToken);
             await ApplyResultAsync(row, results[0], cancellationToken);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -350,6 +392,7 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
     {
         OnPropertyChanged(nameof(HasDocuments));
         OnPropertyChanged(nameof(IsEmptyState));
+        OnPropertyChanged(nameof(ShowLocalEmpty));
         OnPropertyChanged(nameof(FilesCount));
         OnPropertyChanged(nameof(ExtractedCount));
         OnPropertyChanged(nameof(SkippedCount));
@@ -416,6 +459,27 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
             return;
         }
 
+        RefreshEditability();
+        SyncRemoteLock();
+    }
+
+    private void OnRemoteChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(RemoteSourceViewModel.IsFetching))
+        {
+            RefreshEditability();
+        }
+
+        if (e.PropertyName == nameof(RemoteSourceViewModel.IsLocal))
+        {
+            OnPropertyChanged(nameof(ShowLocalEmpty));
+        }
+    }
+
+    private void SyncRemoteLock() => Remote.SetLocked(IsExtracting || Knowledge.IsRunning);
+
+    private void RefreshEditability()
+    {
         OnPropertyChanged(nameof(CanEditDocuments));
         PickFilesCommand.NotifyCanExecuteChanged();
         ClearAllCommand.NotifyCanExecuteChanged();

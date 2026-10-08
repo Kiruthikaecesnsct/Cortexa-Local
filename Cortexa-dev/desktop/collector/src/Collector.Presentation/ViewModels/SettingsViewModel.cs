@@ -1,8 +1,8 @@
 using System.IO;
 using Collector.Application.Auth;
 using Collector.Application.Ports;
+using Collector.Application.Secrets;
 using Collector.Application.Settings;
-using Collector.Domain.Enums;
 using Collector.Presentation.Navigation;
 using Collector.Presentation.Resources;
 using Collector.Presentation.Services;
@@ -17,6 +17,7 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
     private readonly SettingsService _settings;
     private readonly ISessionState _session;
     private readonly ISignInService _signIn;
+    private readonly SettingsShortcut _shortcut;
     private readonly ILogger<SettingsViewModel> _logger;
     private EndpointSettings _saved;
     private bool _gatewayLive;
@@ -27,17 +28,20 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
         ISessionState session,
         ISignInService signIn,
         IBedrockSsoCredentials bedrockSso,
+        SettingsShortcut shortcut,
         ILogger<SettingsViewModel> logger)
     {
         _settings = settings;
         _session = session;
         _signIn = signIn;
+        _shortcut = shortcut;
         _logger = logger;
         _saved = settings.GetEndpoints();
         GatewayUrl = _saved.GatewayUrl;
         CollectorServerUrl = _saved.CollectorServerUrl;
         Rows = CreateRows();
-        foreach (var row in Rows)
+        RepositoryRows = CreateRepositoryRows();
+        foreach (var row in AllRows)
         {
             row.EditorStateChanged += OnEditorStateChanged;
         }
@@ -47,6 +51,8 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
     }
 
     public IReadOnlyList<AiKeyRowViewModel> Rows { get; }
+
+    public IReadOnlyList<AiKeyRowViewModel> RepositoryRows { get; }
 
     public BedrockSsoRowViewModel BedrockRow { get; }
 
@@ -59,7 +65,7 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
 
     public string SaveLabel => IsSaving ? SettingsStrings.Saving : SettingsStrings.Save;
 
-    public bool IsSaveDefault => !Rows.Any(row => row.HasEditor);
+    public bool IsSaveDefault => !AllRows.Any(row => row.HasEditor);
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsDirty), nameof(ShowGatewayHint))]
@@ -98,19 +104,19 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
             ReloadFromStore();
         }
 
-        foreach (var row in Rows)
+        foreach (var row in AllRows)
         {
             _ = row.LoadStatusAsync(CancellationToken.None);
         }
 
         _ = BedrockRow.LoadStatusAsync(CancellationToken.None);
 
-        RequestFocus(SettingsFocusKeys.Gateway);
+        FocusInitial();
     }
 
     public void OnNavigatedFrom()
     {
-        foreach (var row in Rows)
+        foreach (var row in AllRows)
         {
             row.CloseEditor(returnFocus: false);
         }
@@ -279,33 +285,84 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
             return;
         }
 
-        foreach (var other in Rows.Where(row => row != opened))
+        foreach (var other in AllRows.Where(row => row != opened))
         {
             other.CloseEditor(returnFocus: false);
         }
     }
+
+    private IEnumerable<AiKeyRowViewModel> AllRows => Rows.Concat(RepositoryRows);
+
+    private void FocusInitial()
+    {
+        var row = RowFor(_shortcut.TakeFocusKey());
+        if (row is null)
+        {
+            RequestFocus(SettingsFocusKeys.Gateway);
+            return;
+        }
+
+        row.FocusPrimary();
+    }
+
+    private AiKeyRowViewModel? RowFor(string? focusKey) => focusKey switch
+    {
+        SettingsFocusKeys.GitHubToken => RepositoryRows[0],
+        SettingsFocusKeys.AzureDevOpsToken => RepositoryRows[1],
+        _ => null,
+    };
 
     private AiKeyRowViewModel[] CreateRows() =>
     [
         new(
             new AiKeyRowDescriptor
             {
-                Provider = CollectorProvider.Claude,
+                Slot = SecretSlot.AnthropicApiKey,
                 Name = SettingsStrings.ClaudeName,
                 Description = SettingsStrings.ClaudeDescription,
                 ShortName = "Claude",
-                RunsName = "Claude direct",
+                RunsName = "Claude direct runs",
             },
             _settings,
             _logger),
         new(
             new AiKeyRowDescriptor
             {
-                Provider = CollectorProvider.Gemini,
+                Slot = SecretSlot.GeminiApiKey,
                 Name = SettingsStrings.GeminiName,
                 Description = SettingsStrings.GeminiDescription,
                 ShortName = "Gemini",
-                RunsName = "Gemini direct",
+                RunsName = "Gemini direct runs",
+            },
+            _settings,
+            _logger),
+    ];
+
+    private AiKeyRowViewModel[] CreateRepositoryRows() =>
+    [
+        new(
+            new AiKeyRowDescriptor
+            {
+                Slot = SecretSlot.GitHubPat,
+                Name = SettingsStrings.GitHubName,
+                Description = SettingsStrings.GitHubDescription,
+                Hint = SettingsStrings.GitHubHint,
+                ShortName = SettingsStrings.GitHubName,
+                RunsName = "GitHub fetches",
+                Words = CredentialWords.AccessToken,
+            },
+            _settings,
+            _logger),
+        new(
+            new AiKeyRowDescriptor
+            {
+                Slot = SecretSlot.AzureDevOpsPat,
+                Name = SettingsStrings.AzureDevOpsName,
+                Description = SettingsStrings.AzureDevOpsDescription,
+                Hint = SettingsStrings.AzureDevOpsHint,
+                ShortName = SettingsStrings.AzureDevOpsName,
+                RunsName = "Azure DevOps fetches",
+                Words = CredentialWords.AccessToken,
             },
             _settings,
             _logger),
@@ -318,4 +375,6 @@ public static class SettingsFocusKeys
 {
     public const string Gateway = "GatewayUrl";
     public const string Collector = "CollectorUrl";
+    public const string GitHubToken = "GitHubToken";
+    public const string AzureDevOpsToken = "AzureDevOpsToken";
 }

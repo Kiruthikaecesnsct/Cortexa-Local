@@ -8,6 +8,7 @@ using Collector.Infrastructure.Extraction;
 using Collector.Infrastructure.History;
 using Collector.Infrastructure.Http;
 using Collector.Infrastructure.Options;
+using Collector.Infrastructure.Remote;
 using Collector.Infrastructure.Secrets;
 using Collector.Infrastructure.Settings;
 using Collector.Infrastructure.Upload;
@@ -46,6 +47,7 @@ public static class DependencyInjection
         services.AddSingleton<IKnowledgeUploadClient, CollectorUploadClient>();
         services.AddSingleton<HistoryRetryPolicy>();
         services.AddSingleton<IBatchHistoryClient, CollectorHistoryClient>();
+        services.AddCollectorRemoteSources(configuration);
         services.AddHostedService<TokenRefreshWorker>();
         return services;
     }
@@ -97,7 +99,7 @@ public static class DependencyInjection
         services.AddSingleton<IAiProviderFactory, AiProviderSelection>();
     }
 
-    private static void AddValidatedOptions<TOptions, TValidator>(
+    internal static void AddValidatedOptions<TOptions, TValidator>(
         this IServiceCollection services,
         IConfiguration configuration,
         string section)

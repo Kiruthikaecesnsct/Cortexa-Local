@@ -86,9 +86,20 @@ public static class CollectorHost
         return services;
     }
 
+    private static IServiceCollection AddRemoteSourceServices(this IServiceCollection services)
+    {
+        services.AddSingleton<IRemoteFetcher, RemoteFetcher>();
+        services.AddSingleton<IExternalLinkLauncher, ShellLinkLauncher>();
+        services.AddSingleton<SettingsShortcut>();
+        services.AddSingleton<RemoteSourceDependencies>();
+        services.AddSingleton<RemoteSourceViewModel>();
+        return services;
+    }
+
     private static IServiceCollection AddCollectorPresentation(this IServiceCollection services)
     {
         services.AddSingleton<IFilePicker, WpfFilePicker>();
+        services.AddRemoteSourceServices();
         services.AddKnowledgeServices();
         services.AddScreens();
         services.AddSingleton<ShellViewModel>();

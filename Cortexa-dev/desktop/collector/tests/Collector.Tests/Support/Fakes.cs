@@ -95,7 +95,17 @@ internal sealed class FakeUserSettingsStore : IUserSettingsStore
 
     public int SaveCalls { get; private set; }
 
+    public RemoteSourceSettings Remote { get; private set; } = new(string.Empty);
+
     public EndpointSettings GetEndpoints() => Current;
+
+    public RemoteSourceSettings GetRemoteSources() => Remote;
+
+    public Task SaveRemoteSourcesAsync(RemoteSourceSettings settings, CancellationToken cancellationToken)
+    {
+        Remote = settings;
+        return Task.CompletedTask;
+    }
 
     public Task SaveEndpointsAsync(EndpointSettings settings, CancellationToken cancellationToken)
     {

@@ -6,9 +6,13 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Collector.Presentation.ViewModels;
 
-public sealed partial class DocumentRowViewModel(string sourcePath) : ObservableObject
+public sealed partial class DocumentRowViewModel(string sourcePath, string? origin = null) : ObservableObject
 {
     public string SourcePath { get; } = sourcePath;
+
+    public string? Origin { get; } = origin;
+
+    public string SourceCaption => Origin is null ? SourcePath : $"{Origin} · {Filename}";
 
     public string Filename { get; } = Path.GetFileName(sourcePath);
 

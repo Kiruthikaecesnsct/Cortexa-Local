@@ -45,7 +45,7 @@
             <HeaderedContentControl Header="{Binding Labels.Label}"
                                     Style="{StaticResource FormField}"
                                     b:FieldState.Error="{Binding Error}"
-                                    b:FieldState.Helper="{x:Static res:SettingsStrings.EditorHelper}">
+                                    b:FieldState.Helper="{Binding Labels.Helper}">
                 <PasswordBox AutomationProperties.HelpText="{Binding Error}"
                              AutomationProperties.Name="{Binding Labels.AutomationName}"
                              IsEnabled="{Binding IsEditable}"

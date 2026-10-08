@@ -31,5 +31,8 @@ public static class Glyphs
     public const string RadioBtnOn = "\uECCB";
     public const string OpenInNewWindow = "\uE8A7";
     public const string Blocked = "\uE733";
+    public const string Search = "\uE721";
+    public const string Branch = "\uF003";
+    public const string Repository = "\uE8F1";
 }
 

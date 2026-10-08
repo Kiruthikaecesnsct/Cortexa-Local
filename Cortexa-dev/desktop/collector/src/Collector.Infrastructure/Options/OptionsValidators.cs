@@ -234,3 +234,58 @@ internal static class OptionsChecks
             ? ValidateOptionsResult.Fail($"{key} is required.")
             : ValidateOptionsResult.Success;
 }
+
+public sealed class RemoteSourceOptionsValidator : IValidateOptions<RemoteSourceOptions>
+{
+    public ValidateOptionsResult Validate(string? name, RemoteSourceOptions options)
+    {
+        var failures = new List<string>();
+        CheckProvider(failures, "GitHub", options.GitHub);
+        CheckProvider(failures, "AzureDevOps", options.AzureDevOps);
+        CheckPositive(failures, nameof(options.TimeoutSeconds), options.TimeoutSeconds);
+        CheckPositive(failures, nameof(options.MaxPages), options.MaxPages);
+        CheckPositive(failures, $"RateLimit:{nameof(options.RateLimit.MaxPauseSeconds)}", options.RateLimit.MaxPauseSeconds);
+        CheckPositive(failures, $"RateLimit:{nameof(options.RateLimit.SecondaryWaitSeconds)}", options.RateLimit.SecondaryWaitSeconds);
+        CheckPositive(failures, $"RateLimit:{nameof(options.RateLimit.MaxConcurrency)}", options.RateLimit.MaxConcurrency);
+        CheckNotNegative(failures, $"RateLimit:{nameof(options.RateLimit.MaxRetries)}", options.RateLimit.MaxRetries);
+        if (string.IsNullOrWhiteSpace(options.CacheRoot))
+        {
+            failures.Add($"{RemoteSourceOptions.SectionName}:{nameof(options.CacheRoot)} is required.");
+        }
+
+        return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
+    }
+
+    private static void CheckProvider(List<string> failures, string provider, RemoteProviderOptions options)
+    {
+        var prefix = $"{RemoteSourceOptions.SectionName}:{provider}";
+        var validUrl = Uri.TryCreate(options.BaseUrl, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps;
+        if (!validUrl)
+        {
+            failures.Add($"{prefix}:{nameof(options.BaseUrl)} must be an absolute https URL.");
+        }
+
+        if (string.IsNullOrWhiteSpace(options.ApiVersion))
+        {
+            failures.Add($"{prefix}:{nameof(options.ApiVersion)} is required.");
+        }
+
+        CheckNotNegative(failures, $"{provider}:{nameof(options.MinRemaining)}", options.MinRemaining);
+    }
+
+    private static void CheckPositive(List<string> failures, string name, int value)
+    {
+        if (value <= 0)
+        {
+            failures.Add($"{RemoteSourceOptions.SectionName}:{name} must be greater than zero.");
+        }
+    }
+
+    private static void CheckNotNegative(List<string> failures, string name, int value)
+    {
+        if (value < 0)
+        {
+            failures.Add($"{RemoteSourceOptions.SectionName}:{name} must not be negative.");
+        }
+    }
+}

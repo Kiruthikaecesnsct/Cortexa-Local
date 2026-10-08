@@ -2,6 +2,7 @@ using Collector.Application;
 using Collector.Application.Auth;
 using Collector.Application.Knowledge;
 using Collector.Application.Ports;
+using Collector.Application.Remote;
 using Collector.Application.Settings;
 using Collector.Application.Upload;
 using Collector.Domain.Enums;
@@ -10,6 +11,10 @@ using Collector.Infrastructure.Ai;
 using Collector.Infrastructure.Auth;
 using Collector.Infrastructure.Http;
 using Collector.Infrastructure.Options;
+using Collector.Infrastructure.Remote;
+using Collector.Infrastructure.Remote.AzureDevOps;
+using Collector.Infrastructure.Remote.GitHub;
+using Collector.Infrastructure.Remote.RateLimit;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
@@ -40,17 +45,112 @@ public class DependencyInjectionTests
         return services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
     }
 
-    private static List<Type> Chain(IHttpMessageHandlerFactory factory, string name)
+    private static List<HttpMessageHandler> Handlers(IHttpMessageHandlerFactory factory, string name)
     {
-        var types = new List<Type>();
+        var handlers = new List<HttpMessageHandler>();
         HttpMessageHandler? handler = factory.CreateHandler(name);
         while (handler is not null)
         {
-            types.Add(handler.GetType());
+            handlers.Add(handler);
             handler = (handler as DelegatingHandler)?.InnerHandler;
         }
 
-        return types;
+        return handlers;
+    }
+
+    private static List<Type> Chain(IHttpMessageHandlerFactory factory, string name) =>
+        [.. Handlers(factory, name).Select(handler => handler.GetType())];
+
+    [Fact]
+    public void RemoteRepositoryClients_Always_ResolvesBothProviders()
+    {
+        using var provider = Build();
+        var clients = provider.GetRequiredService<IRemoteRepositoryClients>();
+
+        Assert.IsType<GitHubRepositoryClient>(clients.For(SourceType.Github));
+        Assert.IsType<AzureDevOpsRepositoryClient>(clients.For(SourceType.AzureDevops));
+    }
+
+    [Fact]
+    public void RemoteRepositoryClients_UnsupportedProvider_Throws()
+    {
+        using var provider = Build();
+        var clients = provider.GetRequiredService<IRemoteRepositoryClients>();
+
+        Assert.Throws<NotSupportedException>(() => clients.For(SourceType.Ssh));
+    }
+
+    [Fact]
+    public void RemoteServices_Always_Resolve()
+    {
+        using var provider = Build();
+
+        Assert.NotNull(provider.GetRequiredService<RemoteFetchService>());
+        Assert.NotNull(provider.GetRequiredService<IRemoteFileStore>());
+        Assert.NotNull(provider.GetRequiredService<IRemoteFileCache>());
+    }
+
+    [Fact]
+    public void RateLimitMonitor_Always_SharesTheGateCollectionAndStartsRunning()
+    {
+        using var provider = Build();
+
+        var monitor = provider.GetRequiredService<IRateLimitMonitor>();
+
+        Assert.Same(provider.GetRequiredService<RateLimitGates>(), monitor);
+        Assert.False(monitor.GetStatus(SourceType.Github).IsPaused);
+        Assert.False(monitor.GetStatus(SourceType.AzureDevops).IsPaused);
+    }
+
+    [Theory]
+    [InlineData(HttpClientNames.GitHub)]
+    [InlineData(HttpClientNames.AzureDevOps)]
+    public void RemoteClients_Always_AuthenticateBeforeRateLimiting(string name)
+    {
+        using var provider = Build();
+        var factory = provider.GetRequiredService<IHttpMessageHandlerFactory>();
+
+        var chain = Chain(factory, name);
+
+        Assert.Contains(typeof(PatAuthHandler), chain);
+        Assert.Contains(typeof(RateLimitHandler), chain);
+        Assert.True(chain.IndexOf(typeof(PatAuthHandler)) < chain.IndexOf(typeof(RateLimitHandler)));
+    }
+
+    [Theory]
+    [InlineData(HttpClientNames.GitHub)]
+    [InlineData(HttpClientNames.AzureDevOps)]
+    public void RemoteClients_Always_UseNonRedirectingCookielessPrimaryHandler(string name)
+    {
+        using var provider = Build();
+        var factory = provider.GetRequiredService<IHttpMessageHandlerFactory>();
+
+        var primary = Assert.IsType<SocketsHttpHandler>(Handlers(factory, name).Last());
+
+        Assert.False(primary.AllowAutoRedirect);
+        Assert.False(primary.UseCookies);
+    }
+
+    [Theory]
+    [InlineData(HttpClientNames.CortexaAuth)]
+    [InlineData(HttpClientNames.CollectorServer)]
+    public void ExistingClients_Always_DoNotCarryRemoteSourceHandlers(string name)
+    {
+        using var provider = Build();
+        var factory = provider.GetRequiredService<IHttpMessageHandlerFactory>();
+
+        var chain = Chain(factory, name);
+
+        Assert.DoesNotContain(typeof(PatAuthHandler), chain);
+        Assert.DoesNotContain(typeof(RateLimitHandler), chain);
+    }
+
+    [Fact]
+    public void RemoteSourceOptions_InvalidBaseUrl_FailsValidation()
+    {
+        using var provider = Build(new Dictionary<string, string?> { ["RemoteSources:GitHub:BaseUrl"] = "http://insecure.example" });
+
+        Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<IOptions<RemoteSourceOptions>>().Value);
     }
 
     [Fact]

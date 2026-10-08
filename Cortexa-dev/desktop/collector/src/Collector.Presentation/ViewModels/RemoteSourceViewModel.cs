@@ -1,0 +1,357 @@
+using System.Collections.ObjectModel;
+using Collector.Application.Ports;
+using Collector.Application.Remote;
+using Collector.Application.Settings;
+using Collector.Domain.Enums;
+using Collector.Domain.Remote;
+using Collector.Presentation.Resources;
+using Collector.Presentation.Services;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+
+namespace Collector.Presentation.ViewModels;
+
+public sealed record RemoteSourceDependencies(
+    IRemoteRepositoryClients Clients,
+    IRemoteFetcher Fetcher,
+    IRateLimitMonitor RateLimits,
+    SettingsService Settings,
+    IExternalLinkLauncher Links,
+    IOptions<RemoteFetchOptions> FetchOptions);
+
+public sealed record RemoteFilesFetchedEventArgs(IReadOnlyList<string> Paths, SourceType Source, string Origin);
+
+public sealed record RemoteFetchSummary(string Repository, string Detail, bool IsPrivate)
+{
+    public string AutomationName => $"{Repository}. {Detail}";
+}
+
+public enum RemoteListState
+{
+    Idle,
+    Loading,
+    Ready,
+}
+
+public static class RemoteFocusKeys
+{
+    public const string Cancel = "RemoteCancel";
+    public const string Organization = "RemoteOrganization";
+    public const string Search = "RemoteSearch";
+    public const string Repositories = "RemoteRepositories";
+}
+
+public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposable
+{
+    private readonly RemoteSourceDependencies _deps;
+    private readonly SettingsShortcut _shortcut;
+    private readonly TimeProvider _time;
+    private readonly ILogger<RemoteSourceViewModel> _logger;
+    private readonly RemoteBannerFactory _banners;
+    private readonly RateLimitCountdown _countdown;
+    private readonly long _limitBytes;
+    private readonly string _limitText;
+    private readonly Dictionary<SourceType, IReadOnlyList<RemoteRepository>> _loaded = [];
+    private IReadOnlyList<RemoteRepository> _all = [];
+    private CancellationTokenSource? _listCts;
+    private CancellationTokenSource? _branchCts;
+    private Func<Task>? _retry;
+    private bool _rebuilding;
+    private bool _isLocked;
+
+    public RemoteSourceViewModel(
+        RemoteSourceDependencies dependencies,
+        SettingsShortcut shortcut,
+        TimeProvider time,
+        ILogger<RemoteSourceViewModel> logger)
+    {
+        _deps = dependencies;
+        _shortcut = shortcut;
+        _time = time;
+        _logger = logger;
+        _limitBytes = dependencies.FetchOptions.Value.MaxRepositoryBytes;
+        _limitText = RemoteSizeFormatter.Format(_limitBytes);
+        _countdown = new RateLimitCountdown(time);
+        _banners = new RemoteBannerFactory(CreateActions());
+        Sources = CreateSources();
+        Repositories = [];
+        Branches = [];
+        OrganizationText = dependencies.Settings.GetRemoteSources().AzureDevOpsOrganization;
+        dependencies.RateLimits.StatusChanged += OnRateStatusChanged;
+        SyncChips();
+    }
+
+    public event EventHandler<RemoteFilesFetchedEventArgs>? FilesFetched;
+
+    public IReadOnlyList<SourceChipViewModel> Sources { get; }
+
+    public ObservableCollection<RemoteRepositoryRowViewModel> Repositories { get; }
+
+    public ObservableCollection<BranchOptionViewModel> Branches { get; }
+
+    public bool IsLocal => SelectedSource == SourceType.Local;
+
+    public bool IsRemote => !IsLocal;
+
+    public bool IsAzure => SelectedSource == SourceType.AzureDevops;
+
+    public bool AreControlsEnabled => !IsFetching && !_isLocked;
+
+    public bool ShowForm => Summary is null && (IsAzure || ListState != RemoteListState.Idle);
+
+    public bool HasSummary => Summary is not null;
+
+    public bool IsListLoading => ListState == RemoteListState.Loading;
+
+    public bool HasRepositories => ListState == RemoteListState.Ready && _all.Count > 0;
+
+    public bool ShowEmptyList => ListState == RemoteListState.Ready && _all.Count == 0;
+
+    public bool ShowNoMatch => HasRepositories && Repositories.Count == 0;
+
+    public bool ShowRepositoryList => HasRepositories && Repositories.Count > 0;
+
+    public string ShowingText => RemoteSourceStrings.Showing(Repositories.Count, _all.Count);
+
+    public string NoMatchText => RemoteSourceStrings.NoMatch(SearchText);
+
+    public string EmptyText => IsAzure
+        ? RemoteSourceStrings.EmptyAzureDevOps(OrganizationText)
+        : RemoteSourceStrings.EmptyGitHub;
+
+    public string FetchHelp => SelectedRepository switch
+    {
+        null => RemoteSourceStrings.FetchHelp,
+        { IsTooBig: true } row => RemoteSourceStrings.TooBigHelp(row.SizeText, _limitText),
+        _ => RemoteSourceStrings.FetchNote,
+    };
+
+    public bool FetchHelpIsError => SelectedRepository?.IsTooBig == true;
+
+    public string? CommitText => SelectedBranch?.ShortSha is { } sha ? RemoteSourceStrings.Commit(sha) : null;
+
+    public bool HasCommit => CommitText is not null;
+
+    public bool ShowBranchField => SelectedRepository is not null;
+
+    public string FetchTitle => SelectedRepository is { } row && SelectedBranch is { } branch
+        ? RemoteSourceStrings.FetchingTitle(row.FullName, branch.Name)
+        : string.Empty;
+
+    [ObservableProperty]
+    public partial SourceType SelectedSource { get; set; }
+
+    [ObservableProperty]
+    public partial string SearchText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string OrganizationText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string? OrganizationError { get; set; }
+
+    [ObservableProperty]
+    public partial RemoteListState ListState { get; set; }
+
+    [ObservableProperty]
+    public partial RemoteRepositoryRowViewModel? SelectedRepository { get; set; }
+
+    [ObservableProperty]
+    public partial BranchOptionViewModel? SelectedBranch { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsLoadingBranches { get; set; }
+
+    [ObservableProperty]
+    public partial bool IsFetching { get; set; }
+
+    [ObservableProperty]
+    public partial string ProgressText { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial double ProgressValue { get; set; }
+
+    [ObservableProperty]
+    public partial double ProgressMaximum { get; set; } = 1;
+
+    [ObservableProperty]
+    public partial bool IsProgressIndeterminate { get; set; } = true;
+
+    [ObservableProperty]
+    public partial BannerViewModel? Banner { get; set; }
+
+    [ObservableProperty]
+    public partial RemoteFetchSummary? Summary { get; set; }
+
+    public void SetLocked(bool locked)
+    {
+        _isLocked = locked;
+        NotifyFetchState();
+    }
+
+    public void Dispose()
+    {
+        _deps.RateLimits.StatusChanged -= OnRateStatusChanged;
+        _countdown.Dispose();
+        _listCts?.Cancel();
+        _branchCts?.Cancel();
+    }
+
+    partial void OnSelectedSourceChanged(SourceType value)
+    {
+        CancelList();
+        CancelBranches();
+        Banner = null;
+        Summary = null;
+        OrganizationError = null;
+        ResetSelection();
+        SyncChips();
+        _all = _loaded.GetValueOrDefault(value) ?? [];
+        ListState = _loaded.ContainsKey(value) ? RemoteListState.Ready : RemoteListState.Idle;
+        SearchText = string.Empty;
+        RebuildRows();
+        NotifyFetchState();
+        if (value == SourceType.Github && ListState == RemoteListState.Idle)
+        {
+            _ = LoadRepositoriesCommand.ExecuteAsync(null);
+        }
+    }
+
+    partial void OnListStateChanged(RemoteListState value) => NotifyFetchState();
+
+    partial void OnIsFetchingChanged(bool value) => NotifyFetchState();
+
+    partial void OnIsLoadingBranchesChanged(bool value) => NotifyFetchState();
+
+    partial void OnSummaryChanged(RemoteFetchSummary? value) => NotifyFetchState();
+
+    partial void OnSelectedBranchChanged(BranchOptionViewModel? value)
+    {
+        if (!IsLoadingBranches)
+        {
+            Banner = null;
+        }
+
+        NotifyFetchState();
+    }
+
+    private void SyncChips()
+    {
+        foreach (var chip in Sources)
+        {
+            chip.Sync(SelectedSource);
+        }
+    }
+
+    private SourceChipViewModel[] CreateSources() =>
+    [
+        new(SourceType.Local, RemoteSourceStrings.LocalLabel, RemoteSourceStrings.LocalName, Select),
+        new(SourceType.Github, RemoteSourceStrings.GitHubLabel, RemoteSourceStrings.GitHubName, Select),
+        new(SourceType.AzureDevops, RemoteSourceStrings.AzureDevOpsLabel, RemoteSourceStrings.AzureDevOpsName, Select),
+    ];
+
+    private void Select(SourceType source)
+    {
+        if (AreControlsEnabled)
+        {
+            SelectedSource = source;
+            return;
+        }
+
+        SyncChips();
+    }
+
+    private void NotifyFetchState()
+    {
+        OnPropertyChanged(nameof(IsLocal));
+        OnPropertyChanged(nameof(IsRemote));
+        OnPropertyChanged(nameof(IsAzure));
+        OnPropertyChanged(nameof(AreControlsEnabled));
+        OnPropertyChanged(nameof(ShowForm));
+        OnPropertyChanged(nameof(HasSummary));
+        OnPropertyChanged(nameof(FetchHelp));
+        OnPropertyChanged(nameof(FetchHelpIsError));
+        OnPropertyChanged(nameof(CommitText));
+        OnPropertyChanged(nameof(HasCommit));
+        OnPropertyChanged(nameof(ShowBranchField));
+        OnPropertyChanged(nameof(FetchTitle));
+        NotifyListState();
+        FetchCommand.NotifyCanExecuteChanged();
+        FetchAgainCommand.NotifyCanExecuteChanged();
+        ChangeRepositoryCommand.NotifyCanExecuteChanged();
+        LoadRepositoriesCommand.NotifyCanExecuteChanged();
+    }
+
+    private void NotifyListState()
+    {
+        OnPropertyChanged(nameof(IsListLoading));
+        OnPropertyChanged(nameof(HasRepositories));
+        OnPropertyChanged(nameof(ShowEmptyList));
+        OnPropertyChanged(nameof(ShowNoMatch));
+        OnPropertyChanged(nameof(ShowRepositoryList));
+        OnPropertyChanged(nameof(ShowingText));
+        OnPropertyChanged(nameof(NoMatchText));
+        OnPropertyChanged(nameof(EmptyText));
+    }
+
+    private RemoteBannerActions CreateActions() => new(
+        new RelayCommand(OpenTokenSettings),
+        new AsyncRelayCommand(RetryAsync),
+        new AsyncRelayCommand(() => LoadRepositoriesCommand.ExecuteAsync(null)),
+        new RelayCommand(OpenGitHubTokens),
+        new RelayCommand(() => SelectedSource = SourceType.Local),
+        new RelayCommand(() => Banner = null));
+
+    private void OpenTokenSettings()
+    {
+        var key = IsAzure ? SettingsFocusKeys.AzureDevOpsToken : SettingsFocusKeys.GitHubToken;
+        _shortcut.Open(key);
+    }
+
+    private void OpenGitHubTokens()
+    {
+        if (!_deps.Links.TryOpen(new Uri(RemoteSourceStrings.GitHubTokensUrl)))
+        {
+            _logger.LogWarning("Could not open the GitHub token settings page.");
+        }
+    }
+
+    private async Task RetryAsync()
+    {
+        var retry = _retry;
+        Banner = null;
+        if (retry is not null)
+        {
+            await retry();
+        }
+    }
+
+    private void ShowOutcome(BannerContent content)
+    {
+        Banner = new BannerViewModel(content);
+        RequestFocus(KnowledgeFocusKeys.Banner);
+    }
+
+    private void ShowFailure(RemoteFailureKind kind, TimeSpan? retryAfter, Func<Task> retry)
+    {
+        _retry = retry;
+        ShowOutcome(_banners.ForFailure(kind, FailureContext(retryAfter)));
+    }
+
+    private RemoteFailureContext FailureContext(TimeSpan? retryAfter)
+    {
+        var row = SelectedRepository;
+        return new RemoteFailureContext(
+            SelectedSource,
+            row?.FullName ?? string.Empty,
+            SelectedBranch?.Name ?? row?.DefaultBranch ?? string.Empty,
+            row?.Repository.Owner ?? string.Empty,
+            row?.SizeText ?? string.Empty,
+            _limitText)
+        {
+            RetryAfter = retryAfter,
+        };
+    }
+}

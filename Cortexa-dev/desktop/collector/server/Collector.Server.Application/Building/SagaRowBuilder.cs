@@ -32,7 +32,8 @@ public static class SagaRowBuilder
             SeedingModel = metadata.SeedingModel,
             SeedingMode = metadata.SeedingMode,
             CollectorProvider = metadata.CollectorProvider,
-            CollectorModel = metadata.CollectorModel
+            CollectorModel = metadata.CollectorModel,
+            RequestFingerprint = metadata.RequestFingerprint
         };
     }
 

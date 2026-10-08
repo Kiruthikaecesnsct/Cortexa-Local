@@ -80,6 +80,9 @@ public sealed record SagaRow : IPipelineRow
     [JsonPropertyName("collector_model")]
     public string? CollectorModel { get; init; }
 
+    [JsonPropertyName("request_fingerprint")]
+    public string? RequestFingerprint { get; init; }
+
     [JsonPropertyName("evidence_completed_count")]
     public int EvidenceCompletedCount { get; init; }
 

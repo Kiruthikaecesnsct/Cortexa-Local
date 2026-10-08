@@ -22,7 +22,10 @@ public static class DependencyInjection
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<KnowledgeUploadValidator>();
         services.AddScoped<UploadPreparer>();
+        services.AddScoped<IngestionEventDispatcher>();
+        services.AddScoped<BatchRollback>();
         services.AddScoped<WriteKnowledgeBatchHandler>();
+        services.AddScoped<UploadReplayHandler>();
         services.AddScoped<SubmitKnowledgeUploadHandler>();
         services.AddSingleton<BatchStageCalculator>();
         services.AddScoped<ListBatchesHandler>();

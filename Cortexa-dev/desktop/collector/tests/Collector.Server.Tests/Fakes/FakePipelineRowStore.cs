@@ -6,6 +6,11 @@ namespace Collector.Server.Tests.Fakes;
 
 internal sealed class FakePipelineRowStore : IPipelineRowStore
 {
+    public const string DocumentsStage = "documents";
+    public const string ChunksStage = "chunks";
+    public const string ProvenanceStage = "provenance";
+    public const string SagaStage = "saga";
+
     public List<DocumentRow> Documents { get; } = [];
 
     public List<ChunkRow> Chunks { get; } = [];
@@ -30,30 +35,35 @@ internal sealed class FakePipelineRowStore : IPipelineRowStore
 
     public bool ConflictWithoutSaga { get; set; }
 
-    public Task UpsertDocumentsAsync(IReadOnlyList<DocumentRow> rows, CancellationToken cancellationToken)
-    {
-        WriteCalls++;
-        Documents.AddRange(rows);
-        return Task.CompletedTask;
-    }
+    public string? FailAtStage { get; set; }
 
-    public Task UpsertChunksAsync(IReadOnlyList<ChunkRow> rows, CancellationToken cancellationToken)
-    {
-        WriteCalls++;
-        Chunks.AddRange(rows);
-        return Task.CompletedTask;
-    }
+    public HashSet<string> FailDeleteIds { get; } = [];
 
-    public Task UpsertProvenanceAsync(IReadOnlyList<ProvenanceRow> rows, CancellationToken cancellationToken)
-    {
-        WriteCalls++;
-        Provenance.AddRange(rows);
-        return Task.CompletedTask;
-    }
+    public List<string> DeleteCalls { get; } = [];
+
+    public Dictionary<string, List<string>> DeletedIds { get; } = [];
+
+    public bool AnyDeleteSawCancelledToken { get; private set; }
+
+    public int RowCount => Documents.Count + Chunks.Count + Provenance.Count + Sagas.Count;
+
+    public Task UpsertDocumentsAsync(IReadOnlyList<DocumentRow> rows, CancellationToken cancellationToken) =>
+        WriteAsync(DocumentsStage, rows, Documents, cancellationToken);
+
+    public Task UpsertChunksAsync(IReadOnlyList<ChunkRow> rows, CancellationToken cancellationToken) =>
+        WriteAsync(ChunksStage, rows, Chunks, cancellationToken);
+
+    public Task UpsertProvenanceAsync(IReadOnlyList<ProvenanceRow> rows, CancellationToken cancellationToken) =>
+        WriteAsync(ProvenanceStage, rows, Provenance, cancellationToken);
 
     public Task CreateSagaAsync(SagaRow saga, CancellationToken cancellationToken)
     {
         WriteCalls++;
+        if (FailAtStage == SagaStage)
+        {
+            return Task.FromException(new PipelineWriteException(saga.BatchId, SagaStage, new InvalidOperationException("forced")));
+        }
+
         if (RaceWinner is not null)
         {
             Sagas[RaceWinner.BatchId] = RaceWinner;
@@ -67,6 +77,39 @@ internal sealed class FakePipelineRowStore : IPipelineRowStore
         Sagas[saga.BatchId] = saga;
         return Task.CompletedTask;
     }
+
+    public Task<IReadOnlyList<string>> DeleteSagaAsync(string batchId, CancellationToken cancellationToken)
+    {
+        RecordDelete(SagaStage, [batchId], cancellationToken);
+        var failed = FailedAmong([batchId]);
+        if (failed.Count == 0)
+        {
+            Sagas.Remove(batchId);
+        }
+
+        return Task.FromResult(failed);
+    }
+
+    public Task<IReadOnlyList<string>> DeleteProvenanceAsync(
+        string batchId,
+        IReadOnlyList<string> ids,
+        CancellationToken cancellationToken) =>
+        DeleteRows(ProvenanceStage, ids, Provenance, row => row.Id, cancellationToken);
+
+    public Task<IReadOnlyList<string>> DeleteChunksAsync(
+        string batchId,
+        IReadOnlyList<string> ids,
+        CancellationToken cancellationToken) =>
+        DeleteRows(ChunksStage, ids, Chunks, row => row.Id, cancellationToken);
+
+    public Task<IReadOnlyList<string>> DeleteDocumentsAsync(
+        string batchId,
+        IReadOnlyList<string> ids,
+        CancellationToken cancellationToken) =>
+        DeleteRows(DocumentsStage, ids, Documents, row => row.Id, cancellationToken);
+
+    public Task<IReadOnlyList<DocumentRow>> GetDocumentsByBatchAsync(string batchId, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<DocumentRow>>([.. Documents.Where(document => document.BatchId == batchId)]);
 
     public Task<SagaRow?> GetSagaAsync(string batchId, CancellationToken cancellationToken) =>
         Task.FromResult(Sagas.GetValueOrDefault(batchId));
@@ -111,4 +154,40 @@ internal sealed class FakePipelineRowStore : IPipelineRowStore
         DocumentId = chunk.DocumentId,
         Knowledge = chunk.Knowledge
     };
+
+    private Task WriteAsync<T>(string stage, IReadOnlyList<T> rows, List<T> target, CancellationToken cancellationToken)
+    {
+        WriteCalls++;
+        if (FailAtStage == stage)
+        {
+            target.AddRange(rows.Take(1));
+            return Task.FromException(new PipelineWriteException("batch", stage, new InvalidOperationException("forced")));
+        }
+
+        target.AddRange(rows);
+        return cancellationToken.IsCancellationRequested ? Task.FromCanceled(cancellationToken) : Task.CompletedTask;
+    }
+
+    private Task<IReadOnlyList<string>> DeleteRows<T>(
+        string stage,
+        IReadOnlyList<string> ids,
+        List<T> target,
+        Func<T, string> idOf,
+        CancellationToken cancellationToken)
+    {
+        RecordDelete(stage, ids, cancellationToken);
+        var failed = FailedAmong(ids);
+        var deletable = ids.Except(failed).ToHashSet();
+        target.RemoveAll(row => deletable.Contains(idOf(row)));
+        return Task.FromResult(failed);
+    }
+
+    private void RecordDelete(string stage, IReadOnlyList<string> ids, CancellationToken cancellationToken)
+    {
+        DeleteCalls.Add(stage);
+        DeletedIds[stage] = [.. ids];
+        AnyDeleteSawCancelledToken |= cancellationToken.IsCancellationRequested;
+    }
+
+    private IReadOnlyList<string> FailedAmong(IReadOnlyList<string> ids) => [.. ids.Where(FailDeleteIds.Contains)];
 }

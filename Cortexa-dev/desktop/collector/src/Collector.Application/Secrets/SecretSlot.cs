@@ -6,4 +6,5 @@ public enum SecretSlot
     CortexaRefreshToken,
     AnthropicApiKey,
     GeminiApiKey,
+    BedrockSsoToken,
 }

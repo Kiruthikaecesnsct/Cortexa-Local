@@ -4,7 +4,6 @@ using Collector.Domain.Documents;
 using Collector.Domain.Extraction;
 using Collector.Tests.Extraction;
 using Collector.Tests.Support;
-using Microsoft.Extensions.Options;
 
 namespace Collector.Tests.Knowledge;
 
@@ -30,7 +29,7 @@ public sealed class ExtractKnowledgeHandlerTests
         KnowledgePipeline.Runner(provider, new CapturingLogger<UnitExtractionRunner>()),
         new KnowledgeMerger(),
         KnowledgePipeline.Prompt,
-        Microsoft.Extensions.Options.Options.Create(new KnowledgeExtractionOptions { Concurrency = concurrency }));
+        new SingleProviderFactory(provider, concurrency));
 
     private static FuncAiProvider EchoProvider(Func<AiRequest, CancellationToken, Task<AiCompletion>>? inner = null) =>
         new(async (request, token) =>

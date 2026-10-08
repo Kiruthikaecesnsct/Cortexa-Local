@@ -15,6 +15,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Http;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Collector.Infrastructure;
@@ -68,10 +69,13 @@ public static class DependencyInjection
         services.AddValidatedOptions<GeminiProviderOptions, GeminiProviderOptionsValidator>(
             configuration,
             GeminiProviderOptions.SectionName);
+        services.AddValidatedOptions<BedrockProviderOptions, BedrockProviderOptionsValidator>(
+            configuration,
+            BedrockProviderOptions.SectionName);
         services.AddValidatedOptions<AiOptions, AiOptionsValidator>(configuration, AiOptions.SectionName);
+        services.AddOptions<ProviderModelCatalog>().Bind(configuration.GetSection(ProviderModelCatalog.SectionName));
         services.AddOptions<KnowledgeExtractionOptions>()
-            .Configure<IOptions<AiOptions>, IOptions<AiProviderOptions>, IOptions<GeminiProviderOptions>>(
-                (extraction, ai, claude, gemini) => AiProviderSelection.Apply(extraction, ai.Value, claude.Value, gemini.Value));
+            .Configure<IOptions<AiOptions>>((extraction, ai) => AiProviderSelection.Apply(extraction, ai.Value));
     }
 
     private static void AddAiProviders(this IServiceCollection services)
@@ -80,7 +84,17 @@ public static class DependencyInjection
         services.AddSingleton<ClaudeDirectProvider>();
         services.AddSingleton<GeminiClientFactory>();
         services.AddSingleton<GeminiDirectProvider>();
-        services.AddSingleton<IAiProvider>(AiProviderSelection.Resolve);
+        services.AddSingleton<IBedrockSsoClientFactory, BedrockSsoClientFactory>();
+        services.AddSingleton(sp => new BedrockSsoCredentialsDependencies(
+            sp.GetRequiredService<ISecretStore>(),
+            sp.GetRequiredService<TimeProvider>(),
+            sp.GetRequiredService<ILogger<BedrockSsoCredentials>>(),
+            sp.GetRequiredService<IBedrockSsoClientFactory>()));
+        services.AddSingleton<BedrockSsoCredentials>();
+        services.AddSingleton<IBedrockSsoCredentials>(sp => sp.GetRequiredService<BedrockSsoCredentials>());
+        services.AddSingleton<BedrockClientFactory>();
+        services.AddSingleton<BedrockDirectProvider>();
+        services.AddSingleton<IAiProviderFactory, AiProviderSelection>();
     }
 
     private static void AddValidatedOptions<TOptions, TValidator>(

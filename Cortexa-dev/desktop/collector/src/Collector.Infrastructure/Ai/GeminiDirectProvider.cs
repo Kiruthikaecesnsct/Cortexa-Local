@@ -17,10 +17,11 @@ public sealed class GeminiDirectProvider(
     {
         var client = await clientFactory.CreateAsync(cancellationToken);
         var settings = options.Value;
+        var model = string.IsNullOrWhiteSpace(request.Model) ? settings.Model : request.Model;
         var call = GeminiRequestFactory.Create(request, settings);
-        var response = await SendAsync(client, settings.Model, call, cancellationToken);
+        var response = await SendAsync(client, model, call, cancellationToken);
         LogUsage(response);
-        return GeminiResponseReader.ToCompletion(response, settings.Model);
+        return GeminiResponseReader.ToCompletion(response, model);
     }
 
     private static async Task<GenerateContentResponse> SendAsync(

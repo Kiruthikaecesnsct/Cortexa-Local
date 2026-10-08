@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Collector.Domain.Enums;
 
 namespace Collector.Server.Application.Rows;
 
@@ -72,6 +73,12 @@ public sealed record SagaRow : IPipelineRow
 
     [JsonPropertyName("seeding_mode")]
     public required string SeedingMode { get; init; }
+
+    [JsonPropertyName("collector_provider")]
+    public CollectorProvider? CollectorProvider { get; init; }
+
+    [JsonPropertyName("collector_model")]
+    public string? CollectorModel { get; init; }
 
     [JsonPropertyName("evidence_completed_count")]
     public int EvidenceCompletedCount { get; init; }

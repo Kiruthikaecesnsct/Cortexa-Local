@@ -1,23 +1,24 @@
 using Collector.Application.Knowledge;
 using Collector.Application.Ports;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Collector.Presentation.Services;
 
 public sealed class KnowledgeRunner(
     ExtractKnowledgeHandler handler,
-    IOptions<KnowledgeExtractionOptions> options,
     ILogger<KnowledgeRunner> logger) : IKnowledgeRunner
 {
     public async Task<KnowledgeRunOutcome> RunAsync(
-        IReadOnlyList<string> documentIds,
+        KnowledgeRunRequest request,
         IProgress<ExtractionProgress> progress,
         CancellationToken cancellationToken)
     {
         try
         {
-            var result = await handler.ExtractAsync(new ExtractionRunRequest(documentIds), progress, cancellationToken);
+            var result = await handler.ExtractAsync(
+                new ExtractionRunRequest(request.DocumentIds, request.Provider, request.Model),
+                progress,
+                cancellationToken);
             return new KnowledgeRunOutcome(result.IsFailed ? KnowledgeRunStatus.Failed : KnowledgeRunStatus.Completed, result);
         }
         catch (OperationCanceledException)
@@ -26,7 +27,7 @@ public sealed class KnowledgeRunner(
         }
         catch (AiProviderException exception) when (exception.Kind == AiFailureKind.MissingApiKey)
         {
-            return new KnowledgeRunOutcome(KnowledgeRunStatus.KeyMissing, Provider: options.Value.Provider);
+            return new KnowledgeRunOutcome(KnowledgeRunStatus.KeyMissing, Provider: request.Provider);
         }
         catch (Exception exception)
         {

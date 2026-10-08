@@ -30,7 +30,9 @@ public static class SagaRowBuilder
             PrimaryEvidenceModel = metadata.PrimaryEvidenceModel,
             ScoringModel = metadata.ScoringModel,
             SeedingModel = metadata.SeedingModel,
-            SeedingMode = metadata.SeedingMode
+            SeedingMode = metadata.SeedingMode,
+            CollectorProvider = metadata.CollectorProvider,
+            CollectorModel = metadata.CollectorModel
         };
     }
 

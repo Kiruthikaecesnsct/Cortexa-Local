@@ -292,6 +292,69 @@
                 </StackPanel>
             </Border>
 
+            <Border Margin="{StaticResource Thickness.SectionTop}"
+                    Style="{StaticResource Card}"
+                    ToolTip="{x:Static res:ExtractionStrings.EstimateApproximateNote}"
+                    ToolTipService.ShowOnDisabled="True">
+                <StackPanel>
+                    <StackPanel Margin="{StaticResource Thickness.StackGap}" Orientation="Horizontal">
+                        <TextBlock Margin="{StaticResource Thickness.InlineGapLarge}"
+                                   Style="{StaticResource Text.Glyph.Header}"
+                                   Text="{x:Static res:Glyphs.Info}" />
+                        <TextBlock AutomationProperties.HeadingLevel="Level2"
+                                   Style="{StaticResource Text.Subtitle}"
+                                   Text="{x:Static res:ExtractionStrings.EstimateTitle}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <StackPanel Style="{StaticResource Stat.Tile}">
+                            <TextBlock Style="{StaticResource Text.Title}" Text="{Binding PromptTokens}" />
+                            <TextBlock Style="{StaticResource Text.Caption}" Text="{x:Static res:ExtractionStrings.EstimatePrompt}" />
+                        </StackPanel>
+                        <StackPanel Style="{StaticResource Stat.Tile}">
+                            <TextBlock Style="{StaticResource Text.Title}" Text="{Binding EstimatedOutputTokens}" />
+                            <TextBlock Style="{StaticResource Text.Caption}" Text="{x:Static res:ExtractionStrings.EstimateOutput}" />
+                        </StackPanel>
+                        <StackPanel Style="{StaticResource Stat.Tile}">
+                            <TextBlock Style="{StaticResource Text.Title}" Text="{Binding TotalEstimatedTokens}" />
+                            <TextBlock Style="{StaticResource Text.Caption}" Text="{x:Static res:ExtractionStrings.EstimateTotal}" />
+                        </StackPanel>
+                    </StackPanel>
+                    <TextBlock Margin="{StaticResource Thickness.StackGap}"
+                               Style="{StaticResource Text.Helper}"
+                               Text="{x:Static res:ExtractionStrings.EstimateApproximateNote}"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Border Margin="{StaticResource Thickness.SectionTop}" Style="{StaticResource Card}">
+                <StackPanel>
+                    <StackPanel Margin="{StaticResource Thickness.StackGap}" Orientation="Horizontal">
+                        <TextBlock Margin="{StaticResource Thickness.InlineGapLarge}"
+                                   Style="{StaticResource Text.Glyph.Header}"
+                                   Text="{x:Static res:Glyphs.Settings}" />
+                        <TextBlock AutomationProperties.HeadingLevel="Level2"
+                                   Style="{StaticResource Text.Subtitle}"
+                                   Text="{x:Static res:ExtractionStrings.ProviderModelTitle}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <HeaderedContentControl Header="{x:Static res:ExtractionStrings.ProviderLabel}" Style="{StaticResource FormField}">
+                            <ComboBox MinWidth="{StaticResource Size.ComboMin}"
+                                      AutomationProperties.Name="{x:Static res:ExtractionStrings.ProviderName}"
+                                      IsEnabled="{Binding CanEditDocuments}"
+                                      ItemsSource="{Binding AvailableProviders}"
+                                      SelectedItem="{Binding SelectedProvider}" />
+                        </HeaderedContentControl>
+                        <HeaderedContentControl Header="{x:Static res:ExtractionStrings.ModelLabel}" Style="{StaticResource FormField}">
+                            <ComboBox MinWidth="{StaticResource Size.ComboMin}"
+                                      AutomationProperties.Name="{x:Static res:ExtractionStrings.ModelName}"
+                                      IsEnabled="{Binding CanEditDocuments}"
+                                      ItemsSource="{Binding AvailableModels}"
+                                      SelectedItem="{Binding SelectedModel}" />
+                        </HeaderedContentControl>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
             <Border Margin="{StaticResource Thickness.SectionTop}" Style="{StaticResource Card}">
                 <StackPanel>
                     <StackPanel Margin="{StaticResource Thickness.StackGap}" Orientation="Horizontal">

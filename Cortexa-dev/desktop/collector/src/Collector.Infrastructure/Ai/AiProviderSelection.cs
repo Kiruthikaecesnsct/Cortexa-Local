@@ -7,23 +7,27 @@ using Microsoft.Extensions.Options;
 
 namespace Collector.Infrastructure.Ai;
 
-public static class AiProviderSelection
+public sealed class AiProviderSelection(
+    IServiceProvider services,
+    IOptions<AiProviderOptions> claude,
+    IOptions<GeminiProviderOptions> gemini,
+    IOptions<BedrockProviderOptions> bedrock) : IAiProviderFactory
 {
-    public static IAiProvider Resolve(IServiceProvider services) =>
-        services.GetRequiredService<IOptions<AiOptions>>().Value.Provider switch
-        {
-            CollectorProvider.Gemini => services.GetRequiredService<GeminiDirectProvider>(),
-            CollectorProvider.Claude => services.GetRequiredService<ClaudeDirectProvider>(),
-            var other => throw new InvalidOperationException($"AI provider {other} is not supported."),
-        };
-
-    public static void Apply(
-        KnowledgeExtractionOptions extraction,
-        AiOptions ai,
-        AiProviderOptions claude,
-        GeminiProviderOptions gemini)
+    public IAiProvider Resolve(CollectorProvider provider) => provider switch
     {
-        extraction.Provider = ai.Provider;
-        extraction.Concurrency = ai.Provider == CollectorProvider.Gemini ? gemini.Concurrency : claude.Concurrency;
-    }
+        CollectorProvider.Claude => services.GetRequiredService<ClaudeDirectProvider>(),
+        CollectorProvider.Gemini => services.GetRequiredService<GeminiDirectProvider>(),
+        CollectorProvider.Bedrock => services.GetRequiredService<BedrockDirectProvider>(),
+        var other => throw new InvalidOperationException($"AI provider {other} is not supported."),
+    };
+
+    public int ConcurrencyFor(CollectorProvider provider) => provider switch
+    {
+        CollectorProvider.Claude => claude.Value.Concurrency,
+        CollectorProvider.Gemini => gemini.Value.Concurrency,
+        CollectorProvider.Bedrock => bedrock.Value.Concurrency,
+        var other => throw new InvalidOperationException($"AI provider {other} is not supported."),
+    };
+
+    public static void Apply(KnowledgeExtractionOptions extraction, AiOptions ai) => extraction.Provider = ai.Provider;
 }

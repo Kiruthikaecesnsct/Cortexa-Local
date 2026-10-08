@@ -32,6 +32,7 @@
                                Style="{StaticResource Row.Caption}"
                                Text="{Binding BatchId}"
                                ToolTip="{Binding BatchId}" />
+                    <TextBlock Style="{StaticResource Row.Caption}" Text="{Binding ProviderModelText}" />
                     <StackPanel Margin="{StaticResource Thickness.HelperGap}" Orientation="Horizontal">
                         <ContentControl Margin="{StaticResource Thickness.InlineGap}"
                                         Content="{Binding}"
@@ -354,6 +355,9 @@
                                     <TextBlock Margin="{StaticResource Thickness.StackGap}"
                                                Style="{StaticResource Text.Caption}"
                                                Text="{Binding UploadedText}" />
+                                    <TextBlock Margin="{StaticResource Thickness.StackGap}"
+                                               Style="{StaticResource Text.Caption}"
+                                               Text="{Binding ProviderModelText}" />
                                     <StackPanel Margin="{StaticResource Thickness.StackGap}" Orientation="Horizontal">
                                         <TextBlock Margin="{StaticResource Thickness.InlineGap}"
                                                    VerticalAlignment="Center"

@@ -1,3 +1,4 @@
+using Collector.Domain.Enums;
 using Collector.Domain.History;
 using Collector.Presentation.ViewModels;
 
@@ -102,6 +103,9 @@ public static class HistoryStrings
     public static string AnnounceFailed(string batch, string stage) => $"{batch} failed after {stage}";
 
     public static string ProgressName(string stage) => $"{stage} progress";
+
+    public static string ProviderModel(CollectorProvider? provider, string? model) =>
+        provider is null || string.IsNullOrWhiteSpace(model) ? NullMetric : $"{provider} · {model}";
 
     public static string StageName(BatchStage stage) => stage switch
     {

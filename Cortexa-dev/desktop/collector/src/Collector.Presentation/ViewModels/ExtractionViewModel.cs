@@ -1,12 +1,17 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using Collector.Application.Extraction;
+using Collector.Application.Knowledge;
 using Collector.Application.Ports;
 using Collector.Domain.Enums;
+using Collector.Domain.Extraction;
+using Collector.Infrastructure.Options;
 using Collector.Presentation.Resources;
+using Collector.Presentation.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Collector.Presentation.ViewModels;
 
@@ -16,24 +21,40 @@ public sealed record ExtractionDependencies(
     IFilePicker FilePicker,
     ILogger<ExtractionViewModel> Logger);
 
+public sealed record TokenEstimationDependencies(TokenEstimator Estimator, ProviderOutputLimits OutputLimits);
+
 public sealed partial class ExtractionViewModel : FocusableViewModel
 {
     private readonly ExtractionService _extractionService;
     private readonly IUnitStore _unitStore;
     private readonly IFilePicker _filePicker;
     private readonly ILogger<ExtractionViewModel> _logger;
+    private readonly TokenEstimator _tokenEstimator;
+    private readonly ProviderOutputLimits _outputLimits;
+    private readonly ProviderModelCatalog _modelCatalog;
+    private int _estimateGeneration;
 
-    public ExtractionViewModel(ExtractionDependencies dependencies, KnowledgeRunViewModel knowledge)
+    public ExtractionViewModel(
+        ExtractionDependencies dependencies,
+        KnowledgeRunViewModel knowledge,
+        TokenEstimationDependencies tokenEstimation,
+        IOptions<ProviderModelCatalog> modelCatalog)
     {
         _extractionService = dependencies.ExtractionService;
         _unitStore = dependencies.UnitStore;
         _filePicker = dependencies.FilePicker;
         _logger = dependencies.Logger;
+        _tokenEstimator = tokenEstimation.Estimator;
+        _outputLimits = tokenEstimation.OutputLimits;
+        _modelCatalog = modelCatalog.Value;
         Knowledge = knowledge;
         Documents = [];
         PreviewUnits = [];
+        AvailableModels = [];
         knowledge.FocusRequested += (_, key) => RequestFocus(key);
         knowledge.PropertyChanged += OnKnowledgeChanged;
+        Knowledge.Provider = SelectedProvider;
+        UpdateAvailableModels(SelectedProvider);
     }
 
     public KnowledgeRunViewModel Knowledge { get; }
@@ -41,6 +62,10 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
     public ObservableCollection<DocumentRowViewModel> Documents { get; }
 
     public ObservableCollection<UnitPreviewItemViewModel> PreviewUnits { get; }
+
+    public IReadOnlyList<CollectorProvider> AvailableProviders { get; } = Enum.GetValues<CollectorProvider>();
+
+    public ObservableCollection<string> AvailableModels { get; }
 
     public IEnumerable<DocumentRowViewModel> SkipRows => Documents.Where(row => row.IsSkipped);
 
@@ -96,9 +121,54 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
     [ObservableProperty]
     public partial BannerViewModel? SkipBanner { get; set; }
 
+    [ObservableProperty]
+    public partial CollectorProvider SelectedProvider { get; set; } = CollectorProvider.Claude;
+
+    [ObservableProperty]
+    public partial string? SelectedModel { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TotalEstimatedTokens))]
+    public partial int PromptTokens { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(TotalEstimatedTokens))]
+    public partial int EstimatedOutputTokens { get; set; }
+
+    public int TotalEstimatedTokens => PromptTokens + EstimatedOutputTokens;
+
     partial void OnIsExtractingChanged(bool value) => Knowledge.IsParsing = value;
 
     partial void OnSelectedDocumentChanged(DocumentRowViewModel? value) => _ = LoadPreviewAsync(value, CancellationToken.None);
+
+    partial void OnSelectedProviderChanged(CollectorProvider value)
+    {
+        Knowledge.Provider = value;
+        UpdateAvailableModels(value);
+        _ = RecomputeTokenEstimateAsync();
+    }
+
+    partial void OnSelectedModelChanged(string? value)
+    {
+        Knowledge.Model = value;
+        _ = RecomputeTokenEstimateAsync();
+    }
+
+    private void UpdateAvailableModels(CollectorProvider provider)
+    {
+        AvailableModels.Clear();
+        if (!_modelCatalog.Providers.TryGetValue(provider, out var entry))
+        {
+            return;
+        }
+
+        foreach (var model in entry.Models)
+        {
+            AvailableModels.Add(model);
+        }
+
+        SelectedModel = entry.DefaultModel;
+    }
 
     [RelayCommand(CanExecute = nameof(CanPickFiles))]
     private async Task PickFilesAsync(CancellationToken cancellationToken)
@@ -290,12 +360,53 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
         OnPropertyChanged(nameof(StatusCaption));
         OnPropertyChanged(nameof(SkipRows));
         SyncKnowledgeDocuments();
+        _ = RecomputeTokenEstimateAsync();
     }
 
-    private void SyncKnowledgeDocuments()
+    private void SyncKnowledgeDocuments() => Knowledge.SetDocuments(ExtractedDocumentIds());
+
+    private List<string> ExtractedDocumentIds() =>
+        [.. Documents.Where(row => row.Status == DocumentStatus.Extracted && row.DocumentId is not null).Select(row => row.DocumentId!)];
+
+    private async Task RecomputeTokenEstimateAsync()
     {
-        Knowledge.SetDocuments(
-            [.. Documents.Where(row => row.Status == DocumentStatus.Extracted && row.DocumentId is not null).Select(row => row.DocumentId!)]);
+        var generation = Interlocked.Increment(ref _estimateGeneration);
+        List<ExtractionUnit> units;
+        try
+        {
+            units = await LoadUnitsAsync(ExtractedDocumentIds(), CancellationToken.None);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Could not compute the token estimate.");
+            return;
+        }
+
+        if (generation != _estimateGeneration)
+        {
+            return;
+        }
+
+        ApplyEstimate(units);
+    }
+
+    private async Task<List<ExtractionUnit>> LoadUnitsAsync(IReadOnlyList<string> documentIds, CancellationToken cancellationToken)
+    {
+        var units = new List<ExtractionUnit>();
+        foreach (var documentId in documentIds)
+        {
+            units.AddRange(await _unitStore.GetByDocumentIdAsync(documentId, cancellationToken));
+        }
+
+        return units;
+    }
+
+    private void ApplyEstimate(List<ExtractionUnit> units)
+    {
+        var maxOutputTokens = _outputLimits.MaxOutputTokensFor(SelectedProvider);
+        var estimate = _tokenEstimator.Estimate(units, maxOutputTokens);
+        PromptTokens = estimate.PromptTokens;
+        EstimatedOutputTokens = estimate.EstimatedOutputTokens;
     }
 
     private void OnKnowledgeChanged(object? sender, PropertyChangedEventArgs e)

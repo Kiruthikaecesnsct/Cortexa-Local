@@ -21,7 +21,7 @@ public sealed class UnitExtractionRunnerTests
         var provider = new ScriptedAiProvider().Then(Completions.Completed(Valid("Backoff idea")));
         var unit = TestData.FileUnit("line one\nline two");
 
-        var outcome = await Runner(provider).ExtractAsync(unit, TestData.Document(), TestSupport.Ct);
+        var outcome = await Runner(provider).ExtractAsync(unit, TestData.Document(), KnowledgePipeline.DefaultContext, TestSupport.Ct);
 
         Assert.Equal(UnitOutcomeStatus.Completed, outcome.Status);
         Assert.Equal(Completions.Model, outcome.Model);
@@ -36,7 +36,7 @@ public sealed class UnitExtractionRunnerTests
         var provider = new ScriptedAiProvider().Then(Completions.Completed(Valid("ExecuteAsync")));
         var unit = TestData.FileUnit("public Task ExecuteAsync() { }");
 
-        var outcome = await Runner(provider).ExtractAsync(unit, TestData.Document(), TestSupport.Ct);
+        var outcome = await Runner(provider).ExtractAsync(unit, TestData.Document(), KnowledgePipeline.DefaultContext, TestSupport.Ct);
 
         Assert.Equal(EchoReasons.TitleIsIdentifier, Assert.Single(outcome.Items).EchoVerdict.Reason);
     }
@@ -50,7 +50,7 @@ public sealed class UnitExtractionRunnerTests
             .Then(Completions.Completed(Valid("Second half idea")));
         var unit = TestData.FileUnit("line one\nline two\nline three\nline four");
 
-        var outcome = await Runner(provider).ExtractAsync(unit, TestData.Document(), TestSupport.Ct);
+        var outcome = await Runner(provider).ExtractAsync(unit, TestData.Document(), KnowledgePipeline.DefaultContext, TestSupport.Ct);
 
         Assert.Equal(UnitOutcomeStatus.Completed, outcome.Status);
         Assert.Equal(["First half idea", "Second half idea"], outcome.Items.Select(item => item.Title));
@@ -62,7 +62,7 @@ public sealed class UnitExtractionRunnerTests
     {
         var provider = new FuncAiProvider((_, _) => Task.FromResult(Completions.Truncated()));
 
-        var outcome = await Runner(provider).ExtractAsync(TestData.FileUnit(EightLines), TestData.Document(), TestSupport.Ct);
+        var outcome = await Runner(provider).ExtractAsync(TestData.FileUnit(EightLines), TestData.Document(), KnowledgePipeline.DefaultContext, TestSupport.Ct);
 
         Assert.Equal(UnitOutcomeStatus.Failed, outcome.Status);
         Assert.Equal(ExpectedCallsWithDepthCap, provider.Calls);
@@ -73,7 +73,7 @@ public sealed class UnitExtractionRunnerTests
     {
         var provider = new ScriptedAiProvider().Then(Completions.Truncated());
 
-        var outcome = await Runner(provider).ExtractAsync(TestData.FileUnit("single line"), TestData.Document(), TestSupport.Ct);
+        var outcome = await Runner(provider).ExtractAsync(TestData.FileUnit("single line"), TestData.Document(), KnowledgePipeline.DefaultContext, TestSupport.Ct);
 
         Assert.Equal(UnitOutcomeStatus.Failed, outcome.Status);
         Assert.Single(provider.Requests);
@@ -84,7 +84,7 @@ public sealed class UnitExtractionRunnerTests
     {
         var provider = new ScriptedAiProvider().Then(Completions.Refused());
 
-        var outcome = await Runner(provider).ExtractAsync(TestData.FileUnit("code"), TestData.Document(), TestSupport.Ct);
+        var outcome = await Runner(provider).ExtractAsync(TestData.FileUnit("code"), TestData.Document(), KnowledgePipeline.DefaultContext, TestSupport.Ct);
 
         Assert.Equal(UnitOutcomeStatus.Skipped, outcome.Status);
         Assert.Equal(Completions.Model, outcome.Model);
@@ -97,7 +97,7 @@ public sealed class UnitExtractionRunnerTests
     {
         var provider = new ScriptedAiProvider().Throw(new AiProviderException(kind, "provider said no"));
 
-        var outcome = await Runner(provider).ExtractAsync(TestData.FileUnit("code"), TestData.Document(), TestSupport.Ct);
+        var outcome = await Runner(provider).ExtractAsync(TestData.FileUnit("code"), TestData.Document(), KnowledgePipeline.DefaultContext, TestSupport.Ct);
 
         Assert.Equal(UnitOutcomeStatus.Failed, outcome.Status);
         Assert.Single(provider.Requests);
@@ -109,7 +109,7 @@ public sealed class UnitExtractionRunnerTests
         var provider = new ScriptedAiProvider().Throw(new AiProviderException(AiFailureKind.MissingApiKey, "no key"));
 
         var exception = await Assert.ThrowsAsync<AiProviderException>(
-            () => Runner(provider).ExtractAsync(TestData.FileUnit("code"), TestData.Document(), TestSupport.Ct));
+            () => Runner(provider).ExtractAsync(TestData.FileUnit("code"), TestData.Document(), KnowledgePipeline.DefaultContext, TestSupport.Ct));
 
         Assert.Equal(AiFailureKind.MissingApiKey, exception.Kind);
     }
@@ -119,7 +119,7 @@ public sealed class UnitExtractionRunnerTests
     {
         var provider = new ScriptedAiProvider().Then(Completions.Completed("this is not json"));
 
-        var outcome = await Runner(provider).ExtractAsync(TestData.FileUnit("code"), TestData.Document(), TestSupport.Ct);
+        var outcome = await Runner(provider).ExtractAsync(TestData.FileUnit("code"), TestData.Document(), KnowledgePipeline.DefaultContext, TestSupport.Ct);
 
         Assert.Equal(UnitOutcomeStatus.Failed, outcome.Status);
     }
@@ -129,7 +129,7 @@ public sealed class UnitExtractionRunnerTests
     {
         var provider = new ScriptedAiProvider().Then(Completions.Completed("{\"items\":[]}"));
 
-        var outcome = await Runner(provider).ExtractAsync(TestData.FileUnit("code"), TestData.Document(), TestSupport.Ct);
+        var outcome = await Runner(provider).ExtractAsync(TestData.FileUnit("code"), TestData.Document(), KnowledgePipeline.DefaultContext, TestSupport.Ct);
 
         Assert.Equal(UnitOutcomeStatus.Completed, outcome.Status);
         Assert.Empty(outcome.Items);
@@ -153,7 +153,7 @@ public sealed class UnitExtractionRunnerTests
 
         for (var run = 0; run < 5; run++)
         {
-            await runner.ExtractAsync(unit, TestData.Document(), TestSupport.Ct);
+            await runner.ExtractAsync(unit, TestData.Document(), KnowledgePipeline.DefaultContext, TestSupport.Ct);
         }
 
         var logged = string.Join('\n', _logger.Entries);

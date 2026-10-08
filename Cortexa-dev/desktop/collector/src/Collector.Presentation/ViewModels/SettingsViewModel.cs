@@ -1,5 +1,6 @@
 using System.IO;
 using Collector.Application.Auth;
+using Collector.Application.Ports;
 using Collector.Application.Settings;
 using Collector.Domain.Enums;
 using Collector.Presentation.Navigation;
@@ -25,6 +26,7 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
         SettingsService settings,
         ISessionState session,
         ISignInService signIn,
+        IBedrockSsoCredentials bedrockSso,
         ILogger<SettingsViewModel> logger)
     {
         _settings = settings;
@@ -40,10 +42,13 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
             row.EditorStateChanged += OnEditorStateChanged;
         }
 
+        BedrockRow = new BedrockSsoRowViewModel(bedrockSso, logger);
         session.Changed += (_, _) => UiThread.Post(() => OnPropertyChanged(nameof(ShowGatewayHint)));
     }
 
     public IReadOnlyList<AiKeyRowViewModel> Rows { get; }
+
+    public BedrockSsoRowViewModel BedrockRow { get; }
 
     public bool IsDirty => Normalize(GatewayUrl) != _saved.GatewayUrl || Normalize(CollectorServerUrl) != _saved.CollectorServerUrl;
 
@@ -97,6 +102,8 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
         {
             _ = row.LoadStatusAsync(CancellationToken.None);
         }
+
+        _ = BedrockRow.LoadStatusAsync(CancellationToken.None);
 
         RequestFocus(SettingsFocusKeys.Gateway);
     }
@@ -299,17 +306,6 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
                 Description = SettingsStrings.GeminiDescription,
                 ShortName = "Gemini",
                 RunsName = "Gemini direct",
-            },
-            _settings,
-            _logger),
-        new(
-            new AiKeyRowDescriptor
-            {
-                Provider = CollectorProvider.Bedrock,
-                Name = SettingsStrings.BedrockName,
-                Description = SettingsStrings.BedrockDescription,
-                ShortName = "Bedrock",
-                RunsName = "Bedrock",
             },
             _settings,
             _logger),

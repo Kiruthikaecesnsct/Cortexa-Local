@@ -35,6 +35,8 @@
   "scoring_model": "m-scoring",
   "seeding_model": "m-seeding",
   "seeding_mode": "legacy",
+  "collector_provider": "claude",
+  "collector_model": "claude-test-model",
   "evidence_completed_count": 0,
   "evidence_source_live_counts": {},
   "counted_evidence_candidate_ids": [],

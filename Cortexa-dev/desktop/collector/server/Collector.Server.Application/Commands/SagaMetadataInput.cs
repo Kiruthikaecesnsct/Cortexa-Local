@@ -1,3 +1,5 @@
+using Collector.Domain.Enums;
+
 namespace Collector.Server.Application.Commands;
 
 public sealed record SagaMetadataInput
@@ -21,4 +23,8 @@ public sealed record SagaMetadataInput
     public required string SeedingModel { get; init; }
 
     public required string SeedingMode { get; init; }
+
+    public required CollectorProvider CollectorProvider { get; init; }
+
+    public required string CollectorModel { get; init; }
 }

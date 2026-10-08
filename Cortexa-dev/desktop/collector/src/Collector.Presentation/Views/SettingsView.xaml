@@ -110,6 +110,7 @@
                               Focusable="False"
                               IsTabStop="False"
                               ItemsSource="{Binding Rows}" />
+                <ContentControl Content="{Binding BedrockRow}" Focusable="False" IsTabStop="False" />
             </StackPanel>
         </Border>
     </StackPanel>

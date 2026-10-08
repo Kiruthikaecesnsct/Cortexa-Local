@@ -16,10 +16,15 @@ public sealed record KnowledgeRunOutcome(
     ExtractionRunResult? Result = null,
     CollectorProvider Provider = CollectorProvider.Claude);
 
+public sealed record KnowledgeRunRequest(
+    IReadOnlyList<string> DocumentIds,
+    CollectorProvider Provider = CollectorProvider.Claude,
+    string? Model = null);
+
 public interface IKnowledgeRunner
 {
     Task<KnowledgeRunOutcome> RunAsync(
-        IReadOnlyList<string> documentIds,
+        KnowledgeRunRequest request,
         IProgress<ExtractionProgress> progress,
         CancellationToken cancellationToken);
 }

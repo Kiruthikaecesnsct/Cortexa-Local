@@ -82,6 +82,7 @@
     <sys:Double x:Key="Size.NavIndicator">3</sys:Double>
     <sys:Double x:Key="Size.Divider">1</sys:Double>
     <sys:Double x:Key="Size.ActionMinWidth">96</sys:Double>
+    <sys:Double x:Key="Size.ComboMin">220</sys:Double>
     <sys:Double x:Key="Breakpoint.RailCompact">1040</sys:Double>
     <sys:Double x:Key="Size.DetailsPane">320</sys:Double>
     <sys:Double x:Key="Size.ListMinWidth">400</sys:Double>

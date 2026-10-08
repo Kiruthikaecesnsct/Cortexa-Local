@@ -1,5 +1,6 @@
 using Collector.Application.Auth;
 using Collector.Application.Knowledge;
+using Collector.Domain.Enums;
 using Collector.Presentation.Navigation;
 using Collector.Presentation.Resources;
 using Collector.Presentation.Services;
@@ -33,6 +34,10 @@ public sealed partial class KnowledgeRunViewModel : FocusableViewModel
         _navigation = navigation;
         _session = session;
     }
+
+    public CollectorProvider Provider { get; set; } = CollectorProvider.Claude;
+
+    public string? Model { get; set; }
 
     public bool CanExtract => _documentIds.Count > 0 && !IsParsing && !IsRunning;
 
@@ -83,7 +88,8 @@ public sealed partial class KnowledgeRunViewModel : FocusableViewModel
         try
         {
             var progress = new SyncProgress<ExtractionProgress>(OnProgress);
-            var outcome = await _runner.RunAsync(_documentIds, progress, cancellationToken);
+            var request = new KnowledgeRunRequest(_documentIds, Provider, Model);
+            var outcome = await _runner.RunAsync(request, progress, cancellationToken);
             Finish(outcome);
         }
         finally

@@ -41,6 +41,16 @@ public static class ScreenCatalog
         });
         services.AddScreen(new ScreenRegistration
         {
+            Key = ScreenKeys.History,
+            Title = ShellStrings.History,
+            ViewModelType = typeof(HistoryViewModel),
+            RequiresSignIn = true,
+            Glyph = Glyphs.History,
+            Placement = NavPlacement.Main,
+            Order = 3,
+        });
+        services.AddScreen(new ScreenRegistration
+        {
             Key = ScreenKeys.Settings,
             Title = ShellStrings.Settings,
             ViewModelType = typeof(SettingsViewModel),

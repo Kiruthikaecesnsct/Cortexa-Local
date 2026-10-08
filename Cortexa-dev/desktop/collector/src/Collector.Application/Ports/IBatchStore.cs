@@ -8,6 +8,8 @@ public interface IBatchStore
 
     Task<StoredBatch?> FindByDocumentsAsync(IReadOnlyCollection<string> documentIds, CancellationToken cancellationToken);
 
+    Task<StoredBatch?> FindByServerBatchIdAsync(string serverBatchId, CancellationToken cancellationToken);
+
     Task MarkUploadingAsync(string batchId, CancellationToken cancellationToken);
 
     Task MarkUploadedAsync(string batchId, string serverBatchId, CancellationToken cancellationToken);

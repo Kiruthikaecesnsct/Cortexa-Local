@@ -1,4 +1,4 @@
-using Collector.Server.Application.Upload;
+using Collector.Domain.Upload;
 
 namespace Collector.Server.Tests.Upload;
 

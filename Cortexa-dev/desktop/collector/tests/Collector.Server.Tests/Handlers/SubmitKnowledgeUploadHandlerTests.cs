@@ -1,4 +1,5 @@
 using Collector.Domain.Enums;
+using Collector.Domain.Upload;
 using Collector.Server.Application.Errors;
 using Collector.Server.Application.Upload;
 using Collector.Server.Tests.Fakes;

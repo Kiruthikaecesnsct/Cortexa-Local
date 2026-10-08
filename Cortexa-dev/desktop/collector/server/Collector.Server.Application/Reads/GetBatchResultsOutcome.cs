@@ -1,8 +1,10 @@
+using Collector.Domain.History;
+
 namespace Collector.Server.Application.Reads;
 
-public sealed record GetBatchResultsOutcome(bool Found, IReadOnlyList<BatchResultDto> Results)
+public sealed record GetBatchResultsOutcome(bool Found, BatchResults? Results)
 {
-    public static GetBatchResultsOutcome NotFound() => new(false, []);
+    public static GetBatchResultsOutcome NotFound() => new(false, null);
 
-    public static GetBatchResultsOutcome Ok(IReadOnlyList<BatchResultDto> results) => new(true, results);
+    public static GetBatchResultsOutcome Ok(BatchResults results) => new(true, results);
 }

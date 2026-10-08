@@ -23,4 +23,23 @@ internal static class TestSagas
         SeedingModel = "m4",
         SeedingMode = "legacy"
     };
+
+    public static SagaRow WithDocumentStates(
+        string batchId,
+        bool wantsHarvesting,
+        bool wantsSeeding,
+        params string[] documentStates) =>
+        Existing(batchId, [.. documentStates.Select((_, index) => $"doc-{index}")]) with
+        {
+            WantsHarvesting = wantsHarvesting,
+            WantsSeeding = wantsSeeding,
+            Documents =
+            [
+                .. documentStates.Select((state, index) => new SagaDocumentProgressRow
+                {
+                    DocumentId = $"doc-{index}",
+                    State = state
+                })
+            ]
+        };
 }

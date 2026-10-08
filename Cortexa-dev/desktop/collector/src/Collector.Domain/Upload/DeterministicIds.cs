@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Collector.Server.Application.Upload;
+namespace Collector.Domain.Upload;
 
 public static class DeterministicIds
 {

@@ -1,6 +1,8 @@
 using Collector.Server.Application.Handlers;
+using Collector.Server.Application.Reads;
 using Collector.Server.Application.Rows;
 using Collector.Server.Tests.Fakes;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Collector.Server.Tests.Handlers;
 
@@ -21,7 +23,7 @@ public class ListBatchesHandlerTests
         var store = new FakePipelineRowStore();
         store.Sagas[BatchId] = BuildSaga();
 
-        var handler = new ListBatchesHandler(store);
+        var handler = new ListBatchesHandler(store, new BatchStageCalculator(NullLogger<BatchStageCalculator>.Instance));
 
         var batches = await handler.HandleAsync(TestIdentity.Caller, TestContext.Current.CancellationToken);
 

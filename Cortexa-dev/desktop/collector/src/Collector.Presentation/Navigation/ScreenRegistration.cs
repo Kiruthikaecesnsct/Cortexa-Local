@@ -29,4 +29,5 @@ public static class ScreenKeys
     public const string Settings = "settings";
     public const string Extract = "extract";
     public const string Review = "review";
+    public const string History = "history";
 }

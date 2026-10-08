@@ -1,8 +1,12 @@
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Collector.Domain.Enums;
+using Collector.Domain.History;
 using Collector.Domain.Serialization;
 using Collector.Server.Application.Building;
 using Collector.Server.Application.Commands;
+using Collector.Server.Application.Rows;
 using Collector.Server.Infrastructure.Cosmos;
 
 namespace Collector.Server.Tests.Contracts;
@@ -87,7 +91,152 @@ public class WireContractTests
         Assert.Equal(JsonValueKind.Number, node["payload"]!["chunk_count"]!.GetValueKind());
     }
 
-    private static Collector.Server.Application.Rows.DocumentRow BuildDocument(BatchDocumentInput input)
+    [Fact]
+    public void Verdict_ProjectionSourcePathsExistAndDeserialize()
+    {
+        var verdict = ReadFixture("verdict.json");
+        var projected = new JsonObject
+        {
+            ["candidate_id"] = verdict["candidate_id"]!.DeepClone(),
+            ["composite_score"] = verdict["composite_score"]!.DeepClone(),
+            ["patentability"] = verdict["axes"]![RowConstants.PatentabilityAxis]!["score"]!.DeepClone()
+        };
+
+        var row = Deserialize<VerdictSummaryRow>(projected);
+
+        Assert.Equal("cand-1", row.CandidateId);
+        Assert.Equal(68.0, row.CompositeScore);
+        Assert.Equal(72.0, row.Patentability);
+        Assert.Equal("batch-1:cand-1", verdict["id"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void EvidenceBundle_HitsArrayDrivesHitCount()
+    {
+        var bundle = ReadFixture("evidence_bundle.json");
+        var projected = new JsonObject
+        {
+            ["candidate_id"] = bundle["candidate_id"]!.DeepClone(),
+            ["hit_count"] = bundle["hits"]!.AsArray().Count
+        };
+
+        var row = Deserialize<EvidenceCountRow>(projected);
+
+        Assert.Equal("cand-1", row.CandidateId);
+        Assert.Equal(3, row.HitCount);
+    }
+
+    [Fact]
+    public void ReportCandidate_DeserializesIntoTypedRow()
+    {
+        var row = Deserialize<HarvestingReportCandidateRow>(ReadFixture("report_candidate.json"));
+
+        Assert.Equal("cand-1", row.CandidateId);
+        Assert.Equal("Adaptive cache eviction", row.Title);
+        Assert.Equal("Mature", row.Maturity);
+        Assert.Equal(66.5, row.WeightedScore);
+        Assert.Equal(72.0, row.Axes[RowConstants.PatentabilityAxis].Score);
+        Assert.Equal(2, row.ProvenanceLinks.Count);
+        Assert.Equal(0, row.ProvenanceLinks[0].SourceChunkIndex);
+        Assert.Equal("doc-1|2", row.ProvenanceLinks[1].ChunkId);
+    }
+
+    [Fact]
+    public void SeedingReport_DeserializesOpportunitiesWithGrounding()
+    {
+        var report = Deserialize<SeedingReportRow>(ReadFixture("seeding_report.json"));
+
+        var opportunity = Assert.Single(report.Opportunities);
+        Assert.Equal("cand-2", opportunity.CandidateId);
+        Assert.Equal("adjacent", opportunity.Category);
+        Assert.Equal(41.0, opportunity.WeightedScore);
+        Assert.Equal(38.0, opportunity.Axes[RowConstants.PatentabilityAxis].Score);
+        Assert.Equal(["doc-1|0", "doc-1|1"], opportunity.GroundedIn!.ChunkIds);
+    }
+
+    [Fact]
+    public void BatchSummary_SerializesStageAsPascalCaseStringWithSnakeCaseNames()
+    {
+        var summary = new BatchSummary
+        {
+            BatchId = "batch-1",
+            BatchName = "Name",
+            CreatedAt = TestData.FixedTime,
+            State = RowConstants.SagaStateInProgress,
+            Stage = BatchStage.Harvested,
+            ExtractionCompletedCount = 1,
+            ExtractionTotalCount = 2,
+            EvidenceCompletedCount = 3,
+            EmbeddingCompletedCount = 4,
+            EmbeddingTotalCount = 5,
+            HarvestingCompletedCount = 6,
+            HarvestingTotalCount = 7,
+            SeedingCompletedCount = 8,
+            SeedingTotalCount = 9
+        };
+
+        var node = JsonSerializer.SerializeToNode(summary, CollectorJson.Options)!;
+
+        Assert.Equal("Harvested", node["stage"]!.GetValue<string>());
+        Assert.Equal(6, node["harvesting_completed_count"]!.GetValue<int>());
+        Assert.Equal(9, node["seeding_total_count"]!.GetValue<int>());
+        Assert.Equal(BatchStage.Harvested, JsonSerializer.Deserialize<BatchSummary>(node, CollectorJson.Options)!.Stage);
+    }
+
+    [Fact]
+    public void BatchResults_SerializesCandidateAndLinkShape()
+    {
+        var results = new BatchResults
+        {
+            BatchId = "batch-1",
+            Candidates =
+            [
+                new BatchCandidate
+                {
+                    CandidateId = "cand-1",
+                    Engine = "harvesting",
+                    Title = "T",
+                    Kind = "Mature",
+                    EvidenceCount = 3,
+                    Score = 68.0,
+                    Patentability = 72,
+                    KnowledgeLinks =
+                    [
+                        new CandidateKnowledgeLink
+                        {
+                            KnowledgeItem = new LinkedKnowledgeItem
+                            {
+                                Id = "doc-1|0",
+                                Kind = KnowledgeKind.KeyContent,
+                                Title = "K",
+                                Summary = "S"
+                            },
+                            Source = new CandidateSource { DocumentId = "doc-1", PageNumber = 4 }
+                        }
+                    ]
+                }
+            ]
+        };
+
+        var node = JsonSerializer.SerializeToNode(results, CollectorJson.Options)!;
+
+        var candidate = node["candidates"]![0]!;
+        Assert.Equal("cand-1", candidate["candidate_id"]!.GetValue<string>());
+        Assert.Equal(3, candidate["evidence_count"]!.GetValue<int>());
+        Assert.Equal(72, candidate["patentability"]!.GetValue<int>());
+        var link = candidate["knowledge_links"]![0]!;
+        Assert.Equal("key_content", link["knowledge_item"]!["kind"]!.GetValue<string>());
+        Assert.Equal("doc-1", link["source"]!["document_id"]!.GetValue<string>());
+        Assert.Equal(4, link["source"]!["page_number"]!.GetValue<int>());
+    }
+
+    private static JsonNode ReadFixture(string fixtureName) =>
+        JsonNode.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Contracts", "Fixtures", fixtureName)))!;
+
+    private static T Deserialize<T>(JsonNode node) =>
+        Serializer.FromStream<T>(new MemoryStream(Encoding.UTF8.GetBytes(node.ToJsonString())));
+
+    private static DocumentRow BuildDocument(BatchDocumentInput input)
     {
         var chunks = ChunkRowBuilder.Build(TestData.BatchId, input, TestData.Collector());
         return DocumentRowBuilder.Build(TestData.BatchId, input, chunks.Count, TestData.FixedTime);

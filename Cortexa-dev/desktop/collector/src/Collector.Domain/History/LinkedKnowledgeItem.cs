@@ -1,9 +1,9 @@
 using System.Text.Json.Serialization;
 using Collector.Domain.Enums;
 
-namespace Collector.Server.Application.Reads;
+namespace Collector.Domain.History;
 
-public sealed record KnowledgeLinkDto
+public sealed record LinkedKnowledgeItem
 {
     [JsonPropertyName("id")]
     public required string Id { get; init; }

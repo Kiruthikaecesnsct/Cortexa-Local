@@ -15,6 +15,8 @@ public sealed class CosmosOptionsValidator : IValidateOptions<CosmosOptions>
         failures.RequireText(options.BatchesContainer, $"{CosmosOptions.SectionName}:{nameof(CosmosOptions.BatchesContainer)}");
         failures.RequireText(options.ConfigContainer, $"{CosmosOptions.SectionName}:{nameof(CosmosOptions.ConfigContainer)}");
         failures.RequireText(options.ReportsContainer, $"{CosmosOptions.SectionName}:{nameof(CosmosOptions.ReportsContainer)}");
+        failures.RequireText(options.VerdictsContainer, $"{CosmosOptions.SectionName}:{nameof(CosmosOptions.VerdictsContainer)}");
+        failures.RequireText(options.EvidenceBundlesContainer, $"{CosmosOptions.SectionName}:{nameof(CosmosOptions.EvidenceBundlesContainer)}");
         failures.RequirePositive(options.MaxConcurrentWrites, $"{CosmosOptions.SectionName}:{nameof(CosmosOptions.MaxConcurrentWrites)}");
         return failures.ToResult();
     }

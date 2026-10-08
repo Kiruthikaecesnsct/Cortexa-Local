@@ -55,6 +55,8 @@ internal sealed class InMemoryBatchStore : IBatchStore
 
     private readonly Dictionary<string, Row> _rows = [];
 
+    public int FindByServerBatchIdCalls { get; private set; }
+
     public IReadOnlyList<Row> Rows => [.. _rows.Values];
 
     public Task<StoredBatch> CreateAsync(NewBatch batch, CancellationToken cancellationToken)
@@ -73,6 +75,21 @@ internal sealed class InMemoryBatchStore : IBatchStore
 
     public Task<StoredBatch?> FindByDocumentsAsync(IReadOnlyCollection<string> documentIds, CancellationToken cancellationToken) =>
         Task.FromResult<StoredBatch?>(null);
+
+    public Task<StoredBatch?> FindByServerBatchIdAsync(string serverBatchId, CancellationToken cancellationToken)
+    {
+        FindByServerBatchIdCalls++;
+        var row = _rows.Values.FirstOrDefault(candidate => candidate.ServerBatchId == serverBatchId);
+        return Task.FromResult<StoredBatch?>(row is null ? null : new StoredBatch
+        {
+            Id = row.Id,
+            IdempotencyKey = row.Batch.IdempotencyKey,
+            BatchName = row.Batch.BatchName,
+            Status = row.Status,
+            ServerBatchId = row.ServerBatchId,
+            DocumentIds = row.Batch.DocumentIds,
+        });
+    }
 
     public Task MarkUploadingAsync(string batchId, CancellationToken cancellationToken)
     {

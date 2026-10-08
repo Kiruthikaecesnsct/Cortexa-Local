@@ -46,6 +46,18 @@ public sealed class SqliteBatchStore(SqliteConnectionFactory connections, TimePr
         return row with { DocumentIds = await ReadDocumentIdsAsync(connection, row.Id, cancellationToken) };
     }
 
+    public async Task<StoredBatch?> FindByServerBatchIdAsync(string serverBatchId, CancellationToken cancellationToken)
+    {
+        await using var connection = await connections.OpenAsync(cancellationToken);
+        var row = await ReadByServerBatchIdAsync(connection, serverBatchId, cancellationToken);
+        if (row is null)
+        {
+            return null;
+        }
+
+        return row with { DocumentIds = await ReadDocumentIdsAsync(connection, row.Id, cancellationToken) };
+    }
+
     public Task MarkUploadingAsync(string batchId, CancellationToken cancellationToken) =>
         UpdateAsync(new BatchUpdate(batchId, BatchStatus.Uploading, null, null), cancellationToken);
 
@@ -114,6 +126,23 @@ public sealed class SqliteBatchStore(SqliteConnectionFactory connections, TimePr
               AND (SELECT COUNT(*) FROM batch_documents d WHERE d.batch_id = b.id AND d.document_id IN ({string.Join(", ", names)})) = $count
             ORDER BY b.created_at DESC LIMIT 1;
             """;
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        return await reader.ReadAsync(cancellationToken) ? ReadRow(reader) : null;
+    }
+
+    private static async Task<StoredBatch?> ReadByServerBatchIdAsync(
+        SqliteConnection connection,
+        string serverBatchId,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText =
+            $"""
+            SELECT {BatchColumns} FROM batches b
+            WHERE b.server_batch_id = $server_batch_id
+            ORDER BY b.created_at DESC LIMIT 1;
+            """;
+        command.Parameters.AddWithValue("$server_batch_id", serverBatchId);
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
         return await reader.ReadAsync(cancellationToken) ? ReadRow(reader) : null;
     }

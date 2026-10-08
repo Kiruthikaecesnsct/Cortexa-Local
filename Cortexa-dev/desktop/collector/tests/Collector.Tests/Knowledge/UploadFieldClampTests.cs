@@ -17,6 +17,9 @@ public sealed class UploadFieldClampTests
 
     private static ExtractedKnowledgeItem File(KnowledgeSource source) => TestData.Item() with { Source = source };
 
+    private static ExtractedKnowledgeItem Module(KnowledgeSource source) =>
+        TestData.Item(kind: KnowledgeKind.Layer) with { UnitKind = UnitKind.Module, Source = source };
+
     [Fact]
     public void Truncate_UnderLimit_ReturnsTrimmedText()
     {
@@ -99,6 +102,27 @@ public sealed class UploadFieldClampTests
 
         Assert.Null(result.Source.LineStart);
         Assert.Null(result.Source.LineEnd);
+    }
+
+    [Fact]
+    public void ToKnowledgeItem_ModuleUnit_HasFolderPathAndNoLineRange()
+    {
+        var result = UploadFieldClamp.ToKnowledgeItem(Module(new KnowledgeSource { FilePath = "src/app/", LineStart = 1, LineEnd = 2 }));
+
+        Assert.Equal("src/app/", result.Source.FilePath);
+        Assert.Null(result.Source.LineStart);
+        Assert.Null(result.Source.LineEnd);
+    }
+
+    [Fact]
+    public void ToKnowledgeItem_ModuleUnitWithoutPath_FallsBackToDocumentPath()
+    {
+        var item = Module(new KnowledgeSource());
+
+        var result = UploadFieldClamp.ToKnowledgeItem(item);
+
+        Assert.Equal(item.DocumentPath, result.Source.FilePath);
+        Assert.Null(result.Source.LineStart);
     }
 
     [Fact]

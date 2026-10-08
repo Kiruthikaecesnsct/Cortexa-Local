@@ -5,6 +5,7 @@ using Collector.Domain.Documents;
 using Collector.Domain.Enums;
 using Collector.Domain.Extraction;
 using Collector.Domain.Knowledge;
+using Collector.Tests.Extraction;
 using Microsoft.Extensions.Logging;
 
 namespace Collector.Tests.Support;
@@ -17,12 +18,23 @@ internal static class KnowledgePipeline
 
     public static KnowledgePromptBuilder Builder() => new(Prompt, Guard());
 
-    public static UnitItemAssembler Assembler() => new(new AnchorLocator(), new ExcerptCutter(), new IdentifierEchoDetector());
+    public static UnitItemAssembler Assembler() => new(new AnchorLocator(), new ExcerptCutter(), new IdentifierEchoDetector(), Prompt);
 
     public static ExtractionRunContext DefaultContext { get; } = new(CollectorProvider.Claude, null);
 
     public static UnitExtractionRunner Runner(IAiProvider provider, ILogger<UnitExtractionRunner> logger) =>
         new(new SingleProviderFactory(provider), Builder(), new KnowledgeParser(), Assembler(), new UnitSplitter(), logger);
+}
+
+internal static class LayerPipeline
+{
+    public static LayerPrompt Prompt { get; } = LayerPromptLoader.Load();
+
+    public static LayerPromptBuilder Builder(ITokenCounter? tokenCounter = null) =>
+        new(Prompt, KnowledgePipeline.Guard(), tokenCounter ?? new WordCountTokenCounter());
+
+    public static LayerExtractionRunner Runner(IAiProvider provider, ILogger<LayerExtractionRunner> logger) =>
+        new(new SingleProviderFactory(provider), Builder(), new LayerKnowledgeParser(), new LayerItemAssembler(Prompt), logger);
 }
 
 internal sealed class SingleProviderFactory(IAiProvider provider, int concurrency = 1) : IAiProviderFactory
@@ -69,14 +81,19 @@ internal static class TestData
     public const int DefaultStartLine = 10;
     public const int DefaultPage = 3;
 
-    public static ExtractionUnit FileUnit(string text, int startLine = DefaultStartLine, string id = "unit-1", string documentId = DocumentId) =>
+    public static ExtractionUnit FileUnit(
+        string text,
+        int startLine = DefaultStartLine,
+        string id = "unit-1",
+        string documentId = DocumentId,
+        string? filePath = null) =>
         new()
         {
             Id = id,
             DocumentId = documentId,
             Ordinal = 0,
             UnitKind = UnitKind.File,
-            FilePath = FilePath,
+            FilePath = filePath ?? FilePath,
             StartLine = startLine,
             EndLine = startLine + text.Count(character => character == '\n'),
             Text = text,
@@ -142,6 +159,7 @@ internal static class TestData
             Summary = summary,
             Source = new KnowledgeSource { FilePath = FilePath, LineStart = DefaultStartLine, LineEnd = DefaultStartLine },
             EchoVerdict = EchoVerdict.Clean,
+            PromptVersion = KnowledgePipeline.Prompt.Version,
         };
 
     public static string ItemJson(string title, string summary = "A plain summary of the idea.", string kind = "method", string? anchorQuote = null) =>

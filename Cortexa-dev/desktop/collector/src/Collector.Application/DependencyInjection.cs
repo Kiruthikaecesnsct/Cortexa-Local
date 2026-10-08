@@ -39,16 +39,21 @@ public static class DependencyInjection
     {
         services.AddOptions<KnowledgeExtractionOptions>();
         services.AddSingleton(_ => KnowledgePromptLoader.Load());
+        services.AddSingleton(_ => LayerPromptLoader.Load());
         services.AddSingleton<UntrustedSourceGuard>();
         services.AddSingleton<KnowledgePromptBuilder>();
+        services.AddSingleton<LayerPromptBuilder>();
         services.AddSingleton<KnowledgeParser>();
+        services.AddSingleton<LayerKnowledgeParser>();
         services.AddSingleton<AnchorLocator>();
         services.AddSingleton<ExcerptCutter>();
         services.AddSingleton<IdentifierEchoDetector>();
         services.AddSingleton<KnowledgeMerger>();
         services.AddSingleton<UnitSplitter>();
         services.AddSingleton<UnitItemAssembler>();
+        services.AddSingleton<LayerItemAssembler>();
         services.AddSingleton<UnitExtractionRunner>();
+        services.AddSingleton<LayerExtractionRunner>();
         services.AddSingleton<ExtractKnowledgeHandler>();
         services.AddSingleton<TokenEstimator>();
         services.AddSingleton<UploadBatchPlanner>();

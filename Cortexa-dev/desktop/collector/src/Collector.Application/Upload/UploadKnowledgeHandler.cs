@@ -16,17 +16,35 @@ public sealed class UploadKnowledgeHandler(
 {
     public async Task<UploadSession> PrepareAsync(UploadRequest request, CancellationToken cancellationToken)
     {
-        var collector = new CollectorInfo
+        var records = new List<PlannedBatchRecord>();
+        var blocked = new List<BlockedDocument>();
+        var missingSeen = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var versionGroup in request.Items.GroupBy(item => item.PromptVersion, StringComparer.Ordinal))
         {
-            AppVersion = request.AppVersion,
-            Provider = request.Provider,
-            Model = request.Model,
-            PromptVersion = request.PromptVersion,
-        };
-        var (documents, missing) = await BuildDocumentsAsync(request.Items, cancellationToken);
-        var plan = planner.Plan(documents, collector, BatchNameFor(request));
-        var records = await PersistAsync(plan, request, cancellationToken);
-        return new UploadSession(records, [.. plan.Blocked, .. missing], uploadClient, batchStore, logger);
+            var promptVersion = versionGroup.Key;
+            var collector = new CollectorInfo
+            {
+                AppVersion = request.AppVersion,
+                Provider = request.Provider,
+                Model = request.Model,
+                PromptVersion = promptVersion,
+            };
+            var (documents, missing) = await BuildDocumentsAsync([.. versionGroup], cancellationToken);
+            foreach (var missingDocument in missing)
+            {
+                if (missingSeen.Add(missingDocument.DocumentId))
+                {
+                    blocked.Add(missingDocument);
+                }
+            }
+
+            var plan = planner.Plan(documents, collector, BatchNameFor(request));
+            blocked.AddRange(plan.Blocked);
+            records.AddRange(await PersistAsync(plan, request, promptVersion, cancellationToken));
+        }
+
+        return new UploadSession(records, blocked, uploadClient, batchStore, logger);
     }
 
     private string BatchNameFor(UploadRequest request) =>
@@ -69,26 +87,27 @@ public sealed class UploadKnowledgeHandler(
     private async Task<List<PlannedBatchRecord>> PersistAsync(
         UploadPlan plan,
         UploadRequest request,
+        string promptVersion,
         CancellationToken cancellationToken)
     {
         var records = new List<PlannedBatchRecord>(plan.Batches.Count);
         foreach (var planned in plan.Batches)
         {
             var key = Guid.CreateVersion7().ToString();
-            var stored = await batchStore.CreateAsync(NewBatchFor(planned, key, request), cancellationToken);
+            var stored = await batchStore.CreateAsync(NewBatchFor(planned, key, request, promptVersion), cancellationToken);
             records.Add(new PlannedBatchRecord(planned, key, stored.Id));
         }
 
         return records;
     }
 
-    private static NewBatch NewBatchFor(PlannedBatch planned, string key, UploadRequest request) => new()
+    private static NewBatch NewBatchFor(PlannedBatch planned, string key, UploadRequest request, string promptVersion) => new()
     {
         IdempotencyKey = key,
         BatchName = planned.Request.BatchName,
         Provider = request.Provider,
         Model = request.Model,
-        PromptVersion = request.PromptVersion,
+        PromptVersion = promptVersion,
         DocumentIds = [.. planned.Request.Documents.Select(document => document.ClientDocumentId)],
     };
 }

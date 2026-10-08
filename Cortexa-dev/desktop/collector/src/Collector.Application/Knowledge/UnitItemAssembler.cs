@@ -8,7 +8,8 @@ namespace Collector.Application.Knowledge;
 public sealed class UnitItemAssembler(
     AnchorLocator anchorLocator,
     ExcerptCutter excerptCutter,
-    IdentifierEchoDetector echoDetector)
+    IdentifierEchoDetector echoDetector,
+    KnowledgePrompt prompt)
 {
     public ExtractedKnowledgeItem Assemble(ExtractionUnit unit, CollectorDocument document, RawKnowledgeItem raw)
     {
@@ -26,6 +27,7 @@ public sealed class UnitItemAssembler(
             Source = BuildSource(unit, anchor),
             Excerpt = excerptCutter.Cut(unit.Text, anchor),
             EchoVerdict = echoDetector.Evaluate(raw.Title, raw.Summary, unit.Text),
+            PromptVersion = prompt.Version,
         };
     }
 

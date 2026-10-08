@@ -10,7 +10,9 @@ _Last regenerated: 2026-10-08_
 
 The desktop collector is hardening its extraction and upload path. US126 is still open: knowledge extraction runs through a prompt that yields generalizable ideation, concepts, and key points rather than literal code identifiers. Claude is the primary AI provider and Gemini is wired in behind the same `Ai:Provider` config, both folded into US126 at Alpha's request. Extraction storage and upload to the backend pipeline complete the document-to-candidate journey.
 
-US132 (collector server rollback and resume) merged to dev in PR #12. Reverse-order rollback now runs only for failures before the publish step. Upload retries resume from the saga row. Item caching and request deduplication (US133) is deferred.
+US132 (collector server rollback and resume) merged to dev in PR #12. Reverse-order rollback now runs only for failures before the publish step. Upload retries resume from the saga row.
+
+US133 (upload failure handling and resume) merged to dev in PR #13. Each upload is stored as serialized bytes with its Idempotency-Key, so a retry resends the same bytes and makes no AI calls. Request deduplication and caching are done.
 
 ## In-flight contracts
 
@@ -21,13 +23,14 @@ None live. The collector batch results contract (GET /collector/batches and GET 
 - **Collector batch results shape (US128, 2026-10-08)**: batch list carries `stage` plus `harvesting_count` and `seeding_count`. Results return one object with grouped candidates, score, patentability, evidence count, and knowledge links keyed by DeterministicIds. Old flat-array clients fail. See `decisions/20261008-collector-batch-results.md`.
 - **Publish failures do not roll back (US132, 2026-10-08)**: a failure at the publish step leaves the saga row and written rows in place, even with zero events published. Recovery is a replay with the same Idempotency-Key. Rollback runs only before publish. See `decisions/20261008-collector-upload-no-rollback.md`.
 - **Saga request fingerprint (US132, 2026-10-08)**: the saga row has a nullable `request_fingerprint` (SHA-256 of the request). Same key with a different fingerprint returns 409 `idempotency_key_reused`. Rows with no fingerprint replay instead of conflicting. See `decisions/20261008-saga-request-fingerprint.md`.
+- **Upload retry resends stored bytes (US133, 2026-10-08)**: the collector keeps each request body in `batch_payloads` (V002) and never rebuilds it on retry. 409 `upload_in_progress` is retryable. 409 `idempotency_key_reused` is final. Changing the selection creates a new key, and the old batch is marked replaced only after the new one saves. See `decisions/20261008-collector-upload-retry-payload.md`.
 - Collector extraction prompt must yield generalizable concepts and ideation, not literal identifiers (class names, variable names). Keeps extraction portable across domains.
-- Batch request deduplication and caching deferred to follow-up (US133).
 
 ## Standing blockers
 
+- **Manual US133 E2E check not yet run.** Stop the stack mid-upload, restart it, then retry from History. Confirm the retry resends the stored bytes and completes. The collector server on localhost:5091 is not started by run-local.ps1, so it must be launched by hand.
 - Web Retry on the collector still stalls until the watchdog fails the batch. Re-upload with the original Idempotency-Key is the only recovery path.
+- Known gap from US133: if the server committed a failed upload, and the user then changes the selection (new key), the server can hold a second batch for the same documents. The client does not detect this yet.
 - Live end-to-end sign-in is needed to verify the full upload-to-candidates path. Blocked on local Cortexa account setup.
 - Cosmos queries behind the batch and results endpoints are untested in the emulator. They only run live in Azure so far.
 - DOCX heading styles are not parsed as section breaks in the desktop collector. This is a parity gap with the backend.
-- The collector server on localhost:5091 is not started by run-local.ps1. It must be launched by hand for E2E testing.

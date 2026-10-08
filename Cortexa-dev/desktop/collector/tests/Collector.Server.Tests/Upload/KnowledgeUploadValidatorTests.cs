@@ -46,7 +46,7 @@ public class KnowledgeUploadValidatorTests
     [InlineData(SourceKind.Code, UnitKind.File, true)]
     [InlineData(SourceKind.Code, UnitKind.Page, false)]
     [InlineData(SourceKind.Code, UnitKind.Section, false)]
-    [InlineData(SourceKind.Code, UnitKind.Module, false)]
+    [InlineData(SourceKind.Code, UnitKind.Module, true)]
     public void Validate_SourceKindAndUnitKind_AcceptsOnlyAllowedPairs(SourceKind sourceKind, UnitKind unitKind, bool allowed)
     {
         var item = UploadRequests.Item(KnowledgeKind.Logic, unitKind);
@@ -129,24 +129,135 @@ public class KnowledgeUploadValidatorTests
         Assert.Equal([$"{FirstItem}.source.line_start", $"{FirstItem}.source.line_end"], Fields(result));
     }
 
-    [Fact]
-    public void Validate_KnowledgeKindLayer_FailsOnKindField()
+    [Theory]
+    [InlineData(SourceKind.Paper, UnitKind.Section)]
+    [InlineData(SourceKind.Code, UnitKind.File)]
+    public void Validate_LayerWithNonModuleUnitKind_FailsOnUnitKindField(SourceKind sourceKind, UnitKind unitKind)
     {
-        var item = UploadRequests.Item(KnowledgeKind.Layer, UnitKind.Section);
+        var item = UploadRequests.LayerItem() with { UnitKind = unitKind };
 
-        var result = Validate(UploadRequests.WithItem(SourceKind.Paper, item));
+        var result = Validate(UploadRequests.WithItem(sourceKind, item));
 
-        Assert.Equal([$"{FirstItem}.kind"], Fields(result));
+        Assert.Equal([$"{FirstItem}.unit_kind"], Fields(result));
     }
 
     [Fact]
-    public void Validate_UnitKindModule_FailsOnUnitKindField()
+    public void Validate_ModuleItemOnCodeWithFilePath_Passes()
     {
         var item = UploadRequests.Item(KnowledgeKind.Method, UnitKind.Module);
 
         var result = Validate(UploadRequests.WithItem(SourceKind.Code, item));
 
-        Assert.Equal([$"{FirstItem}.unit_kind"], Fields(result));
+        Assert.NotNull(result.Request);
+    }
+
+    [Fact]
+    public void Validate_ModuleItemOnCodeWithoutFilePath_FailsOnFilePath()
+    {
+        var item = UploadRequests.Item(KnowledgeKind.Method, UnitKind.Module) with { Source = new KnowledgeSource() };
+
+        var result = Validate(UploadRequests.WithItem(SourceKind.Code, item));
+
+        Assert.Equal([$"{FirstItem}.source.file_path"], Fields(result));
+    }
+
+    [Fact]
+    public void Validate_LayerItemOnCodeDocument_Passes()
+    {
+        var result = Validate(UploadRequests.WithItem(SourceKind.Code, UploadRequests.LayerItem()));
+
+        Assert.NotNull(result.Request);
+    }
+
+    [Theory]
+    [InlineData("src/core/")]
+    [InlineData("src\\core\\")]
+    [InlineData("Collector.Server.Api/")]
+    public void Validate_LayerWithFolderPath_Passes(string folderPath)
+    {
+        var result = Validate(UploadRequests.WithItem(SourceKind.Code, UploadRequests.LayerItem(folderPath)));
+
+        Assert.NotNull(result.Request);
+    }
+
+    [Theory]
+    [InlineData("src/a.py")]
+    [InlineData("/")]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("../")]
+    [InlineData("../../")]
+    [InlineData("a/../b/")]
+    [InlineData("./")]
+    [InlineData("/etc/")]
+    [InlineData("//")]
+    [InlineData("src//core/")]
+    [InlineData("C:\\x\\")]
+    [InlineData("C:/x/")]
+    [InlineData("..\\")]
+    [InlineData(" src/core/")]
+    [InlineData("src/core/ ")]
+    [InlineData("src/\tcore/")]
+    public void Validate_LayerWithNonFolderPath_FailsOnFilePath(string folderPath)
+    {
+        var result = Validate(UploadRequests.WithItem(SourceKind.Code, UploadRequests.LayerItem(folderPath)));
+
+        Assert.Equal([$"{FirstItem}.source.file_path"], Fields(result));
+    }
+
+    [Fact]
+    public void Validate_LayerFolderPathOverLimit_FailsOnFilePath()
+    {
+        var folderPath = new string('p', UploadLimits.MaxFilePathLength) + "/";
+
+        var result = Validate(UploadRequests.WithItem(SourceKind.Code, UploadRequests.LayerItem(folderPath)));
+
+        Assert.Equal([$"{FirstItem}.source.file_path"], Fields(result));
+    }
+
+    [Fact]
+    public void Validate_LayerWithoutSource_FailsOnFilePath()
+    {
+        var item = UploadRequests.LayerItem() with { Source = null! };
+
+        var result = Validate(UploadRequests.WithItem(SourceKind.Code, item));
+
+        Assert.Equal([$"{FirstItem}.source.file_path"], Fields(result));
+    }
+
+    [Fact]
+    public void Validate_LayerWithLineStart_FailsOnLineStart()
+    {
+        var item = UploadRequests.LayerItem() with { Source = new KnowledgeSource { FilePath = "src/core/", LineStart = 1 } };
+
+        var result = Validate(UploadRequests.WithItem(SourceKind.Code, item));
+
+        Assert.Equal([$"{FirstItem}.source.line_start"], Fields(result));
+    }
+
+    [Fact]
+    public void Validate_LayerWithLineEnd_FailsOnLineEnd()
+    {
+        var item = UploadRequests.LayerItem() with { Source = new KnowledgeSource { FilePath = "src/core/", LineEnd = 1 } };
+
+        var result = Validate(UploadRequests.WithItem(SourceKind.Code, item));
+
+        Assert.Equal([$"{FirstItem}.source.line_end"], Fields(result));
+    }
+
+    [Fact]
+    public void Validate_InvalidLayerFolderPath_ErrorsNeverEchoSubmittedPath()
+    {
+        var item = UploadRequests.LayerItem(SecretValue + ".py");
+
+        var result = Validate(UploadRequests.WithItem(SourceKind.Code, item));
+
+        Assert.NotEmpty(result.Errors);
+        Assert.All(result.Errors, error =>
+        {
+            Assert.DoesNotContain(SecretValue, error.Field, StringComparison.Ordinal);
+            Assert.DoesNotContain(SecretValue, error.Message, StringComparison.Ordinal);
+        });
     }
 
     [Fact]

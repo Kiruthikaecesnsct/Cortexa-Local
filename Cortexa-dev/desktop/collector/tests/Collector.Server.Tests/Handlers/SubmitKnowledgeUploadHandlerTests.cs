@@ -151,12 +151,12 @@ public class SubmitKnowledgeUploadHandlerTests
     [Fact]
     public async Task HandleAsync_InvalidRequest_ReturnsErrorsAndWritesNothing()
     {
-        var item = UploadRequests.Item(KnowledgeKind.Layer, UnitKind.Section);
+        var item = UploadRequests.Item(KnowledgeKind.Logic, UnitKind.File);
 
         var outcome = await _pipeline.SubmitAsync(UploadRequests.WithItem(SourceKind.Paper, item));
 
         Assert.True(outcome.IsInvalid);
-        Assert.Contains(outcome.Errors, error => error.Field == "documents[0].knowledge_items[0].kind");
+        Assert.Contains(outcome.Errors, error => error.Field == "documents[0].knowledge_items[0].unit_kind");
         Assert.Equal(0, _pipeline.Store.WriteCalls);
         Assert.Empty(_pipeline.Publisher.Published);
     }

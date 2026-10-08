@@ -39,6 +39,11 @@ internal static class UploadRequests
 
     public static KnowledgeItem CodeFile() => Item(KnowledgeKind.Method, UnitKind.File);
 
+    public static KnowledgeItem LayerItem(string folderPath = "src/core/") => Item(KnowledgeKind.Layer, UnitKind.Module) with
+    {
+        Source = new KnowledgeSource { FilePath = folderPath }
+    };
+
     public static KnowledgeItem Item(KnowledgeKind kind, UnitKind unitKind) => new()
     {
         Kind = kind,

@@ -1,0 +1,51 @@
+using Collector.Application.Remote;
+using Collector.Domain.Enums;
+
+namespace Collector.Tests.Remote;
+
+public class RemoteFailureMessagesTests
+{
+    [Theory]
+    [InlineData(SourceType.Github, "GitHub")]
+    [InlineData(SourceType.AzureDevops, "Azure DevOps")]
+    public void For_ProviderSpecificFailures_NameTheProvider(SourceType provider, string expectedName)
+    {
+        RemoteFailureKind[] providerKinds =
+        [
+            RemoteFailureKind.MissingToken,
+            RemoteFailureKind.Auth,
+            RemoteFailureKind.AccessDenied,
+            RemoteFailureKind.SsoRequired,
+            RemoteFailureKind.NotFound,
+            RemoteFailureKind.RateLimited,
+            RemoteFailureKind.Upstream,
+        ];
+
+        Assert.All(providerKinds, kind => Assert.Contains(expectedName, RemoteFailureMessages.For(kind, provider), StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void For_EveryKind_ReturnsDistinctNonEmptyMessage()
+    {
+        var kinds = Enum.GetValues<RemoteFailureKind>();
+
+        var messages = kinds.Select(kind => RemoteFailureMessages.For(kind, SourceType.Github)).ToList();
+
+        Assert.All(messages, message => Assert.False(string.IsNullOrWhiteSpace(message)));
+        Assert.Equal(kinds.Length, messages.Distinct().Count());
+    }
+
+    [Fact]
+    public void RemoteSourceException_Message_MatchesFailureMessage()
+    {
+        var exception = new RemoteSourceException(RemoteFailureKind.SsoRequired, SourceType.Github);
+
+        Assert.Equal(RemoteFailureMessages.For(RemoteFailureKind.SsoRequired, SourceType.Github), exception.Message);
+    }
+
+    [Fact]
+    public void DisplayName_UnmappedProvider_FallsBackToEnumName()
+    {
+        Assert.Equal("Ssh", RemoteFailureMessages.DisplayName(SourceType.Ssh));
+    }
+}

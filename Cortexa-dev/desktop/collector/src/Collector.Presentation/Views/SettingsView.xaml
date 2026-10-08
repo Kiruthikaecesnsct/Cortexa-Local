@@ -113,5 +113,25 @@
                 <ContentControl Content="{Binding BedrockRow}" Focusable="False" IsTabStop="False" />
             </StackPanel>
         </Border>
+
+        <Border Margin="{StaticResource Thickness.SectionTop}" Style="{StaticResource Card}">
+            <StackPanel>
+                <StackPanel Margin="{StaticResource Thickness.StackGap}" Orientation="Horizontal">
+                    <TextBlock Margin="{StaticResource Thickness.InlineGapLarge}"
+                               Style="{StaticResource Text.Glyph.Header}"
+                               Text="{x:Static res:Glyphs.Code}" />
+                    <TextBlock AutomationProperties.HeadingLevel="Level2"
+                               Style="{StaticResource Text.Subtitle}"
+                               Text="{x:Static res:SettingsStrings.RepositoryTitle}" />
+                </StackPanel>
+                <TextBlock Margin="{StaticResource Thickness.StackGap}"
+                           Style="{StaticResource Text.Helper}"
+                           Text="{x:Static res:SettingsStrings.RepositoryIntro}" />
+                <ItemsControl AlternationCount="100"
+                              Focusable="False"
+                              IsTabStop="False"
+                              ItemsSource="{Binding RepositoryRows}" />
+            </StackPanel>
+        </Border>
     </StackPanel>
 </UserControl>

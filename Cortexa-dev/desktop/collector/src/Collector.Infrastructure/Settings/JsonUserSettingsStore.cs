@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Collector.Application.Ports;
 using Collector.Application.Settings;
 using Collector.Infrastructure.Options;
@@ -9,8 +10,12 @@ namespace Collector.Infrastructure.Settings;
 public sealed class JsonUserSettingsStore(
     IOptions<UserSettingsOptions> settingsOptions,
     IOptionsMonitor<GatewayOptions> gateway,
-    IOptionsMonitor<CollectorServerOptions> collectorServer) : IUserSettingsStore
+    IOptionsMonitor<CollectorServerOptions> collectorServer,
+    IOptionsMonitor<RemoteSourceOptions> remoteSources) : IUserSettingsStore
 {
+    private const string AzureDevOpsSection = "AzureDevOps";
+    private const string OrganizationKey = "Organization";
+
     private static readonly JsonSerializerOptions WriteOptions = new() { WriteIndented = true };
 
     private readonly SemaphoreSlim _writeGate = new(1, 1);
@@ -18,23 +23,41 @@ public sealed class JsonUserSettingsStore(
     public EndpointSettings GetEndpoints() =>
         new(gateway.CurrentValue.BaseUrl, collectorServer.CurrentValue.BaseUrl);
 
-    public async Task SaveEndpointsAsync(EndpointSettings settings, CancellationToken cancellationToken)
-    {
-        var path = Environment.ExpandEnvironmentVariables(settingsOptions.Value.Path);
-        var document = new Dictionary<string, object>
-        {
-            [GatewayOptions.SectionName] = new GatewayOptions { BaseUrl = settings.GatewayUrl },
-            [CollectorServerOptions.SectionName] = new CollectorServerOptions { BaseUrl = settings.CollectorServerUrl },
-        };
+    public RemoteSourceSettings GetRemoteSources() =>
+        new(remoteSources.CurrentValue.AzureDevOps.Organization);
 
-        await _writeGate.WaitAsync(cancellationToken);
+    public Task SaveEndpointsAsync(EndpointSettings settings, CancellationToken cancellationToken) =>
+        UpdateAsync(
+            root =>
+            {
+                root[GatewayOptions.SectionName] =
+                    JsonSerializer.SerializeToNode(new GatewayOptions { BaseUrl = settings.GatewayUrl });
+                root[CollectorServerOptions.SectionName] =
+                    JsonSerializer.SerializeToNode(new CollectorServerOptions { BaseUrl = settings.CollectorServerUrl });
+            },
+            cancellationToken);
+
+    public Task SaveRemoteSourcesAsync(RemoteSourceSettings settings, CancellationToken cancellationToken) =>
+        UpdateAsync(
+            root =>
+            {
+                var section = root[RemoteSourceOptions.SectionName] as JsonObject ?? [];
+                var azure = section[AzureDevOpsSection] as JsonObject ?? [];
+                azure[OrganizationKey] = settings.AzureDevOpsOrganization;
+                section[AzureDevOpsSection] = azure;
+                root[RemoteSourceOptions.SectionName] = section;
+            },
+            cancellationToken);
+
+    private static JsonObject ReadRoot(string path)
+    {
         try
         {
-            await WriteAtomicallyAsync(path, document, cancellationToken);
+            return File.Exists(path) ? JsonNode.Parse(File.ReadAllText(path)) as JsonObject ?? [] : [];
         }
-        finally
+        catch (JsonException)
         {
-            _writeGate.Release();
+            return [];
         }
     }
 
@@ -54,6 +77,22 @@ public sealed class JsonUserSettingsStore(
         finally
         {
             File.Delete(temp);
+        }
+    }
+
+    private async Task UpdateAsync(Action<JsonObject> apply, CancellationToken cancellationToken)
+    {
+        var path = Environment.ExpandEnvironmentVariables(settingsOptions.Value.Path);
+        await _writeGate.WaitAsync(cancellationToken);
+        try
+        {
+            var root = ReadRoot(path);
+            apply(root);
+            await WriteAtomicallyAsync(path, root, cancellationToken);
+        }
+        finally
+        {
+            _writeGate.Release();
         }
     }
 }

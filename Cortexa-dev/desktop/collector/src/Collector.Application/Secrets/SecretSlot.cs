@@ -7,4 +7,6 @@ public enum SecretSlot
     AnthropicApiKey,
     GeminiApiKey,
     BedrockSsoToken,
+    GitHubPat,
+    AzureDevOpsPat,
 }

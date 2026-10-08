@@ -8,6 +8,8 @@ public sealed class SettingsService(IUserSettingsStore store, ISecretStore secre
 {
     public EndpointSettings GetEndpoints() => store.GetEndpoints();
 
+    public RemoteSourceSettings GetRemoteSources() => store.GetRemoteSources();
+
     public async Task<SettingsSaveResult> SaveEndpointsAsync(
         EndpointSettings settings,
         CancellationToken cancellationToken)
@@ -23,21 +25,47 @@ public sealed class SettingsService(IUserSettingsStore store, ISecretStore secre
         return SettingsSaveResult.Ok;
     }
 
+    public async Task<SettingsSaveResult> SaveRemoteSourcesAsync(
+        RemoteSourceSettings settings,
+        CancellationToken cancellationToken)
+    {
+        var result = RemoteSourceRules.Validate(settings);
+        if (!result.IsValid)
+        {
+            return result;
+        }
+
+        var normalized = new RemoteSourceSettings(settings.AzureDevOpsOrganization.Trim());
+        await store.SaveRemoteSourcesAsync(normalized, cancellationToken);
+        return SettingsSaveResult.Ok;
+    }
+
+    public async Task<bool> HasSecretAsync(SecretSlot slot, CancellationToken cancellationToken) =>
+        await secrets.ReadAsync(slot, cancellationToken) is not null;
+
+    public Task SetSecretAsync(SecretSlot slot, string value, CancellationToken cancellationToken) =>
+        secrets.WriteAsync(slot, SecretInputRules.Normalize(value), cancellationToken);
+
+    public Task ClearSecretAsync(SecretSlot slot, CancellationToken cancellationToken) =>
+        secrets.DeleteAsync(slot, cancellationToken);
+
     public async Task<bool> HasAiKeyAsync(CollectorProvider provider, CancellationToken cancellationToken)
     {
         var slot = AiKeySlots.For(provider);
-        return slot is not null && await secrets.ReadAsync(slot.Value, cancellationToken) is not null;
+        return slot is not null && await HasSecretAsync(slot.Value, cancellationToken);
     }
 
-    public Task SetAiKeyAsync(CollectorProvider provider, string key, CancellationToken cancellationToken)
-    {
-        var trimmed = key.Trim();
-        ArgumentException.ThrowIfNullOrEmpty(trimmed, nameof(key));
-        return secrets.WriteAsync(RequireSlot(provider), trimmed, cancellationToken);
-    }
+    public Task SetAiKeyAsync(CollectorProvider provider, string key, CancellationToken cancellationToken) =>
+        SetSecretAsync(RequireSlot(provider), key, cancellationToken);
 
     public Task ClearAiKeyAsync(CollectorProvider provider, CancellationToken cancellationToken) =>
-        secrets.DeleteAsync(RequireSlot(provider), cancellationToken);
+        ClearSecretAsync(RequireSlot(provider), cancellationToken);
+
+    public async Task<bool> HasRemoteTokenAsync(SourceType source, CancellationToken cancellationToken)
+    {
+        var slot = RemoteSourceSlots.For(source);
+        return slot is not null && await HasSecretAsync(slot.Value, cancellationToken);
+    }
 
     private static SecretSlot RequireSlot(CollectorProvider provider) =>
         AiKeySlots.For(provider)

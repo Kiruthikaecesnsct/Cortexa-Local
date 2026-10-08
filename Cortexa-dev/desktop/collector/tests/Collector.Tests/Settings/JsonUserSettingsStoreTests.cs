@@ -22,7 +22,8 @@ public sealed class JsonUserSettingsStoreTests : IDisposable
     private static JsonUserSettingsStore CreateStore(string path) => new(
         MsOptions.Create(new UserSettingsOptions { Path = path }),
         new StaticMonitor<GatewayOptions>(new GatewayOptions { BaseUrl = "https://current-gw.example" }),
-        new StaticMonitor<CollectorServerOptions>(new CollectorServerOptions { BaseUrl = "https://current-srv.example" }));
+        new StaticMonitor<CollectorServerOptions>(new CollectorServerOptions { BaseUrl = "https://current-srv.example" }),
+        new StaticMonitor<RemoteSourceOptions>(new RemoteSourceOptions()));
 
     [Fact]
     public void Reads_current_endpoints_from_options()

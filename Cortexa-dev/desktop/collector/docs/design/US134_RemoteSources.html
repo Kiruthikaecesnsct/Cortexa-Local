@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>US134 GitHub and Azure DevOps sources - design prototype</title>
+<style>
+/* Tokens mirror Themes/Colors.Light.xaml and Styles.xaml (same set as US128/US133). Prototype only.
+   The "High contrast" toggle approximates Colors.HighContrast.xaml (SystemColors, HC Black). */
+:root{
+  --surface-page:#F6F7FC;--surface-card:#FFFFFF;--surface-rail:#EEF0FA;--surface-sunken:#EEF0F8;--surface-selected:#E3E6FB;
+  --border-subtle:#E3E6F0;--border-control:#8A93A8;--border-focus:#4653E8;--button-edge:transparent;
+  --text-primary:#171A30;--text-body:#464D6E;--text-muted:#5F6684;--text-disabled:#9AA1B8;--text-link:#3945D6;--text-on-accent:#FFFFFF;--text-on-selected:#171A30;
+  --accent:#4653E8;--danger:#C4283F;--danger-surface:#FCEBED;--success:#0B7A53;--success-surface:#E7F5EF;
+  --warning:#9A4A08;--warning-surface:#FEF3E2;--info-surface:#EAECFD;--info:#3945D6;
+  --fs-caption:12px;--fs-body:14px;--fs-subtitle:18px;--fs-title:24px;
+  --r-control:8px;--r-card:14px;--r-chip:999px;
+  --content-max:720px;--workspace-max:960px;--row-action:44px;--row-min:64px;--combo-min:220px;--action-min:96px;
+  --repo-list-max:352px; /* NEW Size.RepoListMaxHeight: 5.5 rows of 64px so a cut-off row hints at scrolling */
+}
+body.hc{
+  --surface-page:#000;--surface-card:#000;--surface-rail:#000;--surface-sunken:#000;--surface-selected:#1AEBFF;
+  --border-subtle:#FFF;--border-control:#FFF;--border-focus:#1AEBFF;--button-edge:#FFF;
+  --text-primary:#FFF;--text-body:#FFF;--text-muted:#FFF;--text-disabled:#3FF23F;--text-link:#FFFF00;--text-on-accent:#000;--text-on-selected:#000;
+  --accent:#1AEBFF;--danger:#FFF;--danger-surface:#000;--success:#FFF;--success-surface:#000;
+  --warning:#FFF;--warning-surface:#000;--info-surface:#000;--info:#FFF;
+}
+*{box-sizing:border-box}
+body{margin:0;font:var(--fs-body)/1.4 "Segoe UI Variable Text","Segoe UI",sans-serif;color:var(--text-body);background:var(--surface-page)}
+.mono{font-family:"Cascadia Mono",Consolas,monospace}
+.proto-bar{background:#171A30;color:#fff;padding:8px 16px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12px}
+.proto-bar .grp{display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin-right:10px}
+.proto-bar button{font:inherit;padding:3px 8px;border-radius:6px;border:1px solid #8A93A8;background:#2a2f52;color:#fff;cursor:pointer}
+.proto-bar button[aria-pressed=true]{background:#4653E8;border-color:#4653E8}
+.window{display:grid;grid-template-columns:232px 1fr;min-height:calc(100vh - 40px);min-width:880px}
+.rail{background:var(--surface-rail);padding:16px 0;border-right:1px solid var(--button-edge)}
+.rail .nav{height:44px;display:flex;align-items:center;gap:12px;padding:0 12px 0 24px;color:var(--text-primary);position:relative}
+.rail .nav.sel{background:var(--surface-selected);color:var(--text-on-selected);font-weight:600}
+.rail .nav.sel::before{content:"";position:absolute;left:8px;top:12px;bottom:12px;width:3px;border-radius:2px;background:var(--accent)}
+body.hc .rail .nav.sel::before{background:var(--text-on-selected)}
+.content{padding:24px 32px 32px}
+.ws{max-width:var(--workspace-max)}
+.ws.narrow{max-width:var(--content-max)}
+h1{font:600 var(--fs-title) "Segoe UI Variable Display","Segoe UI";color:var(--text-primary);margin:0 0 16px}
+h2{font:600 var(--fs-subtitle) "Segoe UI Variable Display","Segoe UI";color:var(--text-primary);margin:0}
+h3{font:600 var(--fs-body) "Segoe UI";color:var(--text-primary);margin:0}
+.caption{font-size:var(--fs-caption);color:var(--text-muted)}
+.helper{font-size:var(--fs-caption);color:var(--text-muted)}
+.label{font-weight:600;color:var(--text-primary)}
+.err{color:var(--danger);font-size:var(--fs-caption)}
+.ok{color:var(--success);font-size:var(--fs-caption)}
+.card{background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--r-card);padding:24px;margin-bottom:24px}
+.card-h{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.card-h .g{color:var(--text-primary);width:20px;text-align:center}
+.intro{margin:0 0 16px}
+.divider{border-top:1px solid var(--border-subtle)}
+:focus-visible{outline:2px solid var(--border-focus);outline-offset:2px;border-radius:10px}
+.btn{font:inherit;font-weight:600;border-radius:8px;padding:8px 16px;min-height:40px;cursor:pointer;white-space:nowrap}
+.btn-primary{border:1px solid var(--button-edge);background:var(--accent);color:var(--text-on-accent)}
+.btn-secondary{border:1px solid var(--border-control);background:var(--surface-card);color:var(--text-primary);min-width:var(--action-min)}
+.btn-secondary:hover{background:var(--surface-selected);color:var(--text-on-selected)}
+.btn-danger{border:1px solid var(--button-edge);background:var(--danger);color:#fff}
+body.hc .btn-danger{background:#000;color:#fff}
+.btn:disabled{background:var(--surface-sunken);color:var(--text-disabled);border-color:var(--text-disabled);cursor:default}
+.link-btn{border:0;background:transparent;color:var(--text-link);font:inherit;font-weight:600;padding:8px 12px;min-height:40px;cursor:pointer;white-space:nowrap}
+.link-btn:hover{text-decoration:underline}
+.icon-btn{width:40px;height:40px;display:inline-grid;place-items:center;border:0;background:transparent;border-radius:8px;cursor:pointer;color:var(--text-primary);font-size:16px}
+.icon-btn:hover{background:var(--surface-selected)}
+.tag{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:var(--r-chip);font-size:12px;background:var(--surface-sunken);color:var(--text-muted);white-space:nowrap;border:1px solid var(--button-edge)}
+.tag.warning{background:var(--warning-surface);color:var(--warning)}
+.tag.danger{background:var(--danger-surface);color:var(--danger)}
+.tag.success{background:var(--success-surface);color:var(--success)}
+.tag.info{background:var(--info-surface);color:var(--info)}
+.banner{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--info);background:var(--info-surface);border-radius:8px;padding:12px 12px 12px 16px;margin-bottom:16px}
+.banner.error{border-color:var(--danger);background:var(--danger-surface)}
+.banner.warning{border-color:var(--warning);background:var(--warning-surface)}
+.banner.success{border-color:var(--success);background:var(--success-surface)}
+.banner .g{width:20px;text-align:center;color:var(--info)}
+.banner.error .g{color:var(--danger)}.banner.warning .g{color:var(--warning)}.banner.success .g{color:var(--success)}
+.banner .msg{flex:1;color:var(--text-body)}
+.banner .acts{display:flex;gap:4px;flex-wrap:wrap}
+.field{margin-bottom:16px}
+.field label{display:block;font-weight:600;color:var(--text-primary);padding-bottom:4px}
+.field label u{text-decoration:underline}
+.input{font:inherit;color:var(--text-primary);background:var(--surface-card);border:1px solid var(--border-control);border-radius:8px;padding:8px 12px;min-height:40px;width:100%}
+.input:focus{outline:none;border:2px solid var(--border-focus);padding:7px 11px}
+.input.bad{border-color:var(--danger)}
+.input:disabled{color:var(--text-disabled);border-color:var(--text-disabled);background:var(--surface-sunken)}
+.inline{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+.inline .grow{flex:1 1 260px}
+.inline .field{margin-bottom:0}
+select.input{min-width:var(--combo-min);width:auto}
+.progress{height:2px;background:var(--surface-sunken);position:relative;overflow:hidden;margin:8px 0}
+body.hc .progress{outline:1px solid #fff}
+.progress span{position:absolute;left:0;top:0;bottom:0;background:var(--accent)}
+.progress.ind span{width:30%;animation:ind 1.4s linear infinite}
+@keyframes ind{from{left:-30%}to{left:100%}}
+/* Source selector: FilterChip (RadioButton) group */
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.chip{display:inline-flex;align-items:center;gap:8px;min-height:var(--row-action);padding:0 16px;border-radius:var(--r-chip);border:1px solid var(--border-control);background:var(--surface-card);color:var(--text-body);font:inherit;cursor:pointer}
+.chip[aria-checked=true]{background:var(--surface-selected);border-color:var(--accent);color:var(--text-on-selected);font-weight:600}
+.chip:disabled{color:var(--text-disabled);border-color:var(--text-disabled);cursor:default}
+/* Settings key row (mirrors AiKeyRowView) */
+.krow{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;padding:12px 0;min-height:var(--row-min)}
+.krow .acts{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.confirm{padding:0 0 12px}
+.editor{padding:0 0 16px}
+/* Repository list */
+.repo-list{max-height:var(--repo-list-max);overflow-y:auto;border:1px solid var(--border-subtle);border-radius:8px}
+.repo{display:grid;grid-template-columns:24px 1fr auto;gap:12px;align-items:center;padding:12px 16px;min-height:var(--row-min);border-top:1px solid var(--border-subtle);cursor:pointer}
+.repo:first-child{border-top:0}
+.repo:hover,.repo[aria-selected=true]{background:var(--surface-selected);color:var(--text-on-selected)}
+.repo[aria-selected=true] .label,.repo[aria-selected=true] .caption{color:var(--text-on-selected)}
+.repo .g{text-align:center;color:var(--text-muted)}
+.repo .tags{display:flex;gap:6px}
+.repo .name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.list-state{padding:32px 16px;text-align:center}
+.list-state .big{font-size:28px;color:var(--text-muted);margin-bottom:8px}
+.count-line{margin:8px 0}
+.fetch-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:16px}
+.run{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+.summary{display:grid;grid-template-columns:24px 1fr auto;gap:12px;align-items:center}
+/* Documents (existing, abbreviated) */
+.toolbar{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.toolbar .spacer{flex:1}
+.doc{display:grid;grid-template-columns:24px 1fr auto auto;gap:12px;align-items:center;padding:12px 0;min-height:var(--row-min);border-top:1px solid var(--border-subtle)}
+.doc:first-of-type{border-top:0}
+.doc .src{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stats{display:flex;gap:24px}
+.stats .v{font:600 var(--fs-title) "Segoe UI Variable Display";color:var(--text-primary)}
+.empty{text-align:center;padding:16px 24px}
+.empty .big{font-size:40px;color:var(--text-muted);margin-bottom:8px}
+/* Live region echo + annotations (same convention as US133) */
+.live{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.live-echo{margin-top:8px;font-size:12px;color:var(--text-muted)}
+.live-echo b{color:var(--text-primary)}
+.annot{margin-top:24px;font-size:12px;color:var(--text-muted);border-left:3px solid var(--accent);padding-left:12px}
+.annot h3{font-size:13px;margin:12px 0 4px}
+.annot ul{margin:4px 0;padding-left:18px}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="proto-bar" role="toolbar" aria-label="Prototype states">
+  <strong>US134 prototype</strong>
+  <span class="grp">Settings:
+    <button data-s="s-checking">Checking</button>
+    <button data-s="s-notset">Not set</button>
+    <button data-s="s-editor">Editor open</button>
+    <button data-s="s-set">Set + saved</button>
+    <button data-s="s-confirm">Confirm clear</button>
+    <button data-s="s-unknown">Unknown</button>
+  </span>
+  <span class="grp">Extract:
+    <button data-s="x-local">Local (unchanged)</button>
+    <button data-s="gh-loading">GitHub loading</button>
+    <button data-s="gh-list" aria-pressed="true">GitHub list</button>
+    <button data-s="gh-empty">GitHub empty</button>
+    <button data-s="gh-nomatch">No search match</button>
+    <button data-s="gh-branch">Branch loading</button>
+    <button data-s="gh-big">Over 500 MB selected</button>
+    <button data-s="ado-noorg">ADO no org</button>
+    <button data-s="ado-orgerr">ADO org error</button>
+    <button data-s="ado-loading">ADO loading</button>
+    <button data-s="ado-list">ADO list</button>
+  </span>
+  <span class="grp">Fetch:
+    <button data-s="f-tree">Reading tree</button>
+    <button data-s="f-count">Fetching</button>
+    <button data-s="f-rate">Rate-limit pause</button>
+    <button data-s="f-canceled">Canceled</button>
+    <button data-s="t-parsing">Parsing (transition)</button>
+    <button data-s="t-done">Done</button>
+    <button data-s="e-trunc">Truncated</button>
+  </span>
+  <span class="grp">Errors:
+    <button data-s="e-missing">MissingToken</button>
+    <button data-s="e-auth">Auth</button>
+    <button data-s="e-denied">AccessDenied</button>
+    <button data-s="e-sso">SsoRequired</button>
+    <button data-s="e-notfound">NotFound</button>
+    <button data-s="e-empty">EmptyRepository</button>
+    <button data-s="e-toolarge">RepositoryTooLarge</button>
+    <button data-s="e-upstream">Upstream</button>
+  </span>
+  <span class="grp"><button id="hcToggle" aria-pressed="false">High contrast</button></span>
+</div>
+
+<div class="window">
+  <nav class="rail" aria-label="Screens">
+    <div class="nav">Sign in</div>
+    <div class="nav" id="navExtract">Extract</div>
+    <div class="nav">Review</div>
+    <div class="nav">History</div>
+    <div class="nav" id="navSettings">Settings</div>
+  </nav>
+  <main class="content">
+    <div class="ws" id="screen"></div>
+    <div class="ws">
+      <div class="live" id="live" aria-live="polite" role="status"></div>
+      <div class="live-echo">Screen reader announcement (live region, shown here for review): <b id="liveEcho">none</b></div>
+      <div class="annot" id="annot"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+/* ---------- Strings (proposed RemoteSourceStrings + SettingsStrings additions) ---------- */
+const P={gh:"GitHub",ado:"Azure DevOps"};
+const S={
+ // Settings
+ repoTitle:"Repository access",
+ repoIntro:"Personal access tokens for fetching code from GitHub and Azure DevOps. They are stored in Windows Credential Manager on this computer and are never shown again after you save them.",
+ ghDesc:"Lists and fetches your GitHub repositories.",
+ ghHint:"Classic token: repo scope. Fine-grained token: Contents (Read) and Metadata (Read).",
+ adoDesc:"Lists and fetches repositories in Azure Repos.",
+ adoHint:"Scope: Code (Read). Create it in the organization you fetch from, or for all accessible organizations.",
+ chipSet:"Set",chipNotSet:"Not set",chipChecking:"Checking…",chipUnknown:"Unknown",
+ statusUnknown:"Couldn't read the token status. Reopen Settings to try again.",
+ addToken:"Add token",replace:"Replace",clear:"Clear",
+ editorLabel:p=>`New ${p} personal access token`,
+ editorHelper:"Paste the token from your account settings. It won't be shown again.",
+ saveToken:"Save token",cancel:"Cancel",pasteFirst:"Paste the token first.",
+ tokenSaved:p=>`${p} token saved.`,tokenCleared:p=>`${p} token cleared.`,
+ confirmClear:p=>`Remove the ${p} token from this computer? ${p} fetches won't work until you add a token again.`,
+ clearToken:"Clear token",keepToken:"Keep token",clearing:"Clearing…",
+ // Extract: source
+ sourceGroup:"Source", local:"Local files", gh:"GitHub", ado:"Azure DevOps",
+ repoCard:"Repository",
+ orgLabel:"Organization", orgHelper:"The name after dev.azure.com/. Saved on this computer.",
+ orgEmpty:"Enter the organization name.",
+ orgNotFound:o=>`Couldn't find the organization "${o}". Check the spelling, or check that your token was created for it.`,
+ loadRepos:"Load repositories", loadingRepos:"Loading repositories…", reload:"Reload repositories",
+ search:"Search repositories", searchPh:"Filter by name",
+ showing:(v,t)=>`Showing ${v} of ${t}`,
+ reposEmptyTitle:"No repositories to show",
+ reposEmptyGh:"This token can't see any repositories. Check its scopes and which repositories it can access, then reload.",
+ reposEmptyAdo:o=>`This token can't see any repositories in ${o}. Check that it has Code (Read) for this organization, then reload.`,
+ noMatch:q=>`No repositories match "${q}".`,
+ clearSearch:"Clear search",
+ privateTag:"Private", tooBigTag:"Over 500 MB",
+ branchLabel:"Branch", loadingBranches:"Loading branches…", defaultSuffix:" (default)", commit:sha=>`Commit ${sha}`,
+ fetch:"Fetch files", fetchHelp:"Pick a repository first.",
+ fetchNote:"Downloads text and code files from the branch. Files already cached on this computer aren't downloaded again.",
+ tooBigHelp:s=>`This repository is about ${s}. The fetch limit is 500 MB.`,
+ // Fetch run
+ fetchingTitle:(r,b)=>`Fetching ${r} @ ${b}`,
+ readingTree:"Reading the file list…",
+ progress:(d,t,c,k)=>`Fetched ${d} of ${t} files · ${c} from cache · ${k} skipped`,
+ paused:(d,t,c,k)=>`Paused. Fetched ${d} of ${t} files · ${c} from cache · ${k} skipped`,
+ cancelFetch:"Cancel", cancelFetchName:"Cancel repository fetch",
+ rateTitle:p=>p===P.gh?"GitHub rate limit reached.":"Azure DevOps is limiting requests.",
+ rateMsg:t=>`Resuming in ${t}. The fetch continues on its own.`,
+ rateAnnounce:(p,a)=>`${p===P.gh?"GitHub rate limit reached.":"Azure DevOps is limiting requests."} Resuming in ${a}.`,
+ resumed:"Fetch resumed.",
+ canceledTitle:"Fetch canceled.", canceledMsg:"Nothing was added. Files already downloaded stay in the cache, so the next fetch is faster.",
+ // Done + transition
+ summary:(d,c,f,l)=>`Fetched ${d} files · ${c} from cache · ${f+l} skipped (${f} by filter, ${l} too large)`,
+ changeRepo:"Change repository", fetchAgain:"Fetch again",
+ // Errors
+ missingTitle:p=>`Add your ${p} token in Settings.`,
+ missingMsg:p=>`Listing and fetching ${p} repositories uses your own personal access token.`,
+ openSettings:"Open Settings", tryAgain:"Try again",
+ authTitle:p=>`${p} didn't accept your token.`,
+ authMsg:"It may have expired or been revoked. Replace it in Settings, then try again.",
+ deniedTitle:"Your token can't read this repository.",
+ deniedMsg:(r,p)=>p===P.gh?`Give the token Contents (Read) access to ${r}, or pick another repository.`:`Give the token Code (Read) access to ${r}, or pick another repository.`,
+ ssoTitle:o=>`Authorize your token for ${o} single sign-on.`,
+ ssoMsg:o=>`${o} uses SAML single sign-on. On GitHub, open your token settings, choose Configure SSO, and authorize ${o}. Then try again.`,
+ openGhTokens:"Open GitHub token settings",
+ notFoundTitle:"Repository or branch not found.",
+ notFoundMsg:(r,b)=>`${r} @ ${b} may have been renamed, moved, or deleted. Reload the list and pick it again.`,
+ emptyTitle:"This repository is empty.",
+ emptyMsg:(r,b)=>`${r} has no files on ${b}. Pick another repository or branch.`,
+ tooLargeTitle:"This repository is too large to fetch.",
+ tooLargeMsg:(r,s)=>`${r} is ${s}. The limit is 500 MB. Clone it yourself, then use Local files with the folders you need.`,
+ upstreamTitle:p=>`${p} isn't responding.`,
+ upstreamMsg:c=>`The service returned an error (${c}). Try again in a few minutes.`,
+ truncTitle:"Some files weren't fetched.",
+ truncMsg:(p,d)=>`${p} returned only part of the file list because the repository is very large. ${d} files were fetched. Use Local files for anything missing.`,
+ dismiss:"Dismiss"
+};
+/* ---------- Domain data (RemoteRepository / RemoteBranch shapes) ---------- */
+const GH=[
+ {Provider:"GitHub",Owner:"contoso-research",Name:"pricing-engine",FullName:"contoso-research/pricing-engine",DefaultBranch:"main",SizeBytes:50540134,IsPrivate:true},
+ {Provider:"GitHub",Owner:"contoso-research",Name:"ingest-pipeline",FullName:"contoso-research/ingest-pipeline",DefaultBranch:"main",SizeBytes:13316915,IsPrivate:true},
+ {Provider:"GitHub",Owner:"contoso-research",Name:"patent-notes",FullName:"contoso-research/patent-notes",DefaultBranch:"develop",SizeBytes:3250585,IsPrivate:false},
+ {Provider:"GitHub",Owner:"contoso-research",Name:"thesis-2025",FullName:"contoso-research/thesis-2025",DefaultBranch:"master",SizeBytes:224395264,IsPrivate:true},
+ {Provider:"GitHub",Owner:"contoso-research",Name:"sensor-fusion",FullName:"contoso-research/sensor-fusion",DefaultBranch:"main",SizeBytes:778043392,IsPrivate:true},
+ {Provider:"GitHub",Owner:"alpha-dev",Name:"docs-site",FullName:"alpha-dev/docs-site",DefaultBranch:"main",SizeBytes:917504,IsPrivate:false},
+ {Provider:"GitHub",Owner:"contoso-research",Name:"token-guard",FullName:"contoso-research/token-guard",DefaultBranch:"main",SizeBytes:2202009,IsPrivate:true}
+];
+const ADO=[
+ {Provider:"AzureDevOps",Organization:"contoso",Project:"Research",Name:"pricing-engine",FullName:"contoso/Research/pricing-engine",DefaultBranch:"main",SizeBytes:41943040,IsPrivate:true},
+ {Provider:"AzureDevOps",Organization:"contoso",Project:"Research",Name:"firmware-core",FullName:"contoso/Research/firmware-core",DefaultBranch:"develop",SizeBytes:96468992,IsPrivate:true},
+ {Provider:"AzureDevOps",Organization:"contoso",Project:"Platform",Name:"identity-service",FullName:"contoso/Platform/identity-service",DefaultBranch:"main",SizeBytes:8388608,IsPrivate:true},
+ {Provider:"AzureDevOps",Organization:"contoso",Project:"Platform",Name:"shared-docs",FullName:"contoso/Platform/shared-docs",DefaultBranch:"main",SizeBytes:524288,IsPrivate:true}
+];
+const BRANCHES=[{Name:"main",CommitSha:"3f2a9c1e"},{Name:"develop",CommitSha:"9b1e0d47"},{Name:"release/2026.10",CommitSha:"c47a2f80"},{Name:"feature/token-guard",CommitSha:"1d8e33ab"}];
+const LIMIT=500*1024*1024;
+/* Glyphs: existing Glyphs.* where possible. NEW glyphs: verify code points in Segoe Fluent Icons. */
+const G={lock:"&#x1F512;",repo:"&#x2630;",branch:"&#x2442;",search:"&#x2315;",info:"&#x24D8;",err:"&#x2715;",warn:"&#x26A0;",ok:"&#x2713;",key:"&#x26BF;",code:"&#x27E8;&#x27E9;",doc:"&#x1F5CE;",ext:"&#x2197;",refresh:"&#x21bb;",clock:"&#x1F552;"};
+
+let state="gh-list", query="", selIdx=0;
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
+function size(b){const kb=b/1024,mb=kb/1024,gb=mb/1024;if(mb<1)return `${Math.round(kb)} KB`;if(gb>=1)return `${gb.toFixed(1)} GB`;return mb<100?`${mb.toFixed(1)} MB`:`${Math.round(mb)} MB`;}
+function announce(t){document.getElementById("live").textContent=t||"";document.getElementById("liveEcho").textContent=t||"none";}
+
+/* ---------- Components ---------- */
+function banner(sev,title,msg,acts=[],dismiss=false){
+ const glyph={error:G.err,warning:G.warn,info:G.info,success:G.ok}[sev];
+ const role=sev==="error"?"alert":"status";
+ return `<div class="banner ${sev==="info"?"":sev}" role="${role}" tabindex="-1" data-banner aria-label="${esc(title+" "+msg)}">
+  <span class="g" aria-hidden="true">${glyph}</span>
+  <div class="msg"><div class="label">${esc(title)}</div><div>${esc(msg)}</div></div>
+  <div class="acts">${acts.map(a=>`<button class="link-btn" ${a.go?`data-go="${a.go}"`:""} aria-label="${esc(a.name||a.text)}">${esc(a.text)}${a.ext?` <span aria-hidden="true">${G.ext}</span>`:""}</button>`).join("")}
+  ${dismiss?`<button class="icon-btn" aria-label="${S.dismiss}">${G.err}</button>`:""}</div></div>`;
+}
+function chips(src,disabled){
+ const o=[["local",S.local,"L"],["gh",S.gh,"G"],["ado",S.ado,"D"]];
+ return `<div class="chips" role="radiogroup" aria-label="${S.sourceGroup}">${o.map(([k,t,m])=>{
+  const on=k===src;const i=t.indexOf(m);
+  return `<button class="chip" role="radio" aria-checked="${on}" tabindex="${on?0:-1}" data-src="${k}" ${disabled?"disabled":""} accesskey="${m.toLowerCase()}">${esc(t.slice(0,i))}<u>${m}</u>${esc(t.slice(i+1))}</button>`;}).join("")}</div>`;
+}
+function repoRow(r,i,sel){
+ const big=r.SizeBytes>LIMIT;
+ const an=`${r.Name}, ${r.IsPrivate?"private, ":""}default branch ${r.DefaultBranch}, ${size(r.SizeBytes)}${big?", over the 500 MB fetch limit":""}`;
+ return `<div class="repo" role="option" aria-selected="${sel}" tabindex="${sel?0:-1}" data-i="${i}" aria-label="${esc(an)}">
+  <span class="g" aria-hidden="true">${r.IsPrivate?G.lock:G.repo}</span>
+  <div style="min-width:0"><div class="label name">${esc(r.Name)}</div>
+   <div class="caption name">${esc(r.FullName)} · <span aria-hidden="true">${G.branch}</span> ${esc(r.DefaultBranch)} · ${size(r.SizeBytes)}</div></div>
+  <div class="tags">${r.IsPrivate?`<span class="tag warning"><span aria-hidden="true">${G.lock}</span>${S.privateTag}</span>`:""}${big?`<span class="tag danger"><span aria-hidden="true">${G.warn}</span>${S.tooBigTag}</span>`:""}</div>
+ </div>`;
+}
+function repoList(list,mode,prov){
+ if(mode==="loading") return `<div class="progress ind" role="progressbar" aria-label="${S.loadingRepos}"><span></span></div><div class="caption" aria-hidden="true">${S.loadingRepos}</div>`;
+ if(mode==="empty") return `<div class="repo-list"><div class="list-state"><div class="big" aria-hidden="true">${G.repo}</div><div class="label">${S.reposEmptyTitle}</div><div class="helper">${prov===P.gh?S.reposEmptyGh:S.reposEmptyAdo("contoso")}</div><button class="btn btn-secondary" style="margin-top:12px">${S.reload}</button></div></div>`;
+ const vis=list.map((r,i)=>[r,i]).filter(([r])=>r.Name.toLowerCase().includes(query.toLowerCase()));
+ const searchBox=`<div class="inline"><div class="field grow"><label for="q"><u>S</u>earch repositories</label>
+   <input id="q" class="input" type="search" placeholder="${S.searchPh}" value="${esc(query)}" aria-describedby="cnt"></div>
+   <button class="icon-btn" title="${S.reload} (F5)" aria-label="${S.reload}">${G.refresh}</button></div>
+   <div class="caption count-line" id="cnt" aria-live="polite">${S.showing(vis.length,list.length)}</div>`;
+ if(!vis.length) return searchBox+`<div class="repo-list"><div class="list-state"><div class="helper">${esc(S.noMatch(query))}</div><button class="link-btn" id="clrq">${S.clearSearch}</button></div></div>`;
+ return searchBox+`<div class="repo-list" role="listbox" aria-label="Repositories" id="rl">${vis.map(([r,i])=>repoRow(r,i,i===selIdx)).join("")}</div>`;
+}
+function branchField(r,loading){
+ const b=BRANCHES.slice();
+ if(!b.some(x=>x.Name===r.DefaultBranch)) b.unshift({Name:r.DefaultBranch,CommitSha:"7ac03e52"});
+ const def=b.find(x=>x.Name===r.DefaultBranch);
+ return `<div class="field" style="margin-top:16px"><label for="br"><u>B</u>ranch</label>
+  ${loading?`<select id="br" class="input" disabled><option>${S.loadingBranches}</option></select><div class="progress ind" role="progressbar" aria-label="${S.loadingBranches}" style="max-width:var(--combo-min)"><span></span></div>`
+  :`<select id="br" class="input">${[def].concat(b.filter(x=>x!==def)).map(x=>`<option>${esc(x.Name)}${x===def?S.defaultSuffix:""}</option>`).join("")}</select>
+   <div class="caption mono" style="margin-top:4px">${S.commit(def.CommitSha.slice(0,7))}</div>`}</div>`;
+}
+function fetchRow(r,enabled){
+ const big=r&&r.SizeBytes>LIMIT;
+ const on=enabled&&r&&!big;
+ return `<div class="fetch-row"><button class="btn btn-primary" id="fetchBtn" ${on?"":"disabled"} title="${!r?S.fetchHelp:big?esc(S.tooBigHelp(size(r.SizeBytes))):""}" aria-describedby="fh"><u>F</u>etch files</button>
+  <span class="helper" id="fh">${!r?S.fetchHelp:big?`<span class="err"><span aria-hidden="true">${G.err} </span>${esc(S.tooBigHelp(size(r.SizeBytes)))}</span>`:S.fetchNote}</span></div>`;
+}
+function runCard(r,branch,text,pct,paused){
+ return `<div class="card"><div class="run"><div>
+  <div class="label">${esc(S.fetchingTitle(r.FullName,branch))}</div>
+  <div class="progress ${pct==null?"ind":""}" role="progressbar" aria-label="Repository fetch progress" ${pct!=null?`aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"`:""}><span style="${pct!=null?`width:${pct}%`:""}"></span></div>
+  <div class="caption" id="runText">${esc(text)}</div></div>
+  <button class="btn btn-secondary" id="cancelBtn" aria-label="${S.cancelFetchName}">${S.cancelFetch}</button></div></div>`;
+}
+function summaryCard(r,b,counts){
+ return `<div class="card"><div class="summary"><span aria-hidden="true" class="caption">${r.IsPrivate?G.lock:G.repo}</span>
+  <div style="min-width:0"><div class="label">${esc(r.FullName)}</div>
+  <div class="caption"><span aria-hidden="true">${G.branch}</span> ${esc(b)} · <span class="mono">3f2a9c1</span> · ${esc(S.summary(...counts))}</div></div>
+  <div><button class="btn btn-secondary">${S.fetchAgain}</button><button class="link-btn">${S.changeRepo}</button></div></div></div>`;
+}
+
+/* ---------- Screens ---------- */
+function settings(){
+ const s=state;
+ let chip=["",S.chipChecking],msg="";
+ if(s==="s-notset"||s==="s-editor") chip=["",S.chipNotSet];
+ if(s==="s-set"||s==="s-confirm") chip=["success",S.chipSet];
+ if(s==="s-unknown") chip=["warning",S.chipUnknown];
+ const showActs=s!=="s-checking"&&s!=="s-confirm";
+ if(s==="s-set") msg=`<div class="ok" style="margin-top:4px"><span aria-hidden="true">${G.ok} </span>${S.tokenSaved(P.gh)}</div>`;
+ if(s==="s-unknown") msg=`<div class="helper">${S.statusUnknown}</div>`;
+ const row=(p,desc,hint,first,live)=>{
+  const c=live?chip:["",S.chipNotSet];
+  const sa=live?showActs:true;
+  const lbl=c[1]===S.chipSet?S.replace:S.addToken;
+  return `${first?"":`<div class="divider"></div>`}
+  <div class="krow"><div><div class="label">${p}</div><div class="helper">${desc}</div><div class="helper">${hint}</div>${live?msg:""}</div>
+   <div class="acts"><span class="tag ${c[0]}" aria-label="${p} token: ${esc(c[1].replace("…",""))}">${c[0]==="success"?`<span aria-hidden="true">${G.ok}</span>`:c[0]==="warning"?`<span aria-hidden="true">${G.warn}</span>`:""}${c[1]}</span>
+   ${sa?`<button class="btn btn-secondary" aria-label="${lbl==S.replace?"Replace":"Add"} ${p} token" ${live&&s==="s-notset"?'id="focusMe"':""}>${lbl}</button>${c[1]===S.chipSet?`<button class="link-btn" aria-label="Clear ${p} token">${S.clear}</button>`:""}`:""}</div></div>
+  ${live&&s==="s-confirm"?`<div class="confirm"><p style="margin:0 0 8px">${S.confirmClear(p)}</p><button class="btn btn-danger" aria-label="Confirm clear ${p} token">${S.clearToken}</button> <button class="btn btn-secondary" aria-label="Keep ${p} token">${S.keepToken}</button></div>`:""}
+  ${live&&s==="s-editor"?`<div class="editor"><div class="field"><label for="pat">${S.editorLabel(p)}</label><input id="pat" class="input" type="password" value="ghp_••••••••••••••••" aria-describedby="patH"><div class="helper" id="patH" style="margin-top:4px">${S.editorHelper}</div></div><button class="btn btn-primary" aria-label="Save ${p} token">${S.saveToken}</button> <button class="btn btn-secondary" aria-label="Cancel ${p} token entry">${S.cancel}</button></div>`:""}`;
+ };
+ document.getElementById("screen").innerHTML=`<div class="narrow" style="max-width:var(--content-max)">
+  <h1>Settings</h1>
+  <div class="card" style="padding:16px 24px"><div class="caption">Connections card (unchanged)</div></div>
+  <div class="card" style="padding:16px 24px"><div class="caption">AI provider keys card (unchanged: Claude, Gemini, Bedrock rows)</div></div>
+  <section class="card" aria-labelledby="rh">
+   <div class="card-h"><span class="g" aria-hidden="true">${G.code}</span><h2 id="rh">${S.repoTitle}</h2></div>
+   <p class="helper intro" style="margin-bottom:8px">${S.repoIntro}</p>
+   ${row(P.gh,S.ghDesc,S.ghHint,true,true)}
+   ${row(P.ado,S.adoDesc,S.adoHint,false,false)}
+  </section></div>`;
+ announce(s==="s-set"?S.tokenSaved(P.gh):"");
+}
+
+const MODES={ // per-state config for Extract
+ "x-local":{src:"local"},
+ "gh-loading":{src:"gh",list:"loading"}, "gh-list":{src:"gh"}, "gh-empty":{src:"gh",list:"empty"},
+ "gh-nomatch":{src:"gh",q:"quantum"}, "gh-branch":{src:"gh",branchLoading:true}, "gh-big":{src:"gh",sel:4},
+ "ado-noorg":{src:"ado",org:"",noList:true}, "ado-orgerr":{src:"ado",org:"contosso",orgErr:true,noList:true},
+ "ado-loading":{src:"ado",list:"loading"}, "ado-list":{src:"ado"},
+ "f-tree":{src:"gh",run:"tree"}, "f-count":{src:"gh",run:"count"}, "f-rate":{src:"gh",run:"rate"},
+ "f-canceled":{src:"gh",banner:"canceled"},
+ "t-parsing":{src:"gh",done:"parsing"}, "t-done":{src:"gh",done:"done"}, "e-trunc":{src:"gh",done:"done",banner:"trunc"},
+ "e-missing":{src:"gh",banner:"missing",noList:true}, "e-auth":{src:"gh",banner:"auth",noList:true},
+ "e-denied":{src:"ado",banner:"denied"}, "e-sso":{src:"gh",banner:"sso",noList:true},
+ "e-notfound":{src:"gh",banner:"notfound"}, "e-empty":{src:"gh",banner:"empty",sel:2},
+ "e-toolarge":{src:"ado",banner:"toolarge",sel:1}, "e-upstream":{src:"gh",banner:"upstream"}
+};
+function fetchBanner(kind,prov,r,b){
+ switch(kind){
+  case "missing": return [banner("warning",S.missingTitle(prov),S.missingMsg(prov),[{text:S.openSettings,name:`Open Settings to add your ${prov} token`,go:"s-notset"}]),S.missingTitle(prov)+" "+S.missingMsg(prov)];
+  case "auth": return [banner("error",S.authTitle(prov),S.authMsg,[{text:S.openSettings,name:`Open Settings to replace your ${prov} token`,go:"s-set"},{text:S.tryAgain}]),S.authTitle(prov)+" "+S.authMsg];
+  case "denied": return [banner("error",S.deniedTitle,S.deniedMsg(r.FullName,prov),[{text:S.openSettings,go:"s-set"}]),S.deniedTitle+" "+S.deniedMsg(r.FullName,prov)];
+  case "sso": return [banner("error",S.ssoTitle("contoso-research"),S.ssoMsg("contoso-research"),[{text:S.openGhTokens,name:"Open GitHub token settings in your browser",ext:true},{text:S.tryAgain}]),S.ssoTitle("contoso-research")+" "+S.ssoMsg("contoso-research")];
+  case "notfound": return [banner("error",S.notFoundTitle,S.notFoundMsg(r.FullName,b),[{text:S.reload}]),S.notFoundTitle+" "+S.notFoundMsg(r.FullName,b)];
+  case "empty": return [banner("warning",S.emptyTitle,S.emptyMsg(r.FullName,b),[],true),S.emptyTitle+" "+S.emptyMsg(r.FullName,b)];
+  case "toolarge": return [banner("error",S.tooLargeTitle,S.tooLargeMsg(r.FullName,"612 MB"),[{text:S.local,name:"Switch to Local files",go:"x-local"}],true),S.tooLargeTitle];
+  case "upstream": return [banner("error",S.upstreamTitle(prov),S.upstreamMsg("502 Bad Gateway"),[{text:S.tryAgain}],true),S.upstreamTitle(prov)+" "+S.upstreamMsg("502 Bad Gateway")];
+  case "canceled": return [banner("info",S.canceledTitle,S.canceledMsg,[],true),S.canceledTitle+" "+S.canceledMsg];
+  case "trunc": return [banner("warning",S.truncTitle,S.truncMsg(prov,180),[],true),S.truncTitle+" "+S.truncMsg(prov,180)];
+  case "rate": return [banner("warning",S.rateTitle(prov),S.rateMsg("4:12")),S.rateAnnounce(prov,"about 4 minutes")];
+ }
+ return ["",""];
+}
+function extract(){
+ const m=MODES[state]||MODES["gh-list"];
+ const prov=m.src==="ado"?P.ado:P.gh;
+ const list=m.src==="ado"?ADO:GH;
+ const r=list[Math.min(selIdx,list.length-1)];
+ const b=r.DefaultBranch;
+ const running=!!m.run;
+ let live="";
+ let [bn,bl]=fetchBanner(m.run==="rate"?"rate":m.banner,prov,r,b);
+ if(bl) live=bl;
+ let body="";
+ if(m.src==="local"){
+  body=`<div class="card empty"><div class="big" aria-hidden="true">${G.doc}</div><h2>Nothing parsed yet</h2>
+   <p>Choose PDFs, DOCX files, text, or source code. Cortexa splits each file into extraction units with token counts.</p>
+   <button class="btn btn-primary">Choose files…</button></div>`;
+ } else if(m.done){
+  const counts=[180,12,6,2];
+  body=summaryCard(r,b,counts)+docs(m.done,r,b);
+  if(m.done==="parsing"&&!bl) live="Fetched 180 files. Parsing 12 of 180 files…";
+ } else {
+  const org=m.src==="ado"?`<div class="inline" style="margin-bottom:16px"><div class="field grow"><label for="org"><u>O</u>rganization</label>
+    <input id="org" class="input ${m.orgErr?"bad":""}" value="${esc(m.org!=null?m.org:"contoso")}" placeholder="contoso" aria-invalid="${!!m.orgErr}" aria-describedby="orgH" ${running?"disabled":""}>
+   </div><button class="btn btn-secondary" ${running?"disabled":""}>Load <u>r</u>epositories</button></div>
+   <div id="orgH" class="${m.orgErr?"err":"helper"}" style="margin:-12px 0 16px">${m.orgErr?`<span aria-hidden="true">${G.err} </span>${esc(S.orgNotFound(m.org))}`:m.org===""?S.orgHelper:S.orgHelper}</div>`:"";
+  const showList=!m.noList;
+  const listHtml=showList?repoList(list,m.list,prov):"";
+  const canPick=showList&&!m.list;
+  body=`<section class="card" aria-labelledby="rch" ${running?'aria-disabled="true"':""}>
+   <div class="card-h"><span class="g" aria-hidden="true">${G.repo}</span><h2 id="rch">${S.repoCard}</h2></div>
+   ${org}${listHtml}
+   ${canPick?branchField(r,m.branchLoading):""}
+   ${canPick&&!running?fetchRow(r,!m.branchLoading):""}
+  </section>`;
+  if(running){
+   const text=m.run==="tree"?S.readingTree:m.run==="rate"?S.paused(96,180,12,8):S.progress(42,180,12,8);
+   body+=runCard(r,b,text,m.run==="tree"?null:(m.run==="rate"?53:23),m.run==="rate");
+   if(m.run==="count") live="";
+   if(m.run==="tree") live=S.fetchingTitle(r.FullName,b);
+  }
+  if(m.orgErr) live=S.orgNotFound(m.org);
+  if(m.list==="loading") live=S.loadingRepos;
+ }
+ document.getElementById("screen").innerHTML=`<h1>Extract</h1>
+  ${chips(m.src,running||m.done==="parsing")}
+  <div id="fetchBannerSlot">${bn}</div>
+  ${body}`;
+ announce(live);
+ wire(list);
+}
+function docs(phase,r,b){
+ const files=[["RateTable.cs","src/Pricing/RateTable.cs",14,2210],["README.md","README.md",6,980],["pricing-model.pdf","docs/pricing-model.pdf",22,8890],["TokenGuard.cs","src/Guards/TokenGuard.cs",9,1410]];
+ const st=phase==="parsing"?[["","Pending",G.clock],["info","Extracting",G.refresh],["success","Extracted",G.ok],["","Pending",G.clock]]:files.map(()=>["success","Extracted",G.ok]);
+ const origin=`${r.FullName} @ ${b}`;
+ return `<div class="toolbar"><button class="btn btn-secondary" ${phase==="parsing"?"disabled":""}>Choose files…</button><button class="link-btn" ${phase==="parsing"?"disabled":""}>Clear all</button><span class="spacer"></span>
+   <span class="caption">${phase==="parsing"?"Parsing 12 of 180 files…":"180 files parsed."}</span><button class="btn btn-primary" ${phase==="parsing"?"disabled":""}>Extract knowledge</button></div>
+  <div class="card"><div class="stats"><div><div class="v">180</div><div class="caption">Files</div></div><div><div class="v">${phase==="parsing"?11:177}</div><div class="caption">Extracted</div></div><div><div class="v">${phase==="parsing"?96:1840}</div><div class="caption">Units</div></div><div><div class="v">${phase==="parsing"?"41,200":"612,480"}</div><div class="caption">Tokens</div></div><div><div class="v">3</div><div class="caption">Skipped</div></div></div></div>
+  <div class="card"><div class="card-h"><span class="g" aria-hidden="true">${G.doc}</span><h2>Documents</h2></div>
+  ${files.map((f,i)=>`<div class="doc" role="listitem" aria-label="${esc(f[0])}, ${st[i][1]}, ${f[2]} units, from ${esc(origin)}"><span aria-hidden="true" class="caption">${G.doc}</span>
+   <div style="min-width:0"><div class="label src">${esc(f[0])}</div><div class="caption src">${esc(origin)} · ${esc(f[1])}</div></div>
+   <span class="caption">${f[2]} units · ${f[3]} tokens</span><span class="tag ${st[i][0]}"><span aria-hidden="true">${st[i][2]}</span>${st[i][1]}</span></div>`).join("")}
+  <div class="caption" style="padding-top:8px">…176 more. Estimated tokens, Provider and model, Unit preview, Skipped cards follow unchanged.</div></div>`;
+}
+function wire(list){
+ document.querySelectorAll("[data-src]").forEach(c=>c.onclick=()=>{query="";selIdx=0;go({local:"x-local",gh:"gh-list",ado:"ado-list"}[c.dataset.src]);});
+ document.querySelectorAll("[data-go]").forEach(c=>c.onclick=()=>go(c.dataset.go));
+ const q=document.getElementById("q");
+ if(q){q.oninput=()=>{query=q.value;const pos=q.selectionStart;extract();const n=document.getElementById("q");n.focus();n.setSelectionRange(pos,pos);};}
+ const cq=document.getElementById("clrq"); if(cq) cq.onclick=()=>{query="";extract();document.getElementById("q").focus();};
+ document.querySelectorAll(".repo").forEach(row=>row.onclick=()=>{selIdx=+row.dataset.i;if(state.startsWith("e-")){go(MODES[state].src==="ado"?"ado-list":"gh-list");}else extract();const n=document.querySelector(`.repo[data-i="${selIdx}"]`);n&&n.focus();});
+ const fb=document.getElementById("fetchBtn"); if(fb) fb.onclick=simulate;
+ const cb=document.getElementById("cancelBtn"); if(cb) cb.onclick=cancelRun;
+ const rl=document.getElementById("rl");
+ if(rl) rl.onkeydown=e=>{const rows=[...rl.querySelectorAll(".repo")];const cur=rows.indexOf(document.activeElement);
+  if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();const n=rows[Math.max(0,Math.min(rows.length-1,cur+(e.key==="ArrowDown"?1:-1)))];selIdx=+n.dataset.i;extract();document.querySelector(`.repo[data-i="${selIdx}"]`).focus();}};
+}
+let timer=null;
+function cancelRun(){clearInterval(timer);clearTimeout(timer);go("f-canceled");const b=document.querySelector("[data-banner]");b&&b.focus();}
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&document.getElementById("cancelBtn"))cancelRun();});
+function simulate(){
+ clearInterval(timer);
+ go("f-tree"); document.getElementById("cancelBtn").focus();
+ let d=0;
+ timer=setTimeout(()=>{
+  go("f-count");
+  timer=setInterval(()=>{
+   d+=18;
+   if(d>=180){clearInterval(timer);go("t-parsing");return;}
+   const t=document.getElementById("runText"); if(!t){clearInterval(timer);return;}
+   t.textContent=S.progress(d,180,Math.min(12,Math.floor(d/10)),Math.min(8,Math.floor(d/20)));
+   document.querySelector(".run .progress span").style.width=(d/180*100)+"%";
+   document.getElementById("cancelBtn").focus();
+  },500);
+ },900);
+}
+
+/* ---------- Annotations ---------- */
+function annotations(){
+ const el=document.getElementById("annot");
+ if(state.startsWith("s-")){el.innerHTML=`<h3>Settings: Repository access</h3><ul>
+  <li>New card after "AI provider keys". Same Card, header glyph + Text.Subtitle (HeadingLevel 2), Text.Helper intro. Two rows rendered by AiKeyRowView unchanged in layout.</li>
+  <li>Each row adds one extra Text.Helper line for the scope hint (new optional descriptor field). Chip states: Checking… (no actions), Not set, Set (Replace + Clear), Unknown (warning chip + helper). Confirm clear and the editor reuse the existing row pieces with token wording.</li>
+  <li>Arriving from the Extract "Open Settings" action scrolls to this card and focuses the matching row's Add token / Replace button (new SettingsFocusKeys.GitHubToken / AzureDevOpsToken).</li>
+  <li>Tab order: card header is not a stop. GitHub: Add token/Replace, Clear. Then Azure DevOps: same. Esc in confirm = Keep token.</li></ul>`;return;}
+ el.innerHTML=`<h3>Extract: remote sources</h3><ul>
+  <li>Source selector: three FilterChip RadioButtons in an ItemsControl with TabNavigation=Once and DirectionalNavigation=Contained (same as Review filters). Access keys Alt+L / Alt+G / Alt+D. Disabled while a fetch, parse, or knowledge run is active (focus is moved first).</li>
+  <li>Local shows today's screen exactly. Choosing GitHub or Azure DevOps swaps the empty-state card for the Repository card. GitHub loads the list the first time it is chosen. Azure DevOps waits for Load repositories (Enter in the Organization field also loads).</li>
+  <li>New fetch banner slot sits under the selector and is visible with zero documents. Starting a new load or fetch clears it. The existing Knowledge.Banner slot keeps its place inside the documents panel. If both show, the fetch banner is on top.</li>
+  <li>Fetch: focus moves to Cancel first, then the selector, Organization, search, list, branch, and Fetch become disabled. Esc cancels the fetch (same KeyBinding pattern as knowledge runs). On cancel, focus goes to the canceled banner. On success, focus goes to the Documents list.</li>
+  <li>Rate limit: the banner announces once when the pause starts (CountdownFormatter.Approximate) and once on resume ("Fetch resumed."). The countdown in the Message (CountdownFormatter.Format) updates each second but is not announced.</li>
+  <li>Errors: banner root takes focus (FocusRouter "Banner"), LiveSetting Assertive. Warning and info banners stay Polite.</li>
+  <li>Fetch counts: denominator = files selected for download (tree files minus filter skips minus per-file too-large). "Fetched N" = downloaded + cacheHits. "skipped" = skippedByFilter + tooLarge; the final summary splits them. Fetch skips never become document rows, so the Documents "Skipped" stat (parse skips) is a separate number.</li>
+  <li>Picking a different repository or branch clears a stale fetch banner (NotFound, AccessDenied, EmptyRepository, TooLarge).</li>
+  ${state==="e-toolarge"?`<li><b>RepositoryTooLarge here:</b> the list showed about 92 MB, but the server measured 612 MB at fetch time (listed sizes are approximate and can be stale). This is why the list pre-check is only a hint and the error banner is the real check.</li>`:""}
+  <li>Try it: type in the search box, click or arrow through rows, press Fetch files for a simulated run, click Cancel during it.</li></ul>`;
+}
+function go(s){
+ state=s;
+ document.querySelectorAll(".proto-bar button[data-s]").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.s===s)));
+ render();
+}
+function render(){
+ const isS=state.startsWith("s-");
+ document.getElementById("navSettings").className="nav"+(isS?" sel":"");
+ document.getElementById("navExtract").className="nav"+(isS?"":" sel");
+ (isS?settings:extract)();
+ annotations();
+ const f=document.getElementById("focusMe"); if(f) f.focus();
+ const bnr=document.querySelector("#fetchBannerSlot [data-banner]"); if(bnr&&bnr.getAttribute("role")==="alert") bnr.focus();
+}
+document.querySelectorAll(".proto-bar button[data-s]").forEach(b=>b.onclick=()=>{clearInterval(timer);clearTimeout(timer);
+ const m=MODES[b.dataset.s]||{}; query=m.q||""; selIdx=m.sel!=null?m.sel:0; go(b.dataset.s);});
+document.getElementById("hcToggle").onclick=e=>{const on=document.body.classList.toggle("hc");e.target.setAttribute("aria-pressed",String(on));};
+render();
+</script>
+</body>
+</html>

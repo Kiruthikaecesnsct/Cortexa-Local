@@ -2,6 +2,7 @@ using Collector.Application.Auth;
 using Collector.Application.Extraction;
 using Collector.Application.History;
 using Collector.Application.Knowledge;
+using Collector.Application.Remote;
 using Collector.Application.Settings;
 using Collector.Application.Upload;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,6 +22,7 @@ public static class DependencyInjection
         services.AddSingleton<LocalSourceResolver>();
         services.AddCollectorExtraction();
         services.AddCollectorKnowledge();
+        services.AddCollectorRemote();
         return services;
     }
 
@@ -33,6 +35,14 @@ public static class DependencyInjection
         services.AddSingleton<UnitBuilder>();
         services.AddSingleton<DocumentStatusRules>();
         services.AddSingleton<ExtractionService>();
+    }
+
+    private static void AddCollectorRemote(this IServiceCollection services)
+    {
+        services.AddOptions<RemoteFetchOptions>();
+        services.AddSingleton<RemoteFileFilter>();
+        services.AddSingleton<RemoteFileFetcher>();
+        services.AddSingleton<RemoteFetchService>();
     }
 
     private static void AddCollectorKnowledge(this IServiceCollection services)

@@ -1,7 +1,6 @@
 using System.Text;
 using Collector.Application.Secrets;
 using Collector.Application.Settings;
-using Collector.Domain.Enums;
 using Collector.Infrastructure.Secrets;
 using Collector.Presentation.Resources;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -21,7 +20,7 @@ public enum KeyChipKind
 
 public sealed record AiKeyRowDescriptor
 {
-    public required CollectorProvider Provider { get; init; }
+    public required SecretSlot? Slot { get; init; }
 
     public required string Name { get; init; }
 
@@ -30,6 +29,10 @@ public sealed record AiKeyRowDescriptor
     public required string ShortName { get; init; }
 
     public required string RunsName { get; init; }
+
+    public string? Hint { get; init; }
+
+    public CredentialWords Words { get; init; } = CredentialWords.ApiKey;
 }
 
 public sealed partial class AiKeyRowViewModel : FocusableViewModel
@@ -37,13 +40,14 @@ public sealed partial class AiKeyRowViewModel : FocusableViewModel
     private readonly AiKeyRowDescriptor _descriptor;
     private readonly SettingsService _settings;
     private readonly ILogger _logger;
+    private bool _focusWhenReady;
 
     public AiKeyRowViewModel(AiKeyRowDescriptor descriptor, SettingsService settings, ILogger logger)
     {
         _descriptor = descriptor;
         _settings = settings;
         _logger = logger;
-        RequiresKey = AiKeySlots.For(descriptor.Provider) is not null;
+        RequiresKey = descriptor.Slot is not null;
         ChipKind = RequiresKey ? KeyChipKind.Checking : KeyChipKind.NoKeyNeeded;
     }
 
@@ -55,6 +59,12 @@ public sealed partial class AiKeyRowViewModel : FocusableViewModel
 
     public string Description => _descriptor.Description;
 
+    public string? Hint => _descriptor.Hint;
+
+    public bool HasHint => !string.IsNullOrEmpty(_descriptor.Hint);
+
+    public string KeepLabel => Words.KeepLabel;
+
     public bool IsChecking => ChipKind == KeyChipKind.Checking;
 
     public bool HasKey => ChipKind == KeyChipKind.Set;
@@ -63,7 +73,7 @@ public sealed partial class AiKeyRowViewModel : FocusableViewModel
 
     public bool ShowStatusHelper => ChipKind == KeyChipKind.Unknown;
 
-    public string StatusHelper => SettingsStrings.StatusUnknownHelper;
+    public string StatusHelper => Words.StatusUnknown;
 
     public string ChipText => ChipKind switch
     {
@@ -74,26 +84,30 @@ public sealed partial class AiKeyRowViewModel : FocusableViewModel
         _ => SettingsStrings.ChipChecking,
     };
 
-    public string ChipAutomationName => SettingsStrings.ChipName(_descriptor.ShortName, ChipText.TrimEnd('…'));
+    public string ChipAutomationName => SettingsStrings.ChipName(_descriptor.ShortName, Words.Noun, ChipText.TrimEnd('…'));
 
-    public string ActionLabel => HasKey ? SettingsStrings.Replace : SettingsStrings.AddKey;
+    public string ActionLabel => HasKey ? SettingsStrings.Replace : Words.AddLabel;
 
     public string ActionAutomationName =>
-        HasKey ? SettingsStrings.ReplaceName(_descriptor.ShortName) : SettingsStrings.AddName(_descriptor.ShortName);
+        HasKey
+            ? SettingsStrings.ReplaceName(_descriptor.ShortName, Words.Noun)
+            : SettingsStrings.AddName(_descriptor.ShortName, Words.Noun);
 
-    public string ClearAutomationName => SettingsStrings.ClearName(_descriptor.ShortName);
+    public string ClearAutomationName => SettingsStrings.ClearName(_descriptor.ShortName, Words.Noun);
 
-    public string ConfirmText => SettingsStrings.ConfirmClear(_descriptor.ShortName, _descriptor.RunsName);
+    public string ConfirmText => SettingsStrings.ConfirmClear(_descriptor.ShortName, _descriptor.RunsName, Words.Noun);
 
-    public string ConfirmAutomationName => SettingsStrings.ConfirmClearName(_descriptor.ShortName);
+    public string ConfirmAutomationName => SettingsStrings.ConfirmClearName(_descriptor.ShortName, Words.Noun);
 
-    public string KeepAutomationName => SettingsStrings.KeepName(_descriptor.ShortName);
+    public string KeepAutomationName => SettingsStrings.KeepName(_descriptor.ShortName, Words.Noun);
 
-    public string ConfirmLabel => IsClearing ? SettingsStrings.Clearing : SettingsStrings.ClearKey;
+    public string ConfirmLabel => IsClearing ? SettingsStrings.Clearing : Words.ClearLabel;
 
     public bool IsConfirmEnabled => !IsClearing;
 
     public bool HasEditor => Editor is not null;
+
+    private CredentialWords Words => _descriptor.Words;
 
     public bool HasMessage => !string.IsNullOrEmpty(Message);
 
@@ -141,14 +155,38 @@ public sealed partial class AiKeyRowViewModel : FocusableViewModel
         ChipKind = KeyChipKind.Checking;
         try
         {
-            var present = await _settings.HasAiKeyAsync(_descriptor.Provider, cancellationToken);
+            var present = await _settings.HasSecretAsync(_descriptor.Slot!.Value, cancellationToken);
             ChipKind = present ? KeyChipKind.Set : KeyChipKind.NotSet;
         }
         catch (Exception ex) when (ex is SecretStoreException or OperationCanceledException)
         {
-            _logger.LogWarning("Could not read the {Provider} key status.", _descriptor.Provider);
+            _logger.LogWarning("Could not read the {Slot} {Noun} status.", _descriptor.Slot, Words.Noun);
             ChipKind = KeyChipKind.Unknown;
         }
+
+        ReleasePendingFocus();
+    }
+
+    public void FocusPrimary()
+    {
+        if (IsChecking)
+        {
+            _focusWhenReady = true;
+            return;
+        }
+
+        RequestFocus(KeyRowFocusKeys.Primary);
+    }
+
+    private void ReleasePendingFocus()
+    {
+        if (!_focusWhenReady || IsChecking)
+        {
+            return;
+        }
+
+        _focusWhenReady = false;
+        RequestFocus(KeyRowFocusKeys.Primary);
     }
 
     public void CloseEditor(bool returnFocus)
@@ -173,14 +211,22 @@ public sealed partial class AiKeyRowViewModel : FocusableViewModel
         Message = null;
         ErrorMessage = null;
         Editor = new KeyEditorViewModel(
-            new KeyEditorLabels(
-                SettingsStrings.EditorLabel(_descriptor.ShortName),
-                SettingsStrings.EditorLabel(_descriptor.ShortName),
-                SettingsStrings.SaveKeyName(_descriptor.ShortName),
-                SettingsStrings.CancelKeyName(_descriptor.ShortName)),
+            EditorLabels(),
             SaveKeyAsync,
             () => CloseEditor(returnFocus: true));
         EditorStateChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private KeyEditorLabels EditorLabels()
+    {
+        var label = SettingsStrings.EditorLabel(_descriptor.ShortName, Words.EditorNoun);
+        return new KeyEditorLabels(
+            label,
+            label,
+            SettingsStrings.SaveCredentialName(_descriptor.ShortName, Words.Noun),
+            SettingsStrings.CancelEntryName(_descriptor.ShortName, Words.Noun),
+            Words.EditorHelper,
+            Words.SaveLabel);
     }
 
     [RelayCommand]
@@ -206,13 +252,13 @@ public sealed partial class AiKeyRowViewModel : FocusableViewModel
         IsClearing = true;
         try
         {
-            await _settings.ClearAiKeyAsync(_descriptor.Provider, cancellationToken);
+            await _settings.ClearSecretAsync(_descriptor.Slot!.Value, cancellationToken);
             ApplyCleared();
         }
         catch (SecretStoreException)
         {
-            _logger.LogWarning("Could not clear the {Provider} key.", _descriptor.Provider);
-            ErrorMessage = SettingsStrings.KeyClearFailed;
+            _logger.LogWarning("Could not clear the {Slot} {Noun}.", _descriptor.Slot, Words.Noun);
+            ErrorMessage = Words.ClearFailed;
             RequestFocus(KeyRowFocusKeys.ConfirmClear);
         }
         finally
@@ -226,14 +272,14 @@ public sealed partial class AiKeyRowViewModel : FocusableViewModel
         IsConfirmingClear = false;
         ErrorMessage = null;
         ChipKind = KeyChipKind.NotSet;
-        Message = SettingsStrings.KeyCleared(_descriptor.ShortName);
+        Message = SettingsStrings.CredentialCleared(_descriptor.ShortName, Words.Noun);
         RequestFocus(KeyRowFocusKeys.Primary);
     }
 
     private async Task SaveKeyAsync(KeyEditorViewModel editor, CancellationToken cancellationToken)
     {
         var key = editor.TakeKey();
-        var invalid = ValidateKey(key);
+        var invalid = ValidateKey(key, Words);
         if (invalid is not null)
         {
             editor.Error = invalid;
@@ -245,14 +291,14 @@ public sealed partial class AiKeyRowViewModel : FocusableViewModel
         editor.Error = null;
         try
         {
-            await _settings.SetAiKeyAsync(_descriptor.Provider, key, cancellationToken);
+            await _settings.SetSecretAsync(_descriptor.Slot!.Value, key, cancellationToken);
             ApplySaved();
         }
         catch (SecretStoreException)
         {
-            _logger.LogWarning("Could not save the {Provider} key.", _descriptor.Provider);
+            _logger.LogWarning("Could not save the {Slot} {Noun}.", _descriptor.Slot, Words.Noun);
             editor.ClearPassword();
-            editor.Error = SettingsStrings.KeySaveFailed;
+            editor.Error = Words.SaveFailed;
             RequestFocus(KeyRowFocusKeys.Editor);
         }
         finally
@@ -266,20 +312,20 @@ public sealed partial class AiKeyRowViewModel : FocusableViewModel
         CloseEditor(returnFocus: false);
         ChipKind = KeyChipKind.Set;
         ErrorMessage = null;
-        Message = SettingsStrings.KeySaved(_descriptor.ShortName);
+        Message = SettingsStrings.CredentialSaved(_descriptor.ShortName, Words.Noun);
         RequestFocus(KeyRowFocusKeys.Primary);
     }
 
-    private static string? ValidateKey(string key)
+    private static string? ValidateKey(string key, CredentialWords words)
     {
         if (string.IsNullOrWhiteSpace(key))
         {
-            return SettingsStrings.PasteFirst;
+            return words.PasteFirst;
         }
 
         return Encoding.UTF8.GetByteCount(key) > CredentialManagerStore.MaxBlobBytes
-            ? SettingsStrings.KeyTooLong
-            : null;
+            ? words.TooLong
+            : SecretInputRules.Validate(key);
     }
 }
 

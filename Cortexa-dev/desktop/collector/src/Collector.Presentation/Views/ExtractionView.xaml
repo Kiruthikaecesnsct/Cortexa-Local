@@ -5,12 +5,14 @@
              xmlns:sys="clr-namespace:System;assembly=System.Runtime"
              xmlns:enums="clr-namespace:Collector.Domain.Enums;assembly=Collector.Domain"
              xmlns:res="clr-namespace:Collector.Presentation.Resources"
+             xmlns:views="clr-namespace:Collector.Presentation.Views"
              xmlns:vm="clr-namespace:Collector.Presentation.ViewModels"
              b:FocusRouter.IsHost="True"
              Focusable="False"
              IsTabStop="False">
     <UserControl.InputBindings>
         <KeyBinding Key="Escape" Command="{Binding Knowledge.ExtractKnowledgeCancelCommand}" />
+        <KeyBinding Key="Escape" Command="{Binding Remote.FetchCancelCommand}" />
     </UserControl.InputBindings>
     <UserControl.Resources>
         <Style x:Key="Stat.Tile" TargetType="StackPanel">
@@ -107,7 +109,7 @@
                                                    TextTrimming="CharacterEllipsis"
                                                    TextWrapping="NoWrap" />
                                         <TextBlock Style="{StaticResource Text.Caption}"
-                                                   Text="{Binding SourcePath}"
+                                                   Text="{Binding SourceCaption}"
                                                    TextTrimming="CharacterEllipsis"
                                                    TextWrapping="NoWrap" />
                                     </StackPanel>
@@ -172,7 +174,38 @@
 
     <StackPanel MaxWidth="{StaticResource Size.WorkspaceMaxWidth}" HorizontalAlignment="Left">
 
-        <Border Style="{StaticResource Card}" Visibility="{Binding IsEmptyState, Converter={StaticResource BoolToVisibility}}">
+        <ItemsControl Margin="{StaticResource Thickness.StackGap}"
+                      AutomationProperties.Name="{x:Static res:RemoteSourceStrings.SourceGroupName}"
+                      Focusable="False"
+                      IsEnabled="{Binding Remote.AreControlsEnabled}"
+                      IsTabStop="False"
+                      ItemsSource="{Binding Remote.Sources}"
+                      KeyboardNavigation.DirectionalNavigation="Contained"
+                      KeyboardNavigation.TabNavigation="Once">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type vm:SourceChipViewModel}">
+                    <RadioButton AutomationProperties.Name="{Binding AutomationName}"
+                                 GroupName="ExtractionSource"
+                                 IsChecked="{Binding IsSelected}"
+                                 Style="{StaticResource FilterChip}">
+                        <AccessText Foreground="{Binding (TextElement.Foreground), RelativeSource={RelativeSource AncestorType=Border}}" Text="{Binding AccessLabel}" />
+                    </RadioButton>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <ContentControl Content="{Binding Remote.Banner}" Style="{StaticResource Banner.Slot}" />
+
+        <views:RemoteSourceView MinWidth="{StaticResource Size.ContentMaxWidth}"
+                                DataContext="{Binding Remote}"
+                                Visibility="{Binding IsRemote, Converter={StaticResource BoolToVisibility}}" />
+
+        <Border Style="{StaticResource Card}" Visibility="{Binding ShowLocalEmpty, Converter={StaticResource BoolToVisibility}}">
             <StackPanel HorizontalAlignment="Center">
                 <TextBlock Margin="{StaticResource Thickness.StackGap}"
                            HorizontalAlignment="Center"
@@ -368,7 +401,8 @@
                     <ListBox AutomationProperties.Name="{x:Static res:ExtractionStrings.DocumentsTitle}"
                              ItemsSource="{Binding Documents}"
                              SelectedItem="{Binding SelectedDocument}"
-                             Style="{StaticResource Documents.List}" />
+                             Style="{StaticResource Documents.List}"
+                             b:FocusRouter.Key="Documents" />
                 </StackPanel>
             </Border>
 

@@ -1,0 +1,341 @@
+<UserControl x:Class="Collector.Presentation.Views.RemoteSourceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:b="clr-namespace:Collector.Presentation.Behaviors"
+             xmlns:res="clr-namespace:Collector.Presentation.Resources"
+             xmlns:vm="clr-namespace:Collector.Presentation.ViewModels"
+             Focusable="False"
+             IsTabStop="False">
+    <UserControl.InputBindings>
+        <KeyBinding Key="F5" Command="{Binding LoadRepositoriesCommand}" />
+    </UserControl.InputBindings>
+    <UserControl.Resources>
+        <Style x:Key="Repository.Glyph" TargetType="TextBlock" BasedOn="{StaticResource Text.Glyph}">
+            <Setter Property="Text" Value="{x:Static res:Glyphs.Repository}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsPrivate}" Value="True">
+                    <Setter Property="Text" Value="{x:Static res:Glyphs.Lock}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="Repository.List" TargetType="ListBox" BasedOn="{StaticResource List.Master}">
+            <Setter Property="AlternationCount" Value="10000" />
+            <Setter Property="MaxHeight" Value="{StaticResource Size.RepoListMaxHeight}" />
+        </Style>
+
+        <Style x:Key="Repository.Surface" TargetType="Border">
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
+            <Setter Property="BorderThickness" Value="{StaticResource Thickness.Border}" />
+            <Setter Property="CornerRadius" Value="{StaticResource Radius.Control}" />
+        </Style>
+
+        <Style x:Key="Repository.ListState" TargetType="StackPanel">
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="{StaticResource Thickness.CardPadding}" />
+        </Style>
+
+        <DataTemplate DataType="{x:Type vm:RemoteRepositoryRowViewModel}">
+            <StackPanel>
+                <Border Style="{StaticResource Divider}"
+                        Visibility="{Binding (ItemsControl.AlternationIndex), RelativeSource={RelativeSource AncestorType=ListBoxItem}, Converter={StaticResource NotZeroToVisibility}}" />
+                <Grid MinHeight="{StaticResource Size.RowMin}" Margin="{StaticResource Thickness.RowPadding}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0"
+                               Margin="{StaticResource Thickness.InlineGapLarge}"
+                               Style="{StaticResource Repository.Glyph}" />
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource Text.Label}"
+                                   Text="{Binding Name}"
+                                   TextTrimming="CharacterEllipsis"
+                                   TextWrapping="NoWrap" />
+                        <TextBlock Style="{StaticResource Text.Caption}"
+                                   TextTrimming="CharacterEllipsis"
+                                   TextWrapping="NoWrap">
+                            <Run Text="{Binding FullName, Mode=OneWay}" />
+                            <Run Text=" · " />
+                            <Run FontFamily="{StaticResource Font.Icon}" Text="{x:Static res:Glyphs.Branch}" />
+                            <Run Text="{Binding DefaultBranch, Mode=OneWay}" />
+                            <Run Text=" · " />
+                            <Run Text="{Binding SizeText, Mode=OneWay}" />
+                        </TextBlock>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal">
+                        <Border Style="{StaticResource Tag.Surface.Warning}"
+                                Visibility="{Binding IsPrivate, Converter={StaticResource BoolToVisibility}}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource Tag.Glyph}" Text="{x:Static res:Glyphs.Lock}" />
+                                <TextBlock Style="{StaticResource Tag.Label}" Text="{x:Static res:RemoteSourceStrings.PrivateTag}" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource Tag.Surface.Danger}"
+                                Visibility="{Binding IsTooBig, Converter={StaticResource BoolToVisibility}}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource Tag.Glyph}" Text="{x:Static res:Glyphs.Warning}" />
+                                <TextBlock Style="{StaticResource Tag.Label}" Text="{Binding OverLimitTag}" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <StackPanel>
+        <Border Margin="{StaticResource Thickness.StackGap}"
+                Style="{StaticResource Card}"
+                Visibility="{Binding ShowForm, Converter={StaticResource BoolToVisibility}}">
+            <StackPanel IsEnabled="{Binding AreControlsEnabled}">
+                <StackPanel Margin="{StaticResource Thickness.StackGap}" Orientation="Horizontal">
+                    <TextBlock Margin="{StaticResource Thickness.InlineGapLarge}"
+                               Style="{StaticResource Text.Glyph.Header}"
+                               Text="{x:Static res:Glyphs.Repository}" />
+                    <TextBlock AutomationProperties.HeadingLevel="Level2"
+                               Style="{StaticResource Text.Subtitle}"
+                               Text="{x:Static res:RemoteSourceStrings.RepositoryCard}" />
+                </StackPanel>
+
+                <Grid Visibility="{Binding IsAzure, Converter={StaticResource BoolToVisibility}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <HeaderedContentControl Grid.Column="0"
+                                            Header="{x:Static res:RemoteSourceStrings.OrganizationLabel}"
+                                            Style="{StaticResource FormField}"
+                                            b:FieldState.Error="{Binding OrganizationError}"
+                                            b:FieldState.Helper="{x:Static res:RemoteSourceStrings.OrganizationHelper}">
+                        <TextBox AutomationProperties.HelpText="{Binding OrganizationError}"
+                                 AutomationProperties.Name="{x:Static res:RemoteSourceStrings.OrganizationName}"
+                                 Style="{StaticResource TextBox.Field}"
+                                 Text="{Binding OrganizationText, UpdateSourceTrigger=PropertyChanged}"
+                                 b:FieldState.HasError="{Binding OrganizationError, Converter={StaticResource NotEmptyToBool}}"
+                                 b:FocusRouter.Key="RemoteOrganization">
+                            <TextBox.InputBindings>
+                                <KeyBinding Key="Enter" Command="{Binding LoadRepositoriesCommand}" />
+                            </TextBox.InputBindings>
+                        </TextBox>
+                    </HeaderedContentControl>
+                    <Button Grid.Column="1"
+                            Margin="{StaticResource Thickness.LeadingGap}"
+                            VerticalAlignment="Top"
+                            AutomationProperties.Name="{x:Static res:RemoteSourceStrings.LoadRepositoriesName}"
+                            Command="{Binding LoadRepositoriesCommand}"
+                            Content="{x:Static res:RemoteSourceStrings.LoadRepositories}"
+                            Style="{StaticResource Button.Secondary}" />
+                </Grid>
+
+                <StackPanel Visibility="{Binding IsListLoading, Converter={StaticResource BoolToVisibility}}">
+                    <ProgressBar Margin="{StaticResource Thickness.StackGap}"
+                                 AutomationProperties.Name="{x:Static res:RemoteSourceStrings.LoadingRepositories}"
+                                 Style="{StaticResource Progress.Thin}" />
+                    <TextBlock Style="{StaticResource Text.Caption}" Text="{x:Static res:RemoteSourceStrings.LoadingRepositories}" />
+                </StackPanel>
+
+                <Border Style="{StaticResource Repository.Surface}"
+                        Visibility="{Binding ShowEmptyList, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel Style="{StaticResource Repository.ListState}">
+                        <TextBlock Margin="{StaticResource Thickness.StackGap}"
+                                   HorizontalAlignment="Center"
+                                   FontFamily="{StaticResource Font.Icon}"
+                                   FontSize="28"
+                                   Foreground="{DynamicResource Brush.Text.Muted}"
+                                   Text="{x:Static res:Glyphs.Repository}" />
+                        <TextBlock HorizontalAlignment="Center"
+                                   Style="{StaticResource Text.Label}"
+                                   Text="{x:Static res:RemoteSourceStrings.EmptyTitle}" />
+                        <TextBlock Margin="{StaticResource Thickness.StackGap}"
+                                   HorizontalAlignment="Center"
+                                   Style="{StaticResource Text.Helper}"
+                                   Text="{Binding EmptyText}"
+                                   TextAlignment="Center" />
+                        <Button HorizontalAlignment="Center"
+                                AutomationProperties.Name="{x:Static res:RemoteSourceStrings.Reload}"
+                                Command="{Binding LoadRepositoriesCommand}"
+                                Content="{x:Static res:RemoteSourceStrings.Reload}"
+                                Style="{StaticResource Button.Secondary}" />
+                    </StackPanel>
+                </Border>
+
+                <Grid Visibility="{Binding HasRepositories, Converter={StaticResource BoolToVisibility}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <HeaderedContentControl Grid.Column="0"
+                                            Header="{x:Static res:RemoteSourceStrings.SearchLabel}"
+                                            Style="{StaticResource FormField}">
+                        <Grid>
+                            <TextBox AutomationProperties.Name="{x:Static res:RemoteSourceStrings.SearchName}"
+                                     Padding="12,8,40,8"
+                                     Style="{StaticResource TextBox.Field}"
+                                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="{x:Static res:RemoteSourceStrings.SearchPlaceholder}"
+                                     b:FocusRouter.Key="RemoteSearch" />
+                            <TextBlock Margin="{StaticResource Thickness.LeadingGap}"
+                                       HorizontalAlignment="Right"
+                                       IsHitTestVisible="False"
+                                       Style="{StaticResource Text.Glyph}"
+                                       Text="{x:Static res:Glyphs.Search}" />
+                        </Grid>
+                    </HeaderedContentControl>
+                    <Button Grid.Column="1"
+                            Margin="{StaticResource Thickness.LeadingGap}"
+                            VerticalAlignment="Bottom"
+                            AutomationProperties.Name="{x:Static res:RemoteSourceStrings.Reload}"
+                            Command="{Binding LoadRepositoriesCommand}"
+                            Content="{x:Static res:Glyphs.Refresh}"
+                            Style="{StaticResource Button.Icon}"
+                            ToolTip="{x:Static res:RemoteSourceStrings.Reload}" />
+                </Grid>
+                <TextBlock Margin="{StaticResource Thickness.StackGap}"
+                           AutomationProperties.LiveSetting="Polite"
+                           Style="{StaticResource Text.Caption}"
+                           Text="{Binding ShowingText}"
+                           Visibility="{Binding HasRepositories, Converter={StaticResource BoolToVisibility}}" />
+
+                <Border Style="{StaticResource Repository.Surface}"
+                        Visibility="{Binding ShowNoMatch, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel Style="{StaticResource Repository.ListState}">
+                        <TextBlock HorizontalAlignment="Center"
+                                   Style="{StaticResource Text.Helper}"
+                                   Text="{Binding NoMatchText}" />
+                        <Button HorizontalAlignment="Center"
+                                AutomationProperties.Name="{x:Static res:RemoteSourceStrings.ClearSearch}"
+                                Command="{Binding ClearSearchCommand}"
+                                Content="{x:Static res:RemoteSourceStrings.ClearSearch}"
+                                Style="{StaticResource Button.Link}" />
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Repository.Surface}"
+                        Visibility="{Binding ShowRepositoryList, Converter={StaticResource BoolToVisibility}}">
+                    <ListBox AutomationProperties.Name="{x:Static res:RemoteSourceStrings.RepositoriesName}"
+                             ItemsSource="{Binding Repositories}"
+                             SelectedItem="{Binding SelectedRepository}"
+                             Style="{StaticResource Repository.List}"
+                             b:FocusRouter.Key="RemoteRepositories" />
+                </Border>
+
+                <StackPanel Visibility="{Binding HasRepositories, Converter={StaticResource BoolToVisibility}}">
+                    <HeaderedContentControl Header="{x:Static res:RemoteSourceStrings.BranchLabel}" Style="{StaticResource FormField}">
+                        <StackPanel HorizontalAlignment="Left">
+                            <ComboBox MinWidth="{StaticResource Size.ComboMin}"
+                                      AutomationProperties.Name="{x:Static res:RemoteSourceStrings.BranchName}"
+                                      DisplayMemberPath="DisplayName"
+                                      IsEnabled="{Binding ShowBranchField}"
+                                      ItemsSource="{Binding Branches}"
+                                      SelectedItem="{Binding SelectedBranch}" />
+                            <StackPanel Visibility="{Binding IsLoadingBranches, Converter={StaticResource BoolToVisibility}}">
+                                <ProgressBar Margin="{StaticResource Thickness.HelperGap}"
+                                             AutomationProperties.Name="{x:Static res:RemoteSourceStrings.LoadingBranches}"
+                                             Style="{StaticResource Progress.Thin}" />
+                                <TextBlock Style="{StaticResource Text.Caption}" Text="{x:Static res:RemoteSourceStrings.LoadingBranches}" />
+                            </StackPanel>
+                            <TextBlock Margin="{StaticResource Thickness.HelperGap}"
+                                       FontFamily="{StaticResource Font.Mono}"
+                                       Style="{StaticResource Text.Caption}"
+                                       Text="{Binding CommitText}"
+                                       Visibility="{Binding HasCommit, Converter={StaticResource BoolToVisibility}}" />
+                        </StackPanel>
+                    </HeaderedContentControl>
+                    <StackPanel Orientation="Horizontal">
+                        <Button MinHeight="{StaticResource Size.RowAction}"
+                                Margin="{StaticResource Thickness.InlineGapLarge}"
+                                VerticalAlignment="Center"
+                                AutomationProperties.HelpText="{Binding FetchHelp}"
+                                AutomationProperties.Name="{x:Static res:RemoteSourceStrings.FetchName}"
+                                Command="{Binding FetchCommand}"
+                                Content="{x:Static res:RemoteSourceStrings.Fetch}"
+                                Style="{StaticResource Button.Primary}"
+                                ToolTip="{Binding FetchHelp}"
+                                ToolTipService.ShowOnDisabled="True" />
+                        <TextBlock MaxWidth="{StaticResource Size.ContentMaxWidth}"
+                                   VerticalAlignment="Center"
+                                   Text="{Binding FetchHelp}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource Text.Helper}">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding FetchHelpIsError}" Value="True">
+                                            <Setter Property="Foreground" Value="{DynamicResource Brush.Danger}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <Border Margin="{StaticResource Thickness.StackGap}"
+                Style="{StaticResource Card}"
+                Visibility="{Binding HasSummary, Converter={StaticResource BoolToVisibility}}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0"
+                           Margin="{StaticResource Thickness.InlineGapLarge}"
+                           Style="{StaticResource Text.Glyph}"
+                           Text="{x:Static res:Glyphs.Repository}" />
+                <StackPanel Grid.Column="1"
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name="{Binding Summary.AutomationName}">
+                    <TextBlock Style="{StaticResource Text.Label}" Text="{Binding Summary.Repository}" />
+                    <TextBlock Style="{StaticResource Text.Caption}"
+                               Text="{Binding Summary.Detail}"
+                               TextWrapping="Wrap" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal">
+                    <Button Margin="{StaticResource Thickness.InlineGapLarge}"
+                            AutomationProperties.Name="{x:Static res:RemoteSourceStrings.FetchAgain}"
+                            Command="{Binding FetchAgainCommand}"
+                            Content="{x:Static res:RemoteSourceStrings.FetchAgain}"
+                            Style="{StaticResource Button.Secondary}" />
+                    <Button AutomationProperties.Name="{x:Static res:RemoteSourceStrings.ChangeRepository}"
+                            Command="{Binding ChangeRepositoryCommand}"
+                            Content="{x:Static res:RemoteSourceStrings.ChangeRepository}"
+                            Style="{StaticResource Button.Link}" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <Border Margin="{StaticResource Thickness.StackGap}"
+                Style="{StaticResource Card}"
+                Visibility="{Binding IsFetching, Converter={StaticResource BoolToVisibility}}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock Margin="{StaticResource Thickness.StackGap}"
+                               Style="{StaticResource Text.Label}"
+                               Text="{Binding FetchTitle}" />
+                    <ProgressBar Margin="{StaticResource Thickness.StackGap}"
+                                 AutomationProperties.Name="{x:Static res:RemoteSourceStrings.ProgressName}"
+                                 IsIndeterminate="{Binding IsProgressIndeterminate}"
+                                 Maximum="{Binding ProgressMaximum, Mode=OneWay}"
+                                 Style="{StaticResource Progress.Thin}"
+                                 Value="{Binding ProgressValue, Mode=OneWay}" />
+                    <TextBlock Style="{StaticResource Text.Caption}" Text="{Binding ProgressText}" />
+                </StackPanel>
+                <Button Grid.Column="1"
+                        Margin="{StaticResource Thickness.LeadingGap}"
+                        VerticalAlignment="Center"
+                        AutomationProperties.Name="{x:Static res:RemoteSourceStrings.CancelName}"
+                        Command="{Binding FetchCancelCommand}"
+                        Content="{x:Static res:RemoteSourceStrings.Cancel}"
+                        Style="{StaticResource Button.Secondary}"
+                        b:FocusRouter.Key="RemoteCancel" />
+            </Grid>
+        </Border>
+    </StackPanel>
+</UserControl>

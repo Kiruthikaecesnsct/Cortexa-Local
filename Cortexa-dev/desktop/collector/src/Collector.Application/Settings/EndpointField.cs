@@ -4,6 +4,7 @@ public enum EndpointField
 {
     GatewayUrl,
     CollectorServerUrl,
+    AzureDevOpsOrganization,
 }
 
 public sealed record SettingsSaveResult(EndpointField? Field, string? Reason)

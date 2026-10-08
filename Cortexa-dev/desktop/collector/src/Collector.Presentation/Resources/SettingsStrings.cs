@@ -82,28 +82,56 @@ public static class SettingsStrings
     public const string KeyClearFailed = "Couldn't remove the key from Windows Credential Manager. Try again.";
     public const string Cancel = "Cancel";
 
-    public static string EditorLabel(string provider) => $"New {provider} API key";
+    public const string RepositoryTitle = "Repository access";
 
-    public static string KeySaved(string provider) => $"{provider} key saved.";
+    public const string RepositoryIntro =
+        "Personal access tokens for fetching code from GitHub and Azure DevOps. They are stored in Windows Credential Manager on this computer and are never shown again after you save them.";
 
-    public static string KeyCleared(string provider) => $"{provider} key cleared.";
+    public const string GitHubName = "GitHub";
+    public const string GitHubDescription = "Lists and fetches your GitHub repositories.";
+    public const string GitHubHint = "Classic token: repo scope. Fine-grained token: Contents (Read) and Metadata (Read).";
+    public const string AzureDevOpsName = "Azure DevOps";
+    public const string AzureDevOpsDescription = "Lists and fetches repositories in Azure Repos.";
 
-    public static string ConfirmClear(string provider, string runs) =>
-        $"Remove the {provider} key from this computer? {runs} runs won't work until you add a key again.";
+    public const string AzureDevOpsHint =
+        "Scope: Code (Read). Create it in the organization you fetch from, or for all accessible organizations.";
 
-    public static string ChipName(string provider, string state) => $"{provider} key: {state}";
+    public const string AddToken = "Add token";
+    public const string SaveToken = "Save token";
+    public const string ClearToken = "Clear token";
+    public const string KeepToken = "Keep token";
+    public const string TokenEditorHelper = "Paste the token from your account settings. It won't be shown again.";
+    public const string PasteTokenFirst = "Paste the token first.";
 
-    public static string AddName(string provider) => $"Add {provider} key";
+    public const string TokenTooLong =
+        "This token is too long to store (limit 2,560 bytes). Check that you pasted only the token.";
 
-    public static string ReplaceName(string provider) => $"Replace {provider} key";
+    public const string TokenSaveFailed = "Couldn't save the token to Windows Credential Manager. Try again.";
+    public const string TokenClearFailed = "Couldn't remove the token from Windows Credential Manager. Try again.";
+    public const string TokenStatusUnknownHelper = "Couldn't read the token status. Reopen Settings to try again.";
 
-    public static string ClearName(string provider) => $"Clear {provider} key";
+    public static string EditorLabel(string provider, string editorNoun) => $"New {provider} {editorNoun}";
 
-    public static string SaveKeyName(string provider) => $"Save {provider} key";
+    public static string CredentialSaved(string provider, string noun) => $"{provider} {noun} saved.";
 
-    public static string CancelKeyName(string provider) => $"Cancel {provider} key entry";
+    public static string CredentialCleared(string provider, string noun) => $"{provider} {noun} cleared.";
 
-    public static string ConfirmClearName(string provider) => $"Confirm clear {provider} key";
+    public static string ConfirmClear(string provider, string runs, string noun) =>
+        $"Remove the {provider} {noun} from this computer? {runs} won't work until you add a {noun} again.";
 
-    public static string KeepName(string provider) => $"Keep {provider} key";
+    public static string ChipName(string provider, string noun, string state) => $"{provider} {noun}: {state}";
+
+    public static string AddName(string provider, string noun) => $"Add {provider} {noun}";
+
+    public static string ReplaceName(string provider, string noun) => $"Replace {provider} {noun}";
+
+    public static string ClearName(string provider, string noun) => $"Clear {provider} {noun}";
+
+    public static string SaveCredentialName(string provider, string noun) => $"Save {provider} {noun}";
+
+    public static string CancelEntryName(string provider, string noun) => $"Cancel {provider} {noun} entry";
+
+    public static string ConfirmClearName(string provider, string noun) => $"Confirm clear {provider} {noun}";
+
+    public static string KeepName(string provider, string noun) => $"Keep {provider} {noun}";
 }

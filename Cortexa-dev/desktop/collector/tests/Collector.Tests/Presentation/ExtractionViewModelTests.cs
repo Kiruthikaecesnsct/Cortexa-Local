@@ -17,6 +17,7 @@ public sealed class ExtractionViewModelTests : IDisposable
     private readonly InMemoryUnitStore _unitStore = new();
     private readonly ExtractionService _extractionService;
     private readonly KnowledgeHarness _knowledge = new();
+    private readonly RemoteSourceHarness _remote = new();
 
     public ExtractionViewModelTests()
     {
@@ -53,7 +54,12 @@ public sealed class ExtractionViewModelTests : IDisposable
 
     private ExtractionViewModel CreateViewModel(params string[] paths) =>
         new(
-            new ExtractionDependencies(_extractionService, _unitStore, new FakeFilePicker(paths), NullLogger<ExtractionViewModel>.Instance),
+            new ExtractionDependencies(
+                _extractionService,
+                _unitStore,
+                new FakeFilePicker(paths),
+                _remote.ViewModel,
+                NullLogger<ExtractionViewModel>.Instance),
             _knowledge.ViewModel,
             new TokenEstimationDependencies(
                 new TokenEstimator(KnowledgePipeline.Builder(), new WordCountTokenCounter()),

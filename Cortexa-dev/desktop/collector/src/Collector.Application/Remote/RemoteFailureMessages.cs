@@ -17,6 +17,8 @@ public static class RemoteFailureMessages
             RemoteFailureKind.EmptyRepository => "This repository has no files on the selected branch.",
             RemoteFailureKind.RateLimited => $"{name} rate limit reached. Try again after the limit resets.",
             RemoteFailureKind.RepositoryTooLarge => "This repository is too large to collect.",
+            RemoteFailureKind.FingerprintMismatch =>
+                $"The {name} host key fingerprint does not match the pinned fingerprint. Refusing to connect.",
             _ => $"{name} could not be reached or returned an unexpected response.",
         };
     }
@@ -25,6 +27,7 @@ public static class RemoteFailureMessages
     {
         SourceType.Github => "GitHub",
         SourceType.AzureDevops => "Azure DevOps",
+        SourceType.Ssh => "SSH",
         _ => provider.ToString(),
     };
 }

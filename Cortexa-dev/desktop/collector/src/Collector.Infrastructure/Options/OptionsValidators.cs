@@ -242,6 +242,7 @@ public sealed class RemoteSourceOptionsValidator : IValidateOptions<RemoteSource
         var failures = new List<string>();
         CheckProvider(failures, "GitHub", options.GitHub);
         CheckProvider(failures, "AzureDevOps", options.AzureDevOps);
+        CheckSsh(failures, options.Ssh);
         CheckPositive(failures, nameof(options.TimeoutSeconds), options.TimeoutSeconds);
         CheckPositive(failures, nameof(options.MaxPages), options.MaxPages);
         CheckPositive(failures, $"RateLimit:{nameof(options.RateLimit.MaxPauseSeconds)}", options.RateLimit.MaxPauseSeconds);
@@ -254,6 +255,18 @@ public sealed class RemoteSourceOptionsValidator : IValidateOptions<RemoteSource
         }
 
         return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
+    }
+
+    private static void CheckSsh(List<string> failures, SshSourceOptions options)
+    {
+        const string Prefix = $"{RemoteSourceOptions.SectionName}:Ssh";
+        if (options.DefaultPort is <= 0 or > 65535)
+        {
+            failures.Add($"{Prefix}:{nameof(options.DefaultPort)} must be between 1 and 65535.");
+        }
+
+        CheckPositive(failures, $"Ssh:{nameof(options.ConnectTimeoutSeconds)}", options.ConnectTimeoutSeconds);
+        CheckPositive(failures, $"Ssh:{nameof(options.MaxWalkDepth)}", options.MaxWalkDepth);
     }
 
     private static void CheckProvider(List<string> failures, string provider, RemoteProviderOptions options)

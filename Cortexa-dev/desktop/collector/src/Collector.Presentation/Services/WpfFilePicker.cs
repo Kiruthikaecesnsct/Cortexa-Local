@@ -18,4 +18,18 @@ public sealed class WpfFilePicker : IFilePicker
         IReadOnlyList<string> files = picked ? dialog.FileNames : [];
         return Task.FromResult(files);
     }
+
+    public Task<string?> PickSingleFileAsync(string dialogTitle, string filter, CancellationToken cancellationToken)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = dialogTitle,
+            Filter = filter,
+            Multiselect = false,
+            CheckFileExists = true,
+        };
+        var picked = dialog.ShowDialog() == true;
+        string? file = picked ? dialog.FileName : null;
+        return Task.FromResult(file);
+    }
 }

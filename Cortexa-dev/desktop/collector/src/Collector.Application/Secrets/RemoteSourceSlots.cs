@@ -8,6 +8,7 @@ public static class RemoteSourceSlots
     {
         SourceType.Github => SecretSlot.GitHubPat,
         SourceType.AzureDevops => SecretSlot.AzureDevOpsPat,
+        SourceType.Ssh => SecretSlot.SshPassphrase,
         _ => null,
     };
 }

@@ -109,6 +109,7 @@ internal sealed class RemoteSourceHarness
             RateLimits,
             Settings,
             Links,
+            Picker,
             Options.Create(new RemoteFetchOptions()));
         ViewModel = new RemoteSourceViewModel(
             dependencies,
@@ -132,6 +133,8 @@ internal sealed class RemoteSourceHarness
     public FakeRateLimitMonitor RateLimits { get; } = new();
 
     public FakeLinkLauncher Links { get; } = new();
+
+    public FakeFilePicker Picker { get; } = new([]);
 
     public FakeNavigationService Navigation { get; } = new();
 

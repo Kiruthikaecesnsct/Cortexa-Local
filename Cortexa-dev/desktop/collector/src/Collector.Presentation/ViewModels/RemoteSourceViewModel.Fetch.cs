@@ -15,11 +15,12 @@ public sealed partial class RemoteSourceViewModel
 
     public bool IsPaused => _isPaused;
 
-    private bool CanFetch() =>
-        AreControlsEnabled
-        && !IsLoadingBranches
-        && SelectedRepository is { IsTooBig: false }
-        && SelectedBranch is not null;
+    private bool CanFetch() => SelectedSource == SourceType.Ssh
+        ? CanConnectSsh()
+        : AreControlsEnabled
+            && !IsLoadingBranches
+            && SelectedRepository is { IsTooBig: false }
+            && SelectedBranch is not null;
 
     [RelayCommand(CanExecute = nameof(CanFetch), IncludeCancelCommand = true)]
     private async Task FetchAsync(CancellationToken cancellationToken)
@@ -190,7 +191,12 @@ public sealed partial class RemoteSourceViewModel
         FilesFetched?.Invoke(this, new RemoteFilesFetchedEventArgs(result.LocalPaths, result.Source, origin));
     }
 
-    private static RemoteFetchSummary BuildSummary(RemoteFetchRequest request, RemoteFetchResult result)
+    private RemoteFetchSummary BuildSummary(RemoteFetchRequest request, RemoteFetchResult result) =>
+        SelectedSource == SourceType.Ssh
+            ? BuildSshSummary(request, result)
+            : BuildDefaultSummary(request, result);
+
+    private static RemoteFetchSummary BuildDefaultSummary(RemoteFetchRequest request, RemoteFetchResult result)
     {
         var commit = result.CommitSha.Length > 7 ? result.CommitSha[..7] : result.CommitSha;
         var counts = RemoteSourceStrings.Summary(result.Downloaded, result.CacheHits, result.SkippedByFilter, result.TooLarge);

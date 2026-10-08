@@ -11,4 +11,5 @@ public enum RemoteFailureKind
     RateLimited,
     RepositoryTooLarge,
     Upstream,
+    FingerprintMismatch,
 }

@@ -1,3 +1,4 @@
+using Collector.Application.Upload;
 using Collector.Domain.Upload;
 
 namespace Collector.Application.Ports;
@@ -5,7 +6,7 @@ namespace Collector.Application.Ports;
 public interface IKnowledgeUploadClient
 {
     Task<KnowledgeUploadResult> UploadAsync(
-        KnowledgeUploadRequest request,
+        UploadPayload payload,
         string idempotencyKey,
         CancellationToken cancellationToken);
 }

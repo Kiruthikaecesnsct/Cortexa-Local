@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:b="clr-namespace:Collector.Presentation.Behaviors"
              xmlns:res="clr-namespace:Collector.Presentation.Resources"
+             xmlns:views="clr-namespace:Collector.Presentation.Views"
              xmlns:vm="clr-namespace:Collector.Presentation.ViewModels"
              b:FocusRouter.IsHost="True"
              Focusable="False"
@@ -193,6 +194,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
@@ -217,13 +219,16 @@
                            TextTrimming="CharacterEllipsis" />
                 <Button Grid.Column="2"
                         AutomationProperties.Name="{x:Static res:HistoryStrings.Refresh}"
+                        b:FocusRouter.Key="Refresh"
                         Command="{Binding RefreshCommand}"
                         Content="{x:Static res:Glyphs.Refresh}"
                         Style="{StaticResource Button.Icon}"
                         ToolTip="{x:Static res:HistoryStrings.RefreshTip}" />
             </Grid>
 
-            <Grid Grid.Row="2" Margin="{StaticResource Thickness.StackGap}">
+            <views:FailedUploadsView Grid.Row="2" DataContext="{Binding FailedUploads}" />
+
+            <Grid Grid.Row="3" Margin="{StaticResource Thickness.StackGap}">
                 <Border VerticalAlignment="Top"
                         Style="{StaticResource Card}"
                         Visibility="{Binding ShowLoading, Converter={StaticResource BoolToVisibility}}">

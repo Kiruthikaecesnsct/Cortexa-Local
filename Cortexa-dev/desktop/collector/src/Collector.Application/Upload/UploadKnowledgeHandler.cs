@@ -1,18 +1,17 @@
 using Collector.Application.Knowledge;
 using Collector.Application.Ports;
 using Collector.Domain.Documents;
+using Collector.Domain.Enums;
 using Collector.Domain.Upload;
-using Microsoft.Extensions.Logging;
 
 namespace Collector.Application.Upload;
 
 public sealed class UploadKnowledgeHandler(
     IDocumentStore documentStore,
     IBatchStore batchStore,
-    IKnowledgeUploadClient uploadClient,
+    BatchSender sender,
     UploadBatchPlanner planner,
-    TimeProvider timeProvider,
-    ILogger<UploadKnowledgeHandler> logger)
+    TimeProvider timeProvider)
 {
     public async Task<UploadSession> PrepareAsync(UploadRequest request, CancellationToken cancellationToken)
     {
@@ -44,7 +43,7 @@ public sealed class UploadKnowledgeHandler(
             records.AddRange(await PersistAsync(plan, request, promptVersion, cancellationToken));
         }
 
-        return new UploadSession(records, blocked, uploadClient, batchStore, logger);
+        return new UploadSession(records, blocked, sender);
     }
 
     private string BatchNameFor(UploadRequest request) =>
@@ -94,20 +93,38 @@ public sealed class UploadKnowledgeHandler(
         foreach (var planned in plan.Batches)
         {
             var key = Guid.CreateVersion7().ToString();
-            var stored = await batchStore.CreateAsync(NewBatchFor(planned, key, request, promptVersion), cancellationToken);
-            records.Add(new PlannedBatchRecord(planned, key, stored.Id));
+            var payload = UploadPayload.From(planned.Request);
+            var newBatch = NewBatchFor(planned, key, payload, request, promptVersion);
+            await SupersedeOpenFailureAsync(newBatch.DocumentIds, cancellationToken);
+            var stored = await batchStore.CreateAsync(newBatch, cancellationToken);
+            records.Add(new PlannedBatchRecord(planned, key, stored.Id, payload));
         }
 
         return records;
     }
 
-    private static NewBatch NewBatchFor(PlannedBatch planned, string key, UploadRequest request, string promptVersion) => new()
+    private async Task SupersedeOpenFailureAsync(IReadOnlyList<string> documentIds, CancellationToken cancellationToken)
     {
-        IdempotencyKey = key,
-        BatchName = planned.Request.BatchName,
-        Provider = request.Provider,
-        Model = request.Model,
-        PromptVersion = promptVersion,
-        DocumentIds = [.. planned.Request.Documents.Select(document => document.ClientDocumentId)],
-    };
+        var existing = await batchStore.FindByDocumentsAsync(documentIds, cancellationToken);
+        if (existing is { Status: BatchStatus.Failed, IsReplaced: false })
+        {
+            await batchStore.MarkReplacedAsync([existing.Id], cancellationToken);
+        }
+    }
+
+    private static NewBatch NewBatchFor(
+        PlannedBatch planned,
+        string key,
+        UploadPayload payload,
+        UploadRequest request,
+        string promptVersion) => new()
+        {
+            IdempotencyKey = key,
+            BatchName = planned.Request.BatchName,
+            Provider = request.Provider,
+            Model = request.Model,
+            PromptVersion = promptVersion,
+            DocumentIds = [.. planned.Request.Documents.Select(document => document.ClientDocumentId)],
+            Payload = payload,
+        };
 }

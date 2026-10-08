@@ -78,6 +78,7 @@ public static class CollectorHost
         services.AddSingleton<ILocalFileLauncher, ShellFileLauncher>();
         services.AddSingleton<HistoryPoller>();
         services.AddSingleton<HistoryServices>();
+        services.AddSingleton<FailedUploadsViewModel>();
         services.AddSingleton<ExtractionDependencies>();
         services.AddSingleton<ProviderOutputLimits>();
         services.AddSingleton<TokenEstimationDependencies>();

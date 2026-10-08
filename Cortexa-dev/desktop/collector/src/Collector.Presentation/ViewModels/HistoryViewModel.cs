@@ -45,8 +45,15 @@ public sealed partial class HistoryViewModel : FocusableViewModel, INavigationAw
     private RowChange _selectedChange;
     private string? _bannerKey;
 
-    public HistoryViewModel(HistoryServices services, HistoryPoller poller, INavigationService navigation)
+    public HistoryViewModel(
+        HistoryServices services,
+        HistoryPoller poller,
+        INavigationService navigation,
+        FailedUploadsViewModel failedUploads)
     {
+        FailedUploads = failedUploads;
+        failedUploads.BatchUploaded += OnBatchUploaded;
+        failedUploads.FocusRequested += (_, key) => RequestFocus(key);
         _services = services;
         _poller = poller;
         _navigation = navigation;
@@ -66,6 +73,8 @@ public sealed partial class HistoryViewModel : FocusableViewModel, INavigationAw
     }
 
     public ObservableCollection<HistoryBatchRowViewModel> Batches { get; }
+
+    public FailedUploadsViewModel FailedUploads { get; }
 
     public Task LoadTask { get; private set; } = Task.CompletedTask;
 
@@ -166,6 +175,19 @@ public sealed partial class HistoryViewModel : FocusableViewModel, INavigationAw
     }
 
     private async Task RunLoadAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await Task.WhenAll(FailedUploads.LoadAsync(cancellationToken), ReloadAsync(cancellationToken));
+        }
+        catch (OperationCanceledException)
+        {
+        }
+    }
+
+    private void OnBatchUploaded() => LoadTask = ReloadQuietlyAsync(_lifetime.Token);
+
+    private async Task ReloadQuietlyAsync(CancellationToken cancellationToken)
     {
         try
         {

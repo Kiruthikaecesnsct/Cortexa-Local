@@ -18,6 +18,17 @@ public static class HistoryStrings
     public const string LoadErrorBody = "Check your connection, then try again.";
     public const string RefreshErrorTitle = "Couldn't refresh history";
     public const string Retry = "Retry";
+    public const string Retrying = "Retrying…";
+    public const string Remove = "Remove";
+    public const string CantRetry = "Can't retry";
+    public const string FailedTag = "Failed";
+    public const string FailedTitle = "Failed uploads";
+    public const string FailedListName = "Failed uploads";
+
+    public const string FailedIntro =
+        "These batches didn't reach the server. Your items are saved on this computer. Retry sends them again without running the AI.";
+
+    public const string TerminalHelp = "Remove it, then upload these documents again from Review.";
 
     public const string EmptyTitle = "No batches yet";
     public const string EmptyBody =
@@ -71,6 +82,32 @@ public static class HistoryStrings
 
     public static string Polling(DateTimeOffset time, int seconds) =>
         $"Updating every {Seconds(seconds)} · Last updated {time:T}";
+
+    public static string FailedCount(int count) => count == 1 ? "1 batch" : $"{count} batches";
+
+    public static string Counts(int documents, int items) =>
+        $"{(documents == 1 ? "1 doc" : $"{documents} docs")} · {(items == 1 ? "1 item" : $"{items} items")}";
+
+    public static string FailedAt(DateTimeOffset time) => $"Failed {time:g}";
+
+    public static string RowDetail(string counts, string failedAt) => $"{counts} · {failedAt}";
+
+    public static string RetryName(string name) => $"Retry {name}";
+
+    public static string RetryingName(string name) => $"Retrying {name}";
+
+    public static string RemoveName(string name) => $"Remove {name}";
+
+    public static string AnnounceRetrying(string name) => $"Retrying {name}";
+
+    public static string AnnounceUploaded(string name) => $"{name} uploaded";
+
+    public static string AnnounceRetryFailed(string name, string error) => $"{name} didn't upload. {error}";
+
+    public static string AnnounceRemoved(string name) => $"{name} removed";
+
+    public static string FailedRowName(string name, string counts, string failedAt, string error) =>
+        $"{name}, failed upload, {counts}, {failedAt}, {error}";
 
     public static string Updated(DateTimeOffset time) => $"Last updated {time:T}";
 

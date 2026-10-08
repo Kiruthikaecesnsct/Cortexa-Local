@@ -3,7 +3,12 @@ using System.Text;
 
 namespace Collector.Tests.Support;
 
-internal sealed record CapturedRequest(HttpMethod Method, Uri? Uri, IReadOnlyDictionary<string, string> Headers, string Body);
+internal sealed record CapturedRequest(HttpMethod Method, Uri? Uri, IReadOnlyDictionary<string, string> Headers, string Body)
+{
+    public byte[] BodyBytes { get; init; } = [];
+
+    public string? ContentType { get; init; }
+}
 
 internal sealed class StubHttpHandler(Func<CapturedRequest, CancellationToken, Task<HttpResponseMessage>> respond) : HttpMessageHandler
 {
@@ -28,9 +33,14 @@ internal sealed class StubHttpHandler(Func<CapturedRequest, CancellationToken, T
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
+        var bytes = request.Content is null ? [] : await request.Content.ReadAsByteArrayAsync(cancellationToken);
         var body = request.Content is null ? string.Empty : await request.Content.ReadAsStringAsync(cancellationToken);
         var headers = request.Headers.ToDictionary(header => header.Key, header => string.Join(',', header.Value), StringComparer.OrdinalIgnoreCase);
-        var captured = new CapturedRequest(request.Method, request.RequestUri, headers, body);
+        var captured = new CapturedRequest(request.Method, request.RequestUri, headers, body)
+        {
+            BodyBytes = bytes,
+            ContentType = request.Content?.Headers.ContentType?.ToString(),
+        };
         lock (_requests)
         {
             _requests.Add(captured);

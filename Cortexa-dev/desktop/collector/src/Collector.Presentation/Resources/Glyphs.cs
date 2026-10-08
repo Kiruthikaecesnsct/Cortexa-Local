@@ -30,5 +30,6 @@ public static class Glyphs
     public const string CircleRing = "\uEA3A";
     public const string RadioBtnOn = "\uECCB";
     public const string OpenInNewWindow = "\uE8A7";
+    public const string Blocked = "\uE733";
 }
 

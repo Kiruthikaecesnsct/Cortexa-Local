@@ -59,6 +59,10 @@
     <Thickness x:Key="Thickness.ItemPadding">16,12,16,12</Thickness>
     <Thickness x:Key="Thickness.FooterPadding">16,12,16,12</Thickness>
     <Thickness x:Key="Thickness.LinkIndent">52,0,16,16</Thickness>
+    <Thickness x:Key="Thickness.TopBorder">0,1,0,0</Thickness>
+    <Thickness x:Key="Thickness.FailedHeader">24,16,24,0</Thickness>
+    <Thickness x:Key="Thickness.FailedIntro">24,4,24,8</Thickness>
+    <Thickness x:Key="Thickness.FailedRow">24,12,24,12</Thickness>
 
     <sys:Double x:Key="Size.Control">40</sys:Double>
     <sys:Double x:Key="Size.NavItem">44</sys:Double>
@@ -91,6 +95,8 @@
     <sys:Double x:Key="Size.SummaryLineHeight">20</sys:Double>
     <sys:Double x:Key="Size.SummaryMaxHeight">40</sys:Double>
     <sys:Double x:Key="Size.BatchPane">300</sys:Double>
+    <sys:Double x:Key="Size.FailedListMaxHeight">288</sys:Double>
+    <sys:Double x:Key="Size.LiveRegion">1</sys:Double>
     <sys:Double x:Key="Size.MetricMinWidth">64</sys:Double>
 
     <CornerRadius x:Key="Radius.Control">8</CornerRadius>

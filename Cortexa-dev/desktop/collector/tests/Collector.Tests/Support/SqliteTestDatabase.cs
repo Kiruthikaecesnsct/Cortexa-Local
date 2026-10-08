@@ -1,4 +1,6 @@
 using Collector.Application.Ports;
+using Collector.Application.Upload;
+using Collector.Domain.Upload;
 using Collector.Infrastructure.Cache;
 using Collector.Infrastructure.Options;
 using Microsoft.Data.Sqlite;
@@ -31,7 +33,7 @@ internal sealed class SqliteTestDatabase : IDisposable
     public static async Task<SqliteTestDatabase> CreateAsync()
     {
         var database = new SqliteTestDatabase();
-        var initializer = new SqliteCacheInitializer(database.Connections, NullLogger<SqliteCacheInitializer>.Instance);
+        var initializer = new SqliteCacheInitializer(database.Connections, database.Batches, NullLogger<SqliteCacheInitializer>.Instance);
         await initializer.InitializeAsync(TestSupport.Ct);
         return database;
     }
@@ -54,6 +56,14 @@ internal sealed class SqliteTestDatabase : IDisposable
         Model = "claude-test",
         PromptVersion = "knowledge.v1",
         DocumentIds = documentIds,
+        Payload = UploadPayload.From(SampleRequest(key, documentIds)),
+    };
+
+    public static KnowledgeUploadRequest SampleRequest(string key, params string[] documentIds) => new()
+    {
+        BatchName = $"Batch {key}",
+        Collector = UploadData.Collector,
+        Documents = [.. documentIds.Select(id => UploadData.Document(id))],
     };
 
     public void Dispose()

@@ -36,7 +36,7 @@ public sealed class SqliteUnitStoreTests : IDisposable
 
     private async Task<string> SeedDocumentAsync()
     {
-        var initializer = new SqliteCacheInitializer(_factory, NullLogger<SqliteCacheInitializer>.Instance);
+        var initializer = new SqliteCacheInitializer(_factory, new SqliteBatchStore(_factory, TimeProvider.System), NullLogger<SqliteCacheInitializer>.Instance);
         await initializer.InitializeAsync(TestSupport.Ct);
         var document = await _documentStore.UpsertAsync(
             SourceType.Local, SourceKind.Paper, "C:/docs/a.pdf", "a.pdf", "hash-1", 1024, TestSupport.Ct);

@@ -1,7 +1,9 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Collector.Application.Ports;
+using Collector.Application.Upload;
 using Collector.Domain.Serialization;
 using Collector.Domain.Upload;
 using Collector.Infrastructure.Http;
@@ -18,13 +20,15 @@ public sealed class CollectorUploadClient(
 {
     private const string UploadPath = "collector/batches/knowledge";
     private const string IdempotencyHeader = "Idempotency-Key";
+    private const string JsonMediaType = "application/json";
+    private const string Utf8 = "utf-8";
 
     public async Task<KnowledgeUploadResult> UploadAsync(
-        KnowledgeUploadRequest request,
+        UploadPayload payload,
         string idempotencyKey,
         CancellationToken cancellationToken)
     {
-        using var message = CreateMessage(request, idempotencyKey);
+        using var message = CreateMessage(payload, idempotencyKey);
         try
         {
             var client = httpClientFactory.CreateClient(HttpClientNames.CollectorServer);
@@ -43,15 +47,22 @@ public sealed class CollectorUploadClient(
         }
     }
 
-    private HttpRequestMessage CreateMessage(KnowledgeUploadRequest request, string idempotencyKey)
+    private HttpRequestMessage CreateMessage(UploadPayload payload, string idempotencyKey)
     {
         var baseUrl = server.CurrentValue.BaseUrl.TrimEnd('/');
         var message = new HttpRequestMessage(HttpMethod.Post, new Uri($"{baseUrl}/{UploadPath}"))
         {
-            Content = JsonContent.Create(request, options: CollectorJson.Options),
+            Content = JsonBody(payload),
         };
         message.Headers.TryAddWithoutValidation(IdempotencyHeader, idempotencyKey);
         return message;
+    }
+
+    private static ByteArrayContent JsonBody(UploadPayload payload)
+    {
+        var content = new ByteArrayContent(payload.Body);
+        content.Headers.ContentType = new MediaTypeHeaderValue(JsonMediaType) { CharSet = Utf8 };
+        return content;
     }
 
     private static async Task<KnowledgeUploadResult> ReadAsync(

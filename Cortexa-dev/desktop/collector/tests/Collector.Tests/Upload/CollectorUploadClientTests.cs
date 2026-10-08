@@ -1,5 +1,6 @@
 using System.Net;
 using Collector.Application.Ports;
+using Collector.Application.Upload;
 using Collector.Domain.Upload;
 using Collector.Infrastructure.Options;
 using Collector.Infrastructure.Upload;
@@ -21,26 +22,42 @@ public sealed class CollectorUploadClientTests
         Documents = [UploadData.Document("doc-1")],
     };
 
+    private static readonly UploadPayload Payload = UploadPayload.From(Request);
+
     private static CollectorUploadClient Client(StubHttpHandler handler) => new(
         new StubHttpClientFactory(handler),
         new StaticMonitor<CollectorServerOptions>(new CollectorServerOptions { BaseUrl = BaseUrl }),
         NullLogger<CollectorUploadClient>.Instance);
 
     private static async Task<KnowledgeUploadException> FailureAsync(StubHttpHandler handler) =>
-        await Assert.ThrowsAsync<KnowledgeUploadException>(() => Client(handler).UploadAsync(Request, Key, TestSupport.Ct));
+        await Assert.ThrowsAsync<KnowledgeUploadException>(() => Client(handler).UploadAsync(Payload, Key, TestSupport.Ct));
 
     [Fact]
     public async Task UploadAsync_Request_PostsJsonWithIdempotencyKeyToKnowledgeEndpoint()
     {
         var handler = StubHttpHandler.Returning(HttpStatusCode.Created, ResultJson);
 
-        await Client(handler).UploadAsync(Request, Key, TestSupport.Ct);
+        await Client(handler).UploadAsync(Payload, Key, TestSupport.Ct);
 
         var sent = Assert.Single(handler.Requests);
         Assert.Equal(HttpMethod.Post, sent.Method);
         Assert.Equal("https://server.example/collector/batches/knowledge", sent.Uri!.ToString());
         Assert.Equal(Key, sent.Headers["Idempotency-Key"]);
         Assert.Contains("\"batch_name\":\"Weekly upload\"", sent.Body, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task UploadAsync_Payload_SendsStoredBytesVerbatimWithJsonUtf8ContentType()
+    {
+        var handler = StubHttpHandler.Returning(HttpStatusCode.Created, ResultJson);
+        var stored = new UploadPayload(System.Text.Encoding.UTF8.GetBytes("{\"batch_name\":\"frozen\"}"), "hash");
+
+        await Client(handler).UploadAsync(stored, Key, TestSupport.Ct);
+
+        var sent = Assert.Single(handler.Requests);
+        Assert.Equal(stored.Body, sent.BodyBytes);
+        Assert.Equal("application/json; charset=utf-8", sent.ContentType);
+        Assert.Equal(Key, sent.Headers["Idempotency-Key"]);
     }
 
     [Theory]
@@ -50,7 +67,7 @@ public sealed class CollectorUploadClientTests
     {
         var handler = StubHttpHandler.Returning(status, ResultJson);
 
-        var result = await Client(handler).UploadAsync(Request, Key, TestSupport.Ct);
+        var result = await Client(handler).UploadAsync(Payload, Key, TestSupport.Ct);
 
         Assert.Equal("srv-7", result.BatchId);
         Assert.Equal(["d1", "d2"], result.DocumentIds);
@@ -142,6 +159,6 @@ public sealed class CollectorUploadClientTests
             return new HttpResponseMessage(HttpStatusCode.OK);
         });
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Client(handler).UploadAsync(Request, Key, source.Token));
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Client(handler).UploadAsync(Payload, Key, source.Token));
     }
 }

@@ -62,6 +62,7 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="0" Style="{StaticResource Banner.Glyph}" Text="{Binding Glyph}" />
             <StackPanel Grid.Column="1" VerticalAlignment="Center">
@@ -72,13 +73,20 @@
             </StackPanel>
             <Button Grid.Column="2"
                     VerticalAlignment="Top"
-                    AutomationProperties.Name="{Binding ActionText, TargetNullValue={x:Static sys:String.Empty}}"
+                    AutomationProperties.Name="{Binding ActionName, TargetNullValue={x:Static sys:String.Empty}}"
                     b:FocusRouter.Key="BannerAction"
                     Command="{Binding ActionCommand}"
                     Content="{Binding ActionText}"
                     Style="{StaticResource Button.Link}"
                     Visibility="{Binding HasAction, Converter={StaticResource BoolToVisibility}}" />
             <Button Grid.Column="3"
+                    VerticalAlignment="Top"
+                    AutomationProperties.Name="{Binding SecondaryActionName, TargetNullValue={x:Static sys:String.Empty}}"
+                    Command="{Binding SecondaryActionCommand}"
+                    Content="{Binding SecondaryActionText}"
+                    Style="{StaticResource Button.Link}"
+                    Visibility="{Binding HasSecondaryAction, Converter={StaticResource BoolToVisibility}}" />
+            <Button Grid.Column="4"
                     VerticalAlignment="Top"
                     AutomationProperties.Name="{x:Static res:SignInStrings.DismissName}"
                     Command="{Binding DismissCommand}"

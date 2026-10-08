@@ -13,6 +13,7 @@ public static class ReviewFocusKeys
     public const string Filters = "Filters";
     public const string GoToExtract = "GoToExtract";
     public const string Banner = "Banner";
+    public const string ItemList = "ItemList";
 }
 
 public sealed partial class ReviewViewModel : FocusableViewModel, INavigationAware
@@ -26,7 +27,9 @@ public sealed partial class ReviewViewModel : FocusableViewModel, INavigationAwa
     private ExtractionRunResult? _run;
     private IReadOnlyList<DocumentHeaderRowViewModel> _groups = [];
     private KindFilterViewModel? _activeFilter;
+    private readonly HashSet<string> _uploadedDocuments = new(StringComparer.Ordinal);
     private UploadSession? _session;
+    private IReadOnlyList<string> _pendingReplacement = [];
     private int _generation;
     private int _visibleItemCount;
 
@@ -65,7 +68,12 @@ public sealed partial class ReviewViewModel : FocusableViewModel, INavigationAwa
 
     public bool ShowResults => Results.Count > 0;
 
-    public bool ShowRetry => _session is not null && !_session.IsComplete && Results.Count > 0 && !IsUploading;
+    public bool ShowRetry =>
+        _session is { IsComplete: false } session && Results.Count > 0 && !IsUploading && FailureCounts.From(session.Results).Retryable > 0;
+
+    public bool ShowChangeSelection => _session is { HasFailures: true } && !IsUploading;
+
+    public string LockedNote => ShowChangeSelection ? ReviewStrings.SelectionLockedFailed : ReviewStrings.SelectionLocked;
 
     public bool ShowUploadProgress => IsUploading;
 
@@ -75,7 +83,7 @@ public sealed partial class ReviewViewModel : FocusableViewModel, INavigationAwa
 
     public int HiddenCount => TotalCount - _visibleItemCount;
 
-    public int UploadableCount => _groups.Where(group => !group.IsBlocked).Sum(group => group.IncludedCount);
+    public int UploadableCount => _groups.Where(IsUploadable).Sum(group => group.IncludedCount);
 
     public int BlockedDocumentCount => _groups.Count(group => group.IsBlocked);
 
@@ -120,8 +128,8 @@ public sealed partial class ReviewViewModel : FocusableViewModel, INavigationAwa
     public partial bool IsLocked { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CanUpload), nameof(ShowRetry), nameof(ShowUploadProgress))]
-    [NotifyCanExecuteChangedFor(nameof(UploadCommand), nameof(RetryFailedCommand))]
+    [NotifyPropertyChangedFor(nameof(CanUpload), nameof(ShowRetry), nameof(ShowUploadProgress), nameof(ShowChangeSelection), nameof(LockedNote))]
+    [NotifyCanExecuteChangedFor(nameof(UploadCommand), nameof(RetryFailedCommand), nameof(ChangeSelectionCommand))]
     public partial bool IsUploading { get; set; }
 
     [ObservableProperty]
@@ -141,9 +149,7 @@ public sealed partial class ReviewViewModel : FocusableViewModel, INavigationAwa
         RequestFocus(ShowReady ? ReviewFocusKeys.Filters : ReviewFocusKeys.GoToExtract);
     }
 
-    public void OnNavigatedFrom()
-    {
-    }
+    public void OnNavigatedFrom() => _pendingReplacement = [];
 
     [RelayCommand]
     private void GoToExtract() => _navigation.NavigateTo(ScreenKeys.Extract);
@@ -160,9 +166,35 @@ public sealed partial class ReviewViewModel : FocusableViewModel, INavigationAwa
     [RelayCommand(CanExecute = nameof(ShowRetry))]
     private Task RetryFailedAsync(CancellationToken cancellationToken) => RunUploadAsync(cancellationToken);
 
+    [RelayCommand(CanExecute = nameof(ShowChangeSelection))]
+    private async Task ChangeSelectionAsync(CancellationToken cancellationToken)
+    {
+        if (_session is not { } session || await _uploader.ReleaseFailedAsync(session, cancellationToken) is not { } release)
+        {
+            return;
+        }
+
+        _session = null;
+        _pendingReplacement = release.FailedBatchIds;
+        _uploadedDocuments.UnionWith(release.UploadedDocuments);
+        foreach (var group in _groups)
+        {
+            group.IsLocked = _uploadedDocuments.Contains(group.DocumentId);
+        }
+
+        ResetUploadState();
+        UploadBanner = UploadOutcomeBanner.Unlocked(DismissUploadBannerCommand);
+        NotifySession();
+        RefreshFooter();
+        RequestFocus(ReviewFocusKeys.ItemList);
+    }
+
+    [RelayCommand]
+    private void DismissUploadBanner() => UploadBanner = null;
+
     private void SetVisible(bool included, bool skipEchoes)
     {
-        foreach (var group in _groups)
+        foreach (var group in _groups.Where(group => !group.IsLocked))
         {
             group.SetVisibleIncluded(included, skipEchoes);
         }
@@ -173,6 +205,8 @@ public sealed partial class ReviewViewModel : FocusableViewModel, INavigationAwa
         _generation++;
         _run = run;
         _session = null;
+        _uploadedDocuments.Clear();
+        _pendingReplacement = [];
         ResetUploadState();
         _groups = run is null ? [] : ReviewRowBuilder.BuildGroups(run.Items);
         foreach (var group in _groups)
@@ -258,10 +292,13 @@ public sealed partial class ReviewViewModel : FocusableViewModel, INavigationAwa
                 Message = ReviewStrings.RunPartialMessage(run.FailedUnits, run.SkippedUnits),
             });
 
+    private bool IsUploadable(DocumentHeaderRowViewModel group) =>
+        !group.IsBlocked && !_uploadedDocuments.Contains(group.DocumentId);
+
     private List<ExtractedKnowledgeItem> UploadItems() =>
     [
         .. _groups
-            .Where(group => !group.IsBlocked)
+            .Where(IsUploadable)
             .SelectMany(group => group.Rows)
             .Where(row => row.IsIncluded)
             .Select(row => row.Item),
@@ -274,6 +311,7 @@ public sealed partial class ReviewViewModel : FocusableViewModel, INavigationAwa
         var session = _session ?? await _uploader.PrepareAsync(_run!, UploadItems(), cancellationToken);
         if (session is not null)
         {
+            await ReplacePendingAsync(session, generation, cancellationToken);
             await SendAsync(session, generation, cancellationToken);
         }
 
@@ -287,6 +325,18 @@ public sealed partial class ReviewViewModel : FocusableViewModel, INavigationAwa
         RequestFocus(ReviewFocusKeys.Banner);
     }
 
+    private async Task ReplacePendingAsync(UploadSession session, int generation, CancellationToken cancellationToken)
+    {
+        var pending = _pendingReplacement;
+        if (pending.Count == 0 || generation != _generation || ReferenceEquals(session, _session))
+        {
+            return;
+        }
+
+        _pendingReplacement = [];
+        await _uploader.ReplaceAsync(pending, cancellationToken);
+    }
+
     private void BeginUpload()
     {
         foreach (var group in _groups)
@@ -295,8 +345,12 @@ public sealed partial class ReviewViewModel : FocusableViewModel, INavigationAwa
         }
 
         IsLocked = true;
-        UploadBanner = null;
+        UploadBanner = _session is null ? null : UploadOutcomeBanner.Retrying();
         IsUploading = true;
+        if (_session is not null)
+        {
+            RequestFocus(ReviewFocusKeys.Banner);
+        }
     }
 
     private async Task SendAsync(UploadSession session, int generation, CancellationToken cancellationToken)
@@ -329,10 +383,18 @@ public sealed partial class ReviewViewModel : FocusableViewModel, INavigationAwa
 
     private void Present(UploadSession? session)
     {
-        UploadBanner = UploadOutcomeBanner.For(session);
+        UploadBanner = UploadOutcomeBanner.For(session, new UploadBannerActions(RetryFailedCommand, ChangeSelectionCommand));
         IsUploadComplete = session?.IsComplete == true;
+        NotifySession();
+    }
+
+    private void NotifySession()
+    {
         OnPropertyChanged(nameof(ShowRetry));
+        OnPropertyChanged(nameof(ShowChangeSelection));
+        OnPropertyChanged(nameof(LockedNote));
         OnPropertyChanged(nameof(CanUpload));
         RetryFailedCommand.NotifyCanExecuteChanged();
+        ChangeSelectionCommand.NotifyCanExecuteChanged();
     }
 }

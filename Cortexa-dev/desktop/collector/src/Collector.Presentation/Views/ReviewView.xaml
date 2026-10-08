@@ -223,13 +223,6 @@
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
-                    <Button Margin="{StaticResource Thickness.SectionTop}"
-                            HorizontalAlignment="Left"
-                            AutomationProperties.Name="{x:Static res:ReviewStrings.RetryFailed}"
-                            Command="{Binding RetryFailedCommand}"
-                            Content="{x:Static res:ReviewStrings.RetryFailed}"
-                            Style="{StaticResource Button.Secondary}"
-                            Visibility="{Binding ShowRetry, Converter={StaticResource BoolToVisibility}}" />
                 </StackPanel>
             </Border>
 
@@ -291,6 +284,7 @@
                 </Grid.ColumnDefinitions>
                 <Border Grid.Column="0" Padding="{StaticResource Thickness.None}" Style="{StaticResource Card}">
                     <ListBox AutomationProperties.Name="{x:Static res:ReviewStrings.ListName}"
+                             b:FocusRouter.Key="ItemList"
                              ItemsSource="{Binding VisibleRows}"
                              ItemContainerStyle="{StaticResource Review.Row}"
                              SelectedItem="{Binding SelectedRow}"
@@ -418,7 +412,7 @@
                                        Text="{x:Static res:ReviewStrings.NothingIncluded}"
                                        Visibility="{Binding ShowNothingIncluded, Converter={StaticResource BoolToVisibility}}" />
                             <TextBlock Style="{StaticResource Text.Helper}"
-                                       Text="{x:Static res:ReviewStrings.SelectionLocked}"
+                                       Text="{Binding LockedNote}"
                                        Visibility="{Binding IsLocked, Converter={StaticResource BoolToVisibility}}" />
                             <TextBlock Style="{StaticResource Text.Caption}"
                                        Text="{Binding UploadProgressText}"

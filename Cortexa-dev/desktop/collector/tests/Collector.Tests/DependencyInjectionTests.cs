@@ -185,4 +185,49 @@ public class DependencyInjectionTests
 
         Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<IOptions<GeminiProviderOptions>>().Value);
     }
+
+    [Fact]
+    public void Retry_handler_resolves_without_extraction_or_ai_dependencies()
+    {
+        using var provider = Build();
+
+        var handler = provider.GetRequiredService<RetryFailedUploadHandler>();
+
+        Assert.Same(handler, provider.GetRequiredService<RetryFailedUploadHandler>());
+        Assert.Empty(ForbiddenDependencies(typeof(RetryFailedUploadHandler)));
+    }
+
+    private static List<Type> ForbiddenDependencies(Type root)
+    {
+        var forbidden = new List<Type>();
+        var pending = new Queue<Type>([root]);
+        var seen = new HashSet<Type>();
+        while (pending.Count > 0)
+        {
+            var current = pending.Dequeue();
+            if (!seen.Add(current) || current.Namespace?.StartsWith("Collector.Application", StringComparison.Ordinal) != true)
+            {
+                continue;
+            }
+
+            if (IsForbidden(current))
+            {
+                forbidden.Add(current);
+            }
+
+            foreach (var parameter in current.GetConstructors().SelectMany(ctor => ctor.GetParameters()))
+            {
+                pending.Enqueue(parameter.ParameterType);
+            }
+        }
+
+        return forbidden;
+    }
+
+    private static bool IsForbidden(Type type) =>
+        type == typeof(UploadKnowledgeHandler)
+        || type == typeof(ExtractKnowledgeHandler)
+        || type == typeof(IAiProvider)
+        || type == typeof(IAiProviderFactory)
+        || type.Namespace is "Collector.Application.Knowledge" or "Collector.Application.Extraction";
 }

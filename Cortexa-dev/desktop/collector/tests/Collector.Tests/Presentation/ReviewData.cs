@@ -53,11 +53,10 @@ internal sealed class ReviewHarness
         var handler = new UploadKnowledgeHandler(
             Documents,
             Batches,
-            _gateable,
+            new BatchSender(_gateable, Batches, NullLogger<BatchSender>.Instance),
             new UploadBatchPlanner(),
-            new FakeTimeProvider(DateTimeOffset.Parse("2026-10-07T09:30:00Z")),
-            NullLogger<UploadKnowledgeHandler>.Instance);
-        var uploader = new ReviewUploader(handler, new FixedAppVersion(), NullLogger<ReviewUploader>.Instance);
+            new FakeTimeProvider(DateTimeOffset.Parse("2026-10-07T09:30:00Z")));
+        var uploader = new ReviewUploader(handler, Batches, new FixedAppVersion(), NullLogger<ReviewUploader>.Instance);
         ViewModel = new ReviewViewModel(State, uploader, Navigation, new FakeClipboard());
     }
 

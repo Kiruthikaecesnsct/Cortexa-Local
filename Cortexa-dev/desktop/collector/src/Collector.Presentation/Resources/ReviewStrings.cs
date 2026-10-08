@@ -65,7 +65,20 @@ public static class ReviewStrings
     public const string UploadFailedTitle = "Upload failed.";
     public const string ResultsTitle = "Upload results";
     public const string Copied = "Copied";
+    public const string Retry = "Retry";
     public const string RetryFailed = "Retry failed batches";
+    public const string ChangeSelection = "Change selection";
+    public const string RetryingTitle = "Retrying failed batches…";
+    public const string RetryingMessage = "Sending the saved batches again. The AI doesn't run again.";
+    public const string UnlockedTitle = "Selection unlocked.";
+    public const string UnlockedMessage = "Change what's included, then upload. It goes up as a new batch.";
+    public const string ChangeHelp = "Choose Change selection to edit your items and upload them as a new batch.";
+    public const string SelectionLockedFailed =
+        "Selection is locked while failed batches wait to retry. To edit it, choose Change selection.";
+
+    public const string ErrorInProgress = "The server is still working on this batch from an earlier try. Wait a minute, then retry.";
+    public const string ErrorKeyReused = "This batch can't be retried. The server already accepted different items under its upload key.";
+    public const string KeyReusedCode = "idempotency_key_reused";
     public const string ErrorSession = "Your session expired. Sign in again, then retry.";
     public const string ErrorNetwork = "Couldn't reach the Collector server. Check your connection, then retry.";
     public const string ErrorUnknown = "The batch couldn't be uploaded. Try again.";
@@ -149,11 +162,15 @@ public static class ReviewStrings
         _ => null,
     };
 
-    public static string UploadErrorText(UploadError? error) => error?.Kind switch
+    public static string CantRetryNote(int batches) => batches == 1 ? "1 batch can't be retried." : $"{batches} batches can't be retried.";
+
+    public static string UploadErrorText(UploadError? error) => error switch
     {
-        UploadErrorKind.Session => ErrorSession,
-        UploadErrorKind.Rejected => ErrorRejected(error.RejectedCode),
-        UploadErrorKind.Network => ErrorNetwork,
+        { Kind: UploadErrorKind.Session } => ErrorSession,
+        { Kind: UploadErrorKind.Rejected, RejectedCode: KeyReusedCode } => ErrorKeyReused,
+        { Kind: UploadErrorKind.Rejected } => ErrorRejected(error.RejectedCode),
+        { Kind: UploadErrorKind.Network } => ErrorNetwork,
+        { Kind: UploadErrorKind.InProgress } => ErrorInProgress,
         _ => ErrorUnknown,
     };
 }

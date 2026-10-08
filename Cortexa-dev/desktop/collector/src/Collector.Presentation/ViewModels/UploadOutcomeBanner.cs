@@ -1,11 +1,28 @@
+using System.Windows.Input;
 using Collector.Application.Upload;
 using Collector.Presentation.Resources;
 
 namespace Collector.Presentation.ViewModels;
 
+public sealed record UploadBannerActions(ICommand Retry, ICommand ChangeSelection);
+
+public sealed record FailureCounts(int Total, int Failed, int Retryable, UploadError? FirstError)
+{
+    public int CantRetry => Failed - Retryable;
+
+    public bool AllFailed => Failed == Total;
+
+    public static FailureCounts From(IReadOnlyList<BatchUploadResult> results)
+    {
+        var failed = results.Where(result => result.Status == UploadBatchStatus.Failed).ToList();
+        var retryable = failed.Count(result => result.Error?.CanRetry != false);
+        return new FailureCounts(results.Count, failed.Count, retryable, failed.FirstOrDefault()?.Error);
+    }
+}
+
 public static class UploadOutcomeBanner
 {
-    public static BannerViewModel For(UploadSession? session)
+    public static BannerViewModel For(UploadSession? session, UploadBannerActions? actions = null)
     {
         if (session is null)
         {
@@ -23,19 +40,50 @@ public static class UploadOutcomeBanner
             return Create(BannerSeverity.Success, ReviewStrings.UploadedTitle, Join(ReviewStrings.UploadedMessage(results.Count), SkippedNote(session)));
         }
 
-        return session.HasFailures ? FailureBanner(results) : Create(BannerSeverity.Error, ReviewStrings.UploadFailedTitle, ReviewStrings.ErrorUnknown);
+        return session.HasFailures
+            ? FailureBanner(FailureCounts.From(results), actions)
+            : Create(BannerSeverity.Error, ReviewStrings.UploadFailedTitle, ReviewStrings.ErrorUnknown);
     }
 
-    private static BannerViewModel FailureBanner(IReadOnlyList<BatchUploadResult> results)
+    public static BannerViewModel Retrying() =>
+        Create(BannerSeverity.Info, ReviewStrings.RetryingTitle, ReviewStrings.RetryingMessage);
+
+    public static BannerViewModel Unlocked(ICommand dismiss) => new(new BannerContent
     {
-        var failed = results.Where(result => result.Status == UploadBatchStatus.Failed).ToList();
-        if (failed.Count == results.Count)
-        {
-            return Create(BannerSeverity.Error, ReviewStrings.UploadFailedTitle, ReviewStrings.UploadErrorText(failed[0].Error));
-        }
+        Severity = BannerSeverity.Info,
+        Title = ReviewStrings.UnlockedTitle,
+        Message = ReviewStrings.UnlockedMessage,
+        DismissCommand = dismiss,
+    });
 
-        return Create(BannerSeverity.Warning, ReviewStrings.UploadPartialTitle, ReviewStrings.UploadPartialMessage(failed.Count, results.Count));
+    private static BannerViewModel FailureBanner(FailureCounts counts, UploadBannerActions? actions)
+    {
+        var severity = counts.AllFailed ? BannerSeverity.Error : BannerSeverity.Warning;
+        var title = counts.AllFailed ? ReviewStrings.UploadFailedTitle : ReviewStrings.UploadPartialTitle;
+        var canRetry = counts.Retryable > 0 && actions is not null;
+        return new BannerViewModel(new BannerContent
+        {
+            Severity = severity,
+            Title = title,
+            Message = FailureMessage(counts),
+            ActionText = canRetry ? ReviewStrings.Retry : null,
+            ActionName = canRetry ? ReviewStrings.RetryFailed : null,
+            ActionCommand = canRetry ? actions!.Retry : null,
+            SecondaryActionText = actions is null ? null : ReviewStrings.ChangeSelection,
+            SecondaryActionCommand = actions?.ChangeSelection,
+        });
     }
+
+    private static string FailureMessage(FailureCounts counts)
+    {
+        var body = counts.AllFailed && (counts.Failed == 1 || counts.CantRetry == 0)
+            ? ReviewStrings.UploadErrorText(counts.FirstError)
+            : Join(ReviewStrings.UploadPartialMessage(counts.Failed, counts.Total), CantRetryNote(counts));
+        return counts.Retryable == 0 ? Join(body, ReviewStrings.ChangeHelp) : body;
+    }
+
+    private static string? CantRetryNote(FailureCounts counts) =>
+        counts.CantRetry == 0 ? null : ReviewStrings.CantRetryNote(counts.CantRetry);
 
     private static string? SkippedNote(UploadSession session)
     {

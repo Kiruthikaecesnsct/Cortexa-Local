@@ -9,6 +9,8 @@ namespace Collector.Tests.Cache;
 
 public sealed class SqliteCacheInitializerTests : IDisposable
 {
+    private const int LatestVersion = 2;
+
     private readonly string _directory = Path.Combine(Path.GetTempPath(), $"collector-cache-{Guid.NewGuid():N}");
     private readonly SqliteConnectionFactory _factory;
     private readonly SqliteCacheInitializer _initializer;
@@ -17,7 +19,7 @@ public sealed class SqliteCacheInitializerTests : IDisposable
     {
         var options = MsOptions.Create(new CacheOptions { DatabasePath = Path.Combine(_directory, "nested", "cache.db") });
         _factory = new SqliteConnectionFactory(options);
-        _initializer = new SqliteCacheInitializer(_factory, NullLogger<SqliteCacheInitializer>.Instance);
+        _initializer = new SqliteCacheInitializer(_factory, new SqliteBatchStore(_factory, TimeProvider.System), NullLogger<SqliteCacheInitializer>.Instance);
     }
 
     public void Dispose()
@@ -58,10 +60,10 @@ public sealed class SqliteCacheInitializerTests : IDisposable
     {
         await _initializer.InitializeAsync(TestSupport.Ct);
 
-        Assert.Equal(["batch_documents", "batches", "documents", "units"], await NamesAsync("table"));
+        Assert.Equal(["batch_documents", "batch_payloads", "batches", "documents", "units"], await NamesAsync("table"));
         var indexes = (await NamesAsync("index")).Where(n => n.StartsWith("ix_", StringComparison.Ordinal)).ToList();
-        Assert.Equal(["ix_batches_status", "ix_units_document_id"], indexes);
-        Assert.Equal(1, await ScalarAsync("PRAGMA user_version"));
+        Assert.Equal(["ix_batches_retryable", "ix_batches_status", "ix_units_document_id"], indexes);
+        Assert.Equal(LatestVersion, await ScalarAsync("PRAGMA user_version"));
         Assert.Equal(1, await ScalarAsync("PRAGMA foreign_keys"));
     }
 
@@ -74,7 +76,7 @@ public sealed class SqliteCacheInitializerTests : IDisposable
         await _initializer.InitializeAsync(TestSupport.Ct);
 
         Assert.Equal(before, await NamesAsync("table"));
-        Assert.Equal(1, await ScalarAsync("PRAGMA user_version"));
+        Assert.Equal(LatestVersion, await ScalarAsync("PRAGMA user_version"));
     }
 
     [Fact]
@@ -106,5 +108,49 @@ public sealed class SqliteCacheInitializerTests : IDisposable
         }
 
         Assert.Equal(0, await ScalarAsync("SELECT COUNT(*) FROM units"));
+    }
+
+    [Fact]
+    public async Task Upgrades_a_version_one_cache_keeping_existing_batches_without_payloads()
+    {
+        await SeedVersionOneAsync();
+
+        await _initializer.InitializeAsync(TestSupport.Ct);
+
+        Assert.Equal(LatestVersion, await ScalarAsync("PRAGMA user_version"));
+        Assert.Equal(1, await ScalarAsync("SELECT COUNT(*) FROM batches WHERE id = 'old' AND replaced_at IS NULL"));
+        Assert.Equal(0, await ScalarAsync("SELECT COUNT(*) FROM batch_payloads"));
+    }
+
+    [Fact]
+    public async Task Marks_uploading_batches_failed_with_network_error_on_startup()
+    {
+        await _initializer.InitializeAsync(TestSupport.Ct);
+        await ExecuteAsync(
+            "INSERT INTO batches (id, idempotency_key, batch_name, provider, model, prompt_version, status, created_at, updated_at) " +
+            "VALUES ('b1', 'k1', 'n', 'claude', 'm', 'p', 'uploading', '2026-10-06T00:00:00Z', '2026-10-06T00:00:00Z')");
+
+        await _initializer.InitializeAsync(TestSupport.Ct);
+
+        Assert.Equal(1, await ScalarAsync("SELECT COUNT(*) FROM batches WHERE id = 'b1' AND status = 'failed' AND last_error = 'network'"));
+    }
+
+    private async Task SeedVersionOneAsync()
+    {
+        var assembly = typeof(SqliteCacheInitializer).Assembly;
+        var name = assembly.GetManifestResourceNames().Single(n => n.EndsWith("V001_Initial.sql", StringComparison.Ordinal));
+        using var reader = new StreamReader(assembly.GetManifestResourceStream(name)!);
+        await ExecuteAsync(await reader.ReadToEndAsync(TestSupport.Ct) + "PRAGMA user_version = 1;");
+        await ExecuteAsync(
+            "INSERT INTO batches (id, idempotency_key, batch_name, provider, model, prompt_version, status, created_at, updated_at) " +
+            "VALUES ('old', 'k-old', 'n', 'claude', 'm', 'p', 'failed', '2026-10-06T00:00:00Z', '2026-10-06T00:00:00Z')");
+    }
+
+    private async Task ExecuteAsync(string sql)
+    {
+        await using var connection = await _factory.OpenAsync(TestSupport.Ct);
+        await using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        await command.ExecuteNonQueryAsync(TestSupport.Ct);
     }
 }

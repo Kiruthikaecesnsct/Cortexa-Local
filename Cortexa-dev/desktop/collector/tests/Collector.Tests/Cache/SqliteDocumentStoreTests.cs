@@ -34,7 +34,7 @@ public sealed class SqliteDocumentStoreTests : IDisposable
 
     private async Task InitializeSchemaAsync()
     {
-        var initializer = new SqliteCacheInitializer(_factory, NullLogger<SqliteCacheInitializer>.Instance);
+        var initializer = new SqliteCacheInitializer(_factory, new SqliteBatchStore(_factory, TimeProvider.System), NullLogger<SqliteCacheInitializer>.Instance);
         await initializer.InitializeAsync(TestSupport.Ct);
     }
 

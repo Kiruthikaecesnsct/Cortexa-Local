@@ -1,5 +1,6 @@
 using Collector.Application.History;
 using Collector.Application.Ports;
+using Collector.Application.Upload;
 using Collector.Domain.Enums;
 using Collector.Domain.History;
 using Collector.Domain.Upload;
@@ -8,6 +9,7 @@ using Collector.Presentation.Services;
 using Collector.Presentation.ViewModels;
 using Collector.Tests.Extraction;
 using Collector.Tests.Support;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 
@@ -161,7 +163,13 @@ internal sealed class HistoryHarness
             Clipboard,
             Time,
             Options.Create(new HistoryOptions { PollSeconds = PollSeconds }));
-        ViewModel = new HistoryViewModel(services, Poller, Navigation);
+        UploadGate = new GateableUploadClient(UploadClient);
+        Failed = new FailedUploadsViewModel(
+            Batches,
+            new RetryFailedUploadHandler(Batches, new BatchSender(UploadGate, Batches, NullLogger<BatchSender>.Instance), NullLogger<RetryFailedUploadHandler>.Instance),
+            Time,
+            NullLogger<FailedUploadsViewModel>.Instance);
+        ViewModel = new HistoryViewModel(services, Poller, Navigation, Failed);
         ServerBatchId = serverBatchId;
     }
 
@@ -178,6 +186,19 @@ internal sealed class HistoryHarness
     public FakeNavigationService Navigation { get; } = new();
 
     public InMemoryBatchStore Batches { get; } = new();
+
+    public FakeUploadClient UploadClient { get; } = new();
+
+    public GateableUploadClient UploadGate { get; }
+
+    public FailedUploadsViewModel Failed { get; }
+
+    public async Task<string> SeedFailedAsync(string key, string error = "network", string documentId = "doc-0")
+    {
+        var created = await Batches.CreateAsync(SqliteTestDatabase.NewBatch(key, documentId), TestSupport.Ct);
+        await Batches.MarkFailedAsync(created.Id, error, TestSupport.Ct);
+        return created.Id;
+    }
 
     public InMemoryDocumentStore Documents { get; } = new();
 

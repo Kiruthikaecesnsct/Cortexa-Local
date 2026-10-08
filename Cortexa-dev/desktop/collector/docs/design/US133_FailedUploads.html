@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>US133 Failed uploads - design prototype</title>
+<style>
+/* Tokens mirror Themes/Colors.Light.xaml and Styles.xaml (same set as US128_History.html). Prototype only. */
+:root{
+  --surface-page:#F6F7FC;--surface-card:#FFFFFF;--surface-rail:#EEF0FA;--surface-sunken:#EEF0F8;--surface-selected:#E3E6FB;
+  --border-subtle:#E3E6F0;--border-control:#8A93A8;--border-focus:#4653E8;
+  --text-primary:#171A30;--text-body:#464D6E;--text-muted:#5F6684;--text-disabled:#9AA1B8;--text-link:#3945D6;
+  --accent:#4653E8;--danger:#C4283F;--danger-surface:#FCEBED;--success:#0B7A53;--success-surface:#E7F5EF;
+  --warning:#9A4A08;--warning-surface:#FEF3E2;--info-surface:#EAECFD;--info:#3945D6;
+  --fs-caption:12px;--fs-body:14px;--fs-subtitle:18px;--fs-title:24px;
+  --s-xs:4px;--s-s:8px;--s-m:12px;--s-l:16px;--s-xl:24px;--s-xxl:32px;
+  --r-control:8px;--r-card:14px;--r-chip:999px;
+  --batch-pane:300px;--row-action:44px;--action-min:96px;
+}
+*{box-sizing:border-box}
+body{margin:0;font:var(--fs-body)/1.4 "Segoe UI Variable Text","Segoe UI",sans-serif;color:var(--text-body);background:var(--surface-page)}
+.mono{font-family:"Cascadia Mono",Consolas,monospace}
+.proto-bar{background:#171A30;color:#fff;padding:8px 16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12px}
+.proto-bar .grp{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-right:12px}
+.proto-bar button{font:inherit;padding:4px 10px;border-radius:6px;border:1px solid #8A93A8;background:#2a2f52;color:#fff;cursor:pointer}
+.proto-bar button[aria-pressed=true]{background:#4653E8;border-color:#4653E8}
+.window{display:grid;grid-template-columns:232px 1fr;min-height:calc(100vh - 40px);min-width:880px}
+.rail{background:var(--surface-rail);padding:16px 0}
+.rail .nav{height:44px;display:flex;align-items:center;gap:12px;padding:0 12px 0 24px;color:var(--text-primary);position:relative}
+.rail .nav.sel{background:var(--surface-selected);font-weight:600}
+.rail .nav.sel::before{content:"";position:absolute;left:8px;top:12px;bottom:12px;width:3px;border-radius:2px;background:var(--accent)}
+.content{padding:24px 32px 32px}
+.ws{max-width:960px}
+h1{font:600 var(--fs-title) "Segoe UI Variable Display","Segoe UI";color:var(--text-primary);margin:0}
+h2{font:600 var(--fs-subtitle) "Segoe UI Variable Display","Segoe UI";color:var(--text-primary);margin:0}
+h3{font:600 var(--fs-body) "Segoe UI";color:var(--text-primary);margin:0}
+.toprow{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.toprow .spacer{flex:1}
+.caption{font-size:var(--fs-caption);color:var(--text-muted)}
+.label{font-weight:600;color:var(--text-primary)}
+.err{color:var(--danger)}
+.card{background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--r-card);padding:24px;margin-bottom:8px}
+.icon-btn{width:40px;height:40px;display:inline-grid;place-items:center;border:0;background:transparent;border-radius:8px;cursor:pointer;color:var(--text-primary);font-size:16px}
+.icon-btn:hover{background:var(--surface-selected)}
+:focus-visible{outline:2px solid var(--border-focus);outline-offset:2px;border-radius:10px}
+.link-btn{border:0;background:transparent;color:var(--text-link);font:inherit;font-weight:600;padding:8px 12px;min-height:40px;cursor:pointer;white-space:nowrap}
+.link-btn:hover{text-decoration:underline}
+.btn-secondary{border:1px solid var(--border-control);background:var(--surface-card);color:var(--text-primary);border-radius:8px;padding:8px 16px;min-height:40px;min-width:var(--action-min);font:inherit;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn-secondary:hover{background:var(--surface-selected)}
+.btn-secondary[aria-busy=true]{color:var(--text-muted);cursor:default}
+.btn-primary{border:0;background:var(--accent);color:#fff;border-radius:8px;padding:8px 16px;min-height:40px;font:inherit;font-weight:600;cursor:pointer}
+.btn-primary:disabled{background:var(--surface-sunken);color:var(--text-disabled);cursor:default}
+.banner{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--info);background:var(--info-surface);border-radius:8px;padding:12px 12px 12px 16px;margin-bottom:8px}
+.banner.error{border-color:var(--danger);background:var(--danger-surface)}
+.banner.warning{border-color:var(--warning);background:var(--warning-surface)}
+.banner .g{width:20px;text-align:center;color:var(--info)}
+.banner.error .g{color:var(--danger)}
+.banner.warning .g{color:var(--warning)}
+.banner .msg{flex:1}
+.banner .acts{display:flex;gap:4px}
+.tag{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:var(--r-chip);font-size:12px;background:var(--surface-sunken);color:var(--text-muted);white-space:nowrap}
+.tag.danger{background:var(--danger-surface);color:var(--danger)}
+.tag.success{background:var(--success-surface);color:var(--success)}
+.tag.info{background:var(--info-surface);color:var(--info)}
+/* Failed uploads section (new) */
+.failed{padding:16px 0 4px}
+.failed .hdr{display:flex;align-items:baseline;gap:8px;padding:0 24px}
+.failed .intro{padding:4px 24px 8px}
+.failed .rows{max-height:calc(3 * 96px);overflow-y:auto}
+.frow{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:start;padding:12px 24px;border-top:1px solid var(--border-subtle);min-height:64px}
+.frow .t{font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.frow .act{display:flex;align-items:center;min-height:var(--row-action)}
+.frow .help{margin-top:2px}
+.progress{height:2px;background:var(--surface-sunken);margin:8px 0 0;position:relative;overflow:hidden;grid-column:1 / -1}
+.progress span{position:absolute;left:0;top:0;bottom:0;width:30%;background:var(--accent);animation:ind 1.4s linear infinite}
+@keyframes ind{from{left:-30%}to{left:100%}}
+/* Server list (unchanged US128, abbreviated) */
+.panes{display:grid;grid-template-columns:var(--batch-pane) 1fr;gap:24px;align-items:start}
+.list{padding:0;overflow:hidden}
+.row{padding:12px 16px;border-bottom:1px solid var(--border-subtle);min-height:64px}
+.row.sel{background:var(--surface-selected)}
+.row .t{font-weight:600;color:var(--text-primary)}
+.row .meta{display:flex;gap:8px;margin-top:4px;align-items:center}
+.empty{text-align:center;padding:40px 24px}
+.empty .big{font-size:40px;color:var(--text-muted);margin-bottom:8px}
+.placeholder{display:grid;place-items:center;min-height:200px;text-align:center}
+/* Review (abbreviated) */
+.res-row{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;min-height:var(--row-action);padding:4px 0}
+.items{padding:0}
+.item{display:grid;grid-template-columns:20px 1fr auto;gap:12px;align-items:center;padding:12px 16px;border-top:1px solid var(--border-subtle);min-height:56px}
+.item:first-child{border-top:0}
+.cb{width:20px;height:20px;border:1px solid var(--border-control);border-radius:4px;display:grid;place-items:center;font-size:12px;color:#fff}
+.cb.on{background:var(--accent);border-color:var(--accent)}
+.cb.locked{background:var(--surface-sunken);border-color:var(--text-disabled);color:var(--text-disabled)}
+.footer{display:flex;align-items:center;gap:12px;margin-top:8px}
+.footer .spacer{flex:1}
+.locknote{display:flex;gap:8px;align-items:center}
+.live{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.live-echo{margin-top:8px;font-size:12px;color:var(--text-muted)}
+.live-echo b{color:var(--text-primary)}
+/* Annotations */
+.annot{margin-top:24px;font-size:12px;color:var(--text-muted);border-left:3px solid var(--accent);padding-left:12px}
+.annot h3{font-size:13px;margin:12px 0 4px}
+.annot ol,.annot ul{margin:4px 0;padding-left:18px}
+table.spec{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px;background:var(--surface-card)}
+table.spec th,table.spec td{border:1px solid var(--border-subtle);padding:6px 8px;text-align:left;vertical-align:top}
+table.spec th{background:var(--surface-sunken);color:var(--text-primary)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="proto-bar" role="toolbar" aria-label="Prototype states">
+  <strong>US133 prototype</strong>
+  <span class="grp" aria-label="History states">History:
+    <button data-s="h-default" aria-pressed="true">Failed + server list</button>
+    <button data-s="h-offline" aria-pressed="false">Server down</button>
+    <button data-s="h-empty" aria-pressed="false">Failed + no server batches</button>
+    <button data-s="h-retrying" aria-pressed="false">Retrying</button>
+    <button data-s="h-again" aria-pressed="false">Retry failed again</button>
+    <button data-s="h-success" aria-pressed="false">Retry succeeded</button>
+    <button data-s="h-terminal" aria-pressed="false">Can't retry only</button>
+    <button data-s="h-hidden" aria-pressed="false">No failed uploads</button>
+  </span>
+  <span class="grp" aria-label="Review states">Review:
+    <button data-s="r-all" aria-pressed="false">All failed</button>
+    <button data-s="r-partial" aria-pressed="false">Some failed</button>
+    <button data-s="r-mixed" aria-pressed="false">Mixed (1 can't retry)</button>
+    <button data-s="r-terminal" aria-pressed="false">None retryable</button>
+    <button data-s="r-busy" aria-pressed="false">Server busy (409)</button>
+    <button data-s="r-retrying" aria-pressed="false">Retrying</button>
+    <button data-s="r-unlocked" aria-pressed="false">After Change selection</button>
+  </span>
+</div>
+
+<div class="window">
+  <nav class="rail" aria-label="Screens">
+    <div class="nav">Sign in</div><div class="nav">Extract</div>
+    <div class="nav" id="navReview">Review</div>
+    <div class="nav" id="navHistory">History</div>
+  </nav>
+  <main class="content"><div class="ws" id="screen"></div>
+  <div class="ws">
+    <div class="live" id="live" aria-live="polite" role="status"></div>
+    <div class="live-echo">Screen reader announcement (live region, shown here for review): <b id="liveEcho">none</b></div>
+    <div class="annot" id="annot"></div>
+  </div>
+  </main>
+</div>
+
+<script>
+const S={
+ hTitle:"History",
+ failedTitle:"Failed uploads",
+ failedIntro:"These batches didn't reach the server. Your items are saved on this computer. Retry sends them again without running the AI.",
+ retry:"Retry", retrying:"Retrying…", cantRetry:"Can't retry", failedTag:"Failed",
+ terminalHelp:"To upload these items, go to Review and choose Change selection.",
+ errNetwork:"Couldn't reach the Collector server. Check your connection, then retry.",
+ errSession:"Your session expired. Sign in again, then retry.",
+ errInProgress:"The server is still working on this batch from an earlier try. Wait a minute, then retry.",
+ errKeyReused:"This batch can't be retried. The server already accepted different items under its upload key.",
+ errRejected:c=>`The server rejected this batch (${c}).`,
+ uploadFailed:"Upload failed.", uploadPartial:"Some batches didn't upload.",
+ partialMsg:(f,t)=>`${f} of ${t} batches failed. Retry sends the same batches again.`,
+ cantRetryNote:n=>n===1?"1 batch can't be retried.":`${n} batches can't be retried.`,
+ changeHelp:"Choose Change selection to edit your items and upload them as a new batch.",
+ changeSel:"Change selection",
+ retryingTitle:"Retrying failed batches…",
+ retryingMsg:"Sending the saved batches again. The AI doesn't run again.",
+ unlockedTitle:"Selection unlocked.",
+ unlockedMsg:"Change what's included, then upload. It goes up as a new batch.",
+ lockedFailed:"Selection is locked while failed batches wait to retry. To edit it, choose Change selection.",
+ counts:(d,i)=>`${d===1?"1 doc":d+" docs"} · ${i===1?"1 item":i+" items"}`,
+ failedAt:t=>`Failed ${t}`,
+ aRetrying:n=>`Retrying ${n}`, aOk:n=>`${n} uploaded`, aFail:(n,e)=>`${n} didn't upload. ${e}`
+};
+const FAILED=[
+ {id:"f1",name:"Ingest pipeline docs",docs:4,items:37,err:S.errNetwork,at:"10/8/2026 2:41 PM",can:true},
+ {id:"f2",name:"Pricing engine (src)",docs:2,items:118,err:S.errSession,at:"10/8/2026 1:05 PM",can:true},
+ {id:"f3",name:"Patent prior art set A",docs:1,items:12,err:S.errKeyReused,at:"10/7/2026 4:12 PM",can:false}
+];
+const SERVER=[
+ {name:"Queued: design notes",created:"Oct 8, 2026, 2:13 PM",tag:["","&#x1F552;","Queued"]},
+ {name:"Pricing engine v1",created:"Oct 7, 2026, 4:41 PM",tag:["success","&#x2713;","Completed"]}
+];
+let state="h-default";
+const esc=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+
+function announce(text){document.getElementById("live").textContent=text;document.getElementById("liveEcho").textContent=text||"none";}
+
+function frow(f,mode){
+ const busy=mode==="retrying", tag=f.can?`<span class="tag danger"><span aria-hidden="true">&#x2715;</span>${S.failedTag}</span>`:`<span class="tag danger"><span aria-hidden="true">&#x2298;</span>${S.cantRetry}</span>`;
+ const act=f.can?`<div class="act"><button class="btn-secondary" data-retry="${f.id}" aria-busy="${busy}" aria-label="${busy?"Retrying "+esc(f.name):"Retry "+esc(f.name)}">${busy?S.retrying:S.retry}</button></div>`:`<div class="act"></div>`;
+ return `<div class="frow" role="listitem" aria-label="${esc(f.name)}, ${f.can?"failed upload":"failed upload, can't retry"}, ${S.counts(f.docs,f.items)}, ${S.failedAt(f.at)}, ${esc(f.err)}">
+  ${tag}
+  <div style="min-width:0"><div class="t">${esc(f.name)}</div>
+   <div class="caption">${S.counts(f.docs,f.items)} · ${S.failedAt(f.at)}</div>
+   <div class="err">${esc(f.err)}</div>
+   ${f.can?"":`<div class="caption help">${S.terminalHelp}</div>`}
+  </div>
+  ${act}
+  ${busy?`<div class="progress" role="progressbar" aria-label="Retrying ${esc(f.name)}"><span></span></div>`:""}
+ </div>`;
+}
+function failedSection(list,modes){
+ if(!list.length) return "";
+ return `<section class="card failed" aria-labelledby="fh">
+  <div class="hdr"><h2 id="fh">${S.failedTitle}</h2><span class="caption">${list.length===1?"1 batch":list.length+" batches"}</span></div>
+  <div class="intro caption">${S.failedIntro}</div>
+  <div class="rows" role="list" aria-label="${S.failedTitle}">${list.map(f=>frow(f,modes[f.id])).join("")}</div>
+ </section>`;
+}
+function serverPanes(extra){
+ const rows=(extra?[extra]:[]).concat(SERVER);
+ return `<div class="panes">
+  <div class="card list" role="listbox" aria-label="Batches">${rows.map((b,i)=>`<div class="row ${i===0?"sel":""}" role="option" aria-selected="${i===0}" tabindex="${i===0?0:-1}"><div class="t">${esc(b.name)}</div><div class="caption">${b.created}</div><div class="meta"><span class="tag ${b.tag[0]}"><span aria-hidden="true">${b.tag[1]}</span>${b.tag[2]}</span></div></div>`).join("")}</div>
+  <div class="card placeholder"><div><div class="label">Batch detail</div><div class="caption">Unchanged from US128 (stepper, candidates).</div></div></div>
+ </div>`;
+}
+function history(){
+ const s=state; let list=FAILED.slice(), modes={}, banner="", body=serverPanes(), live="";
+ if(s==="h-offline"){banner=`<div class="banner error" role="alert"><span class="g" aria-hidden="true">&#x2715;</span><div class="msg"><div class="label">Couldn't load history</div><div>Check your connection, then try again.</div></div><div class="acts"><button class="link-btn">Retry</button></div></div>`;body="";}
+ if(s==="h-empty") body=`<div class="card empty"><div class="big" aria-hidden="true">&#x1F552;</div><h2>No batches yet</h2><p>Batches you upload from the Review screen show up here, with their progress and the candidates they produce.</p><button class="btn-secondary">Go to Review</button></div>`;
+ if(s==="h-retrying"){modes.f1="retrying";live=S.aRetrying(list[0].name);}
+ if(s==="h-again"){list[0]=Object.assign({},list[0],{at:"10/8/2026 2:58 PM"});live=S.aFail(list[0].name,list[0].err);}
+ if(s==="h-success"){live=S.aOk(list[0].name);list=list.slice(1);body=serverPanes({name:"Ingest pipeline docs",created:"Oct 8, 2026, 2:59 PM",tag:["","&#x1F552;","Queued"]});}
+ if(s==="h-terminal") list=[FAILED[2]];
+ if(s==="h-hidden") list=[];
+ document.getElementById("screen").innerHTML=`
+  <div class="toprow"><h1>${S.hTitle}</h1><span class="spacer"></span>
+   <span class="caption">Updating every 5 seconds · Last updated 2:58:05 PM</span>
+   <button class="icon-btn" id="refresh" title="Refresh (F5)" aria-label="Refresh history">&#x21bb;</button></div>
+  ${banner}${failedSection(list,modes)}${body}`;
+ announce(live);
+ document.querySelectorAll("[data-retry]").forEach(b=>b.onclick=()=>demoRetry(b));
+}
+function demoRetry(btn){
+ if(btn.getAttribute("aria-busy")==="true") return; // busy: stays focusable, ignores presses
+ const f=FAILED.find(x=>x.id===btn.dataset.retry);
+ btn.setAttribute("aria-busy","true");btn.textContent=S.retrying;btn.setAttribute("aria-label","Retrying "+f.name);
+ announce(S.aRetrying(f.name));
+ setTimeout(()=>{
+  if(state==="h-offline"){btn.setAttribute("aria-busy","false");btn.textContent=S.retry;btn.setAttribute("aria-label","Retry "+f.name);announce(S.aFail(f.name,f.err));btn.focus();return;}
+  const row=btn.closest(".frow"), next=row.nextElementSibling||row.previousElementSibling;
+  row.remove(); announce(S.aOk(f.name));
+  const target=next&&next.querySelector("[data-retry]");
+  (target||document.getElementById("refresh")).focus();
+  if(!document.querySelector(".frow")) document.querySelector(".failed").remove();
+ },1500);
+}
+
+function review(){
+ const s=state;
+ let sev="error",title=S.uploadFailed,msg=S.errNetwork,retry=true,change=true,results,live="",locked=true,footer="",dismiss=false;
+ const R=(ok,line,err)=>`<div class="res-row">${ok?`<span class="tag success"><span aria-hidden="true">&#x2713;</span>Uploaded</span>`:`<span class="tag danger"><span aria-hidden="true">&#x2715;</span>Failed</span>`}<div><div>${line}</div>${err?`<div class="err">${err}</div>`:""}</div>${ok?`<span class="caption mono">b7f3c2e1-4a90…</span>`:"<span></span>"}</div>`;
+ if(s==="r-all") results=R(0,"Batch 1 of 2 · 3 docs · 30 items",S.errNetwork)+R(0,"Batch 2 of 2 · 1 docs · 7 items",S.errNetwork);
+ if(s==="r-partial"){sev="warning";title=S.uploadPartial;msg=S.partialMsg(1,2);results=R(1,"Batch 1 of 2 · 3 docs · 30 items")+R(0,"Batch 2 of 2 · 1 docs · 7 items",S.errNetwork);}
+ if(s==="r-mixed"){sev="error";title=S.uploadFailed;msg=`${S.partialMsg(2,2)} ${S.cantRetryNote(1)}`;results=R(0,"Batch 1 of 2 · 3 docs · 30 items",S.errNetwork)+R(0,"Batch 2 of 2 · 1 docs · 7 items",S.errKeyReused);}
+ if(s==="r-terminal"){retry=false;msg=`${S.errKeyReused} ${S.changeHelp}`;results=R(0,"Batch 1 of 1 · 4 docs · 37 items",S.errKeyReused);}
+ if(s==="r-busy"){msg=S.errInProgress;results=R(0,"Batch 1 of 1 · 4 docs · 37 items",S.errInProgress);}
+ if(s==="r-retrying"){sev="info";title=S.retryingTitle;msg=S.retryingMsg;retry=false;change=false;results=R(0,"Batch 1 of 2 · 3 docs · 30 items",S.errNetwork)+R(0,"Batch 2 of 2 · 1 docs · 7 items",S.errNetwork);live="Uploading batch 1 of 2…";footer="Uploading batch 1 of 2…";}
+ if(s==="r-unlocked"){sev="info";title=S.unlockedTitle;msg=S.unlockedMsg;retry=false;change=false;locked=false;results="";dismiss=true;live=`${S.unlockedTitle} ${S.unlockedMsg}`;}
+ if(!live&&s!=="r-retrying") live=`${title} ${msg}`;
+ const glyph={error:"&#x2715;",warning:"&#x26A0;",info:"&#x24D8;"}[sev];
+ const role=sev==="error"?"alert":"status";
+ const banner=`<div class="banner ${sev==="info"?"":sev}" role="${role}" tabindex="-1" id="rbanner" aria-label="${esc(title+" "+msg)}">
+   <span class="g" aria-hidden="true">${glyph}</span>
+   <div class="msg"><div class="label">${title}</div><div>${msg}</div></div>
+   <div class="acts">${retry?`<button class="link-btn" aria-label="Retry failed batches">${S.retry}</button>`:""}${change?`<button class="link-btn" aria-label="Change selection and upload as a new batch">${S.changeSel}</button>`:""}${dismiss?`<button class="icon-btn" aria-label="Dismiss">&#x2715;</button>`:""}</div>
+  </div>`;
+ const items=[["Adaptive chunk sizing based on heading depth","Method"],["Token budget guard","Logic"],["Derived document IDs","Data model"]];
+ document.getElementById("screen").innerHTML=`
+  <div class="toprow"><h1>Review</h1></div>
+  ${banner}
+  ${results?`<div class="card"><h2 style="margin-bottom:8px">Upload results</h2>${results}<div class="caption" style="margin-top:8px">The "Retry failed batches" button that sat here moves into the banner above.</div></div>`:""}
+  <div class="card items" role="list" aria-label="Knowledge items">${items.map((it,i)=>`<div class="item" role="listitem"><span class="cb ${locked?"locked":"on"}" aria-hidden="true">&#x2713;</span><div><div class="label">${it[0]}</div><div class="caption">${it[1]}</div></div>${locked&&s==="r-partial"&&i===0?`<span class="tag success"><span aria-hidden="true">&#x2713;</span>Uploaded</span>`:""}</div>`).join("")}</div>
+  <div class="footer">
+   ${locked?`<span class="locknote caption"><span aria-hidden="true">&#x1F512;</span>${S.lockedFailed}</span>`:`<span class="caption">3 of 3 included</span>`}
+   <span class="spacer"></span>
+   ${footer?`<span class="caption" aria-hidden="true">${footer}</span>`:""}
+   <button class="btn-primary" ${locked?"disabled":""}>Upload 3 items</button>
+  </div>`;
+ announce(live);
+}
+
+function annotations(){
+ const h=state.startsWith("h");
+ document.getElementById("annot").innerHTML=h?`
+  <h3>History: Failed uploads</h3>
+  <ul>
+   <li>Section sits between the banner slot and the server content. It loads from the local store, so it shows even when the server list fails to load or is empty. Hidden when there are no failed uploads.</li>
+   <li>Rows are not selectable. Only the Retry button takes focus. Row automation name: "{name}, failed upload, {docs} docs · {items} items, Failed {time}, {error}".</li>
+   <li>Retrying: the button keeps focus and stays enabled, label becomes "Retrying…", presses are ignored. Do not disable it (WPF drops focus from disabled buttons).</li>
+   <li>Success: row is removed, focus goes to the next row's Retry, else the previous row's Retry, else the Refresh button. The server list refreshes right away.</li>
+   <li>Failed again: row stays, error text and time update, focus stays on Retry.</li>
+   <li>"Can't retry" rows have no button. Tag shape and text carry the meaning, not color.</li>
+   <li>One live region for the whole section (polite for start and success, assertive for failure).</li>
+   <li>Click a Retry button to try it. In "Server down" it fails again; elsewhere it succeeds.</li>
+  </ul>`:`
+  <h3>Review: failure banner</h3>
+  <ul>
+   <li>Banner gains a second action. Order: Retry, Change selection, then Dismiss (only on the unlocked info banner).</li>
+   <li>Retry is hidden when no failed batch can be retried. Change selection shows whenever at least one batch failed.</li>
+   <li>Retry runs the saved batches with the same keys. During retry the banner switches to an info banner with no actions; focus moves to the banner root.</li>
+   <li>Change selection runs at once, with no confirm dialog. Items stay saved. Uploaded items stay locked. Focus moves to the item list.</li>
+   <li>Error banners are assertive. Warning, info and success are polite (same as BannerView today).</li>
+  </ul>`;
+}
+function render(){
+ document.getElementById("navHistory").className="nav"+(state.startsWith("h")?" sel":"");
+ document.getElementById("navReview").className="nav"+(state.startsWith("r")?" sel":"");
+ (state.startsWith("h")?history:review)(); annotations();
+}
+document.querySelectorAll(".proto-bar button").forEach(b=>b.onclick=()=>{
+ document.querySelectorAll(".proto-bar button").forEach(x=>x.setAttribute("aria-pressed","false"));
+ b.setAttribute("aria-pressed","true");state=b.dataset.s;render();});
+render();
+</script>
+</body>
+</html>

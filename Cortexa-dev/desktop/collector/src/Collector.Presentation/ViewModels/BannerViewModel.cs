@@ -26,7 +26,15 @@ public sealed record BannerContent
 
     public string? ActionText { get; init; }
 
+    public string? ActionName { get; init; }
+
     public ICommand? ActionCommand { get; init; }
+
+    public string? SecondaryActionText { get; init; }
+
+    public string? SecondaryActionName { get; init; }
+
+    public ICommand? SecondaryActionCommand { get; init; }
 
     public ICommand? DismissCommand { get; init; }
 }
@@ -41,7 +49,11 @@ public sealed partial class BannerViewModel : ObservableObject
         Glyph = content.Glyph ?? DefaultGlyph(content.Severity);
         AutomationName = content.AutomationName ?? $"{content.Title} {content.Message}".Trim();
         ActionText = content.ActionText;
+        ActionName = content.ActionName ?? content.ActionText;
         ActionCommand = content.ActionCommand;
+        SecondaryActionText = content.SecondaryActionText;
+        SecondaryActionName = content.SecondaryActionName ?? content.SecondaryActionText;
+        SecondaryActionCommand = content.SecondaryActionCommand;
         DismissCommand = content.DismissCommand;
     }
 
@@ -55,11 +67,21 @@ public sealed partial class BannerViewModel : ObservableObject
 
     public string? ActionText { get; }
 
+    public string? ActionName { get; }
+
     public ICommand? ActionCommand { get; }
+
+    public string? SecondaryActionText { get; }
+
+    public string? SecondaryActionName { get; }
+
+    public ICommand? SecondaryActionCommand { get; }
 
     public ICommand? DismissCommand { get; }
 
     public bool HasAction => ActionCommand is not null && ActionText is not null;
+
+    public bool HasSecondaryAction => SecondaryActionCommand is not null && SecondaryActionText is not null;
 
     public bool CanDismiss => DismissCommand is not null;
 

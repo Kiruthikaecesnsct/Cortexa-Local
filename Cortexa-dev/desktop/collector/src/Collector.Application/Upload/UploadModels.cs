@@ -31,9 +31,13 @@ public enum UploadErrorKind
     Rejected,
     Network,
     Unknown,
+    InProgress,
 }
 
-public sealed record UploadError(UploadErrorKind Kind, string? RejectedCode);
+public sealed record UploadError(UploadErrorKind Kind, string? RejectedCode)
+{
+    public bool CanRetry => Kind != UploadErrorKind.Rejected;
+}
 
 public sealed record BatchUploadResult
 {

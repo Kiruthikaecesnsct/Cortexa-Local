@@ -57,6 +57,8 @@ public static class DependencyInjection
         services.AddSingleton<ExtractKnowledgeHandler>();
         services.AddSingleton<TokenEstimator>();
         services.AddSingleton<UploadBatchPlanner>();
+        services.AddSingleton<BatchSender>();
         services.AddSingleton<UploadKnowledgeHandler>();
+        services.AddSingleton<RetryFailedUploadHandler>();
     }
 }

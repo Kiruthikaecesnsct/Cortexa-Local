@@ -539,4 +539,52 @@ public sealed class HistoryViewModelTests : IDisposable
 
         Assert.Equal(HistoryStrings.CopyBatchId, ViewModel.CopyName);
     }
+
+    [Fact]
+    public async Task Open_ServerListFails_StillLoadsFailedUploads()
+    {
+        await _harness.SeedFailedAsync("key-1");
+        _harness.Client.ListError = HistoryData.ServerError();
+
+        await _harness.OpenAsync();
+
+        Assert.NotNull(ViewModel.Banner);
+        Assert.Single(ViewModel.FailedUploads.Rows);
+    }
+
+    [Fact]
+    public async Task Open_ServerListEmpty_StillLoadsFailedUploads()
+    {
+        await _harness.SeedFailedAsync("key-1");
+
+        await _harness.OpenAsync();
+
+        Assert.True(ViewModel.ShowEmpty);
+        Assert.True(ViewModel.FailedUploads.HasRows);
+    }
+
+    [Fact]
+    public async Task FailedUploadRetried_ReloadsServerList()
+    {
+        await _harness.SeedFailedAsync("key-1");
+        await _harness.OpenAsync(Done("a"));
+        var calls = _harness.Client.ListCalls;
+
+        await ViewModel.FailedUploads.Rows[0].RetryCommand.ExecuteAsync(null);
+        await ViewModel.LoadTask;
+
+        Assert.Equal(calls + 1, _harness.Client.ListCalls);
+        Assert.Empty(ViewModel.FailedUploads.Rows);
+    }
+
+    [Fact]
+    public async Task FailedUploadFocusRequest_IsForwardedToHistory()
+    {
+        await _harness.SeedFailedAsync("key-1");
+        await _harness.OpenAsync(Done("a"));
+
+        await ViewModel.FailedUploads.Rows[0].RetryCommand.ExecuteAsync(null);
+
+        Assert.Equal(FailedUploadFocusKeys.Refresh, ViewModel.TakePendingFocus());
+    }
 }

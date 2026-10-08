@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Collector.Application.Ports;
+using Collector.Application.Upload;
 using Collector.Domain.Enums;
 using Collector.Domain.Knowledge;
 using Collector.Domain.Serialization;
@@ -50,6 +51,8 @@ internal sealed class InMemoryBatchStore : IBatchStore
 
         public string? LastError { get; set; }
 
+        public bool Replaced { get; set; }
+
         public List<BatchStatus> History { get; } = [BatchStatus.Draft];
     }
 
@@ -73,22 +76,72 @@ internal sealed class InMemoryBatchStore : IBatchStore
         });
     }
 
-    public Task<StoredBatch?> FindByDocumentsAsync(IReadOnlyCollection<string> documentIds, CancellationToken cancellationToken) =>
-        Task.FromResult<StoredBatch?>(null);
+    public Task<StoredBatch?> FindByDocumentsAsync(IReadOnlyCollection<string> documentIds, CancellationToken cancellationToken)
+    {
+        var match = _rows.Values
+            .Where(row => row.Batch.DocumentIds.Count == documentIds.Count && row.Batch.DocumentIds.All(documentIds.Contains))
+            .LastOrDefault();
+        return Task.FromResult(match is null ? null : ToStored(match));
+    }
+
+    public Task<StoredBatch?> GetByIdAsync(string batchId, CancellationToken cancellationToken) =>
+        Task.FromResult(_rows.TryGetValue(batchId, out var row) ? ToStored(row) : null);
+
+    public Task<IReadOnlyList<RetryableBatch>> ListRetryableAsync(CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<RetryableBatch>>([.. _rows.Values
+            .Where(row => row.Status == BatchStatus.Failed && !row.Replaced)
+            .Select(row => new RetryableBatch
+            {
+                Id = row.Id,
+                IdempotencyKey = row.Batch.IdempotencyKey,
+                BatchName = row.Batch.BatchName,
+                LastError = row.LastError,
+                UpdatedAt = DateTimeOffset.UnixEpoch,
+                DocumentCount = row.Batch.DocumentIds.Count,
+                ItemCount = row.Batch.Payload.CountItems(),
+            })]);
+
+    public Task<UploadPayload?> GetPayloadAsync(string batchId, CancellationToken cancellationToken) =>
+        Task.FromResult(_rows.TryGetValue(batchId, out var row) ? row.Batch.Payload : null);
+
+    public Task MarkReplacedAsync(IReadOnlyCollection<string> batchIds, CancellationToken cancellationToken)
+    {
+        foreach (var id in batchIds)
+        {
+            _rows[id].Replaced = true;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public Task MarkInterruptedAsync(CancellationToken cancellationToken)
+    {
+        foreach (var row in _rows.Values.Where(row => row.Status == BatchStatus.Uploading))
+        {
+            row.Status = BatchStatus.Failed;
+            row.LastError = "network";
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private static StoredBatch ToStored(Row row) => new()
+    {
+        Id = row.Id,
+        IdempotencyKey = row.Batch.IdempotencyKey,
+        BatchName = row.Batch.BatchName,
+        Status = row.Status,
+        ServerBatchId = row.ServerBatchId,
+        LastError = row.LastError,
+        IsReplaced = row.Replaced,
+        DocumentIds = row.Batch.DocumentIds,
+    };
 
     public Task<StoredBatch?> FindByServerBatchIdAsync(string serverBatchId, CancellationToken cancellationToken)
     {
         FindByServerBatchIdCalls++;
         var row = _rows.Values.FirstOrDefault(candidate => candidate.ServerBatchId == serverBatchId);
-        return Task.FromResult<StoredBatch?>(row is null ? null : new StoredBatch
-        {
-            Id = row.Id,
-            IdempotencyKey = row.Batch.IdempotencyKey,
-            BatchName = row.Batch.BatchName,
-            Status = row.Status,
-            ServerBatchId = row.ServerBatchId,
-            DocumentIds = row.Batch.DocumentIds,
-        });
+        return Task.FromResult(row is null ? null : ToStored(row));
     }
 
     public Task MarkUploadingAsync(string batchId, CancellationToken cancellationToken)
@@ -140,9 +193,10 @@ internal sealed class FakeUploadClient : IKnowledgeUploadClient
         return this;
     }
 
-    public Task<KnowledgeUploadResult> UploadAsync(KnowledgeUploadRequest request, string idempotencyKey, CancellationToken cancellationToken)
+    public Task<KnowledgeUploadResult> UploadAsync(UploadPayload payload, string idempotencyKey, CancellationToken cancellationToken)
     {
-        Calls.Add(new Call(request, idempotencyKey, JsonSerializer.SerializeToUtf8Bytes(request, CollectorJson.Options)));
+        var request = JsonSerializer.Deserialize<KnowledgeUploadRequest>(payload.Body, CollectorJson.Options)!;
+        Calls.Add(new Call(request, idempotencyKey, payload.Body));
         var failure = _failures.Count > 0 ? _failures.Dequeue() : null;
         if (failure is not null)
         {

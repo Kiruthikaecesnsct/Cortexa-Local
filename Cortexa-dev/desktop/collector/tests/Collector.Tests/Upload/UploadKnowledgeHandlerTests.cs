@@ -25,10 +25,9 @@ public sealed class UploadKnowledgeHandlerTests
     private UploadKnowledgeHandler Handler() => new(
         _documents,
         _batches,
-        _client,
+        new BatchSender(_client, _batches, NullLogger<BatchSender>.Instance),
         new UploadBatchPlanner(),
-        _time,
-        NullLogger<UploadKnowledgeHandler>.Instance);
+        _time);
 
     private List<ExtractedKnowledgeItem> Items(int documentCount, bool register = true)
     {
@@ -116,7 +115,6 @@ public sealed class UploadKnowledgeHandlerTests
         var firstAttempt = _client.Calls[1];
         var retry = _client.Calls[2];
         Assert.Equal(firstAttempt.Key, retry.Key);
-        Assert.Same(firstAttempt.Request, retry.Request);
         Assert.Equal(firstAttempt.Body, retry.Body);
         Assert.Equal(1, _client.Calls.Count(call => call.Key == _client.Calls[0].Key));
         Assert.True(session.IsComplete);
@@ -252,5 +250,51 @@ public sealed class UploadKnowledgeHandlerTests
         var session = await Handler().PrepareAsync(Request(Items(1)), TestSupport.Ct);
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => session.UploadPendingAsync(null, TestSupport.Ct));
+    }
+
+    [Fact]
+    public async Task PrepareAsync_StoredPayload_IsExactlyWhatTheClientSends()
+    {
+        var session = await Handler().PrepareAsync(Request(Items(2)), TestSupport.Ct);
+        _time.Advance(TimeSpan.FromHours(2));
+
+        await session.UploadPendingAsync(null, TestSupport.Ct);
+
+        var row = Assert.Single(_batches.Rows);
+        Assert.Equal(row.Batch.Payload.Body, Assert.Single(_client.Calls).Body);
+        Assert.Equal(row.Batch.Payload.Sha256, UploadPayload.From(_client.Calls[0].Request).Sha256);
+    }
+
+    [Fact]
+    public async Task PrepareAsync_ExposesLocalBatchIdsAlignedWithResults()
+    {
+        var session = await Handler().PrepareAsync(Request(Items(FiftyOneDocuments)), TestSupport.Ct);
+
+        Assert.Equal(_batches.Rows.Select(row => row.Id), session.LocalBatchIds);
+    }
+
+    [Fact]
+    public async Task PrepareAsync_SameDocumentSetAsOpenFailedBatch_SupersedesIt()
+    {
+        _client.FailNext(Network());
+        var first = await Handler().PrepareAsync(Request(Items(2)), TestSupport.Ct);
+        await first.UploadPendingAsync(null, TestSupport.Ct);
+
+        await Handler().PrepareAsync(Request(Items(2)), TestSupport.Ct);
+
+        Assert.True(_batches.Rows[0].Replaced);
+        Assert.False(_batches.Rows[1].Replaced);
+    }
+
+    [Fact]
+    public async Task PrepareAsync_DifferentDocumentSet_LeavesFailedBatchOpen()
+    {
+        _client.FailNext(Network());
+        var first = await Handler().PrepareAsync(Request(Items(2)), TestSupport.Ct);
+        await first.UploadPendingAsync(null, TestSupport.Ct);
+
+        await Handler().PrepareAsync(Request(Items(1)), TestSupport.Ct);
+
+        Assert.False(_batches.Rows[0].Replaced);
     }
 }

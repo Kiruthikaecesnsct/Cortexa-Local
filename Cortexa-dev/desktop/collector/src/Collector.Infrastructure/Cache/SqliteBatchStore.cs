@@ -1,4 +1,6 @@
+using System.Globalization;
 using Collector.Application.Ports;
+using Collector.Application.Upload;
 using Collector.Domain.Enums;
 using Collector.Domain.Serialization;
 using Microsoft.Data.Sqlite;
@@ -7,7 +9,7 @@ namespace Collector.Infrastructure.Cache;
 
 public sealed class SqliteBatchStore(SqliteConnectionFactory connections, TimeProvider timeProvider) : IBatchStore
 {
-    private const string BatchColumns = "b.id, b.idempotency_key, b.batch_name, b.status, b.server_batch_id, b.last_error";
+    private const string BatchColumns = "b.id, b.idempotency_key, b.batch_name, b.status, b.server_batch_id, b.last_error, b.replaced_at";
 
     public async Task<StoredBatch> CreateAsync(NewBatch batch, CancellationToken cancellationToken)
     {
@@ -16,6 +18,7 @@ public sealed class SqliteBatchStore(SqliteConnectionFactory connections, TimePr
         await using var transaction = (SqliteTransaction)await connection.BeginTransactionAsync(cancellationToken);
         await InsertBatchAsync(connection, transaction, id, batch, cancellationToken);
         await InsertDocumentsAsync(connection, transaction, id, batch.DocumentIds, cancellationToken);
+        await InsertPayloadAsync(connection, transaction, id, batch.Payload, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return new StoredBatch
         {
@@ -46,6 +49,18 @@ public sealed class SqliteBatchStore(SqliteConnectionFactory connections, TimePr
         return row with { DocumentIds = await ReadDocumentIdsAsync(connection, row.Id, cancellationToken) };
     }
 
+    public async Task<StoredBatch?> GetByIdAsync(string batchId, CancellationToken cancellationToken)
+    {
+        await using var connection = await connections.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = $"SELECT {BatchColumns} FROM batches b WHERE b.id = $id;";
+        command.Parameters.AddWithValue("$id", batchId);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        var row = await reader.ReadAsync(cancellationToken) ? ReadRow(reader) : null;
+        await reader.CloseAsync();
+        return row is null ? null : row with { DocumentIds = await ReadDocumentIdsAsync(connection, row.Id, cancellationToken) };
+    }
+
     public async Task<StoredBatch?> FindByServerBatchIdAsync(string serverBatchId, CancellationToken cancellationToken)
     {
         await using var connection = await connections.OpenAsync(cancellationToken);
@@ -66,6 +81,98 @@ public sealed class SqliteBatchStore(SqliteConnectionFactory connections, TimePr
 
     public Task MarkFailedAsync(string batchId, string error, CancellationToken cancellationToken) =>
         UpdateAsync(new BatchUpdate(batchId, BatchStatus.Failed, null, error), cancellationToken);
+
+    public async Task<IReadOnlyList<RetryableBatch>> ListRetryableAsync(CancellationToken cancellationToken)
+    {
+        await using var connection = await connections.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText =
+            """
+            SELECT b.id, b.idempotency_key, b.batch_name, b.last_error, b.updated_at,
+                   (SELECT COUNT(*) FROM batch_documents d WHERE d.batch_id = b.id), p.body
+            FROM batches b INNER JOIN batch_payloads p ON p.batch_id = b.id
+            WHERE b.status = $status AND b.replaced_at IS NULL
+            ORDER BY b.updated_at DESC, b.created_at DESC;
+            """;
+        command.Parameters.AddWithValue("$status", BatchStatus.Failed.ToWire());
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        var batches = new List<RetryableBatch>();
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            batches.Add(ReadRetryable(reader));
+        }
+
+        return batches;
+    }
+
+    public async Task<UploadPayload?> GetPayloadAsync(string batchId, CancellationToken cancellationToken)
+    {
+        await using var connection = await connections.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText = "SELECT body, body_sha256 FROM batch_payloads WHERE batch_id = $batch_id;";
+        command.Parameters.AddWithValue("$batch_id", batchId);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        return await reader.ReadAsync(cancellationToken)
+            ? new UploadPayload(reader.GetFieldValue<byte[]>(0), reader.GetString(1))
+            : null;
+    }
+
+    public async Task MarkReplacedAsync(IReadOnlyCollection<string> batchIds, CancellationToken cancellationToken)
+    {
+        if (batchIds.Count == 0)
+        {
+            return;
+        }
+
+        await using var connection = await connections.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        var names = batchIds.Select((id, index) => AddParameter(command, $"$b{index}", id)).ToList();
+        command.CommandText =
+            $"""
+            UPDATE batches SET replaced_at = $now
+            WHERE status = $status AND replaced_at IS NULL AND id IN ({string.Join(", ", names)});
+            """;
+        command.Parameters.AddWithValue("$now", timeProvider.GetUtcNow().ToString("O"));
+        command.Parameters.AddWithValue("$status", BatchStatus.Failed.ToWire());
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task MarkInterruptedAsync(CancellationToken cancellationToken)
+    {
+        await using var connection = await connections.OpenAsync(cancellationToken);
+        await using var command = connection.CreateCommand();
+        command.CommandText =
+            """
+            UPDATE batches SET status = $failed, last_error = $last_error, updated_at = $now
+            WHERE status = $uploading;
+            """;
+        command.Parameters.AddWithValue("$failed", BatchStatus.Failed.ToWire());
+        command.Parameters.AddWithValue("$uploading", BatchStatus.Uploading.ToWire());
+        command.Parameters.AddWithValue("$last_error", UploadErrorMapper.Describe(new UploadError(UploadErrorKind.Network, null)));
+        command.Parameters.AddWithValue("$now", timeProvider.GetUtcNow().ToString("O"));
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private async Task InsertPayloadAsync(
+        SqliteConnection connection,
+        SqliteTransaction transaction,
+        string batchId,
+        UploadPayload payload,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText =
+            """
+            INSERT INTO batch_payloads (batch_id, body, body_sha256, created_at)
+            VALUES ($batch_id, $body, $body_sha256, $now);
+            """;
+        command.Parameters.AddWithValue("$batch_id", batchId);
+        command.Parameters.Add("$body", SqliteType.Blob).Value = payload.Body;
+        command.Parameters.AddWithValue("$body_sha256", payload.Sha256);
+        command.Parameters.AddWithValue("$now", timeProvider.GetUtcNow().ToString("O"));
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
 
     private async Task InsertBatchAsync(
         SqliteConnection connection,
@@ -199,7 +306,19 @@ public sealed class SqliteBatchStore(SqliteConnectionFactory connections, TimePr
         Status = EnumWire.FromWire<BatchStatus>(reader.GetString(3)),
         ServerBatchId = reader.IsDBNull(4) ? null : reader.GetString(4),
         LastError = reader.IsDBNull(5) ? null : reader.GetString(5),
+        IsReplaced = !reader.IsDBNull(6),
         DocumentIds = [],
+    };
+
+    private static RetryableBatch ReadRetryable(SqliteDataReader reader) => new()
+    {
+        Id = reader.GetString(0),
+        IdempotencyKey = reader.GetString(1),
+        BatchName = reader.GetString(2),
+        LastError = reader.IsDBNull(3) ? null : reader.GetString(3),
+        UpdatedAt = DateTimeOffset.Parse(reader.GetString(4), CultureInfo.InvariantCulture),
+        DocumentCount = reader.GetInt32(5),
+        ItemCount = new UploadPayload(reader.GetFieldValue<byte[]>(6), string.Empty).CountItems(),
     };
 
     private sealed record BatchUpdate(string Id, BatchStatus Status, string? ServerBatchId, string? LastError);

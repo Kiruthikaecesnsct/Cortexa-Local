@@ -1,0 +1,134 @@
+<UserControl x:Class="Collector.Presentation.Views.FailedUploadsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:b="clr-namespace:Collector.Presentation.Behaviors"
+             xmlns:res="clr-namespace:Collector.Presentation.Resources"
+             xmlns:vm="clr-namespace:Collector.Presentation.ViewModels"
+             Focusable="False"
+             IsTabStop="False"
+             Visibility="{Binding HasRows, Converter={StaticResource BoolToVisibility}}">
+    <UserControl.Resources>
+        <DataTemplate DataType="{x:Type vm:FailedUploadRowViewModel}">
+            <Border MinHeight="{StaticResource Size.RowMin}"
+                    Padding="{StaticResource Thickness.FailedRow}"
+                    AutomationProperties.Name="{Binding AutomationName}"
+                    BorderBrush="{DynamicResource Brush.Border.Subtle}"
+                    BorderThickness="{StaticResource Thickness.TopBorder}"
+                    Focusable="False">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <Border Grid.Column="0"
+                            Margin="{StaticResource Thickness.InlineGapLarge}"
+                            VerticalAlignment="Top"
+                            Style="{StaticResource Tag.Surface.Danger}"
+                            Visibility="{Binding CanRetry, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource Tag.Glyph}" Text="{x:Static res:Glyphs.Error}" />
+                            <TextBlock Style="{StaticResource Tag.Label}" Text="{x:Static res:HistoryStrings.FailedTag}" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="0"
+                            Margin="{StaticResource Thickness.InlineGapLarge}"
+                            VerticalAlignment="Top"
+                            Style="{StaticResource Tag.Surface}"
+                            Visibility="{Binding IsTerminal, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource Tag.Glyph}" Text="{x:Static res:Glyphs.Blocked}" />
+                            <TextBlock Style="{StaticResource Tag.Label}" Text="{x:Static res:HistoryStrings.CantRetry}" />
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBlock Style="{StaticResource Text.Label}"
+                                   Text="{Binding Name}"
+                                   TextTrimming="CharacterEllipsis"
+                                   ToolTip="{Binding Name}" />
+                        <TextBlock Style="{StaticResource Text.Caption}" Text="{Binding DetailText}" />
+                        <TextBlock Margin="{StaticResource Thickness.HelperGap}"
+                                   Style="{StaticResource Text.Error}"
+                                   Text="{Binding ErrorText}" />
+                        <TextBlock Margin="{StaticResource Thickness.HelperGap}"
+                                   Style="{StaticResource Text.Helper}"
+                                   Text="{x:Static res:HistoryStrings.TerminalHelp}"
+                                   Visibility="{Binding IsTerminal, Converter={StaticResource BoolToVisibility}}" />
+                    </StackPanel>
+
+                    <Button Grid.Column="2"
+                            MinWidth="{StaticResource Size.ActionMinWidth}"
+                            MinHeight="{StaticResource Size.RowAction}"
+                            Margin="{StaticResource Thickness.LeadingGap}"
+                            VerticalAlignment="Top"
+                            AutomationProperties.Name="{Binding RetryName}"
+                            b:FocusRouter.Key="{Binding RetryKey}"
+                            Command="{Binding RetryCommand}"
+                            Content="{Binding RetryLabel}"
+                            Style="{StaticResource Button.Secondary}"
+                            Visibility="{Binding CanRetry, Converter={StaticResource BoolToVisibility}}" />
+                    <Button Grid.Column="2"
+                            MinWidth="{StaticResource Size.ActionMinWidth}"
+                            MinHeight="{StaticResource Size.RowAction}"
+                            Margin="{StaticResource Thickness.LeadingGap}"
+                            VerticalAlignment="Top"
+                            AutomationProperties.Name="{Binding RemoveName}"
+                            b:FocusRouter.Key="{Binding RemoveKey}"
+                            Command="{Binding RemoveCommand}"
+                            Content="{x:Static res:HistoryStrings.Remove}"
+                            Style="{StaticResource Button.Secondary}"
+                            Visibility="{Binding IsTerminal, Converter={StaticResource BoolToVisibility}}" />
+
+                    <ProgressBar Grid.Row="1"
+                                 Grid.ColumnSpan="3"
+                                 Margin="{StaticResource Thickness.HelperGap}"
+                                 AutomationProperties.Name="{Binding RetryLabel}"
+                                 Style="{StaticResource Progress.Thin}"
+                                 Visibility="{Binding IsRetrying, Converter={StaticResource BoolToVisibility}}" />
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Border Margin="{StaticResource Thickness.StackGap}"
+            Padding="{StaticResource Thickness.None}"
+            Style="{StaticResource Card}">
+        <StackPanel>
+            <StackPanel Margin="{StaticResource Thickness.FailedHeader}" Orientation="Horizontal">
+                <TextBlock Margin="{StaticResource Thickness.InlineGap}"
+                           VerticalAlignment="Center"
+                           AutomationProperties.HeadingLevel="Level2"
+                           Style="{StaticResource Text.Subtitle}"
+                           Text="{x:Static res:HistoryStrings.FailedTitle}" />
+                <TextBlock VerticalAlignment="Center"
+                           Style="{StaticResource Text.Caption}"
+                           Text="{Binding CountText}" />
+            </StackPanel>
+            <TextBlock Margin="{StaticResource Thickness.FailedIntro}"
+                       Style="{StaticResource Text.Helper}"
+                       Text="{x:Static res:HistoryStrings.FailedIntro}" />
+            <ScrollViewer MaxHeight="{StaticResource Size.FailedListMaxHeight}"
+                          Focusable="False"
+                          HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto">
+                <ItemsControl AutomationProperties.Name="{x:Static res:HistoryStrings.FailedListName}"
+                              Focusable="False"
+                              IsTabStop="False"
+                              ItemsSource="{Binding Rows}" />
+            </ScrollViewer>
+            <TextBlock x:Name="LiveText"
+                       Width="{StaticResource Size.LiveRegion}"
+                       Height="{StaticResource Size.LiveRegion}"
+                       AutomationProperties.LiveSetting="{Binding AnnouncementSetting}"
+                       ClipToBounds="True"
+                       Opacity="0"
+                       Text="{Binding Announcement}" />
+        </StackPanel>
+    </Border>
+</UserControl>

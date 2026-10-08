@@ -75,6 +75,9 @@ public static class CollectorHost
         services.AddSingleton<IClipboard, WpfClipboard>();
         services.AddSingleton<IKnowledgeRunner, KnowledgeRunner>();
         services.AddSingleton<ReviewUploader>();
+        services.AddSingleton<ILocalFileLauncher, ShellFileLauncher>();
+        services.AddSingleton<HistoryPoller>();
+        services.AddSingleton<HistoryServices>();
         services.AddSingleton<ExtractionDependencies>();
         services.AddSingleton<KnowledgeRunViewModel>();
         return services;

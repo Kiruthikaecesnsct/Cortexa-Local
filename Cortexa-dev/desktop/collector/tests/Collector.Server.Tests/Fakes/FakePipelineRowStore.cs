@@ -14,9 +14,17 @@ internal sealed class FakePipelineRowStore : IPipelineRowStore
 
     public Dictionary<string, SagaRow> Sagas { get; } = [];
 
-    public Dictionary<string, List<BatchResultJoinRow>> Results { get; } = [];
+    public List<HarvestingReportCandidateRow> HarvestingCandidates { get; } = [];
+
+    public SeedingReportRow? SeedingReport { get; set; }
+
+    public List<VerdictSummaryRow> Verdicts { get; } = [];
+
+    public List<EvidenceCountRow> EvidenceCounts { get; } = [];
 
     public int WriteCalls { get; private set; }
+
+    public int ReportReadCalls { get; private set; }
 
     public SagaRow? RaceWinner { get; set; }
 
@@ -70,21 +78,37 @@ internal sealed class FakePipelineRowStore : IPipelineRowStore
         Task.FromResult<IReadOnlyList<SagaRow>>(
             [.. Sagas.Values.Where(saga => saga.OwnerUserId == ownerUserId && saga.OrgId == orgId)]);
 
-    public Task<IReadOnlyList<ChunkRow>> GetChunksByBatchAsync(string batchId, CancellationToken cancellationToken) =>
-        Task.FromResult<IReadOnlyList<ChunkRow>>([.. Chunks.Where(chunk => chunk.BatchId == batchId)]);
-
-    public Task<IReadOnlyList<BatchResultJoinRow>> GetResultsByBatchAsync(string batchId, CancellationToken cancellationToken) =>
-        Task.FromResult<IReadOnlyList<BatchResultJoinRow>>(
-            Results.TryGetValue(batchId, out var rows) ? rows : []);
-
-    public void AddResult(string batchId, BatchResultJoinRow row)
+    public Task<BatchResultRows> GetResultsByBatchAsync(string batchId, CancellationToken cancellationToken)
     {
-        if (!Results.TryGetValue(batchId, out var rows))
-        {
-            rows = [];
-            Results[batchId] = rows;
-        }
-
-        rows.Add(row);
+        ReportReadCalls++;
+        return Task.FromResult(BuildRows(batchId));
     }
+
+    private BatchResultRows BuildRows(string batchId) =>
+        new(
+            [.. HarvestingCandidates.Where(candidate => candidate.BatchId == batchId)],
+            SeedingReport?.BatchId == batchId ? SeedingReport : null);
+
+    public Task<IReadOnlyList<VerdictSummaryRow>> GetVerdictSummariesByBatchAsync(
+        string batchId,
+        CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<VerdictSummaryRow>>(Verdicts);
+
+    public Task<IReadOnlyList<EvidenceCountRow>> GetEvidenceCountsByBatchAsync(
+        string batchId,
+        CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<EvidenceCountRow>>(EvidenceCounts);
+
+    public Task<IReadOnlyList<ChunkKnowledgeRow>> GetChunkKnowledgeByBatchAsync(
+        string batchId,
+        CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<ChunkKnowledgeRow>>(
+            [.. Chunks.Where(chunk => chunk.BatchId == batchId).Select(ToKnowledgeRow)]);
+
+    private static ChunkKnowledgeRow ToKnowledgeRow(ChunkRow chunk) => new()
+    {
+        Id = chunk.Id,
+        DocumentId = chunk.DocumentId,
+        Knowledge = chunk.Knowledge
+    };
 }

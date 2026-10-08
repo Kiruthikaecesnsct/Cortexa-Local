@@ -145,11 +145,17 @@ public class WriteKnowledgeBatchHandlerTests
             CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<SagaRow>>([]);
 
-        public Task<IReadOnlyList<ChunkRow>> GetChunksByBatchAsync(string batchId, CancellationToken cancellationToken) =>
-            Task.FromResult<IReadOnlyList<ChunkRow>>(Chunks);
+        public Task<BatchResultRows> GetResultsByBatchAsync(string batchId, CancellationToken cancellationToken) =>
+            Task.FromResult(new BatchResultRows([], null));
 
-        public Task<IReadOnlyList<BatchResultJoinRow>> GetResultsByBatchAsync(string batchId, CancellationToken cancellationToken) =>
-            Task.FromResult<IReadOnlyList<BatchResultJoinRow>>([]);
+        public Task<IReadOnlyList<VerdictSummaryRow>> GetVerdictSummariesByBatchAsync(string batchId, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<VerdictSummaryRow>>([]);
+
+        public Task<IReadOnlyList<EvidenceCountRow>> GetEvidenceCountsByBatchAsync(string batchId, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<EvidenceCountRow>>([]);
+
+        public Task<IReadOnlyList<ChunkKnowledgeRow>> GetChunkKnowledgeByBatchAsync(string batchId, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<ChunkKnowledgeRow>>([]);
     }
 
     private sealed class RecordingPublisher(List<string> calls, List<EventEnvelope> published) : IIngestionEventPublisher

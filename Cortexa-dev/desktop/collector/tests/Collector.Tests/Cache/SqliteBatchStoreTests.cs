@@ -139,4 +139,65 @@ public sealed class SqliteBatchStoreTests : IAsyncLifetime
 
         Assert.Equal("newer", found!.IdempotencyKey);
     }
+
+    [Fact]
+    public async Task FindByServerBatchIdAsync_UploadedBatch_ReturnsBatchWithDocumentIds()
+    {
+        var documents = await TwoDocumentsAsync();
+        var created = await _database.Batches.CreateAsync(SqliteTestDatabase.NewBatch("key-1", documents), TestSupport.Ct);
+        await _database.Batches.MarkUploadedAsync(created.Id, "server-42", TestSupport.Ct);
+
+        var found = await _database.Batches.FindByServerBatchIdAsync("server-42", TestSupport.Ct);
+
+        Assert.Equal(created.Id, found!.Id);
+        Assert.Equal("server-42", found.ServerBatchId);
+        Assert.Equal(documents.Order(), found.DocumentIds);
+    }
+
+    [Fact]
+    public async Task FindByServerBatchIdAsync_UnknownServerId_ReturnsNull()
+    {
+        var documents = await TwoDocumentsAsync();
+        var created = await _database.Batches.CreateAsync(SqliteTestDatabase.NewBatch("key-1", documents), TestSupport.Ct);
+        await _database.Batches.MarkUploadedAsync(created.Id, "server-42", TestSupport.Ct);
+
+        var found = await _database.Batches.FindByServerBatchIdAsync("server-other", TestSupport.Ct);
+
+        Assert.Null(found);
+    }
+
+    [Fact]
+    public async Task FindByServerBatchIdAsync_BatchNeverUploaded_ReturnsNull()
+    {
+        var documents = await TwoDocumentsAsync();
+        await _database.Batches.CreateAsync(SqliteTestDatabase.NewBatch("key-1", documents), TestSupport.Ct);
+
+        var found = await _database.Batches.FindByServerBatchIdAsync("server-42", TestSupport.Ct);
+
+        Assert.Null(found);
+    }
+
+    [Fact]
+    public async Task FindByServerBatchIdAsync_TwoUploadedBatches_ReturnsTheMatchingOne()
+    {
+        var first = await _database.AddDocumentAsync("C:/first.cs");
+        var second = await _database.AddDocumentAsync("C:/second.cs");
+        var firstBatch = await _database.Batches.CreateAsync(SqliteTestDatabase.NewBatch("key-1", first), TestSupport.Ct);
+        var secondBatch = await _database.Batches.CreateAsync(SqliteTestDatabase.NewBatch("key-2", second), TestSupport.Ct);
+        await _database.Batches.MarkUploadedAsync(firstBatch.Id, "server-1", TestSupport.Ct);
+        await _database.Batches.MarkUploadedAsync(secondBatch.Id, "server-2", TestSupport.Ct);
+
+        var found = await _database.Batches.FindByServerBatchIdAsync("server-2", TestSupport.Ct);
+
+        Assert.Equal(secondBatch.Id, found!.Id);
+        Assert.Equal([second], found.DocumentIds);
+    }
+
+    [Fact]
+    public async Task FindByServerBatchIdAsync_IdWithQuoteCharacters_IsTreatedAsData()
+    {
+        var found = await _database.Batches.FindByServerBatchIdAsync("x' OR '1'='1", TestSupport.Ct);
+
+        Assert.Null(found);
+    }
 }

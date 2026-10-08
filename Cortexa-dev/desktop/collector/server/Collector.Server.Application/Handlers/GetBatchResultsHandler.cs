@@ -1,5 +1,4 @@
-using Collector.Domain.Knowledge;
-using Collector.Server.Application.Building;
+using Collector.Domain.History;
 using Collector.Server.Application.Ports;
 using Collector.Server.Application.Reads;
 using Collector.Server.Application.Rows;
@@ -20,71 +19,21 @@ public sealed class GetBatchResultsHandler(IPipelineRowStore store)
             return GetBatchResultsOutcome.NotFound();
         }
 
-        var chunks = await store.GetChunksByBatchAsync(batchId, cancellationToken);
-        var joinRows = await store.GetResultsByBatchAsync(batchId, cancellationToken);
-        var chunkIndex = chunks.ToDictionary(chunk => chunk.Id);
+        var resultsTask = store.GetResultsByBatchAsync(batchId, cancellationToken);
+        var verdictsTask = store.GetVerdictSummariesByBatchAsync(batchId, cancellationToken);
+        var evidenceTask = store.GetEvidenceCountsByBatchAsync(batchId, cancellationToken);
+        var chunksTask = store.GetChunkKnowledgeByBatchAsync(batchId, cancellationToken);
+        await Task.WhenAll(resultsTask, verdictsTask, evidenceTask, chunksTask);
 
-        var items = new List<BatchResultDto>();
-        foreach (var joinRow in joinRows)
-        {
-            var dto = ToDto(joinRow, chunkIndex);
-            if (dto is not null)
-            {
-                items.Add(dto);
-            }
-        }
-
-        return GetBatchResultsOutcome.Ok(items);
+        var candidates = CandidateAssembler.Assemble(
+            await resultsTask,
+            await verdictsTask,
+            await evidenceTask,
+            await chunksTask);
+        return GetBatchResultsOutcome.Ok(new BatchResults { BatchId = batchId, Candidates = candidates });
     }
 
     private static bool OwnedBy(SagaRow saga, UploadCaller caller) =>
         string.Equals(saga.OwnerUserId, caller.UserId, StringComparison.Ordinal) &&
         string.Equals(saga.OrgId, caller.OrgId, StringComparison.Ordinal);
-
-    private static BatchResultDto? ToDto(
-        BatchResultJoinRow joinRow,
-        IReadOnlyDictionary<string, ChunkRow> chunkIndex)
-    {
-        var chunkId = ResolveChunkId(joinRow);
-        if (chunkId is null || !chunkIndex.TryGetValue(chunkId, out var chunk))
-        {
-            return null;
-        }
-
-        return new BatchResultDto
-        {
-            Engine = joinRow.Engine,
-            KnowledgeItem = new KnowledgeLinkDto
-            {
-                Id = chunkId,
-                Kind = chunk.Knowledge.Kind,
-                Title = chunk.Knowledge.Title,
-                Summary = chunk.Knowledge.Summary
-            },
-            Source = BuildSource(chunk.Knowledge.Source)
-        };
-    }
-
-    private static string? ResolveChunkId(BatchResultJoinRow joinRow)
-    {
-        if (!string.IsNullOrEmpty(joinRow.ChunkId))
-        {
-            return joinRow.ChunkId;
-        }
-
-        if (joinRow.DocumentId is not null && joinRow.SourceChunkIndex is not null)
-        {
-            return ChunkRowBuilder.BuildChunkId(joinRow.DocumentId, joinRow.SourceChunkIndex.Value);
-        }
-
-        return null;
-    }
-
-    private static SourceDto BuildSource(KnowledgeSource source) => new()
-    {
-        PageNumber = source.PageNumber,
-        FilePath = source.FilePath,
-        LineStart = source.LineStart,
-        LineEnd = source.LineEnd
-    };
 }

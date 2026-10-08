@@ -1,0 +1,18 @@
+{
+  "id": "batch-1:seeding",
+  "batch_id": "batch-1",
+  "engine": "seeding",
+  "opportunities": [
+    {
+      "id": "opp-1",
+      "candidate_id": "cand-2",
+      "title": "Streaming index compaction",
+      "category": "adjacent",
+      "weighted_score": 41.0,
+      "axes": {
+        "Patentability": { "score": 38 }
+      },
+      "grounded_in": { "chunk_ids": ["doc-1|0", "doc-1|1"] }
+    }
+  ]
+}

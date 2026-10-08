@@ -1,3 +1,4 @@
+using Collector.Domain.Upload;
 using Collector.Server.Application.Upload;
 using Collector.Server.Tests.Fakes;
 

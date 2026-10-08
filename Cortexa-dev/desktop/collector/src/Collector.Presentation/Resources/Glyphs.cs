@@ -23,5 +23,12 @@ public static class Glyphs
     public const string CheckMark = "";
     public const string Dash = "";
     public const string Refresh = "";
+    public const string History = "\uE81C";
+    public const string Sync = "\uE895";
+    public const string ChevronRight = "\uE76C";
+    public const string ChevronDown = "\uE70D";
+    public const string CircleRing = "\uEA3A";
+    public const string RadioBtnOn = "\uECCB";
+    public const string OpenInNewWindow = "\uE8A7";
 }
 

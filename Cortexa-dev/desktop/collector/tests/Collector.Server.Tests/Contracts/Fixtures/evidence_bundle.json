@@ -1,0 +1,10 @@
+{
+  "id": "batch-1:cand-1:bundle",
+  "batch_id": "batch-1",
+  "candidate_id": "cand-1",
+  "hits": [
+    { "source": "patent_api", "title": "US-1" },
+    { "source": "corpus", "title": "US-2" },
+    { "source": "deep_research", "title": "Paper" }
+  ]
+}

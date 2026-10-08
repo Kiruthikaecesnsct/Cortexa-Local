@@ -21,6 +21,10 @@
         <views:ReviewView />
     </DataTemplate>
 
+    <DataTemplate DataType="{x:Type vm:HistoryViewModel}">
+        <views:HistoryView />
+    </DataTemplate>
+
     <DataTemplate DataType="{x:Type vm:BannerViewModel}">
         <views:BannerView />
     </DataTemplate>

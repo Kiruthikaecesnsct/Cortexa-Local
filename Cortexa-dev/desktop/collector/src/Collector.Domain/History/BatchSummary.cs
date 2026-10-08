@@ -1,8 +1,8 @@
 using System.Text.Json.Serialization;
 
-namespace Collector.Server.Application.Reads;
+namespace Collector.Domain.History;
 
-public sealed record BatchSummaryDto
+public sealed record BatchSummary
 {
     [JsonPropertyName("batch_id")]
     public required string BatchId { get; init; }
@@ -15,6 +15,10 @@ public sealed record BatchSummaryDto
 
     [JsonPropertyName("state")]
     public required string State { get; init; }
+
+    [JsonPropertyName("stage")]
+    [JsonConverter(typeof(JsonStringEnumConverter<BatchStage>))]
+    public required BatchStage Stage { get; init; }
 
     [JsonPropertyName("extraction_completed_count")]
     public required int ExtractionCompletedCount { get; init; }
@@ -30,4 +34,16 @@ public sealed record BatchSummaryDto
 
     [JsonPropertyName("embedding_total_count")]
     public required int EmbeddingTotalCount { get; init; }
+
+    [JsonPropertyName("harvesting_completed_count")]
+    public required int HarvestingCompletedCount { get; init; }
+
+    [JsonPropertyName("harvesting_total_count")]
+    public required int HarvestingTotalCount { get; init; }
+
+    [JsonPropertyName("seeding_completed_count")]
+    public required int SeedingCompletedCount { get; init; }
+
+    [JsonPropertyName("seeding_total_count")]
+    public required int SeedingTotalCount { get; init; }
 }

@@ -15,8 +15,14 @@ public sealed class CosmosPipelineRowStore : IPipelineRowStore
     private const string ProvenanceStage = "provenance_maps";
     private const string SagaStage = "batches";
     private const string ResultsStage = "results";
-    private const string HarvestingEngine = "harvesting";
-    private const string SeedingEngine = "seeding";
+    private const string VerdictsStage = "verdicts";
+    private const string EvidenceStage = "evidence_bundles";
+    private const string VerdictSummaryQuery =
+        "SELECT c.candidate_id, c.composite_score, c.axes.Patentability.score AS patentability FROM c WHERE c.batch_id = @batchId";
+    private const string EvidenceCountQuery =
+        "SELECT c.candidate_id, ARRAY_LENGTH(c.hits) AS hit_count FROM c WHERE c.batch_id = @batchId";
+    private const string ChunkKnowledgeQuery =
+        "SELECT c.id, c.document_id, c.knowledge FROM c WHERE c.batch_id = @batchId";
     private const string ReportCandidateDocType = "report_candidate";
     private const string BatchIdParameter = "@batchId";
     private const string OwnerUserIdParameter = "@ownerUserId";
@@ -103,36 +109,61 @@ public sealed class CosmosPipelineRowStore : IPipelineRowStore
         }
     }
 
-    public async Task<IReadOnlyList<ChunkRow>> GetChunksByBatchAsync(string batchId, CancellationToken cancellationToken)
-    {
-        var container = _client.GetContainer(_options.Database, _options.ChunksContainer);
-
-        try
-        {
-            return await ReadByBatchAsync<ChunkRow>(container, batchId, cancellationToken);
-        }
-        catch (CosmosException exception)
-        {
-            throw new PipelineWriteException(batchId, ChunksStage, exception);
-        }
-    }
-
-    public async Task<IReadOnlyList<BatchResultJoinRow>> GetResultsByBatchAsync(string batchId, CancellationToken cancellationToken)
+    public async Task<BatchResultRows> GetResultsByBatchAsync(string batchId, CancellationToken cancellationToken)
     {
         try
         {
             var container = _client.GetContainer(_options.Database, _options.ReportsContainer);
             var candidates = await ReadHarvestingCandidatesAsync(container, batchId, cancellationToken);
             var seedingReport = await ReadSeedingReportAsync(container, batchId, cancellationToken);
-
-            var rows = new List<BatchResultJoinRow>();
-            AppendHarvestingRows(rows, candidates);
-            AppendSeedingRows(rows, seedingReport);
-            return rows;
+            return new BatchResultRows(candidates, seedingReport);
         }
         catch (CosmosException exception)
         {
             throw new PipelineWriteException(batchId, ResultsStage, exception);
+        }
+    }
+
+    public Task<IReadOnlyList<VerdictSummaryRow>> GetVerdictSummariesByBatchAsync(
+        string batchId,
+        CancellationToken cancellationToken) =>
+        ReadProjectedAsync<VerdictSummaryRow>(
+            new ProjectedRead(_options.VerdictsContainer, VerdictsStage, VerdictSummaryQuery),
+            batchId,
+            cancellationToken);
+
+    public Task<IReadOnlyList<EvidenceCountRow>> GetEvidenceCountsByBatchAsync(
+        string batchId,
+        CancellationToken cancellationToken) =>
+        ReadProjectedAsync<EvidenceCountRow>(
+            new ProjectedRead(_options.EvidenceBundlesContainer, EvidenceStage, EvidenceCountQuery),
+            batchId,
+            cancellationToken);
+
+    public Task<IReadOnlyList<ChunkKnowledgeRow>> GetChunkKnowledgeByBatchAsync(
+        string batchId,
+        CancellationToken cancellationToken) =>
+        ReadProjectedAsync<ChunkKnowledgeRow>(
+            new ProjectedRead(_options.ChunksContainer, ChunksStage, ChunkKnowledgeQuery),
+            batchId,
+            cancellationToken);
+
+    private async Task<IReadOnlyList<T>> ReadProjectedAsync<T>(
+        ProjectedRead read,
+        string batchId,
+        CancellationToken cancellationToken)
+    {
+        var container = _client.GetContainer(_options.Database, read.ContainerName);
+        var query = new QueryDefinition(read.Sql).WithParameter(BatchIdParameter, batchId);
+        var requestOptions = new QueryRequestOptions { PartitionKey = new PartitionKey(batchId) };
+
+        try
+        {
+            return await ReadAllAsync<T>(container, query, requestOptions, cancellationToken);
+        }
+        catch (CosmosException exception)
+        {
+            throw new PipelineWriteException(batchId, read.Stage, exception);
         }
     }
 
@@ -144,7 +175,7 @@ public sealed class CosmosPipelineRowStore : IPipelineRowStore
         var query = new QueryDefinition(
                 "SELECT * FROM c WHERE c.batch_id = @batchId AND c.engine = @engine AND c.doc_type = @docType")
             .WithParameter(BatchIdParameter, batchId)
-            .WithParameter(EngineParameter, HarvestingEngine)
+            .WithParameter(EngineParameter, RowConstants.HarvestingEngine)
             .WithParameter(DocTypeParameter, ReportCandidateDocType);
         var requestOptions = new QueryRequestOptions { PartitionKey = new PartitionKey(batchId) };
         return ReadAllAsync<HarvestingReportCandidateRow>(container, query, requestOptions, cancellationToken);
@@ -157,57 +188,10 @@ public sealed class CosmosPipelineRowStore : IPipelineRowStore
     {
         var query = new QueryDefinition("SELECT * FROM c WHERE c.batch_id = @batchId AND c.engine = @engine")
             .WithParameter(BatchIdParameter, batchId)
-            .WithParameter(EngineParameter, SeedingEngine);
+            .WithParameter(EngineParameter, RowConstants.SeedingEngine);
         var requestOptions = new QueryRequestOptions { PartitionKey = new PartitionKey(batchId) };
         var reports = await ReadAllAsync<SeedingReportRow>(container, query, requestOptions, cancellationToken);
         return reports.Count > 0 ? reports[0] : null;
-    }
-
-    private static void AppendHarvestingRows(
-        List<BatchResultJoinRow> rows,
-        IReadOnlyList<HarvestingReportCandidateRow> candidates)
-    {
-        foreach (var candidate in candidates)
-        {
-            foreach (var link in candidate.ProvenanceLinks)
-            {
-                rows.Add(new BatchResultJoinRow
-                {
-                    Engine = HarvestingEngine,
-                    ChunkId = link.ChunkId,
-                    DocumentId = link.DocumentId,
-                    SourceChunkIndex = link.SourceChunkIndex
-                });
-            }
-        }
-    }
-
-    private static void AppendSeedingRows(List<BatchResultJoinRow> rows, SeedingReportRow? report)
-    {
-        if (report is null)
-        {
-            return;
-        }
-
-        foreach (var opportunity in report.Opportunities)
-        {
-            var chunkIds = opportunity.GroundedIn?.ChunkIds ?? [];
-            foreach (var chunkId in chunkIds)
-            {
-                rows.Add(new BatchResultJoinRow { Engine = SeedingEngine, ChunkId = chunkId });
-            }
-        }
-    }
-
-    private static Task<IReadOnlyList<T>> ReadByBatchAsync<T>(
-        Container container,
-        string batchId,
-        CancellationToken cancellationToken)
-    {
-        var query = new QueryDefinition("SELECT * FROM c WHERE c.batch_id = @batchId")
-            .WithParameter(BatchIdParameter, batchId);
-        var requestOptions = new QueryRequestOptions { PartitionKey = new PartitionKey(batchId) };
-        return ReadAllAsync<T>(container, query, requestOptions, cancellationToken);
     }
 
     private static async Task<IReadOnlyList<T>> ReadAllAsync<T>(
@@ -258,6 +242,8 @@ public sealed class CosmosPipelineRowStore : IPipelineRowStore
             throw new PipelineWriteException(rows[0].BatchId, stage, exception);
         }
     }
+
+    private sealed record ProjectedRead(string ContainerName, string Stage, string Sql);
 
     private static async ValueTask UpsertOneAsync<T>(Container container, T row, CancellationToken cancellationToken)
         where T : IPipelineRow =>

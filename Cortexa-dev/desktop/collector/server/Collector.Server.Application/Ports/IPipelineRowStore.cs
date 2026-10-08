@@ -16,7 +16,11 @@ public interface IPipelineRowStore
 
     Task<IReadOnlyList<SagaRow>> ListSagasByOwnerAsync(string ownerUserId, string orgId, CancellationToken cancellationToken);
 
-    Task<IReadOnlyList<ChunkRow>> GetChunksByBatchAsync(string batchId, CancellationToken cancellationToken);
+    Task<BatchResultRows> GetResultsByBatchAsync(string batchId, CancellationToken cancellationToken);
 
-    Task<IReadOnlyList<BatchResultJoinRow>> GetResultsByBatchAsync(string batchId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<VerdictSummaryRow>> GetVerdictSummariesByBatchAsync(string batchId, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<EvidenceCountRow>> GetEvidenceCountsByBatchAsync(string batchId, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<ChunkKnowledgeRow>> GetChunkKnowledgeByBatchAsync(string batchId, CancellationToken cancellationToken);
 }

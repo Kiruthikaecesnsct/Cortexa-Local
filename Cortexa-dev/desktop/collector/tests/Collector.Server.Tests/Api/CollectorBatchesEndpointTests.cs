@@ -1,11 +1,9 @@
 using System.Net;
 using System.Text.Json;
-using Collector.Domain.Enums;
-using Collector.Domain.Knowledge;
+using Collector.Domain.History;
 using Collector.Domain.Serialization;
-using Collector.Server.Application.Building;
-using Collector.Server.Application.Reads;
 using Collector.Server.Application.Rows;
+using Collector.Server.Tests.Fakes;
 
 namespace Collector.Server.Tests.Api;
 
@@ -83,146 +81,75 @@ public class CollectorBatchesEndpointTests
     }
 
     [Fact]
-    public async Task Get_Results_SkipsResultWhoseChunkIsMissingFromBatch()
+    public async Task Get_Batches_ReturnsStageAndHarvestingSeedingCounts()
+    {
+        await using var factory = new CollectorServerFactory();
+        factory.Store.Sagas["batch-mine"] = TestSagas.WithDocumentStates(
+            "batch-mine",
+            wantsHarvesting: true,
+            wantsSeeding: true,
+            RowConstants.SagaDocumentStateHarvested,
+            RowConstants.SagaDocumentStateSeeded);
+
+        using var response = await factory.GetAsync(BatchesPath, TestJwtFactory.Create());
+
+        var batch = Assert.Single(await ReadBatchesAsync(response));
+        Assert.Equal(BatchStage.Harvested, batch.Stage);
+        Assert.Equal(2, batch.HarvestingCompletedCount);
+        Assert.Equal(2, batch.HarvestingTotalCount);
+        Assert.Equal(1, batch.SeedingCompletedCount);
+        Assert.Equal(2, batch.SeedingTotalCount);
+        Assert.Contains("\"stage\":\"Harvested\"", await ReadRawAsync(response));
+    }
+
+    [Fact]
+    public async Task Get_Results_ReturnsHarvestingAndSeedingCandidatesWithVerdictAndEvidence()
     {
         await using var factory = new CollectorServerFactory();
         SeedSaga(factory, "batch-mine", TestIdentity.UserId, TestIdentity.OrgId);
-        var chunk = SeedChunk(factory, "batch-mine", "doc-1", 0, pageNumber: 5);
-        factory.Store.AddResult("batch-mine", new BatchResultJoinRow
+        var chunkOne = ResultRows.Chunk("doc-1", 0, pageNumber: 5);
+        var chunkTwo = ResultRows.Chunk("doc-2", 0, source: new Collector.Domain.Knowledge.KnowledgeSource
         {
-            Engine = "harvesting",
-            DocumentId = "doc-1",
-            SourceChunkIndex = 0
+            FilePath = "src/a.py",
+            LineStart = 10,
+            LineEnd = 20
         });
-        factory.Store.AddResult("batch-mine", new BatchResultJoinRow
-        {
-            Engine = "harvesting",
-            DocumentId = "doc-missing",
-            SourceChunkIndex = 0
-        });
+        factory.Store.Chunks.AddRange([chunkOne, chunkTwo]);
+        factory.Store.HarvestingCandidates.Add(
+            ResultRows.Harvesting("cand-h", weightedScore: 0.4, patentability: 40, ResultRows.Link("doc-1", 0)));
+        factory.Store.SeedingReport = ResultRows.Report(
+            ResultRows.Opportunity("cand-s", weightedScore: 0.3, patentability: null, chunkTwo.Id));
+        factory.Store.Verdicts.Add(ResultRows.Verdict("cand-h", composite: 0.82, patentability: 77));
+        factory.Store.EvidenceCounts.AddRange([ResultRows.Evidence("cand-h", 2), ResultRows.Evidence("cand-h", 3)]);
 
         using var response = await factory.GetAsync($"{BatchesPath}/batch-mine/results", TestJwtFactory.Create());
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var results = await ReadResultsAsync(response);
-        var result = Assert.Single(results);
-        Assert.Equal(chunk.Id, result.KnowledgeItem.Id);
-        Assert.Equal("T", result.KnowledgeItem.Title);
+        Assert.Equal("batch-mine", results.BatchId);
+        var harvesting = Assert.Single(results.Candidates, candidate => candidate.Engine == "harvesting");
+        Assert.Equal(5, harvesting.EvidenceCount);
+        Assert.Equal(0.82, harvesting.Score);
+        Assert.Equal(77, harvesting.Patentability);
+        var harvestingLink = Assert.Single(harvesting.KnowledgeLinks);
+        Assert.Equal("doc-1", harvestingLink.Source.DocumentId);
+        Assert.Equal(5, harvestingLink.Source.PageNumber);
+        var seeding = Assert.Single(results.Candidates, candidate => candidate.Engine == "seeding");
+        Assert.Equal(0.3, seeding.Score);
+        Assert.Null(seeding.Patentability);
+        Assert.Equal("src/a.py", Assert.Single(seeding.KnowledgeLinks).Source.FilePath);
     }
 
     [Fact]
-    public async Task Get_Results_JoinsKnowledgeItemAndSourceFromChunk()
+    public async Task Get_Results_WithNoReportRows_ReturnsEmptyCandidates()
     {
         await using var factory = new CollectorServerFactory();
         SeedSaga(factory, "batch-mine", TestIdentity.UserId, TestIdentity.OrgId);
-        var chunk = SeedChunk(factory, "batch-mine", "doc-1", 0, pageNumber: 5);
-        factory.Store.AddResult("batch-mine", new BatchResultJoinRow
-        {
-            Engine = "harvesting",
-            DocumentId = "doc-1",
-            SourceChunkIndex = 0
-        });
 
         using var response = await factory.GetAsync($"{BatchesPath}/batch-mine/results", TestJwtFactory.Create());
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var results = await ReadResultsAsync(response);
-        var result = Assert.Single(results);
-        Assert.Equal("harvesting", result.Engine);
-        Assert.Equal(chunk.Id, result.KnowledgeItem.Id);
-        Assert.Equal("T", result.KnowledgeItem.Title);
-        Assert.Equal("S", result.KnowledgeItem.Summary);
-        Assert.Equal(5, result.Source.PageNumber);
-    }
-
-    [Fact]
-    public async Task Get_Results_ForCodeSource_ReturnsFilePathAndLines()
-    {
-        await using var factory = new CollectorServerFactory();
-        SeedSaga(factory, "batch-mine", TestIdentity.UserId, TestIdentity.OrgId);
-        var chunk = SeedChunk(factory, "batch-mine", "doc-2", 0, pageNumber: null, filePath: "src/a.py", lineStart: 10, lineEnd: 20);
-        factory.Store.AddResult("batch-mine", new BatchResultJoinRow { Engine = "seeding", ChunkId = chunk.Id });
-
-        using var response = await factory.GetAsync($"{BatchesPath}/batch-mine/results", TestJwtFactory.Create());
-
-        var results = await ReadResultsAsync(response);
-        var result = Assert.Single(results);
-        Assert.Equal("seeding", result.Engine);
-        Assert.Equal("src/a.py", result.Source.FilePath);
-        Assert.Equal(10, result.Source.LineStart);
-        Assert.Equal(20, result.Source.LineEnd);
-    }
-
-    [Fact]
-    public async Task Get_Results_HarvestingCandidateWithTwoProvenanceLinks_ReturnsTwoResultRows()
-    {
-        await using var factory = new CollectorServerFactory();
-        SeedSaga(factory, "batch-mine", TestIdentity.UserId, TestIdentity.OrgId);
-        var chunkOne = SeedChunk(factory, "batch-mine", "doc-1", 0, pageNumber: 1);
-        var chunkTwo = SeedChunk(factory, "batch-mine", "doc-1", 1, pageNumber: 2);
-        factory.Store.AddResult("batch-mine", new BatchResultJoinRow
-        {
-            Engine = "harvesting",
-            DocumentId = "doc-1",
-            SourceChunkIndex = 0
-        });
-        factory.Store.AddResult("batch-mine", new BatchResultJoinRow
-        {
-            Engine = "harvesting",
-            DocumentId = "doc-1",
-            SourceChunkIndex = 1
-        });
-
-        using var response = await factory.GetAsync($"{BatchesPath}/batch-mine/results", TestJwtFactory.Create());
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var results = await ReadResultsAsync(response);
-        Assert.Equal(2, results.Count);
-        Assert.Contains(results, result => result.KnowledgeItem.Id == chunkOne.Id);
-        Assert.Contains(results, result => result.KnowledgeItem.Id == chunkTwo.Id);
-        Assert.All(results, result => Assert.Equal("harvesting", result.Engine));
-    }
-
-    [Fact]
-    public async Task Get_Results_SeedingOpportunityWithTwoChunkIds_ReturnsTwoResultRows()
-    {
-        await using var factory = new CollectorServerFactory();
-        SeedSaga(factory, "batch-mine", TestIdentity.UserId, TestIdentity.OrgId);
-        var chunkOne = SeedChunk(factory, "batch-mine", "doc-2", 0, pageNumber: 1);
-        var chunkTwo = SeedChunk(factory, "batch-mine", "doc-2", 1, pageNumber: 2);
-        factory.Store.AddResult("batch-mine", new BatchResultJoinRow { Engine = "seeding", ChunkId = chunkOne.Id });
-        factory.Store.AddResult("batch-mine", new BatchResultJoinRow { Engine = "seeding", ChunkId = chunkTwo.Id });
-
-        using var response = await factory.GetAsync($"{BatchesPath}/batch-mine/results", TestJwtFactory.Create());
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var results = await ReadResultsAsync(response);
-        Assert.Equal(2, results.Count);
-        Assert.Contains(results, result => result.KnowledgeItem.Id == chunkOne.Id);
-        Assert.Contains(results, result => result.KnowledgeItem.Id == chunkTwo.Id);
-        Assert.All(results, result => Assert.Equal("seeding", result.Engine));
-    }
-
-    [Fact]
-    public async Task Get_Results_ProvenanceLinkWithoutMatchingChunk_IsSkipped()
-    {
-        await using var factory = new CollectorServerFactory();
-        SeedSaga(factory, "batch-mine", TestIdentity.UserId, TestIdentity.OrgId);
-        var chunk = SeedChunk(factory, "batch-mine", "doc-1", 0, pageNumber: 1);
-        factory.Store.AddResult("batch-mine", new BatchResultJoinRow
-        {
-            Engine = "harvesting",
-            DocumentId = "doc-1",
-            SourceChunkIndex = 0
-        });
-        factory.Store.AddResult("batch-mine", new BatchResultJoinRow { Engine = "seeding", ChunkId = "doc-missing|0" });
-
-        using var response = await factory.GetAsync($"{BatchesPath}/batch-mine/results", TestJwtFactory.Create());
-
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var results = await ReadResultsAsync(response);
-        var result = Assert.Single(results);
-        Assert.Equal(chunk.Id, result.KnowledgeItem.Id);
+        Assert.Empty((await ReadResultsAsync(response)).Candidates);
     }
 
     private static void SeedSaga(CollectorServerFactory factory, string batchId, string ownerUserId, string orgId) =>
@@ -245,58 +172,12 @@ public class CollectorBatchesEndpointTests
             WantsSeeding = true
         };
 
-    private static ChunkRow SeedChunk(
-        CollectorServerFactory factory,
-        string batchId,
-        string documentId,
-        int orderIndex,
-        int? pageNumber,
-        string? filePath = null,
-        int? lineStart = null,
-        int? lineEnd = null)
-    {
-        var chunk = new ChunkRow
-        {
-            Id = ChunkRowBuilder.BuildChunkId(documentId, orderIndex),
-            BatchId = batchId,
-            DocumentId = documentId,
-            Text = "text",
-            OrderIndex = orderIndex,
-            StartChar = 0,
-            EndChar = 4,
-            TokenCount = 1,
-            PageNumber = pageNumber,
-            Knowledge = new ChunkKnowledge
-            {
-                Kind = KnowledgeKind.Logic,
-                UnitKind = UnitKind.Section,
-                Title = "T",
-                Summary = "S",
-                Source = new KnowledgeSource
-                {
-                    PageNumber = pageNumber,
-                    FilePath = filePath,
-                    LineStart = lineStart,
-                    LineEnd = lineEnd
-                },
-                Provider = CollectorProvider.Claude,
-                Model = "m",
-                PromptVersion = "v1"
-            }
-        };
-        factory.Store.Chunks.Add(chunk);
-        return chunk;
-    }
+    private static async Task<string> ReadRawAsync(HttpResponseMessage response) =>
+        await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
-    private static async Task<IReadOnlyList<BatchSummaryDto>> ReadBatchesAsync(HttpResponseMessage response)
-    {
-        var json = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
-        return JsonSerializer.Deserialize<IReadOnlyList<BatchSummaryDto>>(json, CollectorJson.Options)!;
-    }
+    private static async Task<IReadOnlyList<BatchSummary>> ReadBatchesAsync(HttpResponseMessage response) =>
+        JsonSerializer.Deserialize<IReadOnlyList<BatchSummary>>(await ReadRawAsync(response), CollectorJson.Options)!;
 
-    private static async Task<IReadOnlyList<BatchResultDto>> ReadResultsAsync(HttpResponseMessage response)
-    {
-        var json = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
-        return JsonSerializer.Deserialize<IReadOnlyList<BatchResultDto>>(json, CollectorJson.Options)!;
-    }
+    private static async Task<BatchResults> ReadResultsAsync(HttpResponseMessage response) =>
+        JsonSerializer.Deserialize<BatchResults>(await ReadRawAsync(response), CollectorJson.Options)!;
 }

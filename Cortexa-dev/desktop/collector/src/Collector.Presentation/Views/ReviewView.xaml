@@ -8,107 +8,8 @@
              Focusable="False"
              IsTabStop="False">
     <UserControl.Resources>
-        <Style x:Key="Row.Text.Base" TargetType="TextBlock" BasedOn="{StaticResource Text.Label}">
-            <Setter Property="TextWrapping" Value="NoWrap" />
-            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
-                    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.OnSelected}" />
-                </DataTrigger>
-                <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
-                    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.OnSelected}" />
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
-        <Style x:Key="Row.Title" TargetType="TextBlock" BasedOn="{StaticResource Row.Text.Base}" />
-        <Style x:Key="Row.Body" TargetType="TextBlock" BasedOn="{StaticResource Row.Text.Base}">
-            <Setter Property="FontWeight" Value="Normal" />
-            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Body}" />
-            <Setter Property="TextWrapping" Value="Wrap" />
-            <Setter Property="LineStackingStrategy" Value="BlockLineHeight" />
-            <Setter Property="LineHeight" Value="{StaticResource Size.SummaryLineHeight}" />
-            <Setter Property="MaxHeight" Value="{StaticResource Size.SummaryMaxHeight}" />
-        </Style>
-        <Style x:Key="Row.Caption" TargetType="TextBlock" BasedOn="{StaticResource Row.Text.Base}">
-            <Setter Property="FontSize" Value="{StaticResource FontSize.Caption}" />
-            <Setter Property="FontWeight" Value="Normal" />
-            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Muted}" />
-        </Style>
-        <Style x:Key="Row.Source" TargetType="TextBlock" BasedOn="{StaticResource Row.Caption}">
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding IsFileSource}" Value="True">
-                    <Setter Property="FontFamily" Value="{StaticResource Font.Mono}" />
-                </DataTrigger>
-                <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
-                    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.OnSelected}" />
-                </DataTrigger>
-                <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
-                    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.OnSelected}" />
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
-
-        <Style x:Key="TextBox.Readonly" TargetType="TextBox">
-            <Setter Property="IsReadOnly" Value="True" />
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="{StaticResource Thickness.None}" />
-            <Setter Property="Padding" Value="{StaticResource Thickness.None}" />
-            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Body}" />
-            <Setter Property="FontFamily" Value="{StaticResource Font.Mono}" />
-            <Setter Property="FontSize" Value="{StaticResource FontSize.Caption}" />
-            <Setter Property="TextWrapping" Value="Wrap" />
-            <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Default}" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TextBox">
-                        <ScrollViewer x:Name="PART_ContentHost"
-                                      Focusable="False"
-                                      HorizontalScrollBarVisibility="Disabled"
-                                      VerticalScrollBarVisibility="Disabled" />
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="Review.Row" TargetType="ListBoxItem">
-            <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Default}" />
-            <Setter Property="AutomationProperties.Name" Value="{Binding AutomationName}" />
-            <Setter Property="AutomationProperties.HelpText" Value="{Binding HelpText}" />
+        <Style x:Key="Review.Row" TargetType="ListBoxItem" BasedOn="{StaticResource List.Row}">
             <Setter Property="b:CommandBehaviors.SpaceCommand" Value="{Binding ToggleCommand}" />
-            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-            <Setter Property="Padding" Value="{StaticResource Thickness.None}" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ListBoxItem">
-                        <Border x:Name="Highlight" Background="Transparent" SnapsToDevicePixels="True">
-                            <ContentPresenter />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Highlight" Property="Background" Value="{DynamicResource Brush.Surface.Selected}" />
-                            </Trigger>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Highlight" Property="Background" Value="{DynamicResource Brush.Surface.Selected}" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="Review.List" TargetType="ListBox">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="{StaticResource Thickness.None}" />
-            <Setter Property="SelectionMode" Value="Single" />
-            <Setter Property="ItemContainerStyle" Value="{StaticResource Review.Row}" />
-            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
-            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
-            <Setter Property="VirtualizingPanel.IsVirtualizing" Value="True" />
-            <Setter Property="VirtualizingPanel.VirtualizationMode" Value="Recycling" />
-            <Setter Property="VirtualizingPanel.ScrollUnit" Value="Pixel" />
-            <Setter Property="KeyboardNavigation.TabNavigation" Value="Once" />
-            <Setter Property="KeyboardNavigation.DirectionalNavigation" Value="Contained" />
-            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
         </Style>
 
         <Style x:Key="Header.Surface" TargetType="Border">
@@ -214,7 +115,7 @@
                 <TextBlock Margin="{StaticResource Thickness.StackGap}"
                            HorizontalAlignment="Center"
                            FontFamily="{StaticResource Font.Icon}"
-                           FontSize="40"
+                           FontSize="{StaticResource FontSize.EmptyGlyph}"
                            Foreground="{DynamicResource Brush.Text.Muted}"
                            Text="{x:Static res:Glyphs.Lightbulb}" />
                 <TextBlock Margin="{StaticResource Thickness.StackGap}"
@@ -391,8 +292,9 @@
                 <Border Grid.Column="0" Padding="{StaticResource Thickness.None}" Style="{StaticResource Card}">
                     <ListBox AutomationProperties.Name="{x:Static res:ReviewStrings.ListName}"
                              ItemsSource="{Binding VisibleRows}"
+                             ItemContainerStyle="{StaticResource Review.Row}"
                              SelectedItem="{Binding SelectedRow}"
-                             Style="{StaticResource Review.List}" />
+                             Style="{StaticResource List.Master}" />
                 </Border>
                 <Border Grid.Column="1" Width="{StaticResource Space.XL}" />
                 <Border Grid.Column="2" Width="{StaticResource Size.DetailsPane}" Style="{StaticResource Card}">
@@ -403,7 +305,7 @@
                             <TextBlock Margin="{StaticResource Thickness.StackGap}"
                                        HorizontalAlignment="Center"
                                        FontFamily="{StaticResource Font.Icon}"
-                                       FontSize="28"
+                                       FontSize="{StaticResource FontSize.PlaceholderGlyph}"
                                        Foreground="{DynamicResource Brush.Text.Muted}"
                                        Text="{x:Static res:Glyphs.Lightbulb}" />
                             <TextBlock HorizontalAlignment="Center"

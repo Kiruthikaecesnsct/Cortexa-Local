@@ -16,6 +16,21 @@ public sealed record HarvestingReportCandidateRow : IPipelineRow
     [JsonPropertyName("doc_type")]
     public required string DocType { get; init; }
 
+    [JsonPropertyName("candidate_id")]
+    public required string CandidateId { get; init; }
+
+    [JsonPropertyName("title")]
+    public required string Title { get; init; }
+
+    [JsonPropertyName("maturity")]
+    public required string Maturity { get; init; }
+
+    [JsonPropertyName("weighted_score")]
+    public double? WeightedScore { get; init; }
+
+    [JsonPropertyName("axes")]
+    public IReadOnlyDictionary<string, AxisScoreRow> Axes { get; init; } = new Dictionary<string, AxisScoreRow>();
+
     [JsonPropertyName("provenance_links")]
     public IReadOnlyList<ProvenanceLinkRow> ProvenanceLinks { get; init; } = [];
 }

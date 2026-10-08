@@ -1,5 +1,6 @@
 using Collector.Application.Auth;
 using Collector.Application.Extraction;
+using Collector.Application.History;
 using Collector.Application.Knowledge;
 using Collector.Application.Settings;
 using Collector.Application.Upload;
@@ -17,6 +18,7 @@ public static class DependencyInjection
         services.AddSingleton<IAccessTokenProvider>(sp => sp.GetRequiredService<SessionService>());
         services.AddSingleton<ISessionState>(sp => sp.GetRequiredService<SessionService>());
         services.AddSingleton<SettingsService>();
+        services.AddSingleton<LocalSourceResolver>();
         services.AddCollectorExtraction();
         services.AddCollectorKnowledge();
         return services;

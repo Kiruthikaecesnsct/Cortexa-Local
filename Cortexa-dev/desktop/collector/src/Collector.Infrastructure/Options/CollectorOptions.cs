@@ -12,6 +12,10 @@ public sealed class CollectorServerOptions
     public const string SectionName = "CollectorServer";
 
     public string BaseUrl { get; set; } = string.Empty;
+
+    public int ReadTimeoutSeconds { get; set; } = 15;
+
+    public int[] ReadRetryDelaysMs { get; set; } = [];
 }
 
 public sealed class CacheOptions
@@ -33,4 +37,13 @@ public sealed class UserSettingsOptions
     public const string SectionName = "UserSettings";
 
     public string Path { get; set; } = @"%LOCALAPPDATA%\Cortexa\Collector\usersettings.json";
+}
+
+public sealed class HistoryOptions
+{
+    public const string SectionName = "History";
+
+    public int PollSeconds { get; set; } = 5;
+
+    public string TextEditorPath { get; set; } = "notepad.exe";
 }

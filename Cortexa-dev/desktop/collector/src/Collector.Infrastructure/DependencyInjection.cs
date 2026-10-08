@@ -5,6 +5,7 @@ using Collector.Infrastructure.Ai;
 using Collector.Infrastructure.Auth;
 using Collector.Infrastructure.Cache;
 using Collector.Infrastructure.Extraction;
+using Collector.Infrastructure.History;
 using Collector.Infrastructure.Http;
 using Collector.Infrastructure.Options;
 using Collector.Infrastructure.Secrets;
@@ -42,6 +43,8 @@ public static class DependencyInjection
         services.AddSingleton<ITokenCounter, MlTokenizerCounter>();
         services.AddAiProviders();
         services.AddSingleton<IKnowledgeUploadClient, CollectorUploadClient>();
+        services.AddSingleton<HistoryRetryPolicy>();
+        services.AddSingleton<IBatchHistoryClient, CollectorHistoryClient>();
         services.AddHostedService<TokenRefreshWorker>();
         return services;
     }
@@ -53,6 +56,7 @@ public static class DependencyInjection
             configuration,
             CollectorServerOptions.SectionName);
         services.AddValidatedOptions<CacheOptions, CacheOptionsValidator>(configuration, CacheOptions.SectionName);
+        services.AddValidatedOptions<HistoryOptions, HistoryOptionsValidator>(configuration, HistoryOptions.SectionName);
         services.AddValidatedOptions<SecretsOptions, SecretsOptionsValidator>(configuration, SecretsOptions.SectionName);
         services.AddValidatedOptions<UserSettingsOptions, UserSettingsOptionsValidator>(
             configuration,

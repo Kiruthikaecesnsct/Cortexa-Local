@@ -1,9 +1,12 @@
 using System.Text.Json.Serialization;
 
-namespace Collector.Server.Application.Reads;
+namespace Collector.Domain.History;
 
-public sealed record SourceDto
+public sealed record CandidateSource
 {
+    [JsonPropertyName("document_id")]
+    public required string DocumentId { get; init; }
+
     [JsonPropertyName("page_number")]
     public int? PageNumber { get; init; }
 

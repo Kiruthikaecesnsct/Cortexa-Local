@@ -1,0 +1,18 @@
+{
+  "id": "batch-1:cand-1",
+  "batch_id": "batch-1",
+  "job_id": "job-1",
+  "candidate_id": "cand-1",
+  "document_id": "doc-1",
+  "axes": {
+    "Patentability": { "score": 72, "rationale": "Novel claim set." },
+    "Novelty": { "score": 64, "rationale": "No close prior art." }
+  },
+  "composite_score": 68.0,
+  "agreement_level": "high",
+  "agreeing_axis_count": 2,
+  "grounding_meets_minimum": true,
+  "grounding_source_count": 3,
+  "drafted_claim": "",
+  "claim_draft_status": ""
+}

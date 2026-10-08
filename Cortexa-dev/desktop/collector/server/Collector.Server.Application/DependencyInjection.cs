@@ -1,4 +1,5 @@
 using Collector.Server.Application.Handlers;
+using Collector.Server.Application.Reads;
 using Collector.Server.Application.Upload;
 using Collector.Server.Application.Upload.Validation;
 using Microsoft.Extensions.Configuration;
@@ -23,6 +24,7 @@ public static class DependencyInjection
         services.AddScoped<UploadPreparer>();
         services.AddScoped<WriteKnowledgeBatchHandler>();
         services.AddScoped<SubmitKnowledgeUploadHandler>();
+        services.AddSingleton<BatchStageCalculator>();
         services.AddScoped<ListBatchesHandler>();
         services.AddScoped<GetBatchResultsHandler>();
         return services;

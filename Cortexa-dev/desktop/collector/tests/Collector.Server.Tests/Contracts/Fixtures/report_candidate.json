@@ -1,0 +1,18 @@
+{
+  "id": "batch-1:cand-1:report",
+  "batch_id": "batch-1",
+  "engine": "harvesting",
+  "doc_type": "report_candidate",
+  "candidate_id": "cand-1",
+  "title": "Adaptive cache eviction",
+  "maturity": "Mature",
+  "weighted_score": 66.5,
+  "axes": {
+    "Patentability": { "score": 72 },
+    "Novelty": { "score": 64 }
+  },
+  "provenance_links": [
+    { "document_id": "doc-1", "source_chunk_index": 0 },
+    { "chunk_id": "doc-1|2" }
+  ]
+}

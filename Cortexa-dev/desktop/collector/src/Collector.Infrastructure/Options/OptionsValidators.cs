@@ -13,8 +13,46 @@ public sealed class GatewayOptionsValidator : IValidateOptions<GatewayOptions>
 
 public sealed class CollectorServerOptionsValidator : IValidateOptions<CollectorServerOptions>
 {
-    public ValidateOptionsResult Validate(string? name, CollectorServerOptions options) =>
-        OptionsChecks.Url(CollectorServerOptions.SectionName, options.BaseUrl);
+    public ValidateOptionsResult Validate(string? name, CollectorServerOptions options)
+    {
+        var failures = new List<string>();
+        var url = OptionsChecks.Url(CollectorServerOptions.SectionName, options.BaseUrl);
+        if (url.Failed)
+        {
+            failures.AddRange(url.Failures ?? []);
+        }
+
+        if (options.ReadTimeoutSeconds <= 0)
+        {
+            failures.Add($"{CollectorServerOptions.SectionName}:{nameof(options.ReadTimeoutSeconds)} must be greater than zero.");
+        }
+
+        if (options.ReadRetryDelaysMs.Any(delay => delay < 0))
+        {
+            failures.Add($"{CollectorServerOptions.SectionName}:{nameof(options.ReadRetryDelaysMs)} must not contain negative values.");
+        }
+
+        return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
+    }
+}
+
+public sealed class HistoryOptionsValidator : IValidateOptions<HistoryOptions>
+{
+    public ValidateOptionsResult Validate(string? name, HistoryOptions options)
+    {
+        var failures = new List<string>();
+        if (options.PollSeconds <= 0)
+        {
+            failures.Add($"{HistoryOptions.SectionName}:{nameof(options.PollSeconds)} must be greater than zero.");
+        }
+
+        if (string.IsNullOrWhiteSpace(options.TextEditorPath))
+        {
+            failures.Add($"{HistoryOptions.SectionName}:{nameof(options.TextEditorPath)} is required.");
+        }
+
+        return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
+    }
 }
 
 public sealed class CacheOptionsValidator : IValidateOptions<CacheOptions>

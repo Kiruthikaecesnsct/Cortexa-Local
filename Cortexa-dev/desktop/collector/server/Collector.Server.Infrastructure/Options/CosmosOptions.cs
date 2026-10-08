@@ -24,6 +24,10 @@ public sealed class CosmosOptions
 
     public string ReportsContainer { get; set; } = string.Empty;
 
+    public string VerdictsContainer { get; set; } = string.Empty;
+
+    public string EvidenceBundlesContainer { get; set; } = string.Empty;
+
     public ConnectionMode ConnectionMode { get; set; } = ConnectionMode.Direct;
 
     public bool LimitToEndpoint { get; set; }

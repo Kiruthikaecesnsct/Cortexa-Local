@@ -22,17 +22,20 @@ internal sealed class FakeKnowledgeRunner : IKnowledgeRunner
 
     public IReadOnlyList<string> LastDocumentIds { get; private set; } = [];
 
+    public KnowledgeRunRequest? LastRequest { get; private set; }
+
     public IProgress<ExtractionProgress>? Progress { get; private set; }
 
     public int Calls { get; private set; }
 
     public Task<KnowledgeRunOutcome> RunAsync(
-        IReadOnlyList<string> documentIds,
+        KnowledgeRunRequest request,
         IProgress<ExtractionProgress> progress,
         CancellationToken cancellationToken)
     {
         Calls++;
-        LastDocumentIds = documentIds;
+        LastRequest = request;
+        LastDocumentIds = request.DocumentIds;
         Progress = progress;
         var gate = Gate;
         if (gate is null)

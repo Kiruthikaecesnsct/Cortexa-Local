@@ -26,7 +26,9 @@ public static class UploadCommandMapper
             PrimaryEvidenceModel = context.Models.PrimaryEvidenceModel,
             ScoringModel = context.Models.ScoringModel,
             SeedingModel = context.Models.SeedingModel,
-            SeedingMode = context.Models.SeedingMode
+            SeedingMode = context.Models.SeedingMode,
+            CollectorProvider = request.Collector.Provider,
+            CollectorModel = request.Collector.Model
         };
 
     private static BatchDocumentInput BuildDocument(UploadDocument document, string batchId) =>

@@ -33,7 +33,9 @@ internal static class TestData
         PrimaryEvidenceModel = "m-evidence",
         ScoringModel = "m-scoring",
         SeedingModel = "m-seeding",
-        SeedingMode = "legacy"
+        SeedingMode = "legacy",
+        CollectorProvider = CollectorProvider.Claude,
+        CollectorModel = "claude-test-model"
     };
 
     public static KnowledgeItem PaperItem() => new()

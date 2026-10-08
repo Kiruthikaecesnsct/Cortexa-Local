@@ -97,34 +97,36 @@ public class DependencyInjectionTests
     }
 
     [Fact]
-    public void KnowledgeExtractionOptions_ConfiguredAiConcurrency_IsTakenFromAiClaudeSection()
+    public void KnowledgeExtractionOptions_MirrorsConfiguredProvider()
     {
-        const int ConfiguredConcurrency = 7;
-        var extra = new Dictionary<string, string?> { ["Ai:Claude:Concurrency"] = ConfiguredConcurrency.ToString() };
-        using var provider = Build(extra);
+        using var provider = Build(new Dictionary<string, string?> { ["Ai:Provider"] = "Gemini" });
 
         var options = provider.GetRequiredService<IOptions<KnowledgeExtractionOptions>>();
 
-        Assert.Equal(ConfiguredConcurrency, options.Value.Concurrency);
+        Assert.Equal(CollectorProvider.Gemini, options.Value.Provider);
     }
 
     [Fact]
     public void AiProvider_NoProviderSetting_ResolvesClaude()
     {
         using var provider = Build();
+        var factory = provider.GetRequiredService<IAiProviderFactory>();
+        var options = provider.GetRequiredService<IOptions<KnowledgeExtractionOptions>>();
 
-        Assert.IsType<ClaudeDirectProvider>(provider.GetRequiredService<IAiProvider>());
-        Assert.Equal(CollectorProvider.Claude, provider.GetRequiredService<IOptions<KnowledgeExtractionOptions>>().Value.Provider);
+        Assert.Equal(CollectorProvider.Claude, options.Value.Provider);
+        Assert.IsType<ClaudeDirectProvider>(factory.Resolve(options.Value.Provider));
     }
 
     [Theory]
     [InlineData("Claude", typeof(ClaudeDirectProvider), CollectorProvider.Claude)]
     [InlineData("Gemini", typeof(GeminiDirectProvider), CollectorProvider.Gemini)]
+    [InlineData("Bedrock", typeof(BedrockDirectProvider), CollectorProvider.Bedrock)]
     public void AiProvider_ProviderSetting_ResolvesMatchingImplementation(string setting, Type expected, CollectorProvider wire)
     {
         using var provider = Build(new Dictionary<string, string?> { ["Ai:Provider"] = setting });
+        var factory = provider.GetRequiredService<IAiProviderFactory>();
 
-        Assert.IsType(expected, provider.GetRequiredService<IAiProvider>());
+        Assert.IsType(expected, factory.Resolve(wire));
         Assert.Equal(wire, provider.GetRequiredService<IOptions<KnowledgeExtractionOptions>>().Value.Provider);
     }
 
@@ -138,26 +140,42 @@ public class DependencyInjectionTests
     }
 
     [Fact]
-    public void KnowledgeExtractionOptions_GeminiSelected_TakesConcurrencyFromAiGeminiSection()
+    public void AiProviderFactory_Bedrock_ResolvesStubProvider()
     {
-        const int GeminiConcurrency = 3;
-        var extra = new Dictionary<string, string?>
-        {
-            ["Ai:Provider"] = "Gemini",
-            ["Ai:Gemini:Concurrency"] = GeminiConcurrency.ToString(),
-            ["Ai:Claude:Concurrency"] = "9",
-        };
-        using var provider = Build(extra);
+        using var provider = Build();
+        var factory = provider.GetRequiredService<IAiProviderFactory>();
 
-        Assert.Equal(GeminiConcurrency, provider.GetRequiredService<IOptions<KnowledgeExtractionOptions>>().Value.Concurrency);
+        Assert.IsType<BedrockDirectProvider>(factory.Resolve(CollectorProvider.Bedrock));
     }
 
     [Fact]
-    public void AiOptions_UnsupportedProvider_FailsValidation()
+    public void AiProviderFactory_ConcurrencyFor_ReadsPerProviderSections()
+    {
+        var extra = new Dictionary<string, string?>
+        {
+            ["Ai:Gemini:Concurrency"] = "3",
+            ["Ai:Claude:Concurrency"] = "9",
+            ["Ai:Bedrock:Concurrency"] = "6",
+            ["Ai:Bedrock:SsoStartUrl"] = "https://example.awsapps.com/start",
+            ["Ai:Bedrock:SsoRegion"] = "us-east-1",
+            ["Ai:Bedrock:AccountId"] = "123456789012",
+            ["Ai:Bedrock:SsoRoleName"] = "CortexaBedrockRole",
+            ["Ai:Bedrock:Region"] = "us-east-1",
+        };
+        using var provider = Build(extra);
+        var factory = provider.GetRequiredService<IAiProviderFactory>();
+
+        Assert.Equal(3, factory.ConcurrencyFor(CollectorProvider.Gemini));
+        Assert.Equal(9, factory.ConcurrencyFor(CollectorProvider.Claude));
+        Assert.Equal(6, factory.ConcurrencyFor(CollectorProvider.Bedrock));
+    }
+
+    [Fact]
+    public void AiOptions_BedrockProvider_PassesValidation()
     {
         using var provider = Build(new Dictionary<string, string?> { ["Ai:Provider"] = "Bedrock" });
 
-        Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<IOptions<AiOptions>>().Value);
+        Assert.Equal(CollectorProvider.Bedrock, provider.GetRequiredService<IOptions<AiOptions>>().Value.Provider);
     }
 
     [Fact]

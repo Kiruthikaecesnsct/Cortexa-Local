@@ -50,6 +50,7 @@ public static class DependencyInjection
         services.AddSingleton<UnitItemAssembler>();
         services.AddSingleton<UnitExtractionRunner>();
         services.AddSingleton<ExtractKnowledgeHandler>();
+        services.AddSingleton<TokenEstimator>();
         services.AddSingleton<UploadBatchPlanner>();
         services.AddSingleton<UploadKnowledgeHandler>();
     }

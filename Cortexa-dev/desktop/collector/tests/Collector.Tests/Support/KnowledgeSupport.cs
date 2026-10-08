@@ -19,8 +19,17 @@ internal static class KnowledgePipeline
 
     public static UnitItemAssembler Assembler() => new(new AnchorLocator(), new ExcerptCutter(), new IdentifierEchoDetector());
 
+    public static ExtractionRunContext DefaultContext { get; } = new(CollectorProvider.Claude, null);
+
     public static UnitExtractionRunner Runner(IAiProvider provider, ILogger<UnitExtractionRunner> logger) =>
-        new(provider, Builder(), new KnowledgeParser(), Assembler(), new UnitSplitter(), logger);
+        new(new SingleProviderFactory(provider), Builder(), new KnowledgeParser(), Assembler(), new UnitSplitter(), logger);
+}
+
+internal sealed class SingleProviderFactory(IAiProvider provider, int concurrency = 1) : IAiProviderFactory
+{
+    public IAiProvider Resolve(CollectorProvider _) => provider;
+
+    public int ConcurrencyFor(CollectorProvider _) => concurrency;
 }
 
 internal static class KnowledgeFixtures

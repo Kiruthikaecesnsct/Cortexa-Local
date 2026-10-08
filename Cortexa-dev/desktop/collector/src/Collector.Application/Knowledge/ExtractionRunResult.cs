@@ -25,4 +25,7 @@ public sealed record ExtractionRunResult
     public bool IsFailed => TotalUnits > 0 && FailedUnits == TotalUnits;
 }
 
-public sealed record ExtractionRunRequest(IReadOnlyList<string> DocumentIds);
+public sealed record ExtractionRunRequest(
+    IReadOnlyList<string> DocumentIds,
+    CollectorProvider Provider = CollectorProvider.Claude,
+    string? Model = null);

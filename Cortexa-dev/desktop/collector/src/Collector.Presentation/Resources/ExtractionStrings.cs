@@ -41,6 +41,20 @@ public static class ExtractionStrings
     public const string TokensSuffix = "tokens";
     public const string WindowSuffix = " (window)";
 
+    public const string EstimateTitle = "Estimated tokens";
+    public const string EstimatePrompt = "Prompt";
+    public const string EstimateOutput = "Expected output";
+    public const string EstimateTotal = "Total";
+
+    public const string EstimateApproximateNote =
+        "Approximate. Counted with an OpenAI tokenizer (Cl100kBase) as a cross-provider stand-in; the selected provider may count tokens differently.";
+
+    public const string ProviderModelTitle = "Provider and model";
+    public const string ProviderLabel = "_Provider";
+    public const string ProviderName = "Provider";
+    public const string ModelLabel = "_Model";
+    public const string ModelName = "Model";
+
     public const string SkipTooLarge = "File is too large to parse.";
     public const string SkipBinaryContent = "File content could not be read as text.";
     public const string SkipUnsupportedFormat = "This file type isn't supported.";

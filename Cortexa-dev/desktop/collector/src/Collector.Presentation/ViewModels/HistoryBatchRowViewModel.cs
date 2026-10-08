@@ -32,6 +32,7 @@ public sealed partial class HistoryBatchRowViewModel : ObservableObject
         AutomationName = string.Empty;
         UploadedText = string.Empty;
         ProgressName = string.Empty;
+        ProviderModelText = string.Empty;
         Apply(summary);
     }
 
@@ -92,6 +93,9 @@ public sealed partial class HistoryBatchRowViewModel : ObservableObject
     [ObservableProperty]
     public partial string ProgressName { get; set; }
 
+    [ObservableProperty]
+    public partial string ProviderModelText { get; set; }
+
     public RowChange Update(BatchSummary summary)
     {
         if (summary == _summary)
@@ -131,6 +135,7 @@ public sealed partial class HistoryBatchRowViewModel : ObservableObject
         StateGlyph = BatchProgress.StateGlyph(StateKind);
         StageText = HistoryStrings.StageName(summary.Stage);
         StageLine = BatchProgress.StageLine(summary);
+        ProviderModelText = HistoryStrings.ProviderModel(summary.CollectorProvider, summary.CollectorModel);
         AutomationName = HistoryStrings.BatchAutomationName(Name, StateText, StageText, StageLine, CreatedText);
         foreach (var step in Steps)
         {

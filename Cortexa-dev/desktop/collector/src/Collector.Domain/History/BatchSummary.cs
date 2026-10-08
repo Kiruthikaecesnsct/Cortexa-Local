@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Collector.Domain.Enums;
 
 namespace Collector.Domain.History;
 
@@ -46,4 +47,10 @@ public sealed record BatchSummary
 
     [JsonPropertyName("seeding_total_count")]
     public required int SeedingTotalCount { get; init; }
+
+    [JsonPropertyName("collector_provider")]
+    public CollectorProvider? CollectorProvider { get; init; }
+
+    [JsonPropertyName("collector_model")]
+    public string? CollectorModel { get; init; }
 }

@@ -60,16 +60,9 @@ public sealed class GeminiProviderOptionsValidatorTests
     [Theory]
     [InlineData(CollectorProvider.Claude)]
     [InlineData(CollectorProvider.Gemini)]
+    [InlineData(CollectorProvider.Bedrock)]
     public void AiOptions_SupportedProvider_Succeeds(CollectorProvider provider)
     {
         Assert.True(new AiOptionsValidator().Validate(null, new AiOptions { Provider = provider }).Succeeded);
-    }
-
-    [Fact]
-    public void AiOptions_Bedrock_FailsBecauseNoDirectProviderExists()
-    {
-        var result = new AiOptionsValidator().Validate(null, new AiOptions { Provider = CollectorProvider.Bedrock });
-
-        Assert.Contains("Ai:Provider", Failures(result), StringComparison.Ordinal);
     }
 }

@@ -12,6 +12,8 @@ public sealed record AiRequest
     public required string UserText { get; init; }
 
     public required string OutputSchemaJson { get; init; }
+
+    public string? Model { get; init; }
 }
 
 public enum AiOutcome

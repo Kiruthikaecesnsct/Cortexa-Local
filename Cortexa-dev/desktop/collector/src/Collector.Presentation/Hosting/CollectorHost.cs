@@ -79,6 +79,8 @@ public static class CollectorHost
         services.AddSingleton<HistoryPoller>();
         services.AddSingleton<HistoryServices>();
         services.AddSingleton<ExtractionDependencies>();
+        services.AddSingleton<ProviderOutputLimits>();
+        services.AddSingleton<TokenEstimationDependencies>();
         services.AddSingleton<KnowledgeRunViewModel>();
         return services;
     }

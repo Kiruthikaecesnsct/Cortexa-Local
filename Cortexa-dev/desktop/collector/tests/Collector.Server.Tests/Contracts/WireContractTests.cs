@@ -39,6 +39,20 @@ public class WireContractTests
     }
 
     [Fact]
+    public void Saga_WithoutCollectorFields_DeserializesWithNullDefaults()
+    {
+        var node = (JsonObject)ReadFixture("saga.json").DeepClone();
+        node.Remove("collector_provider");
+        node.Remove("collector_model");
+
+        var row = Deserialize<SagaRow>(node);
+
+        Assert.Null(row.CollectorProvider);
+        Assert.Null(row.CollectorModel);
+        Assert.Equal("batch-1", row.BatchId);
+    }
+
+    [Fact]
     public void Document_MatchesGoldenShape()
     {
         var document = BuildDocument(TestData.PaperDocument());

@@ -32,7 +32,9 @@ public sealed class ListBatchesHandler(IPipelineRowStore store, BatchStageCalcul
             HarvestingCompletedCount = stage.HarvestingCompleted,
             HarvestingTotalCount = stage.HarvestingTotal,
             SeedingCompletedCount = stage.SeedingCompleted,
-            SeedingTotalCount = stage.SeedingTotal
+            SeedingTotalCount = stage.SeedingTotal,
+            CollectorProvider = saga.CollectorProvider,
+            CollectorModel = saga.CollectorModel
         };
     }
 }

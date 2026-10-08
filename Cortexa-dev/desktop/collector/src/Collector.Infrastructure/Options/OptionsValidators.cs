@@ -164,9 +164,54 @@ public sealed class GeminiProviderOptionsValidator : IValidateOptions<GeminiProv
     }
 }
 
+public sealed class BedrockProviderOptionsValidator : IValidateOptions<BedrockProviderOptions>
+{
+    private static readonly string[] InferenceProfilePrefixes = ["us.", "eu.", "apac."];
+
+    public ValidateOptionsResult Validate(string? name, BedrockProviderOptions options)
+    {
+        var failures = new List<string>();
+        AddIf(failures, string.IsNullOrWhiteSpace(options.SsoStartUrl), nameof(options.SsoStartUrl), "is required");
+        AddIf(failures, string.IsNullOrWhiteSpace(options.SsoRegion), nameof(options.SsoRegion), "is required");
+        AddIf(failures, string.IsNullOrWhiteSpace(options.AccountId), nameof(options.AccountId), "is required");
+        AddIf(failures, string.IsNullOrWhiteSpace(options.SsoRoleName), nameof(options.SsoRoleName), "is required");
+        AddIf(failures, string.IsNullOrWhiteSpace(options.Region), nameof(options.Region), "is required");
+        AddModelFailure(failures, options.Model);
+        AddIf(failures, options.MaxOutputTokens <= 0, nameof(options.MaxOutputTokens), "must be greater than zero");
+        AddIf(failures, options.Concurrency <= 0, nameof(options.Concurrency), "must be greater than zero");
+        AddIf(failures, options.MaxRetries < 0, nameof(options.MaxRetries), "must not be negative");
+        AddIf(failures, options.TimeoutSeconds <= 0, nameof(options.TimeoutSeconds), "must be greater than zero");
+        return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
+    }
+
+    private static void AddModelFailure(List<string> failures, string model)
+    {
+        AddIf(failures, string.IsNullOrWhiteSpace(model), nameof(BedrockProviderOptions.Model), "is required");
+        if (string.IsNullOrWhiteSpace(model))
+        {
+            return;
+        }
+
+        AddIf(failures, model.Any(char.IsWhiteSpace), nameof(BedrockProviderOptions.Model), "must not contain whitespace");
+        AddIf(failures, !IsInferenceProfileId(model), nameof(BedrockProviderOptions.Model), "must be a cross-region inference-profile id (e.g. us.anthropic.*)");
+    }
+
+    private static bool IsInferenceProfileId(string model) =>
+        InferenceProfilePrefixes.Any(prefix => model.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
+
+    private static void AddIf(List<string> failures, bool failed, string name, string reason)
+    {
+        if (failed)
+        {
+            failures.Add($"{BedrockProviderOptions.SectionName}:{name} {reason}.");
+        }
+    }
+}
+
 public sealed class AiOptionsValidator : IValidateOptions<AiOptions>
 {
-    public static readonly CollectorProvider[] SupportedProviders = [CollectorProvider.Claude, CollectorProvider.Gemini];
+    public static readonly CollectorProvider[] SupportedProviders =
+        [CollectorProvider.Claude, CollectorProvider.Gemini, CollectorProvider.Bedrock];
 
     public ValidateOptionsResult Validate(string? name, AiOptions options) =>
         SupportedProviders.Contains(options.Provider)

@@ -1,9 +1,13 @@
 using Collector.Application.Extraction;
+using Collector.Application.Knowledge;
 using Collector.Domain.Enums;
+using Collector.Infrastructure.Options;
 using Collector.Presentation.Services;
 using Collector.Presentation.ViewModels;
 using Collector.Tests.Extraction;
+using Collector.Tests.Support;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 
 namespace Collector.Tests.Presentation;
 
@@ -48,7 +52,16 @@ public sealed class ExtractionViewModelTests : IDisposable
     }
 
     private ExtractionViewModel CreateViewModel(params string[] paths) =>
-        new(new ExtractionDependencies(_extractionService, _unitStore, new FakeFilePicker(paths), NullLogger<ExtractionViewModel>.Instance), _knowledge.ViewModel);
+        new(
+            new ExtractionDependencies(_extractionService, _unitStore, new FakeFilePicker(paths), NullLogger<ExtractionViewModel>.Instance),
+            _knowledge.ViewModel,
+            new TokenEstimationDependencies(
+                new TokenEstimator(KnowledgePipeline.Builder(), new WordCountTokenCounter()),
+                new ProviderOutputLimits(
+                    Options.Create(new AiProviderOptions()),
+                    Options.Create(new GeminiProviderOptions()),
+                    Options.Create(new BedrockProviderOptions()))),
+            Options.Create(new ProviderModelCatalog()));
 
     [Fact]
     public async Task Picking_files_extracts_each_one_and_populates_the_documents_list()

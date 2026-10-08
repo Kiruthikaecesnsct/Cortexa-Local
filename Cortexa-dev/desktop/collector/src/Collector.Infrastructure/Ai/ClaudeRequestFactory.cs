@@ -9,7 +9,7 @@ internal static class ClaudeRequestFactory
 {
     public static MessageCreateParams Create(AiRequest request, AiProviderOptions settings) => new()
     {
-        Model = settings.Model,
+        Model = string.IsNullOrWhiteSpace(request.Model) ? settings.Model : request.Model,
         MaxTokens = settings.MaxOutputTokens,
         System = new List<TextBlockParam> { CachedSystemBlock(request.SystemText) },
         Messages = [new MessageParam { Role = Role.User, Content = request.UserText }],

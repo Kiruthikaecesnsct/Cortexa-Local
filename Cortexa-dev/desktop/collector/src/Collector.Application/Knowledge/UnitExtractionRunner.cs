@@ -1,12 +1,15 @@
 using Collector.Application.Ports;
 using Collector.Domain.Documents;
+using Collector.Domain.Enums;
 using Collector.Domain.Extraction;
 using Microsoft.Extensions.Logging;
 
 namespace Collector.Application.Knowledge;
 
+public sealed record ExtractionRunContext(CollectorProvider Provider, string? Model);
+
 public sealed class UnitExtractionRunner(
-    IAiProvider provider,
+    IAiProviderFactory providerFactory,
     KnowledgePromptBuilder promptBuilder,
     KnowledgeParser parser,
     UnitItemAssembler assembler,
@@ -15,31 +18,35 @@ public sealed class UnitExtractionRunner(
 {
     public const int MaxSplitDepth = 2;
 
-    public Task<UnitOutcome> ExtractAsync(ExtractionUnit unit, CollectorDocument document, CancellationToken cancellationToken) =>
-        ExtractAsync(unit, document, 0, cancellationToken);
+    private readonly record struct State(ExtractionUnit Unit, CollectorDocument Document, ExtractionRunContext Context, int Depth);
 
-    private async Task<UnitOutcome> ExtractAsync(
+    public Task<UnitOutcome> ExtractAsync(
         ExtractionUnit unit,
         CollectorDocument document,
-        int depth,
-        CancellationToken cancellationToken)
+        ExtractionRunContext context,
+        CancellationToken cancellationToken) =>
+        ExtractAsync(new State(unit, document, context, 0), cancellationToken);
+
+    private async Task<UnitOutcome> ExtractAsync(State state, CancellationToken cancellationToken)
     {
         AiCompletion completion;
         try
         {
-            completion = await provider.CompleteAsync(promptBuilder.Build(unit), cancellationToken);
+            var provider = providerFactory.Resolve(state.Context.Provider);
+            var request = promptBuilder.Build(state.Unit) with { Model = state.Context.Model };
+            completion = await provider.CompleteAsync(request, cancellationToken);
         }
         catch (AiProviderException exception) when (exception.Kind != AiFailureKind.MissingApiKey)
         {
-            logger.LogWarning("Unit {UnitId} failed with a {Kind} provider error.", unit.Id, exception.Kind);
+            logger.LogWarning("Unit {UnitId} failed with a {Kind} provider error.", state.Unit.Id, exception.Kind);
             return UnitOutcome.Failed;
         }
 
         return completion.Outcome switch
         {
-            AiOutcome.Refused => SkipRefused(unit, completion),
-            AiOutcome.Truncated => await SplitAsync(unit, document, depth, cancellationToken),
-            _ => ParseCompletion(unit, document, completion),
+            AiOutcome.Refused => SkipRefused(state.Unit, completion),
+            AiOutcome.Truncated => await SplitAsync(state, cancellationToken),
+            _ => ParseCompletion(state.Unit, state.Document, completion),
         };
     }
 
@@ -67,21 +74,17 @@ public sealed class UnitExtractionRunner(
         return UnitOutcome.Completed(items, completion.Model);
     }
 
-    private async Task<UnitOutcome> SplitAsync(
-        ExtractionUnit unit,
-        CollectorDocument document,
-        int depth,
-        CancellationToken cancellationToken)
+    private async Task<UnitOutcome> SplitAsync(State state, CancellationToken cancellationToken)
     {
-        var halves = depth < MaxSplitDepth ? splitter.Split(unit) : null;
+        var halves = state.Depth < MaxSplitDepth ? splitter.Split(state.Unit) : null;
         if (halves is null)
         {
-            logger.LogWarning("Unit {UnitId} was cut off and cannot be split further.", unit.Id);
+            logger.LogWarning("Unit {UnitId} was cut off and cannot be split further.", state.Unit.Id);
             return UnitOutcome.Failed;
         }
 
-        var first = await ExtractAsync(halves.Value.First, document, depth + 1, cancellationToken);
-        var second = await ExtractAsync(halves.Value.Second, document, depth + 1, cancellationToken);
+        var first = await ExtractAsync(state with { Unit = halves.Value.First, Depth = state.Depth + 1 }, cancellationToken);
+        var second = await ExtractAsync(state with { Unit = halves.Value.Second, Depth = state.Depth + 1 }, cancellationToken);
         return Combine(first, second);
     }
 

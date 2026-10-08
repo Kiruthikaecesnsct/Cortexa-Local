@@ -1,0 +1,24 @@
+# Collector Remote PAT Handling
+
+**Date**: 2026-10-08
+**Item**: US134 (GitHub and Azure DevOps collectors)
+**Status**: Merged to dev (PR #14).
+
+## Decision
+
+- GitHub and Azure DevOps personal access tokens are stored in Windows Credential Manager. The slots are `SecretSlot GitHubPat` and `SecretSlot AzureDevOpsPat`.
+- A per-client HTTP handler attaches the token only to the configured API origin. Redirects are disabled, so a redirect cannot send the token to another host.
+- A per-provider rate-limit gate pauses requests near the limit. A 429 response is retried after the wait.
+- Pinned API versions:
+  - GitHub: `X-GitHub-Api-Version: 2026-03-10`
+  - Azure DevOps: `api-version=7.1`
+
+## Context
+
+A token sent to the wrong host leaks the credential. Disabling redirects and scoping the header to one origin closes that path. Storing the token in Credential Manager keeps it out of settings files and logs.
+
+## Consequences
+
+- Changing an API version is a code change in the handler, not a config change. Re-check the pinned version against the provider release notes before bumping it.
+- The SSH collector (US135) should use the same credential-store pattern for its key material, not a new store.
+- Open: the Azure DevOps UI, the rate-limit banner, and Esc cancel were not verified live in US134.

@@ -4,16 +4,29 @@ public static class FolderPathRule
 {
     private const char Separator = '/';
     private const char AltSeparator = '\\';
-    private const int MinLength = 2;
+    private const char DriveMarker = ':';
+    private const string CurrentSegment = ".";
+    private const string ParentSegment = "..";
 
     public static bool IsFolder(string? path)
     {
-        if (string.IsNullOrWhiteSpace(path))
+        if (string.IsNullOrWhiteSpace(path) || HasUnsafeCharacters(path))
         {
             return false;
         }
 
-        var normalized = path.Trim().Replace(AltSeparator, Separator);
-        return normalized.Length >= MinLength && normalized[^1] == Separator;
+        var normalized = path.Replace(AltSeparator, Separator);
+        return normalized[^1] == Separator && IsRelative(normalized) && HasSafeSegments(normalized);
     }
+
+    private static bool HasUnsafeCharacters(string path) =>
+        path != path.Trim() || path.Any(char.IsControl);
+
+    private static bool IsRelative(string normalized) =>
+        normalized[0] != Separator && !normalized.Contains(DriveMarker);
+
+    private static bool HasSafeSegments(string normalized) =>
+        normalized[..^1]
+            .Split(Separator)
+            .All(segment => segment.Length > 0 && segment != CurrentSegment && segment != ParentSegment);
 }

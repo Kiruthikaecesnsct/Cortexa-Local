@@ -7,7 +7,7 @@ public sealed class KnowledgeItemRules(UploadOptions options)
 {
     private const string RequiredMessage = "is required.";
     private const string MaxLengthMessage = "exceeds the maximum length.";
-    private const string FolderMessage = "must be a folder path ending with a slash.";
+    private const string FolderMessage = "must be a relative folder path ending with a slash.";
     private const string LayerLineMessage = "must be omitted for layer items.";
     private const string LayerUnitKindMessage = "layer requires unit_kind module.";
 

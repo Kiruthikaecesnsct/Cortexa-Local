@@ -185,6 +185,19 @@ public class KnowledgeUploadValidatorTests
     [InlineData("/")]
     [InlineData("")]
     [InlineData("   ")]
+    [InlineData("../")]
+    [InlineData("../../")]
+    [InlineData("a/../b/")]
+    [InlineData("./")]
+    [InlineData("/etc/")]
+    [InlineData("//")]
+    [InlineData("src//core/")]
+    [InlineData("C:\\x\\")]
+    [InlineData("C:/x/")]
+    [InlineData("..\\")]
+    [InlineData(" src/core/")]
+    [InlineData("src/core/ ")]
+    [InlineData("src/\tcore/")]
     public void Validate_LayerWithNonFolderPath_FailsOnFilePath(string folderPath)
     {
         var result = Validate(UploadRequests.WithItem(SourceKind.Code, UploadRequests.LayerItem(folderPath)));

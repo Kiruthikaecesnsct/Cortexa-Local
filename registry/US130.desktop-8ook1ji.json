@@ -4,9 +4,22 @@
   "machine": "desktop-8ook1ji",
   "env": "windows",
   "branch": "develop/US130",
-  "status": "planning",
-  "files": [],
+  "status": "implementing",
+  "files": [
+    "Cortexa-dev/desktop/collector/server/Collector.Server.Application/Upload/UploadLimits.cs",
+    "Cortexa-dev/desktop/collector/server/Collector.Server.Application/Upload/Validation/FolderPathRule.cs",
+    "Cortexa-dev/desktop/collector/server/Collector.Server.Application/Upload/Validation/KnowledgeItemRules.cs",
+    "Cortexa-dev/desktop/collector/server/Collector.Server.Application/Building/ChunkRowBuilder.cs",
+    "Cortexa-dev/desktop/collector/server/Collector.Server.Application/Building/ChunkTextRenderer.cs",
+    "Cortexa-dev/desktop/collector/tests/Collector.Server.Tests/Upload/UploadRequests.cs",
+    "Cortexa-dev/desktop/collector/tests/Collector.Server.Tests/Upload/KnowledgeUploadValidatorTests.cs",
+    "Cortexa-dev/desktop/collector/tests/Collector.Server.Tests/Api/KnowledgeUploadEndpointTests.cs",
+    "Cortexa-dev/desktop/collector/tests/Collector.Server.Tests/Handlers/SubmitKnowledgeUploadHandlerTests.cs",
+    "Cortexa-dev/desktop/collector/tests/Collector.Server.Tests/Building/ChunkRowBuilderTests.cs",
+    "Cortexa-dev/desktop/collector/tests/Collector.Server.Tests/Building/ChunkTextRendererContextLineTests.cs",
+    "Cortexa-dev/desktop/collector/tests/Collector.Server.Tests/Building/RowBuilderTests.cs"
+  ],
   "started": "2026-10-08T06:08:52Z",
-  "heartbeat": "2026-10-08T06:08:52Z",
+  "heartbeat": "2026-10-08T06:12:07Z",
   "schema": 2
 }

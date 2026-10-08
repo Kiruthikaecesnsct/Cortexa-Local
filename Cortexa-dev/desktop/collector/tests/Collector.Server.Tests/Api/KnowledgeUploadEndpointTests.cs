@@ -37,6 +37,21 @@ public class KnowledgeUploadEndpointTests
     }
 
     [Fact]
+    public async Task Post_CodeDocumentWithLayerItem_Returns201AndStoresChunkAndProvenance()
+    {
+        await using var factory = new CollectorServerFactory();
+        var call = new UploadCall().WithRequest(UploadRequests.Valid(UploadRequests.CodeDocument(UploadRequests.LayerItem("src/core/"))));
+
+        using var response = await factory.PostAsync(call);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var chunk = Assert.Single(factory.Store.Chunks);
+        var provenance = Assert.Single(factory.Store.Provenance);
+        Assert.Equal(chunk.Id, provenance.ChunkId);
+        Assert.Equal("src/core/", provenance.FilePath);
+    }
+
+    [Fact]
     public async Task Post_ValidUpload_WritesRowsAndPublishesForTheCaller()
     {
         await using var factory = new CollectorServerFactory();
@@ -245,13 +260,13 @@ public class KnowledgeUploadEndpointTests
     public async Task Post_RuleViolation_Returns422WithFieldPathsAndWritesNothing()
     {
         await using var factory = new CollectorServerFactory();
-        var item = UploadRequests.Item(KnowledgeKind.Layer, UnitKind.Section);
+        var item = UploadRequests.Item(KnowledgeKind.Logic, UnitKind.File);
         var call = new UploadCall().WithRequest(UploadRequests.WithItem(SourceKind.Paper, item));
 
         using var response = await factory.PostAsync(call);
 
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
-        Assert.Contains("documents[0].knowledge_items[0].kind", await ReadErrorFieldsAsync(response));
+        Assert.Contains("documents[0].knowledge_items[0].unit_kind", await ReadErrorFieldsAsync(response));
         Assert.Equal(0, factory.Store.WriteCalls);
     }
 
@@ -312,7 +327,7 @@ public class KnowledgeUploadEndpointTests
     private static KnowledgeUploadRequest InvalidRequestCarrying(string title) =>
         UploadRequests.WithItem(
             SourceKind.Paper,
-            UploadRequests.Item(KnowledgeKind.Layer, UnitKind.Section) with { Title = title });
+            UploadRequests.Item(KnowledgeKind.Logic, UnitKind.File) with { Title = title });
 
     public static TheoryData<string, string> InvalidTokens() => new()
     {

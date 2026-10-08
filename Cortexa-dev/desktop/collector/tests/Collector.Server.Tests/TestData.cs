@@ -64,6 +64,15 @@ internal static class TestData
         Source = new KnowledgeSource { FilePath = "src/a.py", LineStart = 10, LineEnd = 20 }
     };
 
+    public static KnowledgeItem LayerItem(string folderPath = "src/core/") => new()
+    {
+        Kind = KnowledgeKind.Layer,
+        UnitKind = UnitKind.Module,
+        Title = "Core Layer",
+        Summary = "Sum",
+        Source = new KnowledgeSource { FilePath = folderPath }
+    };
+
     public static BatchDocumentInput PaperDocument(params KnowledgeItem[] items) => new()
     {
         DocumentId = PaperDocumentId,

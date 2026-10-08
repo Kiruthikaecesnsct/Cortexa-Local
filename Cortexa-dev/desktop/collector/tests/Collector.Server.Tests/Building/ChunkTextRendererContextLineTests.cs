@@ -67,6 +67,37 @@ public class ChunkTextRendererContextLineTests
     }
 
     [Fact]
+    public void Render_ForLayerItem_PrefixesFolderContextLine()
+    {
+        var item = TestData.LayerItem("src/core/");
+
+        var text = ChunkTextRenderer.Render(item);
+
+        Assert.StartsWith("Structured knowledge summary for folder src/core/\n", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("lines", text.Split('\n')[0], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Render_ForLayerItemWithPageNumber_PrefersPageContextLine()
+    {
+        var item = TestData.LayerItem() with { Source = new() { FilePath = "src/core/", PageNumber = 3 } };
+
+        var text = ChunkTextRenderer.Render(item);
+
+        Assert.StartsWith("Structured knowledge summary from page 3\n", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Render_ForLayerItemWithoutFolder_OmitsContextLine()
+    {
+        var item = TestData.LayerItem() with { Source = new() };
+
+        var text = ChunkTextRenderer.Render(item);
+
+        Assert.DoesNotContain("Structured knowledge summary", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Build_KeepsOffsetsConsistentWithContextLinePrefixedText()
     {
         var document = TestData.PaperDocument();

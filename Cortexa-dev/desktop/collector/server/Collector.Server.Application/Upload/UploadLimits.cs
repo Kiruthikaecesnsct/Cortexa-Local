@@ -8,11 +8,13 @@ public static class UploadLimits
     public const int MaxFilenameLength = 256;
     public const int MaxFilePathLength = 1024;
 
+    public const UnitKind LayerUnitKind = UnitKind.Module;
+
     private static readonly IReadOnlyDictionary<SourceKind, UnitKind[]> UnitKindsBySource =
         new Dictionary<SourceKind, UnitKind[]>
         {
             [SourceKind.Paper] = [UnitKind.Page, UnitKind.Section],
-            [SourceKind.Code] = [UnitKind.File]
+            [SourceKind.Code] = [UnitKind.File, UnitKind.Module]
         };
 
     private static readonly KnowledgeKind[] AllowedKinds =
@@ -23,10 +25,13 @@ public static class UploadLimits
         KnowledgeKind.DataModel,
         KnowledgeKind.Interface,
         KnowledgeKind.Workflow,
-        KnowledgeKind.KeyContent
+        KnowledgeKind.KeyContent,
+        KnowledgeKind.Layer
     ];
 
     public static bool IsAllowedKind(KnowledgeKind kind) => AllowedKinds.Contains(kind);
+
+    public static bool IsDocumentLevel(KnowledgeKind kind) => kind == KnowledgeKind.Layer;
 
     public static bool IsKnownSourceKind(SourceKind sourceKind) => UnitKindsBySource.ContainsKey(sourceKind);
 

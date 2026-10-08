@@ -47,6 +47,19 @@ public class RowBuilderTests
     }
 
     [Fact]
+    public void Provenance_ForLayer_UsesFolderAsFilePathAndLineOneToOne()
+    {
+        var document = TestData.CodeDocument(TestData.LayerItem("src/core/"));
+        var chunks = ChunkRowBuilder.Build(TestData.BatchId, document, TestData.Collector());
+
+        var row = Assert.Single(ProvenanceRowBuilder.Build(chunks, document));
+
+        Assert.Equal("src/core/", row.FilePath);
+        Assert.Equal([1, 1], row.LineRange);
+        Assert.Null(row.ByteRange);
+    }
+
+    [Fact]
     public void Provenance_ProducesOneRowPerChunk()
     {
         var document = TestData.PaperDocument(TestData.PaperItem(), TestData.PlainItem("B"));

@@ -5,9 +5,30 @@ namespace Collector.Server.Application.Upload.Validation;
 
 public sealed class KnowledgeItemRules(UploadOptions options)
 {
+    private const string RequiredMessage = "is required.";
+    private const string MaxLengthMessage = "exceeds the maximum length.";
+    private const string FolderMessage = "must be a folder path ending with a slash.";
+    private const string LayerLineMessage = "must be omitted for layer items.";
+    private const string LayerUnitKindMessage = "layer requires unit_kind module.";
+
+    private delegate IEnumerable<UploadValidationError> SourceRule(
+        KnowledgeItemRules rules,
+        KnowledgeSource source,
+        string path);
+
+    private static readonly IReadOnlyDictionary<UnitKind, SourceRule> SourceRules =
+        new Dictionary<UnitKind, SourceRule>
+        {
+            [UnitKind.Page] = static (_, source, path) => PageErrors(source, path),
+            [UnitKind.Section] = static (rules, source, path) => rules.SectionErrors(source, path),
+            [UnitKind.File] = static (_, source, path) => FileErrors(source, path),
+            [UnitKind.Module] = static (_, source, path) => FileErrors(source, path)
+        };
+
     public IEnumerable<UploadValidationError> Validate(SourceKind sourceKind, KnowledgeItem item, string path) =>
         KindErrors(item, path)
             .Concat(UnitKindErrors(sourceKind, item, path))
+            .Concat(LayerPairingErrors(item, path))
             .Concat(TextErrors(item, path))
             .Concat(SourceErrors(item, path));
 
@@ -30,6 +51,14 @@ public sealed class KnowledgeItemRules(UploadOptions options)
         }
     }
 
+    private static IEnumerable<UploadValidationError> LayerPairingErrors(KnowledgeItem item, string path)
+    {
+        if (UploadLimits.IsDocumentLevel(item.Kind) && item.UnitKind != UploadLimits.LayerUnitKind)
+        {
+            yield return new UploadValidationError($"{path}.unit_kind", LayerUnitKindMessage);
+        }
+    }
+
     private IEnumerable<UploadValidationError> TextErrors(KnowledgeItem item, string path) =>
         Text(item.Title, options.MaxTitleLength, true, $"{path}.title")
             .Concat(Text(item.Summary, options.MaxSummaryLength, true, $"{path}.summary"))
@@ -40,11 +69,11 @@ public sealed class KnowledgeItemRules(UploadOptions options)
     {
         if (required && string.IsNullOrWhiteSpace(value))
         {
-            yield return new UploadValidationError(field, "is required.");
+            yield return new UploadValidationError(field, RequiredMessage);
         }
         else if (value is not null && value.Length > maxLength)
         {
-            yield return new UploadValidationError(field, "exceeds the maximum length.");
+            yield return new UploadValidationError(field, MaxLengthMessage);
         }
     }
 
@@ -52,13 +81,45 @@ public sealed class KnowledgeItemRules(UploadOptions options)
     {
         var source = item.Source ?? new KnowledgeSource();
         var sourcePath = $"{path}.source";
-        return item.UnitKind switch
+        if (UploadLimits.IsDocumentLevel(item.Kind))
         {
-            UnitKind.Page => PageErrors(source, sourcePath),
-            UnitKind.Section => SectionErrors(source, sourcePath),
-            UnitKind.File => FileErrors(source, sourcePath),
-            _ => []
-        };
+            return LayerErrors(source, sourcePath);
+        }
+
+        return SourceRules.TryGetValue(item.UnitKind, out var rule) ? rule(this, source, sourcePath) : [];
+    }
+
+    private static IEnumerable<UploadValidationError> LayerErrors(KnowledgeSource source, string path) =>
+        LayerPathErrors(source.FilePath, path).Concat(LayerLineErrors(source, path));
+
+    private static IEnumerable<UploadValidationError> LayerPathErrors(string? filePath, string path)
+    {
+        var field = $"{path}.file_path";
+        if (string.IsNullOrWhiteSpace(filePath))
+        {
+            yield return new UploadValidationError(field, RequiredMessage);
+        }
+        else if (filePath.Length > UploadLimits.MaxFilePathLength)
+        {
+            yield return new UploadValidationError(field, MaxLengthMessage);
+        }
+        else if (!FolderPathRule.IsFolder(filePath))
+        {
+            yield return new UploadValidationError(field, FolderMessage);
+        }
+    }
+
+    private static IEnumerable<UploadValidationError> LayerLineErrors(KnowledgeSource source, string path)
+    {
+        if (source.LineStart is not null)
+        {
+            yield return new UploadValidationError($"{path}.line_start", LayerLineMessage);
+        }
+
+        if (source.LineEnd is not null)
+        {
+            yield return new UploadValidationError($"{path}.line_end", LayerLineMessage);
+        }
     }
 
     private static IEnumerable<UploadValidationError> PageErrors(KnowledgeSource source, string path)

@@ -2,6 +2,7 @@ using Collector.Domain.Knowledge;
 using Collector.Domain.Upload;
 using Collector.Server.Application.Commands;
 using Collector.Server.Application.Rows;
+using Collector.Server.Application.Upload;
 
 namespace Collector.Server.Application.Building;
 
@@ -41,9 +42,19 @@ public static class ChunkRowBuilder
             EndChar = startChar + text.Length,
             TokenCount = TokenEstimator.Estimate(text),
             PageNumber = item.Source.PageNumber,
-            SectionHint = string.IsNullOrWhiteSpace(item.Source.Section) ? item.Title : item.Source.Section,
+            SectionHint = ResolveSectionHint(item),
             Knowledge = BuildKnowledge(item, scope.Collector)
         };
+    }
+
+    private static string? ResolveSectionHint(KnowledgeItem item)
+    {
+        if (UploadLimits.IsDocumentLevel(item.Kind))
+        {
+            return null;
+        }
+
+        return string.IsNullOrWhiteSpace(item.Source.Section) ? item.Title : item.Source.Section;
     }
 
     private static ChunkKnowledge BuildKnowledge(KnowledgeItem item, CollectorInfo collector) => new()

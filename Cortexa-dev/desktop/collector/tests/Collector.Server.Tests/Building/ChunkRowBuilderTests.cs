@@ -62,6 +62,26 @@ public class ChunkRowBuilderTests
     }
 
     [Fact]
+    public void Build_ForLayerItemWithTitle_LeavesSectionHintNull()
+    {
+        var document = TestData.CodeDocument(TestData.LayerItem());
+
+        var chunk = Assert.Single(ChunkRowBuilder.Build(TestData.BatchId, document, TestData.Collector()));
+
+        Assert.Null(chunk.SectionHint);
+    }
+
+    [Fact]
+    public void Build_ForLayerItem_KeepsFolderAsKnowledgeSourceFilePath()
+    {
+        var document = TestData.CodeDocument(TestData.LayerItem("src/core/"));
+
+        var chunk = Assert.Single(ChunkRowBuilder.Build(TestData.BatchId, document, TestData.Collector()));
+
+        Assert.Equal("src/core/", chunk.Knowledge.Source.FilePath);
+    }
+
+    [Fact]
     public void Build_CopiesCollectorMetadataIntoKnowledge()
     {
         var chunk = BuildThree()[0];

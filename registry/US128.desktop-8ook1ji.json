@@ -4,9 +4,16 @@
   "machine": "desktop-8ook1ji",
   "env": "windows",
   "branch": "develop/US128",
-  "status": "planning",
-  "files": [],
+  "status": "implementing",
+  "files": [
+    "Cortexa-dev/desktop/collector/src/Collector.Domain",
+    "Cortexa-dev/desktop/collector/server",
+    "Cortexa-dev/desktop/collector/src/Collector.Application",
+    "Cortexa-dev/desktop/collector/src/Collector.Infrastructure",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation",
+    "Cortexa-dev/desktop/collector/tests"
+  ],
   "started": "2026-10-08T03:19:21Z",
-  "heartbeat": "2026-10-08T03:19:22Z",
+  "heartbeat": "2026-10-08T03:27:21Z",
   "schema": 2
 }

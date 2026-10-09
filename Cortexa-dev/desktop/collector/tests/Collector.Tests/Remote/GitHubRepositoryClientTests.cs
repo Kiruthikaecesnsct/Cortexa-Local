@@ -152,6 +152,124 @@ public class GitHubRepositoryClientTests
     }
 
     [Fact]
+    public async Task ListRepositoriesAsync_WithOrganization_CallsTheOrgEndpointOnly()
+    {
+        var handler = new RouteHandler(_ => RemoteResponses.Json($"[{RepoJson("hello")}]"));
+
+        var repositories = await CreateClient(handler).ListRepositoriesAsync("octo", TestSupport.Ct);
+
+        Assert.Single(repositories);
+        Assert.Equal($"{Origin}/orgs/octo/repos?type=all&per_page=100", Assert.Single(handler.Calls).Uri.AbsoluteUri);
+    }
+
+    [Fact]
+    public async Task ListRepositoriesAsync_OrganizationNotFound_FallsBackToTheUserEndpoint()
+    {
+        var handler = new RouteHandler(call => call.Uri.AbsolutePath.StartsWith("/orgs/", StringComparison.Ordinal)
+            ? RemoteResponses.Status(HttpStatusCode.NotFound)
+            : RemoteResponses.Json($"[{RepoJson("mine")}]"));
+
+        var repositories = await CreateClient(handler).ListRepositoriesAsync("someuser", TestSupport.Ct);
+
+        Assert.Equal("mine", Assert.Single(repositories).Name);
+        Assert.Equal(
+            [$"{Origin}/orgs/someuser/repos?type=all&per_page=100", $"{Origin}/users/someuser/repos?type=owner&per_page=100"],
+            handler.Calls.Select(call => call.Uri.AbsoluteUri));
+    }
+
+    [Fact]
+    public async Task ListRepositoriesAsync_OrganizationAndUserNotFound_ThrowsNotFound()
+    {
+        var handler = new RouteHandler(_ => RemoteResponses.Status(HttpStatusCode.NotFound));
+
+        var exception = await Assert.ThrowsAsync<RemoteSourceException>(
+            () => CreateClient(handler).ListRepositoriesAsync("ghost", TestSupport.Ct));
+
+        Assert.Equal(RemoteFailureKind.NotFound, exception.Kind);
+        Assert.Equal(2, handler.Calls.Count);
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.Unauthorized, RemoteFailureKind.Auth)]
+    [InlineData(HttpStatusCode.Forbidden, RemoteFailureKind.AccessDenied)]
+    [InlineData(HttpStatusCode.InternalServerError, RemoteFailureKind.Upstream)]
+    public async Task ListRepositoriesAsync_OrganizationErrorOtherThanNotFound_DoesNotFallBack(
+        HttpStatusCode status,
+        RemoteFailureKind expected)
+    {
+        var handler = new RouteHandler(_ => RemoteResponses.Status(status));
+
+        var exception = await Assert.ThrowsAsync<RemoteSourceException>(
+            () => CreateClient(handler).ListRepositoriesAsync("octo", TestSupport.Ct));
+
+        Assert.Equal(expected, exception.Kind);
+        Assert.Single(handler.Calls);
+    }
+
+    [Fact]
+    public async Task ListRepositoriesAsync_RateLimited_ReachesTheCallerWithoutFallback()
+    {
+        var handler = new RouteHandler(_ => RemoteResponses.Status(HttpStatusCode.TooManyRequests, ("Retry-After", "30")));
+
+        var exception = await Assert.ThrowsAsync<RemoteSourceException>(
+            () => CreateClient(handler).ListRepositoriesAsync("octo", TestSupport.Ct));
+
+        Assert.Equal(RemoteFailureKind.RateLimited, exception.Kind);
+        Assert.Single(handler.Calls);
+    }
+
+    [Fact]
+    public async Task ListRepositoriesAsync_OrganizationPages_FollowTheLinkHeader()
+    {
+        var handler = new RouteHandler(call => call.Uri.Query.Contains("page=2", StringComparison.Ordinal)
+            ? RemoteResponses.Json($"[{RepoJson("two")}]")
+            : RemoteResponses.Json(
+                $"[{RepoJson("one")}]",
+                ("Link", $"<{Origin}/orgs/octo/repos?type=all&per_page=100&page=2>; rel=\"next\"")));
+
+        var repositories = await CreateClient(handler).ListRepositoriesAsync("octo", TestSupport.Ct);
+
+        Assert.Equal(["one", "two"], repositories.Select(repository => repository.Name));
+    }
+
+    [Fact]
+    public async Task ListRepositoriesAsync_MapsDescriptionAndUpdatedTime()
+    {
+        const string Body = """
+            [{"name":"hello","full_name":"octo/hello","default_branch":"main","size":1,"private":false,
+              "description":"Billing service","updated_at":"2026-09-30T10:15:00Z","owner":{"login":"octo"}}]
+            """;
+        var handler = new RouteHandler(_ => RemoteResponses.Json(Body));
+
+        var repository = Assert.Single(await CreateClient(handler).ListRepositoriesAsync("octo", TestSupport.Ct));
+
+        Assert.Equal("Billing service", repository.Description);
+        Assert.Equal(new DateTimeOffset(2026, 9, 30, 10, 15, 0, TimeSpan.Zero), repository.UpdatedAt);
+    }
+
+    [Fact]
+    public async Task ListRepositoriesAsync_MissingDescriptionAndDate_AreNull()
+    {
+        var handler = new RouteHandler(_ => RemoteResponses.Json($"[{RepoJson("hello")}]"));
+
+        var repository = Assert.Single(await CreateClient(handler).ListRepositoriesAsync("octo", TestSupport.Ct));
+
+        Assert.Null(repository.Description);
+        Assert.Null(repository.UpdatedAt);
+    }
+
+    [Fact]
+    public async Task ListBranchesAsync_MapsTheProtectedFlag()
+    {
+        const string Body = """[{"name":"main","commit":{"sha":"a1"},"protected":true},{"name":"dev","commit":{"sha":"b2"}}]""";
+        var handler = new RouteHandler(_ => RemoteResponses.Json(Body));
+
+        var branches = await CreateClient(handler).ListBranchesAsync(RemoteData.GitHubRepo(), TestSupport.Ct);
+
+        Assert.Equal([new RemoteBranch("main", "a1", true), new RemoteBranch("dev", "b2")], branches);
+    }
+
+    [Fact]
     public async Task ListBranchesAsync_ValidResponse_MapsNamesAndCommits()
     {
         const string Body = """[{"name":"main","commit":{"sha":"a1"}},{"name":"broken"},{"commit":{"sha":"b2"}}]""";

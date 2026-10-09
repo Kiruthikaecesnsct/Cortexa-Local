@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Threading;
 using Collector.Application.Auth;
 using Collector.Application.Ports;
+using Collector.Application.Secrets;
 using Collector.Presentation.Hosting;
 using Collector.Presentation.Themes;
 using Collector.Presentation.ViewModels;
@@ -52,6 +53,7 @@ public partial class App : System.Windows.Application
         await _host.StartAsync();
         var services = _host.Services;
         await services.GetRequiredService<ILocalCacheInitializer>().InitializeAsync(CancellationToken.None);
+        await services.GetRequiredService<StaleRemoteSecretPurge>().RunAsync(CancellationToken.None);
         await services.GetRequiredService<ISignInService>().RestoreAsync(CancellationToken.None);
         var window = services.GetRequiredService<MainWindow>();
         MainWindow = window;

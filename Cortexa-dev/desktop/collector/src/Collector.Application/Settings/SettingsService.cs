@@ -45,29 +45,6 @@ public sealed class SettingsService(IUserSettingsStore store, ISecretStore secre
     public Task SaveSshProfilesAsync(IReadOnlyList<SshConnectionProfile> profiles, CancellationToken cancellationToken) =>
         store.SaveRemoteSourcesAsync(store.GetRemoteSources() with { SshProfiles = profiles }, cancellationToken);
 
-    public string? GetPinnedFingerprint(string host) =>
-        GetSshProfiles().FirstOrDefault(profile => IsSameHost(profile.Host, host))?.PinnedFingerprint;
-
-    public Task PinFingerprintAsync(string host, string fingerprint, CancellationToken cancellationToken)
-    {
-        var updated = GetSshProfiles()
-            .Select(profile => IsSameHost(profile.Host, host) ? profile with { PinnedFingerprint = fingerprint } : profile)
-            .ToArray();
-        return SaveSshProfilesAsync(updated, cancellationToken);
-    }
-
-    public Task<bool> HasSshPassphraseAsync(CancellationToken cancellationToken) =>
-        HasSecretAsync(SecretSlot.SshPassphrase, cancellationToken);
-
-    public Task SetSshPassphraseAsync(string passphrase, CancellationToken cancellationToken) =>
-        SetSecretAsync(SecretSlot.SshPassphrase, passphrase, cancellationToken);
-
-    public Task ClearSshPassphraseAsync(CancellationToken cancellationToken) =>
-        ClearSecretAsync(SecretSlot.SshPassphrase, cancellationToken);
-
-    private static bool IsSameHost(string left, string right) =>
-        string.Equals(left, right, StringComparison.OrdinalIgnoreCase);
-
     public async Task<bool> HasSecretAsync(SecretSlot slot, CancellationToken cancellationToken) =>
         await secrets.ReadAsync(slot, cancellationToken) is not null;
 
@@ -88,17 +65,6 @@ public sealed class SettingsService(IUserSettingsStore store, ISecretStore secre
 
     public Task ClearAiKeyAsync(CollectorProvider provider, CancellationToken cancellationToken) =>
         ClearSecretAsync(RequireSlot(provider), cancellationToken);
-
-    public async Task<bool> HasRemoteTokenAsync(SourceType source, CancellationToken cancellationToken)
-    {
-        if (source == SourceType.Ssh)
-        {
-            return false;
-        }
-
-        var slot = RemoteSourceSlots.For(source);
-        return slot is not null && await HasSecretAsync(slot.Value, cancellationToken);
-    }
 
     private static SecretSlot RequireSlot(CollectorProvider provider) =>
         AiKeySlots.For(provider)

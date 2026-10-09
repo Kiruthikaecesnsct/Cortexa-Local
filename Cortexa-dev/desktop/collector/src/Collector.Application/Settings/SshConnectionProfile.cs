@@ -5,5 +5,4 @@ public sealed record SshConnectionProfile(
     int Port,
     string Username,
     string KeyFilePath,
-    string PinnedFingerprint,
     string RemoteRoot);

@@ -21,6 +21,7 @@
     <SolidColorBrush x:Key="Brush.Accent.Pressed" Color="{DynamicResource {x:Static SystemColors.HighlightColorKey}}" />
     <SolidColorBrush x:Key="Brush.Danger" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
     <SolidColorBrush x:Key="Brush.Danger.Hover" Color="{DynamicResource {x:Static SystemColors.HighlightColorKey}}" />
+    <SolidColorBrush x:Key="Brush.Danger.Text" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
     <SolidColorBrush x:Key="Brush.Danger.Surface" Color="{DynamicResource {x:Static SystemColors.WindowColorKey}}" />
     <SolidColorBrush x:Key="Brush.Success" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
     <SolidColorBrush x:Key="Brush.Success.Surface" Color="{DynamicResource {x:Static SystemColors.WindowColorKey}}" />

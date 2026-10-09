@@ -90,7 +90,6 @@ public static class CollectorHost
     {
         services.AddSingleton<IRemoteFetcher, RemoteFetcher>();
         services.AddSingleton<IExternalLinkLauncher, ShellLinkLauncher>();
-        services.AddSingleton<SettingsShortcut>();
         services.AddSingleton<RemoteSourceDependencies>();
         services.AddSingleton<RemoteSourceViewModel>();
         return services;

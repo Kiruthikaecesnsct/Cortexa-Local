@@ -1,10 +1,9 @@
 using Collector.Application.Ports;
 using Collector.Application.Remote;
-using Collector.Application.Secrets;
 using Collector.Application.Settings;
 using Collector.Domain.Enums;
 using Collector.Domain.Remote;
-using Collector.Presentation.Navigation;
+using Collector.Infrastructure.Secrets;
 using Collector.Presentation.Services;
 using Collector.Presentation.ViewModels;
 using Collector.Tests.Support;
@@ -29,11 +28,18 @@ internal sealed class ScriptedRemoteClient(SourceType provider) : IRemoteReposit
 
     public int ListCalls { get; private set; }
 
-    public Task<IReadOnlyList<RemoteRepository>> ListRepositoriesAsync(string? scope, CancellationToken cancellationToken)
+    public TaskCompletionSource? Gate { get; set; }
+
+    public async Task<IReadOnlyList<RemoteRepository>> ListRepositoriesAsync(string? scope, CancellationToken cancellationToken)
     {
         ListCalls++;
         LastScope = scope;
-        return ListError is null ? Task.FromResult(Repositories) : Task.FromException<IReadOnlyList<RemoteRepository>>(ListError);
+        if (Gate is not null)
+        {
+            await Gate.Task.WaitAsync(cancellationToken);
+        }
+
+        return ListError is null ? Repositories : throw ListError;
     }
 
     public Task<IReadOnlyList<RemoteBranch>> ListBranchesAsync(RemoteRepository repository, CancellationToken cancellationToken) =>
@@ -97,8 +103,22 @@ internal sealed class FakeLinkLauncher : IExternalLinkLauncher
     }
 }
 
+internal sealed class FakeSshCloser : ISshConnectionCloser
+{
+    public int Closed { get; private set; }
+
+    public Task CloseAsync(CancellationToken cancellationToken)
+    {
+        Closed++;
+        return Task.CompletedTask;
+    }
+}
+
 internal sealed class RemoteSourceHarness
 {
+    public const string GitHubUrl = "https://github.com/octo";
+    public const string AzureUrl = "https://dev.azure.com/contoso";
+
     public RemoteSourceHarness()
     {
         Settings = new SettingsService(Store, Secrets);
@@ -108,12 +128,13 @@ internal sealed class RemoteSourceHarness
             Fetcher,
             RateLimits,
             Settings,
+            Credentials,
+            SshCloser,
             Links,
             Picker,
             Options.Create(new RemoteFetchOptions()));
         ViewModel = new RemoteSourceViewModel(
             dependencies,
-            new SettingsShortcut(Navigation),
             TimeProvider.System,
             NullLogger<RemoteSourceViewModel>.Instance);
     }
@@ -121,6 +142,10 @@ internal sealed class RemoteSourceHarness
     public FakeUserSettingsStore Store { get; } = new();
 
     public InMemorySecretStore Secrets { get; } = new();
+
+    public InMemorySessionCredentials Credentials { get; } = new();
+
+    public FakeSshCloser SshCloser { get; } = new();
 
     public SettingsService Settings { get; }
 
@@ -142,8 +167,6 @@ internal sealed class RemoteSourceHarness
 
     public RemoteSourceViewModel ViewModel { get; }
 
-    public void AddToken(SecretSlot slot) => Secrets.Values[slot] = "token";
-
     public static RemoteRepository GitHubRepo(string name, long sizeBytes = 1024, bool isPrivate = false) =>
         new(SourceType.Github, "octo", null, name, $"octo/{name}", "main", $"https://github.com/octo/{name}", sizeBytes, isPrivate);
 
@@ -163,10 +186,16 @@ internal sealed class RemoteSourceHarness
 
     public async Task<RemoteSourceViewModel> OpenGitHubAsync(params RemoteRepository[] repositories)
     {
-        AddToken(SecretSlot.GitHubPat);
         GitHub.Repositories = repositories;
-        ViewModel.SelectedSource = SourceType.Github;
-        await Task.Yield();
+        return await ConnectAsync(SourceType.Github, GitHubUrl);
+    }
+
+    public async Task<RemoteSourceViewModel> ConnectAsync(SourceType source, string url, string token = "token")
+    {
+        ViewModel.SelectedSource = source;
+        ViewModel.OrgUrl = url;
+        ViewModel.Token = token;
+        await ViewModel.ConnectCommand.ExecuteAsync(null);
         return ViewModel;
     }
 }

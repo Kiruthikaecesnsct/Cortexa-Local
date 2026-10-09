@@ -43,23 +43,28 @@ public sealed class RemoteFormattingTests
     public void Size_IsFormattedForTheRepositoryList(long bytes, string expected) =>
         Assert.Equal(expected, RemoteSizeFormatter.Format(bytes));
 
-    [Theory]
-    [InlineData("contoso", "contoso")]
-    [InlineData("  contoso  ", "contoso")]
-    [InlineData("https://dev.azure.com/contoso", "contoso")]
-    [InlineData("https://dev.azure.com/contoso/Research/_git/repo", "contoso")]
-    [InlineData("dev.azure.com/contoso", "contoso")]
-    [InlineData("https://contoso.visualstudio.com", "contoso")]
-    [InlineData("https://dev.azure.com/", "")]
-    [InlineData("", "")]
-    [InlineData(null, "")]
-    public void Organization_IsExtractedFromPastedText(string? raw, string expected) =>
-        Assert.Equal(expected, AzureOrganizationParser.Parse(raw));
+    private static readonly DateTimeOffset Now = new(2026, 10, 9, 12, 0, 0, TimeSpan.Zero);
 
     [Theory]
-    [InlineData(RemoteFailureKind.MissingToken, BannerSeverity.Warning, "Open Settings", false)]
-    [InlineData(RemoteFailureKind.Auth, BannerSeverity.Error, "Open Settings", false)]
-    [InlineData(RemoteFailureKind.AccessDenied, BannerSeverity.Error, "Open Settings", false)]
+    [InlineData(30, "Updated just now")]
+    [InlineData(60, "Updated 1 minute ago")]
+    [InlineData(5 * 60, "Updated 5 minutes ago")]
+    [InlineData(2 * 3600, "Updated 2 hours ago")]
+    [InlineData(3 * 86400, "Updated 3 days ago")]
+    [InlineData(45 * 86400, "Updated 1 month ago")]
+    [InlineData(800 * 86400, "Updated 2 years ago")]
+    [InlineData(-90, "Updated just now")]
+    public void UpdatedTime_IsDescribedRelativeToNow(int secondsAgo, string expected) =>
+        Assert.Equal(expected, RelativeTimeFormatter.Format(Now.AddSeconds(-secondsAgo), Now));
+
+    [Fact]
+    public void UpdatedTime_WhenUnknown_IsEmpty() =>
+        Assert.Equal(string.Empty, RelativeTimeFormatter.Format(null, Now));
+
+    [Theory]
+    [InlineData(RemoteFailureKind.MissingToken, BannerSeverity.Warning, "Change token", false)]
+    [InlineData(RemoteFailureKind.Auth, BannerSeverity.Error, "Change token", false)]
+    [InlineData(RemoteFailureKind.AccessDenied, BannerSeverity.Error, "Change token", false)]
     [InlineData(RemoteFailureKind.SsoRequired, BannerSeverity.Error, "Open GitHub token settings", false)]
     [InlineData(RemoteFailureKind.NotFound, BannerSeverity.Error, "Reload repositories", false)]
     [InlineData(RemoteFailureKind.EmptyRepository, BannerSeverity.Warning, null, true)]
@@ -81,7 +86,7 @@ public sealed class RemoteFormattingTests
         var banner = Factory().ForFailure(RemoteFailureKind.SsoRequired, Context(SourceType.AzureDevops));
 
         Assert.Equal("Azure DevOps didn't accept your token.", banner.Title);
-        Assert.Equal("Open Settings", banner.ActionText);
+        Assert.Equal("Change token", banner.ActionText);
     }
 
     [Fact]
@@ -101,17 +106,6 @@ public sealed class RemoteFormattingTests
         var banner = Factory().ForFailure(RemoteFailureKind.RateLimited, context);
 
         Assert.Equal("Try again in about 4 minutes.", banner.Message);
-    }
-
-    [Fact]
-    public void FingerprintMismatch_ForSsh_ShowsDismissibleErrorWithoutRetry()
-    {
-        var banner = Factory().ForFailure(RemoteFailureKind.FingerprintMismatch, Context(SourceType.Ssh));
-
-        Assert.Equal(BannerSeverity.Error, banner.Severity);
-        Assert.Equal("The server's fingerprint doesn't match.", banner.Title);
-        Assert.Null(banner.ActionText);
-        Assert.NotNull(banner.DismissCommand);
     }
 
     [Theory]

@@ -145,4 +145,36 @@ public sealed class JsonUserSettingsStoreRemoteTests : IDisposable
         Assert.Equal(Organization, ReadRoot().GetProperty("RemoteSources").GetProperty("AzureDevOps").GetProperty("Organization").GetString());
         Assert.Equal([SettingsPath], Directory.GetFiles(_directory));
     }
+
+    [Fact]
+    public void GetRemoteSources_LegacyProfileWithPinnedFingerprint_StillLoads()
+    {
+        const string Legacy = """{"Host":"h","Port":22,"Username":"u","KeyFilePath":"k","PinnedFingerprint":"SHA256:abc","RemoteRoot":"/r"}""";
+        var options = JsonSerializer.Deserialize<SshProfileOptions>(Legacy)!;
+        var remote = new RemoteSourceOptions();
+        remote.Ssh.Profiles.Add(options);
+        var store = new JsonUserSettingsStore(
+            MsOptions.Create(new UserSettingsOptions { Path = SettingsPath }),
+            new StaticMonitor<GatewayOptions>(new GatewayOptions()),
+            new StaticMonitor<CollectorServerOptions>(new CollectorServerOptions()),
+            new StaticMonitor<RemoteSourceOptions>(remote));
+
+        var profile = Assert.Single(store.GetRemoteSources().SshProfiles);
+
+        Assert.Equal(new SshConnectionProfile("h", 22, "u", "k", "/r"), profile);
+    }
+
+    [Fact]
+    public async Task SaveRemoteSourcesAsync_LegacyFileWithPinnedFingerprint_DropsTheKeyOnSave()
+    {
+        WriteRaw("""{"RemoteSources":{"Ssh":{"Profiles":[{"Host":"h","Port":22,"Username":"u","KeyFilePath":"k","PinnedFingerprint":"SHA256:abc","RemoteRoot":"/r"}]}}}""");
+        var profile = new SshConnectionProfile("h", 22, "u", "k", "/r");
+
+        await CreateStore().SaveRemoteSourcesAsync(new RemoteSourceSettings(Organization) { SshProfiles = [profile] }, TestSupport.Ct);
+
+        var text = File.ReadAllText(SettingsPath);
+        Assert.DoesNotContain("PinnedFingerprint", text, StringComparison.Ordinal);
+        var saved = ReadRoot().GetProperty("RemoteSources").GetProperty("Ssh").GetProperty("Profiles")[0];
+        Assert.Equal("/r", saved.GetProperty("RemoteRoot").GetString());
+    }
 }

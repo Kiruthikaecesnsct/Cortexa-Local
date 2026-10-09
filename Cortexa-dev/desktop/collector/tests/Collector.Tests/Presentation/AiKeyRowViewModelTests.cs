@@ -42,10 +42,10 @@ public sealed class AiKeyRowViewModelTests
         new AiKeyRowDescriptor
         {
             Slot = SecretSlot.GitHubPat,
-            Name = SettingsStrings.GitHubName,
-            Description = SettingsStrings.GitHubDescription,
-            Hint = SettingsStrings.GitHubHint,
-            ShortName = SettingsStrings.GitHubName,
+            Name = "GitHub",
+            Description = "Lists and fetches your GitHub repositories.",
+            Hint = "Token scopes.",
+            ShortName = "GitHub",
             RunsName = "GitHub fetches",
             Words = CredentialWords.AccessToken,
         },

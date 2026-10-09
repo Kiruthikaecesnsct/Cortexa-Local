@@ -26,8 +26,9 @@
         </Style>
     </UserControl.Resources>
 
-    <StackPanel MaxWidth="{StaticResource Size.ContentMaxWidth}" HorizontalAlignment="Left">
-        <Border Style="{StaticResource Card}">
+    <UniformGrid Margin="{StaticResource Thickness.GridBleed.Wide}"
+                 Columns="{Binding ActualWidth, RelativeSource={RelativeSource Self}, Converter={StaticResource Columns.Settings}}">
+        <Border Margin="{StaticResource Thickness.GridCell.Wide}" Style="{StaticResource Card}">
             <StackPanel>
                 <ProgressBar Margin="{StaticResource Thickness.StackGap}" Style="{StaticResource Settings.Progress}" />
                 <Grid Style="{StaticResource Section.Header}">
@@ -106,7 +107,7 @@
             </StackPanel>
         </Border>
 
-        <Border Margin="{StaticResource Thickness.SectionTop}" Style="{StaticResource Card}">
+        <Border Margin="{StaticResource Thickness.GridCell.Wide}" Style="{StaticResource Card}">
             <StackPanel>
                 <Grid Style="{StaticResource Section.Header}">
                     <Grid.ColumnDefinitions>
@@ -131,30 +132,5 @@
                 <ContentControl Content="{Binding BedrockRow}" Focusable="False" IsTabStop="False" />
             </StackPanel>
         </Border>
-
-        <Border Margin="{StaticResource Thickness.SectionTop}" Style="{StaticResource Card}">
-            <StackPanel>
-                <Grid Style="{StaticResource Section.Header}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <ContentControl Margin="{StaticResource Thickness.InlineGapLarge}"
-                                    VerticalAlignment="Top"
-                                    Content="{x:Static res:Glyphs.Code}"
-                                    Style="{StaticResource IconTile}" />
-                    <StackPanel Grid.Column="1">
-                        <TextBlock AutomationProperties.HeadingLevel="Level2"
-                                   Style="{StaticResource Text.Subtitle}"
-                                   Text="{x:Static res:SettingsStrings.RepositoryTitle}" />
-                        <TextBlock Style="{StaticResource Text.Helper}" Text="{x:Static res:SettingsStrings.RepositoryIntro}" />
-                    </StackPanel>
-                </Grid>
-                <ItemsControl AlternationCount="100"
-                              Focusable="False"
-                              IsTabStop="False"
-                              ItemsSource="{Binding RepositoryRows}" />
-            </StackPanel>
-        </Border>
-    </StackPanel>
+    </UniformGrid>
 </UserControl>

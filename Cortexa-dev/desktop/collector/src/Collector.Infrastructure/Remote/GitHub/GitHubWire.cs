@@ -11,11 +11,16 @@ internal sealed record GitHubRepoWire(
     string? DefaultBranch,
     long Size,
     [property: JsonPropertyName("private")] bool IsPrivate,
-    GitHubOwnerWire? Owner);
+    GitHubOwnerWire? Owner,
+    string? Description = null,
+    DateTimeOffset? UpdatedAt = null);
 
 internal sealed record GitHubCommitWire(string? Sha);
 
-internal sealed record GitHubBranchWire(string? Name, GitHubCommitWire? Commit);
+internal sealed record GitHubBranchWire(
+    string? Name,
+    GitHubCommitWire? Commit,
+    [property: JsonPropertyName("protected")] bool IsProtected = false);
 
 internal sealed record GitHubRefObjectWire(string? Sha);
 

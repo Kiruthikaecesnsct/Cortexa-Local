@@ -1,10 +1,8 @@
-using System.IO;
 using Collector.Application.Remote;
-using Collector.Application.Secrets;
-using Collector.Application.Settings;
 using Collector.Domain.Enums;
 using Collector.Domain.Remote;
 using Collector.Presentation.Resources;
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
 
@@ -12,9 +10,38 @@ namespace Collector.Presentation.ViewModels;
 
 public sealed partial class RemoteSourceViewModel
 {
-    private readonly record struct ListScope(bool IsValid, string? Value);
+    private IReadOnlyList<RemoteBranch> _allBranches = [];
+
+    public IReadOnlyList<SegmentOptionViewModel<RepositoryVisibility>> VisibilityOptions { get; private set; } = [];
+
+    public IReadOnlyList<SegmentOptionViewModel<RepositorySort>> SortOptions { get; private set; } = [];
+
+    public bool ShowNoBranchMatch => Branches.Count == 0 && _allBranches.Count > 0 && !IsLoadingBranches;
+
+    [ObservableProperty]
+    public partial RepositoryVisibility VisibilityFilter { get; set; }
+
+    [ObservableProperty]
+    public partial RepositorySort SortOrder { get; set; }
+
+    [ObservableProperty]
+    public partial string BranchSearchText { get; set; } = string.Empty;
 
     partial void OnSearchTextChanged(string value) => RebuildRows();
+
+    partial void OnVisibilityFilterChanged(RepositoryVisibility value)
+    {
+        SyncOptions();
+        RebuildRows();
+    }
+
+    partial void OnSortOrderChanged(RepositorySort value)
+    {
+        SyncOptions();
+        RebuildRows();
+    }
+
+    partial void OnBranchSearchTextChanged(string value) => RebuildBranches();
 
     partial void OnSelectedRepositoryChanged(RemoteRepositoryRowViewModel? value)
     {
@@ -25,8 +52,7 @@ public sealed partial class RemoteSourceViewModel
 
         CancelBranches();
         Banner = null;
-        Branches.Clear();
-        SelectedBranch = null;
+        ClearBranches();
         NotifyFetchState();
         if (value is null)
         {
@@ -39,27 +65,60 @@ public sealed partial class RemoteSourceViewModel
             return;
         }
 
+        Step = RemoteWizardStep.Branch;
         _ = LoadBranchesAsync(value);
     }
 
-    private bool CanLoadRepositories() => IsRemote && !IsSsh && AreControlsEnabled && !IsListLoading;
+    private bool CanLoadRepositories() => IsRemote && !IsSsh && AreControlsEnabled && !IsListLoading && (IsCortexa || IsConnected);
 
     [RelayCommand(CanExecute = nameof(CanLoadRepositories))]
-    private async Task LoadRepositoriesAsync()
+    private Task LoadRepositoriesAsync() => RunListAsync();
+
+    [RelayCommand]
+    private void ClearSearch()
+    {
+        SearchText = string.Empty;
+        RequestFocus(RemoteFocusKeys.Search);
+    }
+
+    private void InitializeOptions()
+    {
+        VisibilityOptions =
+        [
+            new(RepositoryVisibility.All, RemoteSourceStrings.VisibilityAll, value => VisibilityFilter = value),
+            new(RepositoryVisibility.Public, RemoteSourceStrings.VisibilityPublic, value => VisibilityFilter = value),
+            new(RepositoryVisibility.Private, RemoteSourceStrings.VisibilityPrivate, value => VisibilityFilter = value),
+        ];
+        SortOptions =
+        [
+            new(RepositorySort.Name, RemoteSourceStrings.SortName, value => SortOrder = value),
+            new(RepositorySort.RecentlyUpdated, RemoteSourceStrings.SortRecentlyUpdated, value => SortOrder = value),
+        ];
+        SyncOptions();
+    }
+
+    private void SyncOptions()
+    {
+        foreach (var option in VisibilityOptions)
+        {
+            option.Sync(VisibilityFilter);
+        }
+
+        foreach (var option in SortOptions)
+        {
+            option.Sync(SortOrder);
+        }
+    }
+
+    private async Task RunListAsync()
     {
         var source = SelectedSource;
         Banner = null;
-        var scope = await ResolveScopeAsync(source);
-        if (!scope.IsValid)
-        {
-            return;
-        }
-
         ResetSelection();
         var token = BeginList();
         try
         {
-            await ListRepositoriesAsync(source, scope.Value, token);
+            await ListRepositoriesAsync(source, ScopeFor(source), token);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested)
         {
@@ -75,81 +134,14 @@ public sealed partial class RemoteSourceViewModel
         }
     }
 
-    [RelayCommand]
-    private void ClearSearch()
-    {
-        SearchText = string.Empty;
-        RequestFocus(RemoteFocusKeys.Search);
-    }
+    private string? ScopeFor(SourceType source) =>
+        source is SourceType.Github or SourceType.AzureDevops ? _connectedOrganization : null;
 
     private async Task ListRepositoriesAsync(SourceType source, string? scope, CancellationToken token)
     {
-        if (RequiresToken(source) && !await HasTokenAsync(source))
-        {
-            FailList(source, RemoteFailureKind.MissingToken, null);
-            return;
-        }
-
         var repositories = await _deps.Clients.For(source).ListRepositoriesAsync(scope, token);
         token.ThrowIfCancellationRequested();
         ApplyRepositories(source, repositories);
-    }
-
-    private static bool RequiresToken(SourceType source) => source != SourceType.CortexaRepo;
-
-    private async Task<bool> HasTokenAsync(SourceType source)
-    {
-        try
-        {
-            return await _deps.Settings.HasRemoteTokenAsync(source, CancellationToken.None);
-        }
-        catch (SecretStoreException ex)
-        {
-            _logger.LogWarning(ex, "Could not read the {Source} token status.", source);
-            return true;
-        }
-    }
-
-    private async Task<ListScope> ResolveScopeAsync(SourceType source)
-    {
-        if (source != SourceType.AzureDevops)
-        {
-            return new ListScope(true, null);
-        }
-
-        var organization = AzureOrganizationParser.Parse(OrganizationText);
-        OrganizationText = organization;
-        OrganizationError = OrganizationProblem(organization) ?? await SaveOrganizationAsync(organization);
-        if (OrganizationError is not null)
-        {
-            RequestFocus(RemoteFocusKeys.Organization);
-        }
-
-        return new ListScope(OrganizationError is null, organization);
-    }
-
-    private static string? OrganizationProblem(string organization)
-    {
-        if (organization.Length == 0)
-        {
-            return RemoteSourceStrings.OrganizationEmpty;
-        }
-
-        return RemoteSourceRules.IsValidOrganization(organization) ? null : RemoteSourceRules.OrganizationInvalidReason;
-    }
-
-    private async Task<string?> SaveOrganizationAsync(string organization)
-    {
-        try
-        {
-            var result = await _deps.Settings.SaveRemoteSourcesAsync(new RemoteSourceSettings(organization), CancellationToken.None);
-            return result.IsValid ? null : result.Reason;
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            _logger.LogWarning(ex, "Could not save the Azure DevOps organization.");
-            return null;
-        }
     }
 
     private CancellationToken BeginList()
@@ -157,6 +149,11 @@ public sealed partial class RemoteSourceViewModel
         CancelList();
         _listCts = new CancellationTokenSource();
         ListState = RemoteListState.Loading;
+        if (IsTokenSource)
+        {
+            Status = ConnectionStatus.Connecting;
+        }
+
         _all = [];
         RebuildRows();
         return _listCts.Token;
@@ -174,6 +171,11 @@ public sealed partial class RemoteSourceViewModel
         ListState = RemoteListState.Ready;
         SearchText = string.Empty;
         RebuildRows();
+        if (IsTokenSource)
+        {
+            Status = ConnectionStatus.Connected;
+            Step = RemoteWizardStep.Repository;
+        }
     }
 
     private void FailList(SourceType source, RemoteFailureKind kind, DateTimeOffset? resetAt)
@@ -187,27 +189,44 @@ public sealed partial class RemoteSourceViewModel
         _all = [];
         ListState = RemoteListState.Idle;
         RebuildRows();
-        if (source == SourceType.AzureDevops && kind == RemoteFailureKind.NotFound)
+        if (IsTokenSource)
         {
-            OrganizationError = RemoteSourceStrings.OrganizationNotFound(OrganizationText);
+            ReturnToConnect(kind);
+        }
+
+        if (IsTokenSource && kind == RemoteFailureKind.NotFound)
+        {
+            OrgUrlError = RemoteSourceStrings.OrganizationNotFound(_connectedOrganization);
             RequestFocus(RemoteFocusKeys.Organization);
             return;
         }
 
         var retryAfter = resetAt is { } at ? at - _time.GetUtcNow() : (TimeSpan?)null;
-        ShowFailure(kind, retryAfter, () => LoadRepositoriesCommand.ExecuteAsync(null));
+        ShowFailure(kind, retryAfter, RunListAsync);
+    }
+
+    private void ReturnToConnect(RemoteFailureKind kind)
+    {
+        if (kind == RemoteFailureKind.Auth)
+        {
+            _deps.Credentials.Clear(SelectedSource);
+        }
+
+        Status = ConnectionStatus.NotConnected;
+        Step = RemoteWizardStep.Connect;
     }
 
     private void RebuildRows()
     {
         var keep = SelectedRepository;
+        var query = new RepositoryQuery(SearchText, VisibilityFilter, SortOrder, IsCortexa);
         _rebuilding = true;
         try
         {
             Repositories.Clear();
-            foreach (var repository in _all.Where(MatchesSearch))
+            foreach (var repository in RepositoryFilter.Apply(_all, query))
             {
-                Repositories.Add(new RemoteRepositoryRowViewModel(repository, _limitBytes));
+                Repositories.Add(new RemoteRepositoryRowViewModel(repository, _limitBytes, _time));
             }
 
             SelectedRepository = Repositories.FirstOrDefault(row => keep is not null && row.Repository == keep.Repository);
@@ -226,21 +245,15 @@ public sealed partial class RemoteSourceViewModel
         if (previous is not null && SelectedRepository is null)
         {
             CancelBranches();
-            Branches.Clear();
-            SelectedBranch = null;
+            ClearBranches();
         }
     }
-
-    private bool MatchesSearch(RemoteRepository repository) =>
-        string.IsNullOrWhiteSpace(SearchText)
-        || repository.FullName.Contains(SearchText.Trim(), StringComparison.OrdinalIgnoreCase);
 
     private void ResetSelection()
     {
         CancelBranches();
         SelectedRepository = null;
-        Branches.Clear();
-        SelectedBranch = null;
+        ClearBranches();
     }
 
     private void CancelList()
@@ -254,6 +267,14 @@ public sealed partial class RemoteSourceViewModel
         _branchCts?.Cancel();
         _branchCts = null;
         IsLoadingBranches = false;
+    }
+
+    private void ClearBranches()
+    {
+        _allBranches = [];
+        BranchSearchText = string.Empty;
+        Branches.Clear();
+        SelectedBranch = null;
     }
 
     private async Task LoadBranchesAsync(RemoteRepositoryRowViewModel row)
@@ -308,14 +329,33 @@ public sealed partial class RemoteSourceViewModel
     private void ApplyBranches(RemoteRepositoryRowViewModel row, IReadOnlyList<RemoteBranch> remote)
     {
         var defaultName = row.DefaultBranch;
-        var found = remote.FirstOrDefault(branch => branch.Name == defaultName);
-        Branches.Clear();
-        Branches.Add(new BranchOptionViewModel(defaultName, found?.CommitSha, true));
-        foreach (var branch in remote.Where(branch => branch.Name != defaultName))
+        var hasDefault = remote.Any(branch => branch.Name == defaultName);
+        _allBranches = hasDefault ? remote : [new RemoteBranch(defaultName, string.Empty), .. remote];
+        RebuildBranches();
+        OnPropertyChanged(nameof(ShowNoBranchMatch));
+        NotifyFetchState();
+    }
+
+    private void RebuildBranches()
+    {
+        var keep = SelectedBranch;
+        var defaultName = SelectedRepository?.DefaultBranch ?? string.Empty;
+        _rebuildingBranches = true;
+        try
         {
-            Branches.Add(new BranchOptionViewModel(branch.Name, branch.CommitSha, false));
+            Branches.Clear();
+            foreach (var branch in BranchOrdering.Order(_allBranches, defaultName, BranchSearchText))
+            {
+                Branches.Add(new BranchOptionViewModel(branch.Name, branch.CommitSha, branch.Name == defaultName, branch.IsProtected));
+            }
+
+            SelectedBranch = Branches.FirstOrDefault(option => keep is not null && option.Name == keep.Name);
+        }
+        finally
+        {
+            _rebuildingBranches = false;
         }
 
-        SelectedBranch = Branches[0];
+        OnPropertyChanged(nameof(ShowNoBranchMatch));
     }
 }

@@ -23,6 +23,7 @@ public sealed class GitHubRepositoryClient(
     private const string LinkHeader = "Link";
     private const string BlobType = "blob";
     private const string FallbackBranch = "main";
+    private const string UserReposPath = "user/repos?affiliation=owner,collaborator,organization_member&per_page=100";
     private const long BytesPerKilobyte = 1024;
 
     public SourceType Provider => SourceType.Github;
@@ -31,10 +32,33 @@ public sealed class GitHubRepositoryClient(
         string? scope,
         CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(scope))
+        {
+            return await CollectRepositoriesAsync(UserReposPath, cancellationToken);
+        }
+
+        var organization = RemoteUrl.Segment(scope);
+        try
+        {
+            return await CollectRepositoriesAsync(
+                $"orgs/{organization}/repos?type=all&per_page=100",
+                cancellationToken);
+        }
+        catch (RemoteSourceException exception) when (exception.Kind == RemoteFailureKind.NotFound)
+        {
+            return await CollectRepositoriesAsync(
+                $"users/{organization}/repos?type=owner&per_page=100",
+                cancellationToken);
+        }
+    }
+
+    private async Task<IReadOnlyList<RemoteRepository>> CollectRepositoriesAsync(
+        string relative,
+        CancellationToken cancellationToken)
+    {
         var http = CreateHttp();
-        var first = RemoteUrl.Relative("user/repos?affiliation=owner,collaborator,organization_member&per_page=100");
         var wire = await CreatePager().CollectAsync(
-            first,
+            RemoteUrl.Relative(relative),
             (uri, token) => FetchPageAsync(http, uri, GitHubJson.Default.ListGitHubRepoWire, token),
             cancellationToken);
         return [.. wire.Select(ToRepository).OfType<RemoteRepository>()];
@@ -106,13 +130,15 @@ public sealed class GitHubRepositoryClient(
             wire.DefaultBranch ?? FallbackBranch,
             wire.HtmlUrl ?? string.Empty,
             wire.Size * BytesPerKilobyte,
-            wire.IsPrivate);
+            wire.IsPrivate,
+            wire.Description,
+            wire.UpdatedAt);
     }
 
     private static RemoteBranch? ToBranch(GitHubBranchWire wire) =>
         string.IsNullOrEmpty(wire.Name) || string.IsNullOrEmpty(wire.Commit?.Sha)
             ? null
-            : new RemoteBranch(wire.Name, wire.Commit.Sha);
+            : new RemoteBranch(wire.Name, wire.Commit.Sha, wire.IsProtected);
 
     private static RemoteTreeEntry? ToEntry(GitHubTreeItemWire wire) =>
         wire.Type == BlobType && !string.IsNullOrEmpty(wire.Path) && !string.IsNullOrEmpty(wire.Sha)

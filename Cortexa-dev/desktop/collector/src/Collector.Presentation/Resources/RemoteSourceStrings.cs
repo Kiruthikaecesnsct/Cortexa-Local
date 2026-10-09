@@ -13,22 +13,16 @@ public static class RemoteSourceStrings
     public const string AzureDevOpsName = "Azure DevOps";
 
     public const string RepositoryCard = "Repository";
-    public const string OrganizationLabel = "_Organization";
-    public const string OrganizationName = "Organization";
-    public const string OrganizationHelper = "The name after dev.azure.com/. Saved on this computer.";
-    public const string OrganizationEmpty = "Enter the organization name.";
-    public const string LoadRepositories = "Load _repositories";
-    public const string LoadRepositoriesName = "Load repositories";
     public const string LoadingRepositories = "Loading repositories…";
     public const string Reload = "Reload repositories";
     public const string SearchLabel = "_Search repositories";
     public const string SearchName = "Search repositories";
-    public const string SearchPlaceholder = "Filter by name";
+    public const string SearchPlaceholder = "Search by name or description";
     public const string RepositoriesName = "Repositories";
     public const string EmptyTitle = "No repositories to show";
 
     public const string EmptyGitHub =
-        "This token can't see any repositories. Check its scopes and which repositories it can access, then reload.";
+        "This token can't see any repositories here. Check that it has access to the organization, then connect again.";
 
     public const string ClearSearch = "Clear search";
     public const string PrivateTag = "Private";
@@ -55,9 +49,10 @@ public static class RemoteSourceStrings
 
     public const string ChangeRepository = "Change repository";
     public const string FetchAgain = "Fetch again";
-    public const string OpenSettings = "Open Settings";
+    public const string ChangeToken = "Change token";
+    public const string ChangeBranch = "Change branch";
     public const string TryAgain = "Try again";
-    public const string AuthMessage = "It may have expired or been revoked. Replace it in Settings, then try again.";
+    public const string AuthMessage = "It may have expired or been revoked, or it can't read this organization. Check the token and connect again.";
     public const string DeniedTitle = "Your token can't read this repository.";
     public const string OpenGitHubTokens = "Open GitHub token settings";
     public const string OpenGitHubTokensName = "Open GitHub token settings in your browser";
@@ -68,6 +63,116 @@ public static class RemoteSourceStrings
     public const string TruncatedTitle = "Some files weren't fetched.";
     public const string NoFilesTitle = "No supported files found.";
     public const string SwitchToLocalName = "Switch to Local files";
+
+    public const string GitHubTokenPageUrl = "https://github.com/settings/personal-access-tokens";
+
+    public const string AzureDevOpsTokenPageUrl =
+        "https://learn.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate";
+
+    public const string StatusNotConnected = "Not connected";
+    public const string StatusConnecting = "Connecting…";
+    public const string Disconnect = "Disconnect";
+    public const string DisconnectName = "Disconnect and forget the access token";
+    public const string StepConnect = "Connect";
+    public const string StepRepository = "Repository";
+    public const string StepBranch = "Branch";
+    public const string StepFetch = "Fetch";
+    public const string ConnectionTitle = "Connection";
+    public const string ConnectingMessage = "Checking your token and finding every repository it can see.";
+    public const string ConnectAgain = "Connect again";
+    public const string PromptOverline = "What's next";
+    public const string StepDoneState = "Done";
+    public const string StepCurrentState = "Current step";
+    public const string StepUpcomingState = "Not available yet";
+    public const string ProjectPrefix = "Project ";
+    public const string NoDescription = "No description";
+    public const string BranchesName = "Branches";
+    public const string ShowPassphraseName = "Show passphrase";
+    public const string HidePassphraseName = "Hide passphrase";
+    public const string SshServerSectionHint = "Where the server lives on the network.";
+    public const string SshAuthSectionHint = "Sign in with an SSH key. Passwords are not supported.";
+    public const string SshFolderSectionHint = "The folder to fetch from. Everything under it is read.";
+    public const string StepperName = "Fetch progress steps";
+
+    public const string OrganizationSectionTitle = "Organization";
+    public const string TokenSectionTitle = "Access token";
+    public const string OrganizationUrlLabel = "Organization _URL";
+    public const string OrganizationUrlName = "Organization URL";
+    public const string GitHubOrganizationHint = "The GitHub organization whose repositories you want to fetch.";
+    public const string AzureDevOpsOrganizationHint = "The Azure DevOps organization whose repositories you want to fetch.";
+    public const string TokenLabel = "Personal access _token";
+    public const string TokenName = "Personal access token";
+
+    public const string GitHubTokenHint =
+        "A personal access token that can read the organization's repositories. It is kept in memory for this session only.";
+
+    public const string AzureDevOpsTokenHint =
+        "A personal access token with Code (Read). It is kept in memory for this session only.";
+
+    public const string GitHubTokenPlaceholder = "github_pat_…";
+    public const string AzureDevOpsTokenPlaceholder = "Paste your Azure DevOps PAT";
+    public const string ShowToken = "Show";
+    public const string HideToken = "Hide";
+    public const string ShowTokenName = "Show the access token";
+    public const string HideTokenName = "Hide the access token";
+    public const string GitHubTokenLink = "Create a token on GitHub";
+    public const string AzureDevOpsTokenLink = "Create a token in Azure DevOps";
+    public const string ConnectAndFind = "Connect and find _repositories";
+    public const string ConnectAndFindName = "Connect and find repositories";
+
+    public const string VisibilityLabel = "Visibility";
+    public const string VisibilityAll = "All";
+    public const string VisibilityPublic = "Public";
+    public const string VisibilityPrivate = "Private";
+    public const string SortLabel = "Sort by";
+    public const string SortName = "Name";
+    public const string SortRecentlyUpdated = "Recently updated";
+    public const string PublicTag = "Public";
+    public const string SearchBranchesLabel = "Search branches";
+    public const string SearchBranchesPlaceholder = "Filter by branch name";
+    public const string DefaultBadge = "Default";
+    public const string ProtectedBadge = "Protected";
+    public const string NoBranchMatch = "No branches match your search.";
+
+    public const string SshServerSectionTitle = "Server";
+    public const string SshAuthSectionTitle = "Authentication";
+    public const string SshFolderSectionTitle = "Folder";
+    public const string SshPassphraseLabel = "_Passphrase (optional)";
+    public const string SshPassphraseName = "Key passphrase";
+    public const string SshPassphraseHint = "Only needed when the key is protected. Kept in memory for this session only.";
+    public const string SshFolderLabel = "Start _folder";
+    public const string SshFolderName = "Start folder";
+    public const string SshFolderPlaceholder = "/var/data or ~";
+    public const string SshFolderHint = "An absolute path, or ~ for the home folder.";
+
+    public const string ConnectPromptText =
+        "Enter your organization URL and a personal access token, then select Connect and find repositories.";
+
+    private const int StepCount = 4;
+
+    public static string StepPrompt(int step, string text) => $"Step {step} of {StepCount} - {text}";
+
+    public static string ConnectedTo(string organization) => $"Connected to {organization}";
+
+    public static string RepositoryPromptText(int count, string organization) =>
+        $"We found {Plural(count, "repository", "repositories")} in {organization}. Pick the one you want to fetch.";
+
+    public static string BranchPromptText(string repository, int count) =>
+        $"{repository} has {Plural(count, "branch", "branches")}. Pick the branch whose files you want to fetch. The default branch is listed first.";
+
+    public static string FetchPromptText(string repository, string branch) =>
+        $"Fetch files from {repository} @ {branch} into the extraction cache.";
+
+    public static string BranchAutomationName(string name, bool isDefault, bool isProtected, string? shortSha) =>
+        string.Join(
+            ", ",
+            new[] { name, isDefault ? "default" : null, isProtected ? "protected" : null, shortSha is null ? null : Commit(shortSha) }
+                .OfType<string>());
+
+    public static string UpdatedText(string relative) => $"Updated {relative}";
+
+    private static string Plural(int count, string singular, string plural) => $"{count} {(count == 1 ? singular : plural)}";
+
 
     public static string OrganizationNotFound(string organization) =>
         $"Couldn't find the organization \"{organization}\". Check the spelling, or check that your token was created for it.";
@@ -104,14 +209,12 @@ public static class RemoteSourceStrings
 
     public static string RateLimitedMessage(string approximate) => $"Try again in {approximate}.";
 
-    public static string MissingTitle(string provider) => $"Add your {provider} token in Settings.";
+    public static string MissingTitle(string provider) => $"Enter your {provider} token.";
 
     public static string MissingMessage(string provider) =>
         $"Listing and fetching {provider} repositories uses your own personal access token.";
 
-    public static string OpenSettingsAddName(string provider) => $"Open Settings to add your {provider} token";
-
-    public static string OpenSettingsReplaceName(string provider) => $"Open Settings to replace your {provider} token";
+    public static string ChangeTokenName(string provider) => $"Go back to enter your {provider} token";
 
     public static string AuthTitle(string provider) => $"{provider} didn't accept your token.";
 
@@ -148,43 +251,33 @@ public static class RemoteSourceStrings
     public const string SshLabel = "_SSH";
     public const string SshName = "SSH";
 
-    public const string SshHostLabel = "_Host";
-    public const string SshHostName = "Host";
+    public const string SshHostLabel = "_IP address or hostname";
+    public const string SshHostName = "IP address or hostname";
     public const string SshHostPlaceholder = "example.com or 192.0.2.1";
 
     public const string SshPortLabel = "_Port";
     public const string SshPortName = "Port";
     public const string SshPortPlaceholder = "22";
 
-    public const string SshUsernameLabel = "_Username";
-    public const string SshUsernameName = "Username";
+    public const string SshUsernameLabel = "SSH _username";
+    public const string SshUsernameName = "SSH username";
     public const string SshUsernamePlaceholder = "Username";
 
-    public const string SshKeyFileLabel = "_Key file";
-    public const string SshKeyFileName = "Key file";
+    public const string SshKeyFileLabel = "Private _key file";
+    public const string SshKeyFileName = "Private key file";
     public const string SshKeyFilePlaceholder = "Choose a private key file";
     public const string SshBrowseKeyFile = "_Browse…";
     public const string SshBrowseKeyFileName = "Browse for a private key file";
     public const string SshKeyFileDialogTitle = "Choose a private key file";
     public const string SshKeyFileDialogFilter = "All files (*.*)|*.*";
 
-    public const string SshFingerprintLabel = "_Fingerprint";
-    public const string SshFingerprintName = "Fingerprint";
-    public const string SshFingerprintPlaceholder = "SHA256:…";
-
-    public const string SshConnect = "_Connect";
-    public const string SshConnectName = "Connect";
-    public const string SshConnectHelp = "Fill in the host, username, and key file first.";
+    public const string SshConnect = "Connect and _browse files";
+    public const string SshConnectName = "Connect and browse files";
+    public const string SshConnectHelp = "Fill in the server, username, key file, and folder first.";
 
     public const string SshConnecting = "Connecting…";
 
-    public const string SshInvalidPort = "Enter a port between 1 and 65535.";
-    public const string SshKeyFileNotFound = "The key file couldn't be found. Choose it again.";
-
-    public const string SshFingerprintMismatchTitle = "The server's fingerprint doesn't match.";
-
-    public const string SshFingerprintMismatchMessage =
-        "This may mean the server changed or someone is intercepting the connection. Verify the fingerprint with the server administrator before continuing.";
+    public const string SshKeyFileNotFound = "The key file couldn't be found. Pick it again.";
 
     public const string SshAuthTitle = "The server didn't accept your key.";
     public const string SshAuthMessage = "Check the key file and its passphrase, then try again.";

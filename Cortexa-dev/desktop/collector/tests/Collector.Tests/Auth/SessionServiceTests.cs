@@ -1,5 +1,8 @@
 using Collector.Application.Auth;
 using Collector.Application.Secrets;
+using Collector.Domain.Enums;
+using Collector.Infrastructure.Secrets;
+using Collector.Tests.Presentation;
 using Collector.Tests.Support;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Time.Testing;
@@ -15,11 +18,14 @@ public class SessionServiceTests
     private readonly InMemorySecretStore _secrets = new();
     private readonly FakeAuthClient _client = new();
     private readonly FakeTimeProvider _time = new(Start);
+    private readonly InMemorySessionCredentials _credentials = new();
+    private readonly FakeSshCloser _sshCloser = new();
+    private readonly ThrowingSshCloser _throwingCloser = new();
     private readonly SessionService _service;
 
     public SessionServiceTests()
     {
-        _service = new SessionService(_client, _secrets, TestSupport.Policy(), _time, NullLogger<SessionService>.Instance);
+        _service = new SessionService(_client, _secrets, _credentials, _sshCloser, TestSupport.Policy(), _time, NullLogger<SessionService>.Instance);
     }
 
     private static AuthCallResult Tokens(string access, string refresh, int validMinutes = 15) =>
@@ -237,5 +243,59 @@ public class SessionServiceTests
         Assert.Equal(SessionState.Expired, _service.Current);
         Assert.Empty(_secrets.Values);
         Assert.Equal(1, raised);
+    }
+
+    [Fact]
+    public async Task Sign_out_clears_the_session_credentials()
+    {
+        SeedCredentials();
+        _client.LoginResult = Tokens("access-1", "refresh-1");
+        await _service.SignInAsync(Email, Password, TestSupport.Ct);
+
+        await _service.SignOutAsync(TestSupport.Ct);
+
+        Assert.Null(_credentials.GetToken(SourceType.Github));
+        Assert.Null(_credentials.GetToken(SourceType.AzureDevops));
+        Assert.Null(_credentials.GetSshPassphrase());
+        Assert.Equal(1, _sshCloser.Closed);
+    }
+
+    [Fact]
+    public async Task Mark_expired_clears_the_session_credentials()
+    {
+        SeedCredentials();
+        _client.LoginResult = Tokens("access-1", "refresh-1");
+        await _service.SignInAsync(Email, Password, TestSupport.Ct);
+
+        await _service.MarkExpiredAsync(TestSupport.Ct);
+
+        Assert.Null(_credentials.GetToken(SourceType.Github));
+        Assert.Null(_credentials.GetSshPassphrase());
+        Assert.Equal(1, _sshCloser.Closed);
+    }
+
+    private void SeedCredentials()
+    {
+        _credentials.SetToken(SourceType.Github, "ghp_token");
+        _credentials.SetToken(SourceType.AzureDevops, "ado_token");
+        _credentials.SetSshPassphrase("phrase");
+    }
+
+    [Fact]
+    public async Task Sign_out_deletes_the_secrets_even_when_closing_ssh_throws()
+    {
+        var service = new SessionService(_client, _secrets, _credentials, _throwingCloser, TestSupport.Policy(), _time, NullLogger<SessionService>.Instance);
+        _client.LoginResult = Tokens("access-1", "refresh-1");
+        await service.SignInAsync(Email, Password, TestSupport.Ct);
+
+        await service.SignOutAsync(TestSupport.Ct);
+
+        Assert.Empty(_secrets.Values);
+        Assert.Equal(SessionState.SignedOut, service.Current);
+    }
+
+    private sealed class ThrowingSshCloser : Collector.Application.Ports.ISshConnectionCloser
+    {
+        public Task CloseAsync(CancellationToken cancellationToken) => throw new ObjectDisposedException("gate");
     }
 }

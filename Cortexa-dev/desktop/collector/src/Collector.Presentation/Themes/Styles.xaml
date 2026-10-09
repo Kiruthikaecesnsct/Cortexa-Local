@@ -96,6 +96,33 @@
     <Thickness x:Key="Thickness.ScrollThumbInset">2</Thickness>
     <Thickness x:Key="Thickness.SearchPadding">12,8,40,8</Thickness>
     <Thickness x:Key="Thickness.SearchGlyph">0,0,14,0</Thickness>
+    <Thickness x:Key="Thickness.FieldTrail">12,8,48,8</Thickness>
+    <Thickness x:Key="Thickness.FieldTrailFocused">11,7,47,7</Thickness>
+    <Thickness x:Key="Thickness.SectionCardPadding">20</Thickness>
+    <Thickness x:Key="Thickness.StepPromptPadding">14,14,18,14</Thickness>
+    <Thickness x:Key="Thickness.StepperPadding">18,14,18,14</Thickness>
+    <Thickness x:Key="Thickness.ConnectorGap">8,0,8,0</Thickness>
+    <Thickness x:Key="Thickness.SourceCardPadding">16</Thickness>
+    <Thickness x:Key="Thickness.SourceCardPaddingChecked">15</Thickness>
+    <Thickness x:Key="Thickness.RepoCardPadding">16</Thickness>
+    <Thickness x:Key="Thickness.BranchRowPadding">14,10,14,10</Thickness>
+    <Thickness x:Key="Thickness.BranchRowGap">0,0,0,8</Thickness>
+    <Thickness x:Key="Thickness.SegmentPadding">12,0,12,0</Thickness>
+    <Thickness x:Key="Thickness.SegmentTrack">3</Thickness>
+    <Thickness x:Key="Thickness.SegmentHit">0,-4,0,-4</Thickness>
+    <Thickness x:Key="Thickness.SegmentInset">0,4,0,4</Thickness>
+    <Thickness x:Key="Thickness.FocusMarginInset">-1</Thickness>
+    <Thickness x:Key="Thickness.GridBleed.Section">-8</Thickness>
+    <Thickness x:Key="Thickness.GridCell.Section">8</Thickness>
+    <Thickness x:Key="Thickness.GridBleed.Repo">-6</Thickness>
+    <Thickness x:Key="Thickness.GridCell.Repo">6</Thickness>
+    <Thickness x:Key="Thickness.GridBleed.Wide">-10</Thickness>
+    <Thickness x:Key="Thickness.GridCell.Wide">10</Thickness>
+    <Thickness x:Key="Thickness.CardStack">0,0,0,16</Thickness>
+    <Thickness x:Key="Thickness.RevealOverlay">0,0,4,0</Thickness>
+    <Thickness x:Key="Thickness.FieldGapSplit">0,0,16,18</Thickness>
+    <Thickness x:Key="Thickness.ActionTop">0,16,0,0</Thickness>
+    <Thickness x:Key="Thickness.FieldAdjacent">12,0,0,18</Thickness>
 
     <sys:Double x:Key="Size.Control">40</sys:Double>
     <sys:Double x:Key="Size.NavItem">40</sys:Double>
@@ -108,7 +135,6 @@
     <sys:Double x:Key="Size.SignInCardWidth">880</sys:Double>
     <sys:Double x:Key="Size.HeroWidth">360</sys:Double>
     <sys:Double x:Key="Size.ContentMaxWidth">760</sys:Double>
-    <sys:Double x:Key="Size.WorkspaceMaxWidth">1040</sys:Double>
     <sys:Double x:Key="Size.EmailMaxWidth">220</sys:Double>
     <sys:Double x:Key="Size.RailEmailMaxWidth">140</sys:Double>
     <sys:Double x:Key="Size.WindowMinWidth">880</sys:Double>
@@ -151,6 +177,21 @@
     <sys:Double x:Key="Size.SnippetMaxHeight">54</sys:Double>
     <sys:Double x:Key="Size.EchoTextMaxWidth">260</sys:Double>
     <sys:Double x:Key="Size.LiveDot">8</sys:Double>
+    <sys:Double x:Key="Size.SourceCardMin">176</sys:Double>
+    <sys:Double x:Key="Size.SectionCardMin">320</sys:Double>
+    <sys:Double x:Key="Size.RepoCardMin">280</sys:Double>
+    <sys:Double x:Key="Size.SettingsColumnMin">540</sys:Double>
+    <sys:Double x:Key="Size.StepBadge">30</sys:Double>
+    <sys:Double x:Key="Size.NumberBadge">26</sys:Double>
+    <sys:Double x:Key="Size.SegmentHeight">32</sys:Double>
+    <sys:Double x:Key="Size.SourceCardMinHeight">120</sys:Double>
+    <sys:Double x:Key="Size.SelectionCheck">20</sys:Double>
+    <sys:Double x:Key="Size.StepConnector">2</sys:Double>
+    <sys:Double x:Key="Size.StepDetailMax">160</sys:Double>
+    <sys:Double x:Key="Size.RepoDescription">38</sys:Double>
+    <sys:Double x:Key="Size.BranchRowMin">48</sys:Double>
+    <sys:Double x:Key="Size.BranchListMaxHeight">400</sys:Double>
+    <sys:Double x:Key="Size.StepMinWidth">96</sys:Double>
 
     <CornerRadius x:Key="Radius.Control">8</CornerRadius>
     <CornerRadius x:Key="Radius.Card">12</CornerRadius>
@@ -172,6 +213,31 @@
     <b:NotZeroToVisibilityConverter x:Key="NotZeroToVisibility" />
     <b:ViewportFitConverter x:Key="ViewportFit" />
     <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+    <b:ColumnsForWidthConverter x:Key="Columns.SourceCards"
+                                MinItemWidth="{StaticResource Size.SourceCardMin}"
+                                Gap="{StaticResource Space.L}"
+                                Bleed="{StaticResource Space.L}"
+                                MaxColumns="5" />
+    <b:ColumnsForWidthConverter x:Key="Columns.Sections"
+                                MinItemWidth="{StaticResource Size.SectionCardMin}"
+                                Gap="{StaticResource Space.L}"
+                                Bleed="{StaticResource Space.L}"
+                                MaxColumns="2" />
+    <b:ColumnsForWidthConverter x:Key="Columns.SshSections"
+                                MinItemWidth="{StaticResource Size.SectionCardMin}"
+                                Gap="{StaticResource Space.L}"
+                                Bleed="{StaticResource Space.L}"
+                                MaxColumns="3" />
+    <b:ColumnsForWidthConverter x:Key="Columns.RepoCards"
+                                MinItemWidth="{StaticResource Size.RepoCardMin}"
+                                Gap="{StaticResource Space.M}"
+                                Bleed="{StaticResource Space.M}"
+                                MaxColumns="5" />
+    <b:ColumnsForWidthConverter x:Key="Columns.Settings"
+                                MinItemWidth="{StaticResource Size.SettingsColumnMin}"
+                                Gap="{StaticResource Space.XL}"
+                                Bleed="{StaticResource Space.XL}"
+                                MaxColumns="2" />
 
     <Style x:Key="FocusVisual.Default">
         <Setter Property="Control.Template">
@@ -668,16 +734,21 @@
                                    Style="{StaticResource Text.Helper}"
                                    Text="{Binding (b:FieldState.Helper), RelativeSource={RelativeSource TemplatedParent}}"
                                    Visibility="{Binding (b:FieldState.Helper), RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource NotEmptyToVisibility}}" />
-                        <StackPanel Margin="{StaticResource Thickness.HelperGap}"
-                                    Orientation="Horizontal"
-                                    Visibility="{Binding (b:FieldState.Error), RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource NotEmptyToVisibility}}">
-                            <TextBlock Margin="{StaticResource Thickness.InlineGap}"
+                        <Grid Margin="{StaticResource Thickness.HelperGap}"
+                              Visibility="{Binding (b:FieldState.Error), RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource NotEmptyToVisibility}}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Margin="{StaticResource Thickness.InlineGap}"
                                        VerticalAlignment="Top"
                                        Style="{StaticResource Text.Glyph.Error}"
                                        Text="{x:Static res:Glyphs.Error}" />
-                            <TextBlock Style="{StaticResource Text.Error}"
+                            <TextBlock Grid.Column="1"
+                                       Style="{StaticResource Text.Error}"
                                        Text="{Binding (b:FieldState.Error), RelativeSource={RelativeSource TemplatedParent}}" />
-                        </StackPanel>
+                        </Grid>
                     </StackPanel>
                 </ControlTemplate>
             </Setter.Value>
@@ -828,7 +899,12 @@
     <Style x:Key="Tag.Surface.Danger" TargetType="Border" BasedOn="{StaticResource Tag.Surface}">
         <Setter Property="Background" Value="{DynamicResource Brush.Danger.Surface}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.Danger.Border}" />
-        <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Danger}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Danger.Text}" />
+    </Style>
+    <Style x:Key="Tag.Surface.Accent" TargetType="Border" BasedOn="{StaticResource Tag.Surface}">
+        <Setter Property="Background" Value="{DynamicResource Brush.Accent.Subtle}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent.SubtleBorder}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Text.Link}" />
     </Style>
     <Style x:Key="Tag.Surface.Success" TargetType="Border" BasedOn="{StaticResource Tag.Surface}">
         <Setter Property="Background" Value="{DynamicResource Brush.Success.Surface}" />
@@ -1571,5 +1647,441 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+    </Style>
+
+    <!-- Source collectors: source cards, stepper, step prompt, numbered sections, segmented toggles, cards -->
+    <Style x:Key="FocusVisual.Inset">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Border Margin="{StaticResource Thickness.FocusMarginInset}"
+                            BorderBrush="{DynamicResource Brush.Border.Focus}"
+                            BorderThickness="{StaticResource Thickness.FocusRing}"
+                            CornerRadius="{StaticResource Radius.Control}"
+                            IsHitTestVisible="False"
+                            SnapsToDevicePixels="True" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="SourceCard" TargetType="RadioButton">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Default}" />
+        <Setter Property="Margin" Value="{StaticResource Thickness.GridCell.Section}" />
+        <Setter Property="MinHeight" Value="{StaticResource Size.SourceCardMinHeight}" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Stretch" />
+        <Setter Property="FontFamily" Value="{StaticResource Font.Body}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Body}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Border x:Name="Card"
+                            Padding="{StaticResource Thickness.SourceCardPadding}"
+                            Background="{DynamicResource Brush.Surface.Card}"
+                            BorderBrush="{DynamicResource Brush.Border.Subtle}"
+                            BorderThickness="{StaticResource Thickness.Border}"
+                            CornerRadius="{StaticResource Radius.Card}"
+                            Effect="{DynamicResource Effect.Elevation.Low}"
+                            SnapsToDevicePixels="True">
+                        <Grid>
+                            <StackPanel>
+                                <Border Width="{StaticResource Size.IconTile}"
+                                        Height="{StaticResource Size.IconTile}"
+                                        Margin="{StaticResource Thickness.StackGap}"
+                                        HorizontalAlignment="Left"
+                                        Background="{DynamicResource Brush.Accent.Subtle}"
+                                        CornerRadius="{StaticResource Radius.Tile}">
+                                    <TextBlock HorizontalAlignment="Center"
+                                               Foreground="{DynamicResource Brush.Text.Link}"
+                                               Style="{StaticResource Text.Glyph}"
+                                               Text="{Binding IconGlyph}" />
+                                </Border>
+                                <ContentPresenter x:Name="Title"
+                                                  Margin="{StaticResource Thickness.HelperGap}"
+                                                  RecognizesAccessKey="True"
+                                                  TextElement.Foreground="{TemplateBinding Foreground}" />
+                                <TextBlock x:Name="Description"
+                                           Margin="{StaticResource Thickness.HelperGap}"
+                                           Style="{StaticResource Text.Helper}"
+                                           Text="{Binding Description}" />
+                            </StackPanel>
+                            <Border x:Name="Check"
+                                    Width="{StaticResource Size.SelectionCheck}"
+                                    Height="{StaticResource Size.SelectionCheck}"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Top"
+                                    Background="{DynamicResource Brush.Accent}"
+                                    CornerRadius="{StaticResource Radius.Chip}"
+                                    Visibility="Collapsed">
+                                <TextBlock HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           FontFamily="{StaticResource Font.Icon}"
+                                           FontSize="{StaticResource FontSize.IconSmall}"
+                                           Foreground="{DynamicResource Brush.Text.OnAccent}"
+                                           Text="{x:Static res:Glyphs.CheckMark}" />
+                            </Border>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Card" Property="Background" Value="{DynamicResource Brush.Surface.Hover}" />
+                            <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource Brush.Border.Control}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
+                            <Setter TargetName="Card" Property="BorderThickness" Value="{StaticResource Thickness.FocusRing}" />
+                            <Setter TargetName="Card" Property="Padding" Value="{StaticResource Thickness.SourceCardPaddingChecked}" />
+                            <Setter TargetName="Check" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Cursor" Value="Arrow" />
+                            <Setter TargetName="Title" Property="TextElement.Foreground" Value="{DynamicResource Brush.Text.Disabled}" />
+                            <Setter TargetName="Description" Property="Foreground" Value="{DynamicResource Brush.Text.Disabled}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="Stepper.Bar" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource Brush.Surface.Sunken}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
+        <Setter Property="BorderThickness" Value="{StaticResource Thickness.Border}" />
+        <Setter Property="CornerRadius" Value="{StaticResource Radius.Control}" />
+        <Setter Property="Padding" Value="{StaticResource Thickness.StepperPadding}" />
+    </Style>
+
+    <Style x:Key="Stepper.Connector" TargetType="Border" BasedOn="{StaticResource Divider}">
+        <Setter Property="Height" Value="{StaticResource Size.StepConnector}" />
+        <Setter Property="CornerRadius" Value="{StaticResource Radius.Progress}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="{StaticResource Thickness.ConnectorGap}" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsDone}" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Brush.Accent}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="Stepper.Item" TargetType="Button">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Default}" />
+        <Setter Property="MinHeight" Value="{StaticResource Size.Control}" />
+        <Setter Property="MinWidth" Value="{StaticResource Size.StepMinWidth}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid Background="Transparent" SnapsToDevicePixels="True">
+                        <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                            <Border x:Name="Badge"
+                                    Width="{StaticResource Size.StepBadge}"
+                                    Height="{StaticResource Size.StepBadge}"
+                                    Margin="{StaticResource Thickness.InlineGapLarge}"
+                                    Background="{DynamicResource Brush.Surface.Card}"
+                                    BorderBrush="{DynamicResource Brush.Border.Control}"
+                                    BorderThickness="{StaticResource Thickness.Border}"
+                                    CornerRadius="{StaticResource Radius.Chip}">
+                                <Grid>
+                                    <TextBlock x:Name="Number"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               FontFamily="{StaticResource Font.Body}"
+                                               FontSize="{StaticResource FontSize.PageSubtitle}"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource Brush.Text.Muted}"
+                                               Text="{Binding Number}" />
+                                    <TextBlock x:Name="Mark"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center"
+                                               FontFamily="{StaticResource Font.Icon}"
+                                               FontSize="{StaticResource FontSize.IconSmall}"
+                                               Foreground="{DynamicResource Brush.Text.OnAccent}"
+                                               Text="{x:Static res:Glyphs.CheckMark}"
+                                               Visibility="Collapsed" />
+                                </Grid>
+                            </Border>
+                            <TextBlock x:Name="Title"
+                                       MaxWidth="{StaticResource Size.StepDetailMax}"
+                                       VerticalAlignment="Center"
+                                       FontFamily="{StaticResource Font.Body}"
+                                       FontSize="{StaticResource FontSize.PageSubtitle}"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Brush.Text.Muted}"
+                                       Text="{Binding Title}"
+                                       TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <DataTrigger Binding="{Binding IsDone}" Value="True">
+                            <Setter TargetName="Badge" Property="Background" Value="{DynamicResource Brush.Accent}" />
+                            <Setter TargetName="Badge" Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
+                            <Setter TargetName="Number" Property="Visibility" Value="Collapsed" />
+                            <Setter TargetName="Mark" Property="Visibility" Value="Visible" />
+                            <Setter TargetName="Title" Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                            <Setter TargetName="Badge" Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
+                            <Setter TargetName="Badge" Property="BorderThickness" Value="{StaticResource Thickness.FocusRing}" />
+                            <Setter TargetName="Number" Property="Foreground" Value="{DynamicResource Brush.Text.Link}" />
+                            <Setter TargetName="Title" Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
+                        </DataTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                <Setter Property="Cursor" Value="Arrow" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding IsUpcoming}" Value="True">
+                <Setter Property="Cursor" Value="Arrow" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="StepPrompt" TargetType="Border">
+        <Setter Property="Padding" Value="{StaticResource Thickness.StepPromptPadding}" />
+        <Setter Property="Background" Value="{DynamicResource Brush.Info.Surface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Info.Border}" />
+        <Setter Property="BorderThickness" Value="{StaticResource Thickness.Border}" />
+        <Setter Property="CornerRadius" Value="{StaticResource Radius.Control}" />
+        <Setter Property="AutomationProperties.LiveSetting" Value="Polite" />
+    </Style>
+    <Style x:Key="StepPrompt.Bar" TargetType="Border">
+        <Setter Property="Width" Value="{StaticResource Size.BannerBar}" />
+        <Setter Property="Margin" Value="{StaticResource Thickness.BannerBar}" />
+        <Setter Property="CornerRadius" Value="{StaticResource Radius.Bar}" />
+        <Setter Property="Background" Value="{DynamicResource Brush.Accent}" />
+    </Style>
+    <Style x:Key="StepPrompt.Overline" TargetType="TextBlock" BasedOn="{StaticResource Text.Overline}">
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Link}" />
+    </Style>
+
+    <Style x:Key="Badge.Number" TargetType="Border">
+        <Setter Property="Width" Value="{StaticResource Size.NumberBadge}" />
+        <Setter Property="Height" Value="{StaticResource Size.NumberBadge}" />
+        <Setter Property="Background" Value="{DynamicResource Brush.Accent.Subtle}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent.SubtleBorder}" />
+        <Setter Property="BorderThickness" Value="{StaticResource Thickness.Border}" />
+        <Setter Property="CornerRadius" Value="{StaticResource Radius.Chip}" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+        <Setter Property="Margin" Value="{StaticResource Thickness.InlineGapLarge}" />
+    </Style>
+    <Style x:Key="Badge.Number.Label" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Body}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Caption}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Link}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="NumberedSectionCard" TargetType="HeaderedContentControl">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Margin" Value="{StaticResource Thickness.GridCell.Section}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="HeaderedContentControl">
+                    <Border Padding="{StaticResource Thickness.SectionCardPadding}"
+                            Background="{DynamicResource Brush.Surface.Card}"
+                            BorderBrush="{DynamicResource Brush.Border.Subtle}"
+                            BorderThickness="{StaticResource Thickness.Border}"
+                            CornerRadius="{StaticResource Radius.Card}">
+                        <StackPanel>
+                            <Grid Margin="{StaticResource Thickness.StackGapMedium}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Border Grid.Column="0" Style="{StaticResource Badge.Number}">
+                                    <TextBlock Style="{StaticResource Badge.Number.Label}" Text="{TemplateBinding Tag}" />
+                                </Border>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock FontFamily="{StaticResource Font.Display}"
+                                               FontSize="{StaticResource FontSize.Brand}"
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource Brush.Text.Primary}"
+                                               Text="{TemplateBinding Header}"
+                                               TextWrapping="Wrap" />
+                                    <TextBlock FontSize="{StaticResource FontSize.PageSubtitle}"
+                                               Style="{StaticResource Text.Helper}"
+                                               Text="{Binding (b:FieldState.Helper), RelativeSource={RelativeSource TemplatedParent}}" />
+                                </StackPanel>
+                            </Grid>
+                            <ContentPresenter />
+                        </StackPanel>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="SegmentedToggle.Track" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource Brush.Surface.Sunken}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
+        <Setter Property="BorderThickness" Value="{StaticResource Thickness.Border}" />
+        <Setter Property="CornerRadius" Value="{StaticResource Radius.Control}" />
+        <Setter Property="Padding" Value="{StaticResource Thickness.SegmentTrack}" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+
+    <Style x:Key="SegmentedToggle" TargetType="RadioButton">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Inset}" />
+        <Setter Property="MinHeight" Value="{StaticResource Size.SegmentHeight}" />
+        <Setter Property="Padding" Value="{StaticResource Thickness.SegmentPadding}" />
+        <Setter Property="FontFamily" Value="{StaticResource Font.Body}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.PageSubtitle}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Muted}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RadioButton">
+                    <Grid Margin="{StaticResource Thickness.SegmentHit}" Background="Transparent" SnapsToDevicePixels="True">
+                        <Border x:Name="Segment"
+                                MinHeight="{TemplateBinding MinHeight}"
+                                Margin="{StaticResource Thickness.SegmentInset}"
+                                Padding="{TemplateBinding Padding}"
+                                Background="Transparent"
+                                BorderBrush="Transparent"
+                                BorderThickness="{StaticResource Thickness.Border}"
+                                CornerRadius="{StaticResource Radius.Tag}"
+                                TextElement.Foreground="{TemplateBinding Foreground}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="False" />
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Segment" Property="TextElement.Foreground" Value="{DynamicResource Brush.Text.Primary}" />
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Segment" Property="Background" Value="{DynamicResource Brush.Surface.Card}" />
+                            <Setter TargetName="Segment" Property="BorderBrush" Value="{DynamicResource Brush.Border.Button}" />
+                            <Setter TargetName="Segment" Property="TextElement.Foreground" Value="{DynamicResource Brush.Text.Primary}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Segment" Property="TextElement.Foreground" Value="{DynamicResource Brush.Text.Disabled}" />
+                            <Setter Property="Cursor" Value="Arrow" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="RepoCard" TargetType="Button">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Default}" />
+        <Setter Property="Margin" Value="{StaticResource Thickness.GridCell.Repo}" />
+        <Setter Property="Padding" Value="{StaticResource Thickness.RepoCardPadding}" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="VerticalContentAlignment" Value="Stretch" />
+        <Setter Property="Background" Value="{DynamicResource Brush.Surface.Card}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
+        <Setter Property="BorderThickness" Value="{StaticResource Thickness.Border}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Card"
+                            Padding="{TemplateBinding Padding}"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{StaticResource Radius.Control}"
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Card" Property="Background" Value="{DynamicResource Brush.Surface.Hover}" />
+                            <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource Brush.Border.Control}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="BranchRow" TargetType="Button" BasedOn="{StaticResource RepoCard}">
+        <Setter Property="MinHeight" Value="{StaticResource Size.BranchRowMin}" />
+        <Setter Property="Padding" Value="{StaticResource Thickness.BranchRowPadding}" />
+        <Setter Property="Margin" Value="{StaticResource Thickness.BranchRowGap}" />
+    </Style>
+
+    <Style x:Key="Button.Reveal" TargetType="ToggleButton">
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Default}" />
+        <Setter Property="Width" Value="{StaticResource Size.IconHit}" />
+        <Setter Property="Height" Value="{StaticResource Size.IconHit}" />
+        <Setter Property="Margin" Value="{StaticResource Thickness.RevealOverlay}" />
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="FontFamily" Value="{StaticResource Font.Icon}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Icon}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Body}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Content" Value="{x:Static res:Glyphs.View}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Grid Background="Transparent">
+                        <Border x:Name="Visual"
+                                Width="{StaticResource Size.IconVisual}"
+                                Height="{StaticResource Size.IconVisual}"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="{StaticResource Radius.Control}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Visual" Property="Background" Value="{DynamicResource Brush.Surface.Sunken}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Disabled}" />
+                            <Setter Property="Cursor" Value="Arrow" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsChecked" Value="True">
+                <Setter Property="Content" Value="{x:Static res:Glyphs.Hide}" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Link}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="TextBox.Field.Trail" TargetType="TextBox" BasedOn="{StaticResource TextBox.Field}">
+        <Setter Property="Padding" Value="{StaticResource Thickness.FieldTrail}" />
+        <Style.Triggers>
+            <Trigger Property="b:FieldState.HasError" Value="True">
+                <Setter Property="Padding" Value="{StaticResource Thickness.FieldTrailFocused}" />
+            </Trigger>
+            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                <Setter Property="Padding" Value="{StaticResource Thickness.FieldTrailFocused}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="PasswordBox.Field.Trail" TargetType="PasswordBox" BasedOn="{StaticResource PasswordBox.Field}">
+        <Setter Property="Padding" Value="{StaticResource Thickness.FieldTrail}" />
+        <Style.Triggers>
+            <Trigger Property="b:FieldState.HasError" Value="True">
+                <Setter Property="Padding" Value="{StaticResource Thickness.FieldTrailFocused}" />
+            </Trigger>
+            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                <Setter Property="Padding" Value="{StaticResource Thickness.FieldTrailFocused}" />
+            </Trigger>
+        </Style.Triggers>
     </Style>
 </ResourceDictionary>

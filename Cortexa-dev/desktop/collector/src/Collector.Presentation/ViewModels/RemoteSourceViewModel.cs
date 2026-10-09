@@ -18,6 +18,8 @@ public sealed record RemoteSourceDependencies(
     IRemoteFetcher Fetcher,
     IRateLimitMonitor RateLimits,
     SettingsService Settings,
+    ISessionCredentials Credentials,
+    ISshConnectionCloser SshConnection,
     IExternalLinkLauncher Links,
     IFilePicker Picker,
     IOptions<RemoteFetchOptions> FetchOptions);
@@ -40,6 +42,7 @@ public static class RemoteFocusKeys
 {
     public const string Cancel = "RemoteCancel";
     public const string Organization = "RemoteOrganization";
+    public const string Token = "RemoteToken";
     public const string Search = "RemoteSearch";
     public const string Repositories = "RemoteRepositories";
 }
@@ -47,7 +50,6 @@ public static class RemoteFocusKeys
 public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposable
 {
     private readonly RemoteSourceDependencies _deps;
-    private readonly SettingsShortcut _shortcut;
     private readonly TimeProvider _time;
     private readonly ILogger<RemoteSourceViewModel> _logger;
     private readonly RemoteBannerFactory _banners;
@@ -60,17 +62,16 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
     private CancellationTokenSource? _branchCts;
     private Func<Task>? _retry;
     private bool _rebuilding;
+    private bool _rebuildingBranches;
     private bool _isLocked;
     private bool _cortexaBlocked;
 
     public RemoteSourceViewModel(
         RemoteSourceDependencies dependencies,
-        SettingsShortcut shortcut,
         TimeProvider time,
         ILogger<RemoteSourceViewModel> logger)
     {
         _deps = dependencies;
-        _shortcut = shortcut;
         _time = time;
         _logger = logger;
         _limitBytes = dependencies.FetchOptions.Value.MaxRepositoryBytes;
@@ -80,7 +81,9 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
         Sources = CreateSources();
         Repositories = [];
         Branches = [];
-        OrganizationText = dependencies.Settings.GetRemoteSources().AzureDevOpsOrganization;
+        InitializeOptions();
+        SyncSteps();
+        OrgUrl = DefaultOrgUrl(SelectedSource);
         dependencies.RateLimits.StatusChanged += OnRateStatusChanged;
         SyncChips();
     }
@@ -99,13 +102,15 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
 
     public bool IsAzure => SelectedSource == SourceType.AzureDevops;
 
+    public bool IsGitHub => SelectedSource == SourceType.Github;
+
     public bool IsSsh => SelectedSource == SourceType.Ssh;
 
     public bool IsCortexa => SelectedSource == SourceType.CortexaRepo;
 
     public bool AreControlsEnabled => !IsFetching && !_isLocked;
 
-    public bool ShowForm => Summary is null && !_cortexaBlocked && (IsAzure || IsSsh || ListState != RemoteListState.Idle);
+    public bool ShowForm => Summary is null && !_cortexaBlocked && (IsTokenSource || IsSsh || ListState != RemoteListState.Idle);
 
     public bool HasSummary => Summary is not null;
 
@@ -125,7 +130,7 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
 
     public string EmptyText => SelectedSource switch
     {
-        SourceType.AzureDevops => RemoteSourceStrings.EmptyAzureDevOps(OrganizationText),
+        SourceType.AzureDevops => RemoteSourceStrings.EmptyAzureDevOps(_connectedOrganization),
         SourceType.CortexaRepo => RemoteSourceStrings.EmptyCortexa,
         _ => RemoteSourceStrings.EmptyGitHub,
     };
@@ -160,12 +165,6 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
 
     [ObservableProperty]
     public partial string SearchText { get; set; } = string.Empty;
-
-    [ObservableProperty]
-    public partial string OrganizationText { get; set; } = string.Empty;
-
-    [ObservableProperty]
-    public partial string? OrganizationError { get; set; }
 
     [ObservableProperty]
     public partial RemoteListState ListState { get; set; }
@@ -214,14 +213,25 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
         _branchCts?.Cancel();
     }
 
+    partial void OnSelectedSourceChanging(SourceType oldValue, SourceType newValue)
+    {
+        _deps.Credentials.Clear(oldValue);
+        if (oldValue == SourceType.Ssh)
+        {
+            _ = _deps.SshConnection.CloseAsync(CancellationToken.None);
+        }
+
+        _loaded.Remove(oldValue);
+    }
+
     partial void OnSelectedSourceChanged(SourceType value)
     {
         CancelList();
         CancelBranches();
         Banner = null;
         Summary = null;
-        OrganizationError = null;
         _cortexaBlocked = false;
+        ResetWizardState();
         ResetSelection();
         SyncChips();
         if (value == SourceType.CortexaRepo)
@@ -234,7 +244,7 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
         SearchText = string.Empty;
         RebuildRows();
         NotifyFetchState();
-        if (ListState == RemoteListState.Idle && value is SourceType.Github or SourceType.CortexaRepo)
+        if (ListState == RemoteListState.Idle && value == SourceType.CortexaRepo)
         {
             _ = LoadRepositoriesCommand.ExecuteAsync(null);
         }
@@ -259,9 +269,19 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
 
     partial void OnSelectedBranchChanged(BranchOptionViewModel? value)
     {
+        if (_rebuildingBranches)
+        {
+            return;
+        }
+
         if (!IsLoadingBranches)
         {
             Banner = null;
+        }
+
+        if (value is not null && IsTokenSource && Step == RemoteWizardStep.Branch)
+        {
+            Step = RemoteWizardStep.Fetch;
         }
 
         NotifyFetchState();
@@ -300,6 +320,7 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
         OnPropertyChanged(nameof(IsLocal));
         OnPropertyChanged(nameof(IsRemote));
         OnPropertyChanged(nameof(IsAzure));
+        OnPropertyChanged(nameof(IsGitHub));
         OnPropertyChanged(nameof(IsSsh));
         OnPropertyChanged(nameof(IsCortexa));
         OnPropertyChanged(nameof(CortexaBranchName));
@@ -319,6 +340,7 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
         ChangeRepositoryCommand.NotifyCanExecuteChanged();
         LoadRepositoriesCommand.NotifyCanExecuteChanged();
         SshConnectCommand.NotifyCanExecuteChanged();
+        NotifyWizard();
     }
 
     private void NotifyListState()
@@ -334,18 +356,12 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
     }
 
     private RemoteBannerActions CreateActions() => new(
-        new RelayCommand(OpenTokenSettings),
+        new RelayCommand(ChangeToken),
         new AsyncRelayCommand(RetryAsync),
-        new AsyncRelayCommand(() => LoadRepositoriesCommand.ExecuteAsync(null)),
+        new AsyncRelayCommand(RunListAsync),
         new RelayCommand(OpenGitHubTokens),
         new RelayCommand(() => SelectedSource = SourceType.Local),
         new RelayCommand(() => Banner = null));
-
-    private void OpenTokenSettings()
-    {
-        var key = IsAzure ? SettingsFocusKeys.AzureDevOpsToken : SettingsFocusKeys.GitHubToken;
-        _shortcut.Open(key);
-    }
 
     private void OpenGitHubTokens()
     {

@@ -52,8 +52,6 @@ public sealed class SshProfileOptions
 
     public string KeyFilePath { get; set; } = string.Empty;
 
-    public string PinnedFingerprint { get; set; } = string.Empty;
-
     public string RemoteRoot { get; set; } = string.Empty;
 }
 

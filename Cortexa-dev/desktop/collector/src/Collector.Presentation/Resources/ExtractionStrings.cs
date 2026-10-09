@@ -3,6 +3,16 @@ namespace Collector.Presentation.Resources;
 public static class ExtractionStrings
 {
     public const string SourceLabel = "SOURCE";
+    public const string SourceLocalTitle = "Local files";
+    public const string SourceLocalDescription = "Pick documents and code from this computer.";
+    public const string SourceGitHubTitle = "GitHub";
+    public const string SourceGitHubDescription = "Fetch repositories from a GitHub organization.";
+    public const string SourceAzureDevOpsTitle = "Azure DevOps";
+    public const string SourceAzureDevOpsDescription = "Fetch repositories from an Azure DevOps organization.";
+    public const string SourceSshTitle = "SSH";
+    public const string SourceSshDescription = "Browse files on a server over SSH.";
+    public const string SourceCortexaTitle = "Cortexa saved";
+    public const string SourceCortexaDescription = "Use repositories saved in the Cortexa web app.";
     public const string DocumentsCaption = "Files queued on this computer";
     public const string ScreenTitle = "Extract";
     public const string PickFilesDialogTitle = "Choose files to parse";

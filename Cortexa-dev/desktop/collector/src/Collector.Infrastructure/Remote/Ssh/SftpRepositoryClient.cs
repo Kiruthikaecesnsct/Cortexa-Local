@@ -16,9 +16,10 @@ public sealed class SftpRepositoryClient(
     SftpConnectionFactory connectionFactory,
     SettingsService settings,
     IOptionsMonitor<RemoteSourceOptions> options,
-    ILogger<SftpRepositoryClient> logger) : IRemoteRepositoryClient, IDisposable
+    ILogger<SftpRepositoryClient> logger) : IRemoteRepositoryClient, ISshConnectionCloser, IDisposable
 {
     private readonly SemaphoreSlim _gate = new(1, 1);
+    private int _disposed;
     private SftpClient? _client;
     private SshConnectionProfile? _connectedProfile;
 
@@ -46,7 +47,7 @@ public sealed class SftpRepositoryClient(
             var client = await EnsureConnectedAsync(profile, cancellationToken);
             var entries = new List<RemoteTreeEntry>();
             var walk = new SftpWalk(client, options.CurrentValue.Ssh.MaxWalkDepth, entries, cancellationToken);
-            await WalkAsync(walk, profile.RemoteRoot, string.Empty, 0);
+            await WalkAsync(walk, SftpRootPath.Resolve(profile.RemoteRoot), string.Empty, 0);
             return new RemoteTree(string.Empty, entries, Truncated: false);
         }
         catch (Exception exception) when (IsConnectionFailure(exception))
@@ -66,13 +67,36 @@ public sealed class SftpRepositoryClient(
     {
         var profile = ResolveProfile(repository);
         var key = SshBlobKeyCodec.Parse(blobSha);
-        var absolutePath = JoinRemoteDir(profile.RemoteRoot, key.RelativePath);
+        var absolutePath = JoinRemoteDir(SftpRootPath.Resolve(profile.RemoteRoot), key.RelativePath);
         var stream = new SshLazyDownloadStream(token => DownloadAsync(profile, absolutePath, token), cancellationToken);
         return Task.FromResult(new RemoteBlob(stream, key.SizeBytes));
     }
 
+    public async Task CloseAsync(CancellationToken cancellationToken)
+    {
+        if (Volatile.Read(ref _disposed) == 1)
+        {
+            return;
+        }
+
+        await _gate.WaitAsync(cancellationToken);
+        try
+        {
+            DisconnectCurrent();
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
     public void Dispose()
     {
+        if (Interlocked.Exchange(ref _disposed, 1) == 1)
+        {
+            return;
+        }
+
         _gate.Wait();
         try
         {
@@ -108,7 +132,7 @@ public sealed class SftpRepositoryClient(
 
     private async Task<SftpClient> EnsureConnectedAsync(SshConnectionProfile profile, CancellationToken cancellationToken)
     {
-        if (_client is { IsConnected: true } && SameProfile(_connectedProfile, profile))
+        if (_client is { IsConnected: true } && SshProfileIdentity.IsSameConnection(_connectedProfile, profile))
         {
             return _client;
         }
@@ -147,13 +171,6 @@ public sealed class SftpRepositoryClient(
         string.Equals(profile.Host, repository.Owner, StringComparison.OrdinalIgnoreCase)
         && string.Equals(profile.Username, repository.Project, StringComparison.Ordinal)
         && string.Equals(profile.RemoteRoot, repository.Name, StringComparison.Ordinal);
-
-    private static bool SameProfile(SshConnectionProfile? left, SshConnectionProfile right) =>
-        left is not null
-        && string.Equals(left.Host, right.Host, StringComparison.OrdinalIgnoreCase)
-        && left.Port == right.Port
-        && string.Equals(left.Username, right.Username, StringComparison.Ordinal)
-        && string.Equals(left.RemoteRoot, right.RemoteRoot, StringComparison.Ordinal);
 
     private sealed record SftpWalk(
         SftpClient Client,

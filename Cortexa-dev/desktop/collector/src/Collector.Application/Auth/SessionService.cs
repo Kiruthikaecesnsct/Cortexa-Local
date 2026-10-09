@@ -6,8 +6,12 @@ namespace Collector.Application.Auth;
 
 public sealed class SessionService : ISignInService, IAccessTokenProvider, ISessionState
 {
+    private static readonly TimeSpan SshCloseTimeout = TimeSpan.FromSeconds(5);
+
     private readonly IAuthClient _client;
     private readonly ISecretStore _secrets;
+    private readonly ISessionCredentials _credentials;
+    private readonly ISshConnectionCloser _sshCloser;
     private readonly TokenRefreshPolicy _policy;
     private readonly TimeProvider _time;
     private readonly ILogger<SessionService> _logger;
@@ -21,12 +25,16 @@ public sealed class SessionService : ISignInService, IAccessTokenProvider, ISess
     public SessionService(
         IAuthClient client,
         ISecretStore secrets,
+        ISessionCredentials credentials,
+        ISshConnectionCloser sshCloser,
         TokenRefreshPolicy policy,
         TimeProvider time,
         ILogger<SessionService> logger)
     {
         _client = client;
         _secrets = secrets;
+        _credentials = credentials;
+        _sshCloser = sshCloser;
         _policy = policy;
         _time = time;
         _logger = logger;
@@ -240,8 +248,23 @@ public sealed class SessionService : ISignInService, IAccessTokenProvider, ISess
 
     private async Task ClearSlotsAsync(CancellationToken cancellationToken)
     {
+        _credentials.ClearAll();
         await _secrets.DeleteAsync(SecretSlot.CortexaAccessToken, cancellationToken);
         await _secrets.DeleteAsync(SecretSlot.CortexaRefreshToken, cancellationToken);
+        await TryCloseSshAsync();
+    }
+
+    private async Task TryCloseSshAsync()
+    {
+        using var timeout = new CancellationTokenSource(SshCloseTimeout);
+        try
+        {
+            await _sshCloser.CloseAsync(timeout.Token);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(exception, "Could not close the SSH connection during sign-out.");
+        }
     }
 
     private void SetState(SessionState state, string? email, AuthTokens tokens) =>

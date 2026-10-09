@@ -34,5 +34,9 @@ public static class Glyphs
     public const string Search = "\uE721";
     public const string Branch = "\uF003";
     public const string Repository = "\uE8F1";
+    public const string View = "\uE890";
+    public const string Hide = "\uED1A";
+    public const string Cloud = "\uE753";
+    public const string CommandPrompt = "\uE756";
 }
 

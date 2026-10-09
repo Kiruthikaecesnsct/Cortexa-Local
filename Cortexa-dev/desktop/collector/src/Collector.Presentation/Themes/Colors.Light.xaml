@@ -79,6 +79,7 @@
     <SolidColorBrush x:Key="Brush.Accent.SubtleBorder" Color="{StaticResource Color.Accent.SubtleBorder}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Danger" Color="{StaticResource Color.Danger}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Danger.Hover" Color="{StaticResource Color.Danger.Hover}" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Danger.Text" Color="{StaticResource Color.Danger.Hover}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Danger.Surface" Color="{StaticResource Color.Danger.Surface}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Danger.Border" Color="{StaticResource Color.Danger.Border}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Success" Color="{StaticResource Color.Success}" po:Freeze="True" />

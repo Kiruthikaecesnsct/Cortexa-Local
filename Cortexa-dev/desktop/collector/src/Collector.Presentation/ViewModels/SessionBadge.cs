@@ -12,6 +12,9 @@ public enum BadgeKind
 
 public sealed record SessionBadge
 {
+    private const int MaxInitials = 2;
+    private static readonly char[] InitialSeparators = ['.', '_', '-', '+'];
+
     public required BadgeKind Kind { get; init; }
 
     public required string Glyph { get; init; }
@@ -29,6 +32,10 @@ public sealed record SessionBadge
     public bool ShowSignInAction => Kind != BadgeKind.SignedIn;
 
     public bool CanSignOut => !IsSigningOut;
+
+    public string Initials => Kind == BadgeKind.SignedIn ? InitialsFrom(Line1) : string.Empty;
+
+    public bool HasInitials => Initials.Length > 0;
 
     public string SignInActionText =>
         Kind == BadgeKind.Expired ? ShellStrings.SignInAgain : ShellStrings.SignIn;
@@ -60,6 +67,17 @@ public sealed record SessionBadge
             Line2 = ShellStrings.SessionExpired,
             ItemStatus = ShellStrings.SessionExpired,
         };
+
+    private static string InitialsFrom(string email)
+    {
+        var localPart = email.Split('@')[0];
+        var letters = localPart
+            .Split(InitialSeparators, StringSplitOptions.RemoveEmptyEntries)
+            .Select(part => part.FirstOrDefault(char.IsLetterOrDigit))
+            .Where(letter => letter != default)
+            .Take(MaxInitials);
+        return string.Concat(letters).ToUpperInvariant();
+    }
 
     private static SessionBadge SignedOut() =>
         new()

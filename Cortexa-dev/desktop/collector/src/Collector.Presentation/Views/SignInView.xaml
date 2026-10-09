@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:b="clr-namespace:Collector.Presentation.Behaviors"
              xmlns:res="clr-namespace:Collector.Presentation.Resources"
+             xmlns:sys="clr-namespace:System;assembly=System.Runtime"
              b:FocusRouter.IsHost="True"
              Focusable="False"
              IsTabStop="False">
@@ -19,81 +20,186 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+        <Style x:Key="SignIn.Hero" TargetType="Border">
+            <Setter Property="Width" Value="{StaticResource Size.HeroWidth}" />
+            <Setter Property="Padding" Value="{StaticResource Thickness.HeroPadding}" />
+            <Setter Property="Background" Value="{DynamicResource Brush.Brand.Hero}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
+            <Setter Property="BorderThickness" Value="{StaticResource Thickness.RightBorder}" />
+            <Setter Property="CornerRadius" Value="{StaticResource Radius.HeroLeft}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding DataContext.IsRailCompact, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="Hero.Tile" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource Brush.Brand.HeroGlass}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Brand.OnBrandMuted}" />
+            <Setter Property="BorderThickness" Value="{StaticResource Thickness.None}" />
+            <Setter Property="CornerRadius" Value="{StaticResource Radius.Tile}" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+        </Style>
+        <Style x:Key="Hero.Glyph" TargetType="TextBlock" BasedOn="{StaticResource Text.Glyph}">
+            <Setter Property="HorizontalAlignment" Value="Center" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Hero.Text}" />
+        </Style>
+        <Style x:Key="Hero.Body" TargetType="TextBlock" BasedOn="{StaticResource Text.Body}">
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Brand.OnBrandMuted}" />
+        </Style>
+        <DataTemplate x:Key="Hero.Point" DataType="{x:Type sys:String}">
+            <Grid Margin="{StaticResource Thickness.HeroPoint}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border Width="{StaticResource Size.HeroPointTile}"
+                        Height="{StaticResource Size.HeroPointTile}"
+                        Margin="{StaticResource Thickness.InlineGapLarge}"
+                        Style="{StaticResource Hero.Tile}">
+                    <TextBlock FontSize="{StaticResource FontSize.IconSmall}"
+                               Style="{StaticResource Hero.Glyph}"
+                               Text="{x:Static res:Glyphs.CheckMark}" />
+                </Border>
+                <TextBlock Grid.Column="1"
+                           VerticalAlignment="Center"
+                           Style="{StaticResource Hero.Body}"
+                           Text="{Binding}" />
+            </Grid>
+        </DataTemplate>
     </UserControl.Resources>
 
-    <Border MaxWidth="{StaticResource Size.SignInCardWidth}"
-            Margin="{StaticResource Thickness.SignInTop}"
-            HorizontalAlignment="Center"
-            VerticalAlignment="Top"
-            Style="{StaticResource Card}">
-        <StackPanel>
-            <ProgressBar Margin="{StaticResource Thickness.StackGap}" Style="{StaticResource SignIn.Progress}" />
-            <TextBlock Margin="{StaticResource Thickness.StackGap}"
-                       AutomationProperties.HeadingLevel="Level2"
-                       Style="{StaticResource Text.Subtitle}"
-                       Text="{x:Static res:SignInStrings.Heading}" />
-            <TextBlock Margin="{StaticResource Thickness.StackGapLarge}"
-                       Style="{StaticResource Text.Body}"
-                       Text="{x:Static res:SignInStrings.Intro}" />
+    <Grid MaxWidth="{StaticResource Size.SignInCardWidth}"
+          Margin="{StaticResource Thickness.SignInTop}"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Top">
+        <Border Background="{DynamicResource Brush.Surface.Card}"
+                CornerRadius="{StaticResource Radius.Shell}"
+                Effect="{DynamicResource Effect.Elevation.High}" />
+        <Border Background="{DynamicResource Brush.Surface.Card}"
+                BorderBrush="{DynamicResource Brush.Border.Subtle}"
+                BorderThickness="{StaticResource Thickness.Border}"
+                CornerRadius="{StaticResource Radius.Shell}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
 
-            <ContentControl Margin="{StaticResource Thickness.FieldGap}"
-                            Content="{Binding GatewayBanner}"
-                            Focusable="False"
-                            IsTabStop="False"
-                            Visibility="{Binding HasGateway, Converter={StaticResource InverseBoolToVisibility}}" />
-            <ContentControl Margin="{StaticResource Thickness.FieldGap}"
-                            Content="{Binding Banner}"
-                            Focusable="False"
-                            IsTabStop="False" />
+                <Border Grid.Column="0" Style="{StaticResource SignIn.Hero}">
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Top" Margin="{StaticResource Thickness.StackGapLarge}" Orientation="Horizontal">
+                            <Border Width="{StaticResource Size.HeroMark}"
+                                    Height="{StaticResource Size.HeroMark}"
+                                    Style="{StaticResource Hero.Tile}">
+                                <TextBlock Style="{StaticResource Hero.Glyph}" Text="{x:Static res:Glyphs.Lightbulb}" />
+                            </Border>
+                            <StackPanel Margin="{StaticResource Thickness.LeadingGap}" VerticalAlignment="Center">
+                                <TextBlock FontFamily="{StaticResource Font.Display}"
+                                           FontSize="{StaticResource FontSize.Brand}"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource Brush.Hero.Text}"
+                                           Text="{x:Static res:ShellStrings.AppName}" />
+                                <TextBlock Foreground="{DynamicResource Brush.Brand.OnBrandMuted}"
+                                           Style="{StaticResource Text.Caption}"
+                                           Text="{x:Static res:ShellStrings.AppTagline}" />
+                            </StackPanel>
+                        </StackPanel>
+                        <StackPanel DockPanel.Dock="Bottom">
+                            <ContentControl Content="{x:Static res:SignInStrings.HeroPointLocal}" ContentTemplate="{StaticResource Hero.Point}" Focusable="False" IsTabStop="False" />
+                            <ContentControl Content="{x:Static res:SignInStrings.HeroPointKeys}" ContentTemplate="{StaticResource Hero.Point}" Focusable="False" IsTabStop="False" />
+                            <ContentControl Content="{x:Static res:SignInStrings.HeroPointTracked}" ContentTemplate="{StaticResource Hero.Point}" Focusable="False" IsTabStop="False" />
+                        </StackPanel>
+                        <StackPanel Margin="{StaticResource Thickness.StackGapLarge}">
+                            <TextBlock Margin="{StaticResource Thickness.StackGapMedium}"
+                                       FontFamily="{StaticResource Font.Display}"
+                                       FontSize="{StaticResource FontSize.Hero}"
+                                       FontWeight="SemiBold"
+                                       Foreground="{DynamicResource Brush.Hero.Text}"
+                                       Text="{x:Static res:SignInStrings.HeroTitle}"
+                                       TextWrapping="Wrap" />
+                            <TextBlock Style="{StaticResource Hero.Body}" Text="{x:Static res:SignInStrings.HeroBody}" />
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
 
-            <HeaderedContentControl Header="{x:Static res:SignInStrings.EmailLabel}"
-                                    Style="{StaticResource FormField}"
-                                    b:FieldState.Error="{Binding EmailError}">
-                <TextBox AutomationProperties.HelpText="{Binding EmailError}"
-                         AutomationProperties.Name="{x:Static res:SignInStrings.EmailName}"
-                         InputScope="EmailSmtpAddress"
-                         IsEnabled="{Binding AreFieldsEnabled}"
-                         Style="{StaticResource TextBox.Field}"
-                         Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}"
-                         b:FieldState.HasError="{Binding EmailError, Converter={StaticResource NotEmptyToBool}}"
-                         b:FocusRouter.Key="Email" />
-            </HeaderedContentControl>
+                <StackPanel Grid.Column="1" Margin="{StaticResource Thickness.SignInFormPadding}">
+                    <ProgressBar Margin="{StaticResource Thickness.StackGapMedium}" Style="{StaticResource SignIn.Progress}" />
+                    <TextBlock Margin="{StaticResource Thickness.StackGap}"
+                               AutomationProperties.HeadingLevel="Level2"
+                               FontSize="{StaticResource FontSize.Title}"
+                               Style="{StaticResource Text.Subtitle}"
+                               Text="{x:Static res:SignInStrings.Heading}" />
+                    <TextBlock Margin="{StaticResource Thickness.StackGapLarge}"
+                               Style="{StaticResource Text.Body}"
+                               Text="{x:Static res:SignInStrings.Intro}" />
 
-            <HeaderedContentControl Header="{x:Static res:SignInStrings.PasswordLabel}"
-                                    Style="{StaticResource FormField}"
-                                    b:FieldState.Error="{Binding PasswordError}">
-                <PasswordBox AutomationProperties.HelpText="{Binding PasswordError}"
-                             AutomationProperties.Name="{x:Static res:SignInStrings.PasswordName}"
-                             IsEnabled="{Binding AreFieldsEnabled}"
-                             Style="{StaticResource PasswordBox.Field}"
-                             b:FieldState.HasError="{Binding PasswordError, Converter={StaticResource NotEmptyToBool}}"
-                             b:FocusRouter.Key="Password"
-                             b:PasswordBoxBinding.IsEnabled="True" />
-            </HeaderedContentControl>
+                    <ContentControl Margin="{StaticResource Thickness.FieldGap}"
+                                    Content="{Binding GatewayBanner}"
+                                    Focusable="False"
+                                    IsTabStop="False"
+                                    Visibility="{Binding HasGateway, Converter={StaticResource InverseBoolToVisibility}}" />
+                    <ContentControl Margin="{StaticResource Thickness.FieldGap}"
+                                    Content="{Binding Banner}"
+                                    Focusable="False"
+                                    IsTabStop="False" />
 
-            <Button Margin="{StaticResource Thickness.StackGap}"
-                    AutomationProperties.Name="{Binding SignInAutomationName}"
-                    Command="{Binding SignInCommand}"
-                    Content="{Binding SignInLabel}"
-                    IsDefault="True"
-                    Style="{StaticResource Button.Primary}" />
-            <Button Margin="{StaticResource Thickness.StackGap}"
-                    AutomationProperties.Name="{x:Static res:SignInStrings.CancelName}"
-                    Command="{Binding SignInCancelCommand}"
-                    Content="{x:Static res:SignInStrings.Cancel}"
-                    Style="{StaticResource Button.Secondary}"
-                    Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}"
-                    b:FocusRouter.Key="Cancel" />
+                    <HeaderedContentControl Header="{x:Static res:SignInStrings.EmailLabel}"
+                                            Style="{StaticResource FormField}"
+                                            b:FieldState.Error="{Binding EmailError}">
+                        <TextBox AutomationProperties.HelpText="{Binding EmailError}"
+                                 AutomationProperties.Name="{x:Static res:SignInStrings.EmailName}"
+                                 InputScope="EmailSmtpAddress"
+                                 IsEnabled="{Binding AreFieldsEnabled}"
+                                 Style="{StaticResource TextBox.Field}"
+                                 Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}"
+                                 b:FieldState.HasError="{Binding EmailError, Converter={StaticResource NotEmptyToBool}}"
+                                 b:FocusRouter.Key="Email" />
+                    </HeaderedContentControl>
 
-            <StackPanel Orientation="Horizontal" Visibility="{Binding HasGateway, Converter={StaticResource BoolToVisibility}}">
-                <TextBlock VerticalAlignment="Center"
-                           Style="{StaticResource Text.Caption}"
-                           Text="{Binding GatewayLine}" />
-                <Button AutomationProperties.Name="{x:Static res:SignInStrings.ChangeName}"
-                        Command="{Binding OpenSettingsCommand}"
-                        Content="{x:Static res:SignInStrings.Change}"
-                        Style="{StaticResource Button.Link}" />
-            </StackPanel>
-        </StackPanel>
-    </Border>
+                    <HeaderedContentControl Header="{x:Static res:SignInStrings.PasswordLabel}"
+                                            Style="{StaticResource FormField}"
+                                            b:FieldState.Error="{Binding PasswordError}">
+                        <PasswordBox AutomationProperties.HelpText="{Binding PasswordError}"
+                                     AutomationProperties.Name="{x:Static res:SignInStrings.PasswordName}"
+                                     IsEnabled="{Binding AreFieldsEnabled}"
+                                     Style="{StaticResource PasswordBox.Field}"
+                                     b:FieldState.HasError="{Binding PasswordError, Converter={StaticResource NotEmptyToBool}}"
+                                     b:FocusRouter.Key="Password"
+                                     b:PasswordBoxBinding.IsEnabled="True" />
+                    </HeaderedContentControl>
+
+                    <Button Margin="{StaticResource Thickness.StackGap}"
+                            AutomationProperties.Name="{Binding SignInAutomationName}"
+                            Command="{Binding SignInCommand}"
+                            Content="{Binding SignInLabel}"
+                            IsDefault="True"
+                            Style="{StaticResource Button.Primary}" />
+                    <Button Margin="{StaticResource Thickness.StackGap}"
+                            AutomationProperties.Name="{x:Static res:SignInStrings.CancelName}"
+                            Command="{Binding SignInCancelCommand}"
+                            Content="{x:Static res:SignInStrings.Cancel}"
+                            Style="{StaticResource Button.Secondary}"
+                            Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibility}}"
+                            b:FocusRouter.Key="Cancel" />
+
+                    <Border Margin="{StaticResource Thickness.SectionTop}" Style="{StaticResource Divider}" />
+                    <StackPanel Orientation="Horizontal" Visibility="{Binding HasGateway, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Margin="{StaticResource Thickness.InlineGap}"
+                                   FontSize="{StaticResource FontSize.IconSmall}"
+                                   Style="{StaticResource Text.Glyph}"
+                                   Text="{x:Static res:Glyphs.Globe}" />
+                        <TextBlock VerticalAlignment="Center"
+                                   FontFamily="{StaticResource Font.Mono}"
+                                   Style="{StaticResource Text.Caption}"
+                                   Text="{Binding GatewayLine}" />
+                        <Button AutomationProperties.Name="{x:Static res:SignInStrings.ChangeName}"
+                                Command="{Binding OpenSettingsCommand}"
+                                Content="{x:Static res:SignInStrings.Change}"
+                                Style="{StaticResource Button.Link}" />
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
 </UserControl>

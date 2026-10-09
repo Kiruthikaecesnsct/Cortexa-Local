@@ -4,6 +4,11 @@ public static class SignInStrings
 {
     public const string Heading = "Sign in to Cortexa";
     public const string Intro = "Use your Cortexa account. Your files stay on this computer.";
+    public const string HeroTitle = "Turn research into patent opportunities";
+    public const string HeroBody = "Collect knowledge from papers, theses and code. Cortexa finds the inventions inside.";
+    public const string HeroPointLocal = "Your files never leave this computer.";
+    public const string HeroPointKeys = "Knowledge is extracted with your own AI keys.";
+    public const string HeroPointTracked = "Every upload is tracked through the pipeline.";
     public const string EmailLabel = "_Email";
     public const string EmailName = "Email";
     public const string PasswordLabel = "_Password";

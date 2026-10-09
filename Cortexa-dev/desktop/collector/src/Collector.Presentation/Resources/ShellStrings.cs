@@ -19,6 +19,13 @@ public static class ShellStrings
     public const string SessionAutomationName = "Session";
     public const string MainNavName = "Screens";
     public const string FooterNavName = "App";
+    public const string AppTagline = "Knowledge collector";
+    public const string WorkspaceSection = "WORKSPACE";
+    public const string SignInSubtitle = "Connect to your Cortexa workspace.";
+    public const string ExtractSubtitle = "Pick a source and pull knowledge out of your files.";
+    public const string ReviewSubtitle = "Choose which knowledge items to upload.";
+    public const string HistorySubtitle = "Track uploaded batches and the candidates they produce.";
+    public const string SettingsSubtitle = "Connections, AI keys and repository access.";
 
     public const string UnhandledError =
         "Something went wrong and the app could not finish that action. Details were saved to the log file. If the app keeps misbehaving, restart it.";

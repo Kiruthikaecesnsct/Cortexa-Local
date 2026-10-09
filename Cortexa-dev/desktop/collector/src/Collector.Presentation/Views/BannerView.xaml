@@ -10,24 +10,41 @@
     <UserControl.Resources>
         <Style x:Key="Banner.Surface" TargetType="Border">
             <Setter Property="BorderThickness" Value="{StaticResource Thickness.Border}" />
-            <Setter Property="CornerRadius" Value="{StaticResource Radius.Control}" />
+            <Setter Property="CornerRadius" Value="{StaticResource Radius.Tile}" />
             <Setter Property="Padding" Value="{StaticResource Thickness.BannerPadding}" />
             <Setter Property="Background" Value="{DynamicResource Brush.Info.Surface}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Info}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Info.Border}" />
             <Setter Property="AutomationProperties.LiveSetting" Value="Polite" />
             <Style.Triggers>
                 <DataTrigger Binding="{Binding Severity}" Value="{x:Static vm:BannerSeverity.Error}">
                     <Setter Property="Background" Value="{DynamicResource Brush.Danger.Surface}" />
-                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Danger}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Danger.Border}" />
                     <Setter Property="AutomationProperties.LiveSetting" Value="Assertive" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Severity}" Value="{x:Static vm:BannerSeverity.Warning}">
                     <Setter Property="Background" Value="{DynamicResource Brush.Warning.Surface}" />
-                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Warning}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Warning.Border}" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Severity}" Value="{x:Static vm:BannerSeverity.Success}">
                     <Setter Property="Background" Value="{DynamicResource Brush.Success.Surface}" />
-                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Success}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Success.Border}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="Banner.Bar" TargetType="Border">
+            <Setter Property="Width" Value="{StaticResource Size.BannerBar}" />
+            <Setter Property="Margin" Value="{StaticResource Thickness.BannerBar}" />
+            <Setter Property="CornerRadius" Value="{StaticResource Radius.Bar}" />
+            <Setter Property="Background" Value="{DynamicResource Brush.Info}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Severity}" Value="{x:Static vm:BannerSeverity.Error}">
+                    <Setter Property="Background" Value="{DynamicResource Brush.Danger}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Severity}" Value="{x:Static vm:BannerSeverity.Warning}">
+                    <Setter Property="Background" Value="{DynamicResource Brush.Warning}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Severity}" Value="{x:Static vm:BannerSeverity.Success}">
+                    <Setter Property="Background" Value="{DynamicResource Brush.Success}" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -59,19 +76,21 @@
         <Grid>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Style="{StaticResource Banner.Glyph}" Text="{Binding Glyph}" />
-            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+            <Border Grid.Column="0" Style="{StaticResource Banner.Bar}" />
+            <TextBlock Grid.Column="1" Style="{StaticResource Banner.Glyph}" Text="{Binding Glyph}" />
+            <StackPanel Grid.Column="2" VerticalAlignment="Center">
                 <TextBlock Style="{StaticResource Text.Label}" Text="{Binding Title}" />
                 <TextBlock Style="{StaticResource Text.Body}"
                            Text="{Binding Message}"
                            Visibility="{Binding HasMessage, Converter={StaticResource BoolToVisibility}}" />
             </StackPanel>
-            <Button Grid.Column="2"
+            <Button Grid.Column="3"
                     VerticalAlignment="Top"
                     AutomationProperties.Name="{Binding ActionName, TargetNullValue={x:Static sys:String.Empty}}"
                     b:FocusRouter.Key="BannerAction"
@@ -79,14 +98,14 @@
                     Content="{Binding ActionText}"
                     Style="{StaticResource Button.Link}"
                     Visibility="{Binding HasAction, Converter={StaticResource BoolToVisibility}}" />
-            <Button Grid.Column="3"
+            <Button Grid.Column="4"
                     VerticalAlignment="Top"
                     AutomationProperties.Name="{Binding SecondaryActionName, TargetNullValue={x:Static sys:String.Empty}}"
                     Command="{Binding SecondaryActionCommand}"
                     Content="{Binding SecondaryActionText}"
                     Style="{StaticResource Button.Link}"
                     Visibility="{Binding HasSecondaryAction, Converter={StaticResource BoolToVisibility}}" />
-            <Button Grid.Column="4"
+            <Button Grid.Column="5"
                     VerticalAlignment="Top"
                     AutomationProperties.Name="{x:Static res:SignInStrings.DismissName}"
                     Command="{Binding DismissCommand}"

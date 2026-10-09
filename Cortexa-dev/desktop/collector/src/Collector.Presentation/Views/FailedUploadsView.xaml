@@ -101,6 +101,7 @@
             Style="{StaticResource Card}">
         <StackPanel>
             <StackPanel Margin="{StaticResource Thickness.FailedHeader}" Orientation="Horizontal">
+                <ContentControl Margin="{StaticResource Thickness.InlineGapLarge}" Content="{x:Static res:Glyphs.Upload}" Style="{StaticResource IconTile.Danger}" />
                 <TextBlock Margin="{StaticResource Thickness.InlineGap}"
                            VerticalAlignment="Center"
                            AutomationProperties.HeadingLevel="Level2"

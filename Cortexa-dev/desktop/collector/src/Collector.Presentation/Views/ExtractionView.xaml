@@ -15,10 +15,6 @@
         <KeyBinding Key="Escape" Command="{Binding Remote.FetchCancelCommand}" />
     </UserControl.InputBindings>
     <UserControl.Resources>
-        <Style x:Key="Stat.Tile" TargetType="StackPanel">
-            <Setter Property="Margin" Value="{StaticResource Thickness.SectionTop}" />
-            <Setter Property="MinWidth" Value="96" />
-        </Style>
 
         <Style x:Key="StatusBadge.Surface" TargetType="Border">
             <Setter Property="Background" Value="{DynamicResource Brush.Surface.Sunken}" />
@@ -89,7 +85,7 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="ListBoxItem">
-                        <Border x:Name="Highlight" Padding="{StaticResource Thickness.RowPadding}" SnapsToDevicePixels="True">
+                        <Border x:Name="Highlight" Padding="{StaticResource Thickness.HeaderPadding}" CornerRadius="{StaticResource Radius.Control}" SnapsToDevicePixels="True">
                             <StackPanel>
                                 <Grid MinHeight="{StaticResource Size.RowMin}">
                                     <Grid.ColumnDefinitions>
@@ -98,11 +94,10 @@
                                         <ColumnDefinition Width="Auto" />
                                         <ColumnDefinition Width="Auto" />
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0"
-                                               Margin="{StaticResource Thickness.InlineGapLarge}"
-                                               VerticalAlignment="Center"
-                                               Style="{StaticResource Text.Glyph}"
-                                               Text="{x:Static res:Glyphs.Document}" />
+                                    <ContentControl Grid.Column="0"
+                                                    Margin="{StaticResource Thickness.InlineGapLarge}"
+                                                    Content="{x:Static res:Glyphs.Document}"
+                                                    Style="{StaticResource IconTile}" />
                                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                         <TextBlock Style="{StaticResource Text.Label}"
                                                    Text="{Binding Filename}"
@@ -150,7 +145,7 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Highlight" Property="Background" Value="{DynamicResource Brush.Surface.Selected}" />
+                                <Setter TargetName="Highlight" Property="Background" Value="{DynamicResource Brush.Surface.Hover}" />
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter TargetName="Highlight" Property="Background" Value="{DynamicResource Brush.Surface.Selected}" />
@@ -174,7 +169,10 @@
 
     <StackPanel MaxWidth="{StaticResource Size.WorkspaceMaxWidth}" HorizontalAlignment="Left">
 
-        <ItemsControl Margin="{StaticResource Thickness.StackGap}"
+        <TextBlock Margin="{StaticResource Thickness.StackGap}"
+                   Style="{StaticResource Text.Overline}"
+                   Text="{x:Static res:ExtractionStrings.SourceLabel}" />
+        <ItemsControl Margin="{StaticResource Thickness.StackGapMedium}"
                       AutomationProperties.Name="{x:Static res:RemoteSourceStrings.SourceGroupName}"
                       Focusable="False"
                       IsEnabled="{Binding Remote.AreControlsEnabled}"
@@ -207,12 +205,7 @@
 
         <Border Style="{StaticResource Card}" Visibility="{Binding ShowLocalEmpty, Converter={StaticResource BoolToVisibility}}">
             <StackPanel HorizontalAlignment="Center">
-                <TextBlock Margin="{StaticResource Thickness.StackGap}"
-                           HorizontalAlignment="Center"
-                           FontFamily="{StaticResource Font.Icon}"
-                           FontSize="40"
-                           Foreground="{DynamicResource Brush.Text.Muted}"
-                           Text="{x:Static res:Glyphs.Document}" />
+                <ContentControl Content="{x:Static res:Glyphs.Document}" Style="{StaticResource EmptyIcon}" />
                 <TextBlock Margin="{StaticResource Thickness.StackGap}"
                            HorizontalAlignment="Center"
                            AutomationProperties.HeadingLevel="Level2"
@@ -300,58 +293,70 @@
                 </Grid>
             </Border>
 
-            <Border Margin="{StaticResource Thickness.SectionTop}" Style="{StaticResource Card}">
-                <StackPanel Orientation="Horizontal">
-                    <StackPanel Style="{StaticResource Stat.Tile}">
-                        <TextBlock Style="{StaticResource Text.Title}" Text="{Binding FilesCount}" />
+            <WrapPanel Margin="{StaticResource Thickness.SectionTop}">
+                <Border Style="{StaticResource Kpi.Tile}">
+                    <StackPanel>
                         <TextBlock Style="{StaticResource Text.Caption}" Text="{x:Static res:ExtractionStrings.StatFiles}" />
+                        <TextBlock Style="{StaticResource Text.Kpi}" Text="{Binding FilesCount}" />
                     </StackPanel>
-                    <StackPanel Style="{StaticResource Stat.Tile}">
-                        <TextBlock Style="{StaticResource Text.Title}" Text="{Binding ExtractedCount}" />
+                </Border>
+                <Border Style="{StaticResource Kpi.Tile}">
+                    <StackPanel>
                         <TextBlock Style="{StaticResource Text.Caption}" Text="{x:Static res:ExtractionStrings.StatExtracted}" />
+                        <TextBlock Style="{StaticResource Text.Kpi}" Text="{Binding ExtractedCount}" />
                     </StackPanel>
-                    <StackPanel Style="{StaticResource Stat.Tile}">
-                        <TextBlock Style="{StaticResource Text.Title}" Text="{Binding TotalUnits}" />
+                </Border>
+                <Border Style="{StaticResource Kpi.Tile}">
+                    <StackPanel>
                         <TextBlock Style="{StaticResource Text.Caption}" Text="{x:Static res:ExtractionStrings.StatUnits}" />
+                        <TextBlock Style="{StaticResource Text.Kpi}" Text="{Binding TotalUnits}" />
                     </StackPanel>
-                    <StackPanel Style="{StaticResource Stat.Tile}">
-                        <TextBlock Style="{StaticResource Text.Title}" Text="{Binding TotalTokens}" />
+                </Border>
+                <Border Style="{StaticResource Kpi.Tile}">
+                    <StackPanel>
                         <TextBlock Style="{StaticResource Text.Caption}" Text="{x:Static res:ExtractionStrings.StatTokens}" />
+                        <TextBlock Style="{StaticResource Text.Kpi}" Text="{Binding TotalTokens}" />
                     </StackPanel>
-                    <StackPanel Style="{StaticResource Stat.Tile}">
-                        <TextBlock Style="{StaticResource Text.Title}" Text="{Binding SkippedCount}" />
+                </Border>
+                <Border Style="{StaticResource Kpi.Tile}">
+                    <StackPanel>
                         <TextBlock Style="{StaticResource Text.Caption}" Text="{x:Static res:ExtractionStrings.StatSkipped}" />
+                        <TextBlock Style="{StaticResource Text.Kpi}" Text="{Binding SkippedCount}" />
                     </StackPanel>
-                </StackPanel>
-            </Border>
+                </Border>
+            </WrapPanel>
 
             <Border Margin="{StaticResource Thickness.SectionTop}"
                     Style="{StaticResource Card}"
                     ToolTip="{x:Static res:ExtractionStrings.EstimateApproximateNote}"
                     ToolTipService.ShowOnDisabled="True">
                 <StackPanel>
-                    <StackPanel Margin="{StaticResource Thickness.StackGap}" Orientation="Horizontal">
-                        <TextBlock Margin="{StaticResource Thickness.InlineGapLarge}"
-                                   Style="{StaticResource Text.Glyph.Header}"
-                                   Text="{x:Static res:Glyphs.Info}" />
+                    <StackPanel Margin="{StaticResource Thickness.StackGapMedium}" Orientation="Horizontal">
+                        <ContentControl Margin="{StaticResource Thickness.InlineGapLarge}" Content="{x:Static res:Glyphs.Info}" Style="{StaticResource IconTile}" />
                         <TextBlock AutomationProperties.HeadingLevel="Level2"
                                    Style="{StaticResource Text.Subtitle}"
                                    Text="{x:Static res:ExtractionStrings.EstimateTitle}" />
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <StackPanel Style="{StaticResource Stat.Tile}">
-                            <TextBlock Style="{StaticResource Text.Title}" Text="{Binding PromptTokens}" />
-                            <TextBlock Style="{StaticResource Text.Caption}" Text="{x:Static res:ExtractionStrings.EstimatePrompt}" />
-                        </StackPanel>
-                        <StackPanel Style="{StaticResource Stat.Tile}">
-                            <TextBlock Style="{StaticResource Text.Title}" Text="{Binding EstimatedOutputTokens}" />
-                            <TextBlock Style="{StaticResource Text.Caption}" Text="{x:Static res:ExtractionStrings.EstimateOutput}" />
-                        </StackPanel>
-                        <StackPanel Style="{StaticResource Stat.Tile}">
-                            <TextBlock Style="{StaticResource Text.Title}" Text="{Binding TotalEstimatedTokens}" />
-                            <TextBlock Style="{StaticResource Text.Caption}" Text="{x:Static res:ExtractionStrings.EstimateTotal}" />
-                        </StackPanel>
-                    </StackPanel>
+                    <WrapPanel>
+                        <Border Style="{StaticResource Kpi.Tile.Sunken}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource Text.Caption}" Text="{x:Static res:ExtractionStrings.EstimatePrompt}" />
+                                <TextBlock Style="{StaticResource Text.Kpi}" Text="{Binding PromptTokens}" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource Kpi.Tile.Sunken}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource Text.Caption}" Text="{x:Static res:ExtractionStrings.EstimateOutput}" />
+                                <TextBlock Style="{StaticResource Text.Kpi}" Text="{Binding EstimatedOutputTokens}" />
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource Kpi.Tile.Sunken}">
+                            <StackPanel>
+                                <TextBlock Style="{StaticResource Text.Caption}" Text="{x:Static res:ExtractionStrings.EstimateTotal}" />
+                                <TextBlock Style="{StaticResource Text.Kpi}" Text="{Binding TotalEstimatedTokens}" />
+                            </StackPanel>
+                        </Border>
+                    </WrapPanel>
                     <TextBlock Margin="{StaticResource Thickness.StackGap}"
                                Style="{StaticResource Text.Helper}"
                                Text="{x:Static res:ExtractionStrings.EstimateApproximateNote}"
@@ -361,16 +366,14 @@
 
             <Border Margin="{StaticResource Thickness.SectionTop}" Style="{StaticResource Card}">
                 <StackPanel>
-                    <StackPanel Margin="{StaticResource Thickness.StackGap}" Orientation="Horizontal">
-                        <TextBlock Margin="{StaticResource Thickness.InlineGapLarge}"
-                                   Style="{StaticResource Text.Glyph.Header}"
-                                   Text="{x:Static res:Glyphs.Settings}" />
+                    <StackPanel Margin="{StaticResource Thickness.StackGapMedium}" Orientation="Horizontal">
+                        <ContentControl Margin="{StaticResource Thickness.InlineGapLarge}" Content="{x:Static res:Glyphs.Settings}" Style="{StaticResource IconTile}" />
                         <TextBlock AutomationProperties.HeadingLevel="Level2"
                                    Style="{StaticResource Text.Subtitle}"
                                    Text="{x:Static res:ExtractionStrings.ProviderModelTitle}" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal">
-                        <HeaderedContentControl Header="{x:Static res:ExtractionStrings.ProviderLabel}" Style="{StaticResource FormField}">
+                        <HeaderedContentControl Margin="{StaticResource Thickness.InlineGapXL}" Header="{x:Static res:ExtractionStrings.ProviderLabel}" Style="{StaticResource FormField}">
                             <ComboBox MinWidth="{StaticResource Size.ComboMin}"
                                       AutomationProperties.Name="{x:Static res:ExtractionStrings.ProviderName}"
                                       IsEnabled="{Binding CanEditDocuments}"
@@ -390,13 +393,14 @@
 
             <Border Margin="{StaticResource Thickness.SectionTop}" Style="{StaticResource Card}">
                 <StackPanel>
-                    <StackPanel Margin="{StaticResource Thickness.StackGap}" Orientation="Horizontal">
-                        <TextBlock Margin="{StaticResource Thickness.InlineGapLarge}"
-                                   Style="{StaticResource Text.Glyph.Header}"
-                                   Text="{x:Static res:Glyphs.Document}" />
-                        <TextBlock AutomationProperties.HeadingLevel="Level2"
-                                   Style="{StaticResource Text.Subtitle}"
-                                   Text="{x:Static res:ExtractionStrings.DocumentsTitle}" />
+                    <StackPanel Margin="{StaticResource Thickness.StackGapMedium}" Orientation="Horizontal">
+                        <ContentControl Margin="{StaticResource Thickness.InlineGapLarge}" Content="{x:Static res:Glyphs.Document}" Style="{StaticResource IconTile}" />
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock AutomationProperties.HeadingLevel="Level2"
+                                       Style="{StaticResource Text.Subtitle}"
+                                       Text="{x:Static res:ExtractionStrings.DocumentsTitle}" />
+                            <TextBlock Style="{StaticResource Text.Caption}" Text="{x:Static res:ExtractionStrings.DocumentsCaption}" />
+                        </StackPanel>
                     </StackPanel>
                     <ListBox AutomationProperties.Name="{x:Static res:ExtractionStrings.DocumentsTitle}"
                              ItemsSource="{Binding Documents}"
@@ -408,10 +412,8 @@
 
             <Border Margin="{StaticResource Thickness.SectionTop}" Style="{StaticResource Card}">
                 <StackPanel>
-                    <StackPanel Margin="{StaticResource Thickness.StackGap}" Orientation="Horizontal">
-                        <TextBlock Margin="{StaticResource Thickness.InlineGapLarge}"
-                                   Style="{StaticResource Text.Glyph.Header}"
-                                   Text="{x:Static res:Glyphs.BulletedList}" />
+                    <StackPanel Margin="{StaticResource Thickness.StackGapMedium}" Orientation="Horizontal">
+                        <ContentControl Margin="{StaticResource Thickness.InlineGapLarge}" Content="{x:Static res:Glyphs.BulletedList}" Style="{StaticResource IconTile}" />
                         <StackPanel>
                             <TextBlock AutomationProperties.HeadingLevel="Level2"
                                        Style="{StaticResource Text.Subtitle}"
@@ -423,22 +425,12 @@
                     </StackPanel>
 
                     <StackPanel HorizontalAlignment="Center" Visibility="{Binding ShowPreviewPlaceholder, Converter={StaticResource BoolToVisibility}}">
-                        <TextBlock Margin="{StaticResource Thickness.StackGap}"
-                                   HorizontalAlignment="Center"
-                                   FontFamily="{StaticResource Font.Icon}"
-                                   FontSize="28"
-                                   Foreground="{DynamicResource Brush.Text.Muted}"
-                                   Text="{x:Static res:Glyphs.BulletedList}" />
+                        <ContentControl Content="{x:Static res:Glyphs.BulletedList}" Style="{StaticResource EmptyIcon.Small}" />
                         <TextBlock HorizontalAlignment="Center" Style="{StaticResource Text.Helper}" Text="{x:Static res:ExtractionStrings.PreviewEmptyBody}" />
                     </StackPanel>
 
                     <StackPanel HorizontalAlignment="Center" Visibility="{Binding ShowPreviewEmpty, Converter={StaticResource BoolToVisibility}}">
-                        <TextBlock Margin="{StaticResource Thickness.StackGap}"
-                                   HorizontalAlignment="Center"
-                                   FontFamily="{StaticResource Font.Icon}"
-                                   FontSize="28"
-                                   Foreground="{DynamicResource Brush.Warning}"
-                                   Text="{x:Static res:Glyphs.Warning}" />
+                        <ContentControl Content="{x:Static res:Glyphs.Warning}" Style="{StaticResource EmptyIcon.Warning}" />
                         <TextBlock HorizontalAlignment="Center"
                                    AutomationProperties.HeadingLevel="Level2"
                                    Style="{StaticResource Text.Label}"
@@ -499,7 +491,7 @@
                                                 <TextBlock FontFamily="{StaticResource Font.Mono}"
                                                            FontSize="{StaticResource FontSize.Caption}"
                                                            Foreground="{DynamicResource Brush.Text.Body}"
-                                                           MaxHeight="54"
+                                                           MaxHeight="{StaticResource Size.SnippetMaxHeight}"
                                                            Text="{Binding Snippet}"
                                                            TextTrimming="CharacterEllipsis"
                                                            TextWrapping="Wrap" />

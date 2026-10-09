@@ -12,6 +12,7 @@ public static class HistoryStrings
     public const string StagesName = "Pipeline stages";
     public const string Refresh = "Refresh history";
     public const string RefreshTip = "Refresh (F5)";
+    public const string RefreshLabel = "Refresh";
     public const string Loading = "Loading history…";
     public const string LoadingCandidates = "Loading candidates…";
     public const string LoadErrorTitle = "Couldn't load history";

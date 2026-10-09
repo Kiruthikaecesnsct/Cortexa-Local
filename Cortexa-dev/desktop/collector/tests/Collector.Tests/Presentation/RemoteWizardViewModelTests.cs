@@ -49,9 +49,9 @@ public sealed class RemoteWizardViewModelTests : IDisposable
         Assert.Equal(ConnectionStatus.NotConnected, harness.ViewModel.Status);
         Assert.Equal(RemoteSourceStrings.StatusNotConnected, harness.ViewModel.StatusText);
         Assert.Equal(
-            [WizardStepState.Current, WizardStepState.Upcoming, WizardStepState.Upcoming, WizardStepState.Upcoming],
+            [WizardStepState.Current, WizardStepState.Upcoming, WizardStepState.Upcoming, WizardStepState.Upcoming, WizardStepState.Upcoming],
             StepStates(harness.ViewModel));
-        Assert.StartsWith("Step 1 of 4 - ", harness.ViewModel.StepPrompt, StringComparison.Ordinal);
+        Assert.StartsWith("Step 1 of 5 - ", harness.ViewModel.StepPrompt, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -62,8 +62,9 @@ public sealed class RemoteWizardViewModelTests : IDisposable
         Assert.Equal(RemoteWizardStep.Repository, viewModel.Step);
         Assert.Equal(ConnectionStatus.Connected, viewModel.Status);
         Assert.Equal("Connected to octo", viewModel.StatusText);
-        Assert.Equal([WizardStepState.Done, WizardStepState.Current, WizardStepState.Upcoming, WizardStepState.Upcoming], StepStates(viewModel));
-        Assert.StartsWith("Step 2 of 4 - ", viewModel.StepPrompt, StringComparison.Ordinal);
+        Assert.Equal([WizardStepState.Done, WizardStepState.Current, WizardStepState.Upcoming, WizardStepState.Upcoming, WizardStepState.Upcoming],
+            StepStates(viewModel));
+        Assert.StartsWith("Step 2 of 5 - ", viewModel.StepPrompt, StringComparison.Ordinal);
         Assert.Equal("token", harness.Credentials.GetToken(SourceType.Github));
         Assert.Equal("octo", harness.GitHub.LastScope);
     }
@@ -165,22 +166,24 @@ public sealed class RemoteWizardViewModelTests : IDisposable
         Assert.True(viewModel.ShowChangeRepository);
         Assert.False(viewModel.ShowChangeBranch);
         Assert.Contains("3 branches", viewModel.StepPrompt, StringComparison.Ordinal);
-        Assert.StartsWith("Step 3 of 4 - ", viewModel.StepPrompt, StringComparison.Ordinal);
+        Assert.StartsWith("Step 3 of 5 - ", viewModel.StepPrompt, StringComparison.Ordinal);
     }
 
     [Fact]
-    public async Task SelectingABranch_MovesToTheFetchStep()
+    public async Task SelectingABranch_MovesToTheFilesStepAndLoadsTheTree()
     {
         var (_, viewModel) = await ConnectedAsync();
         viewModel.SelectedRepository = viewModel.Repositories[0];
 
         viewModel.SelectedBranch = viewModel.Branches[0];
 
-        Assert.Equal(RemoteWizardStep.Fetch, viewModel.Step);
-        Assert.True(viewModel.ShowFetchStep);
+        Assert.Equal(RemoteWizardStep.Files, viewModel.Step);
+        Assert.True(viewModel.ShowFilesStep);
         Assert.True(viewModel.ShowChangeBranch);
-        Assert.Equal([WizardStepState.Done, WizardStepState.Done, WizardStepState.Done, WizardStepState.Current], StepStates(viewModel));
-        Assert.Contains("octo/alpha @ main", viewModel.StepPrompt, StringComparison.Ordinal);
+        Assert.Equal(
+            [WizardStepState.Done, WizardStepState.Done, WizardStepState.Done, WizardStepState.Current, WizardStepState.Upcoming],
+            StepStates(viewModel));
+        Assert.Contains(RemoteSourceStrings.FilesPromptText, viewModel.StepPrompt, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -380,7 +383,7 @@ public sealed class RemoteWizardViewModelTests : IDisposable
     public async Task Ssh_Connect_UsesTheFolderAsTheStartFolderAndStoresThePassphraseInSessionOnly()
     {
         var harness = new RemoteSourceHarness();
-        harness.Fetcher.Result = new RemoteFetchResult(SourceType.Ssh, string.Empty, ["a.md"], 1, 0, 0, 0, false);
+        harness.Fetcher.Result = new RemoteFetchResult(SourceType.Ssh, string.Empty, [new FetchedFile("a.md", "a.md")], 1, 0, 0, 0, false);
         FillSsh(harness.ViewModel);
 
         await harness.ViewModel.SshConnectCommand.ExecuteAsync(null);

@@ -8,6 +8,8 @@ public sealed class RemoteFetchOptions
 
     public int MaxFilesPerFetch { get; set; } = 2000;
 
+    public int MaxSelectedFiles { get; set; } = 10000;
+
     public int MaxParallelDownloads { get; set; } = 4;
 
     public string[] TextExtensions { get; set; } =

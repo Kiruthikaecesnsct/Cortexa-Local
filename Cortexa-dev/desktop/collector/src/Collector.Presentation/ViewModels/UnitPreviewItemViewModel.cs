@@ -14,7 +14,9 @@ public sealed class UnitPreviewItemViewModel
         UnitKind = unit.UnitKind;
         KindLabel = KindLabelFor(unit.UnitKind);
         BoundaryLabel = BoundaryLabelFor(unit, documentSourcePath);
+        Title = BoundaryLabel;
         Snippet = Truncate(unit.Text);
+        FullText = unit.Text;
         TokenCount = unit.TokenCount;
     }
 
@@ -26,9 +28,16 @@ public sealed class UnitPreviewItemViewModel
 
     public string BoundaryLabel { get; }
 
+    public string Title { get; }
+
     public string Snippet { get; }
 
+    public string FullText { get; }
+
     public int TokenCount { get; }
+
+    public string AutomationName =>
+        ExtractionStrings.SectionAutomationName(Ordinal, KindLabel, Title, TokenCount);
 
     public static string KindLabelFor(UnitKind kind) => kind switch
     {

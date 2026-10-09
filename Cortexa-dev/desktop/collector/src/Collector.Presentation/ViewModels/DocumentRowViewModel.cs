@@ -2,21 +2,49 @@ using System.IO;
 using Collector.Application.Extraction;
 using Collector.Domain.Enums;
 using Collector.Presentation.Resources;
-using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Collector.Presentation.ViewModels;
 
-public sealed partial class DocumentRowViewModel(string sourcePath, string? origin = null) : ObservableObject
+public sealed class DocumentRowViewModel
 {
-    public string SourcePath { get; } = sourcePath;
+    private const char RepoSeparator = '/';
 
-    public string? Origin { get; } = origin;
+    public DocumentRowViewModel(SplitOutcome outcome, string? origin = null)
+    {
+        var result = outcome.Result;
+        SourcePath = result.SourcePath;
+        Origin = origin;
+        Filename = Path.GetFileName(outcome.RepoPath ?? result.SourcePath);
+        Folder = FolderOf(outcome.RepoPath, result.SourcePath);
+        DocumentId = result.DocumentId;
+        Status = result.Status;
+        SkipReasonRaw = result.Reason;
+        UnitCount = outcome.UnitCount;
+        TokenCount = outcome.TokenCount;
+        PromptTokens = outcome.PromptTokens;
+    }
+
+    public string SourcePath { get; }
+
+    public string? Origin { get; }
 
     public string SourceCaption => Origin is null ? SourcePath : $"{Origin} · {Filename}";
 
-    public string Filename { get; } = Path.GetFileName(sourcePath);
+    public string Filename { get; }
 
-    public string? DocumentId { get; private set; }
+    public string Folder { get; }
+
+    public string? DocumentId { get; }
+
+    public DocumentStatus Status { get; }
+
+    public int UnitCount { get; }
+
+    public int TokenCount { get; }
+
+    public int PromptTokens { get; }
+
+    public string? SkipReasonRaw { get; }
 
     public bool IsSkipped => Status is DocumentStatus.Excluded or DocumentStatus.Failed;
 
@@ -24,13 +52,14 @@ public sealed partial class DocumentRowViewModel(string sourcePath, string? orig
     {
         DocumentStatus.Pending => ExtractionStrings.StatusPending,
         DocumentStatus.Extracting => ExtractionStrings.StatusExtracting,
-        DocumentStatus.Extracted => ExtractionStrings.StatusExtracted,
+        DocumentStatus.Extracted => ExtractionStrings.StatusAnalyzed,
         DocumentStatus.Failed => ExtractionStrings.StatusFailed,
         DocumentStatus.Excluded => ExtractionStrings.StatusExcluded,
         _ => ExtractionStrings.StatusPending,
     };
 
-    public string AutomationName => ExtractionStrings.DocumentAutomationName(Filename, StatusLabel, UnitCount);
+    public string AutomationName =>
+        ExtractionStrings.DocumentAutomationName(Filename, Folder, UnitCount, TokenCount, StatusLabel);
 
     public string SkipAutomationName => ExtractionStrings.SkipAutomationName(Filename, SkipReasonText);
 
@@ -38,32 +67,16 @@ public sealed partial class DocumentRowViewModel(string sourcePath, string? orig
 
     public string SkipReasonText => SkipReasonTextFor(Status, SkipReasonRaw);
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(StatusLabel), nameof(AutomationName), nameof(IsSkipped), nameof(SkipReasonText), nameof(SkipAutomationName))]
-    public partial DocumentStatus Status { get; set; } = DocumentStatus.Pending;
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(AutomationName))]
-    public partial int UnitCount { get; set; }
-
-    [ObservableProperty]
-    public partial int TokenCount { get; set; }
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(SkipReasonText), nameof(SkipAutomationName))]
-    public partial string? SkipReasonRaw { get; set; }
-
-    public void ApplyResult(ExtractionResult result)
+    private static string FolderOf(string? repoPath, string sourcePath)
     {
-        DocumentId = result.DocumentId;
-        Status = result.Status;
-        SkipReasonRaw = result.Reason;
+        var folder = repoPath is null ? Path.GetDirectoryName(sourcePath) : RepoDirectory(repoPath);
+        return string.IsNullOrEmpty(folder) ? ExtractionStrings.FolderRoot : folder;
     }
 
-    public void ApplyUnitTotals(int unitCount, int tokenCount)
+    private static string RepoDirectory(string repoPath)
     {
-        UnitCount = unitCount;
-        TokenCount = tokenCount;
+        var index = repoPath.LastIndexOf(RepoSeparator);
+        return index < 0 ? string.Empty : repoPath[..index];
     }
 
     public static string SkipReasonTextFor(DocumentStatus status, string? reason)

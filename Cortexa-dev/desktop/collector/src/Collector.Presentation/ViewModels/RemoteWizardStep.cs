@@ -7,7 +7,8 @@ public enum RemoteWizardStep
     Connect = 1,
     Repository = 2,
     Branch = 3,
-    Fetch = 4,
+    Files = 4,
+    Proceed = 5,
 }
 
 public enum WizardStepState

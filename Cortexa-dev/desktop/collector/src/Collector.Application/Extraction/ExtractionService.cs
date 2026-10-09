@@ -28,13 +28,14 @@ public sealed class ExtractionService(
         var results = new List<ExtractionResult>(filePaths.Count);
         foreach (var filePath in filePaths)
         {
-            results.Add(await ExtractOneAsync(filePath, sourceType, sourceKind, cancellationToken));
+            var extracted = await ExtractFileAsync(filePath, sourceType, sourceKind, cancellationToken);
+            results.Add(extracted.Result);
         }
 
         return results;
     }
 
-    private async Task<ExtractionResult> ExtractOneAsync(
+    public async Task<ExtractedFile> ExtractFileAsync(
         string filePath,
         SourceType sourceType,
         SourceKind sourceKind,
@@ -48,13 +49,14 @@ public sealed class ExtractionService(
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogWarning(ex, "Could not register {FilePath} for extraction.", filePath);
-            return new ExtractionResult { SourcePath = filePath, Status = DocumentStatus.Failed, Reason = ex.Message };
+            var failed = new ExtractionResult { SourcePath = filePath, Status = DocumentStatus.Failed, Reason = ex.Message };
+            return new ExtractedFile(failed, []);
         }
 
         return await ExtractRegisteredAsync(filePath, document.Id, cancellationToken);
     }
 
-    private async Task<ExtractionResult> ExtractRegisteredAsync(string filePath, string documentId, CancellationToken cancellationToken)
+    private async Task<ExtractedFile> ExtractRegisteredAsync(string filePath, string documentId, CancellationToken cancellationToken)
     {
         try
         {
@@ -63,19 +65,22 @@ public sealed class ExtractionService(
             {
                 var skipStatus = statusRules.ForSkip(reason);
                 await documentStore.UpdateStatusAsync(documentId, skipStatus, cancellationToken);
-                return new ExtractionResult { SourcePath = filePath, DocumentId = documentId, Status = skipStatus, Reason = reason.ToString() };
+                var skipped = new ExtractionResult { SourcePath = filePath, DocumentId = documentId, Status = skipStatus, Reason = reason.ToString() };
+                return new ExtractedFile(skipped, []);
             }
 
             var units = BuildExtractionUnits(documentId, outcome.Drafts!);
             await unitStore.ReplaceAsync(documentId, units, cancellationToken);
             await documentStore.UpdateStatusAsync(documentId, DocumentStatus.Extracted, cancellationToken);
-            return new ExtractionResult { SourcePath = filePath, DocumentId = documentId, Status = DocumentStatus.Extracted };
+            var extracted = new ExtractionResult { SourcePath = filePath, DocumentId = documentId, Status = DocumentStatus.Extracted };
+            return new ExtractedFile(extracted, units);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogWarning(ex, "Extraction failed for {FilePath}.", filePath);
             await TrySetStatusAsync(documentId, DocumentStatus.Failed, filePath);
-            return new ExtractionResult { SourcePath = filePath, DocumentId = documentId, Status = DocumentStatus.Failed, Reason = ex.Message };
+            var failed = new ExtractionResult { SourcePath = filePath, DocumentId = documentId, Status = DocumentStatus.Failed, Reason = ex.Message };
+            return new ExtractedFile(failed, []);
         }
         catch (OperationCanceledException)
         {

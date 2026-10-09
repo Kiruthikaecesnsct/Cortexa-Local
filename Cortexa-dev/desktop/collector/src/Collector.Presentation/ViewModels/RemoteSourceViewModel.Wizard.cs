@@ -23,7 +23,8 @@ public sealed partial class RemoteSourceViewModel
         new(RemoteWizardStep.Connect, RemoteSourceStrings.StepConnect),
         new(RemoteWizardStep.Repository, RemoteSourceStrings.StepRepository),
         new(RemoteWizardStep.Branch, RemoteSourceStrings.StepBranch),
-        new(RemoteWizardStep.Fetch, RemoteSourceStrings.StepFetch),
+        new(RemoteWizardStep.Files, RemoteSourceStrings.StepFiles),
+        new(RemoteWizardStep.Proceed, RemoteSourceStrings.StepProceed),
     ];
 
     public string Token
@@ -48,11 +49,16 @@ public sealed partial class RemoteSourceViewModel
 
     public bool ShowBranchStep => IsTokenSource && Step == RemoteWizardStep.Branch;
 
-    public bool ShowFetchStep => IsTokenSource && Step == RemoteWizardStep.Fetch;
+    public bool ShowFilesStep => IsTokenSource && Step == RemoteWizardStep.Files;
 
-    public bool ShowChangeRepository => IsTokenSource && Step is RemoteWizardStep.Branch or RemoteWizardStep.Fetch;
+    public bool ShowProceedStep => IsTokenSource && Step == RemoteWizardStep.Proceed;
 
-    public bool ShowChangeBranch => IsTokenSource && Step == RemoteWizardStep.Fetch;
+    public bool ShowChangeRepository =>
+        IsTokenSource && Step is RemoteWizardStep.Branch or RemoteWizardStep.Files or RemoteWizardStep.Proceed;
+
+    public bool ShowChangeBranch => IsTokenSource && Step is RemoteWizardStep.Files or RemoteWizardStep.Proceed;
+
+    public bool ShowChangeFiles => IsTokenSource && Step == RemoteWizardStep.Proceed;
 
     public string StatusText => Status switch
     {
@@ -78,7 +84,8 @@ public sealed partial class RemoteSourceViewModel
         RemoteWizardStep.Connect => RemoteSourceStrings.ConnectPromptText,
         RemoteWizardStep.Repository => RemoteSourceStrings.RepositoryPromptText(_all.Count, _connectedOrganization),
         RemoteWizardStep.Branch => RemoteSourceStrings.BranchPromptText(SelectedRepository?.FullName ?? string.Empty, _allBranches.Count),
-        _ => RemoteSourceStrings.FetchPromptText(SelectedRepository?.FullName ?? string.Empty, SelectedBranch?.Name ?? string.Empty),
+        RemoteWizardStep.Files => RemoteSourceStrings.FilesPromptText,
+        _ => Summary is null ? RemoteSourceStrings.ProceedPromptText : RemoteSourceStrings.ProceedDonePromptText,
     };
 
     [ObservableProperty]
@@ -173,6 +180,7 @@ public sealed partial class RemoteSourceViewModel
         Banner = null;
         Step = RemoteWizardStep.Branch;
         SelectedBranch = null;
+        ReleaseTree();
     }
 
     private void ChangeToken()
@@ -252,9 +260,11 @@ public sealed partial class RemoteSourceViewModel
         OnPropertyChanged(nameof(ShowConnectStep));
         OnPropertyChanged(nameof(ShowRepositoryStep));
         OnPropertyChanged(nameof(ShowBranchStep));
-        OnPropertyChanged(nameof(ShowFetchStep));
+        OnPropertyChanged(nameof(ShowFilesStep));
+        OnPropertyChanged(nameof(ShowProceedStep));
         OnPropertyChanged(nameof(ShowChangeRepository));
         OnPropertyChanged(nameof(ShowChangeBranch));
+        OnPropertyChanged(nameof(ShowChangeFiles));
         OnPropertyChanged(nameof(StatusText));
         OnPropertyChanged(nameof(StepPrompt));
         OnPropertyChanged(nameof(OrgUrlPlaceholder));
@@ -265,5 +275,7 @@ public sealed partial class RemoteSourceViewModel
         ConnectCommand.NotifyCanExecuteChanged();
         DisconnectCommand.NotifyCanExecuteChanged();
         ChangeBranchCommand.NotifyCanExecuteChanged();
+        ChangeFilesCommand.NotifyCanExecuteChanged();
+        ProceedCommand.NotifyCanExecuteChanged();
     }
 }

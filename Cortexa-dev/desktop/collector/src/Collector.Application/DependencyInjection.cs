@@ -3,6 +3,7 @@ using Collector.Application.Extraction;
 using Collector.Application.History;
 using Collector.Application.Knowledge;
 using Collector.Application.Remote;
+using Collector.Application.Remote.Selection;
 using Collector.Application.Secrets;
 using Collector.Application.Settings;
 using Collector.Application.Upload;
@@ -38,12 +39,15 @@ public static class DependencyInjection
         services.AddSingleton<UnitBuilder>();
         services.AddSingleton<DocumentStatusRules>();
         services.AddSingleton<ExtractionService>();
+        services.AddOptions<ExtractionOptions>();
+        services.AddSingleton<ParallelSplitter>();
     }
 
     private static void AddCollectorRemote(this IServiceCollection services)
     {
         services.AddOptions<RemoteFetchOptions>();
         services.AddSingleton<RemoteFileFilter>();
+        services.AddSingleton<FileTreeBuilder>();
         services.AddSingleton<RemoteFileFetcher>();
         services.AddSingleton<RemoteFetchService>();
     }

@@ -104,6 +104,25 @@ public sealed class UnitPreviewItemViewModelTests
         Assert.Equal("short body", item.Snippet);
     }
 
+    [Fact]
+    public void Keeps_the_full_text_untruncated_for_the_detail_pane()
+    {
+        var body = new string('x', 1000);
+
+        var item = new UnitPreviewItemViewModel(Unit(UnitKind.Page, pageNumber: 1, text: body), DocumentPath);
+
+        Assert.Equal(body, item.FullText);
+        Assert.True(item.Snippet.Length < body.Length);
+    }
+
+    [Fact]
+    public void Uses_the_boundary_label_as_the_section_title()
+    {
+        var item = new UnitPreviewItemViewModel(Unit(UnitKind.Section, sectionTitle: "Method"), DocumentPath);
+
+        Assert.Equal("Method", item.Title);
+    }
+
     private static ExtractionUnit Unit(
         UnitKind kind,
         int? pageNumber = null,

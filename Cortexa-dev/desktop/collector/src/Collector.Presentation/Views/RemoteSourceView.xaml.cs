@@ -168,8 +168,79 @@ public partial class RemoteSourceView : UserControl
     private void OnBranchStepVisibleChanged(object sender, DependencyPropertyChangedEventArgs e) =>
         FocusWhenShown(e, BranchSearch);
 
-    private void OnFetchStepVisibleChanged(object sender, DependencyPropertyChangedEventArgs e) =>
-        FocusWhenShown(e, FetchButton);
+    private void OnFilesStepVisibleChanged(object sender, DependencyPropertyChangedEventArgs e) =>
+        FocusWhenShown(e, FileSearch);
+
+    private void OnFilesStepPreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.F || Keyboard.Modifiers != ModifierKeys.Control)
+        {
+            return;
+        }
+
+        FileSearch.Focus();
+        FileSearch.SelectAll();
+        e.Handled = true;
+    }
+
+    private void OnFileSearchKeyDown(object sender, KeyEventArgs e)
+    {
+        if (_viewModel is null)
+        {
+            return;
+        }
+
+        e.Handled = e.Key switch
+        {
+            Key.Escape => ClearFileSearch(_viewModel.FileTree),
+            Key.Down => FocusFirstFileRow(),
+            _ => false,
+        };
+    }
+
+    private static bool ClearFileSearch(RemoteFileTreeViewModel tree)
+    {
+        if (tree.SearchText.Length == 0)
+        {
+            return false;
+        }
+
+        tree.SearchText = string.Empty;
+        return true;
+    }
+
+    private bool FocusFirstFileRow()
+    {
+        if (FileTreeList.Items.Count == 0)
+        {
+            return false;
+        }
+
+        FileTreeList.SelectedItem ??= FileTreeList.Items[0];
+        FileTreeList.ScrollIntoView(FileTreeList.SelectedItem);
+        Dispatcher.BeginInvoke(DispatcherPriority.Input, () =>
+            (FileTreeList.ItemContainerGenerator.ContainerFromItem(FileTreeList.SelectedItem) as ListBoxItem)?.Focus());
+        return true;
+    }
+
+    private void OnFileTreePreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (_viewModel is null || FileTreeList.SelectedItem is not FileTreeRowViewModel row)
+        {
+            return;
+        }
+
+        Action<FileTreeRowViewModel>? action = e.Key switch
+        {
+            Key.Space => _viewModel.FileTree.ToggleCheck,
+            Key.Enter => _viewModel.FileTree.Activate,
+            Key.Right => _viewModel.FileTree.ExpandOrDescend,
+            Key.Left => _viewModel.FileTree.CollapseOrAscend,
+            _ => null,
+        };
+        action?.Invoke(row);
+        e.Handled = action is not null;
+    }
 
     private void FocusWhenShown(DependencyPropertyChangedEventArgs e, UIElement target)
     {

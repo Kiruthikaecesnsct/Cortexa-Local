@@ -21,14 +21,12 @@ public sealed partial class RemoteSourceViewModel
     private string _sshPassphrase = string.Empty;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(FetchTitle))]
     public partial string SshHost { get; set; } = string.Empty;
 
     [ObservableProperty]
     public partial string SshPort { get; set; } = DefaultSshPort;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(FetchTitle))]
     public partial string SshUsername { get; set; } = string.Empty;
 
     [ObservableProperty]
@@ -64,8 +62,6 @@ public sealed partial class RemoteSourceViewModel
         get => _sshPassphrase;
         set => _sshPassphrase = value ?? string.Empty;
     }
-
-    public string SshFetchTitle => RemoteSourceStrings.SshConnecting;
 
     private bool CanConnectSsh() => AreControlsEnabled && !IsSshConnecting;
 
@@ -143,31 +139,7 @@ public sealed partial class RemoteSourceViewModel
     private async Task RunSshFetchAsync(SshConnectionProfile profile, CancellationToken cancellationToken)
     {
         var request = new RemoteFetchRequest(BuildSshRepository(profile), string.Empty);
-        BeginFetch(SourceType.Ssh);
-        RemoteFetchResult? result = null;
-        try
-        {
-            var progress = new SyncProgress<RemoteFetchProgress>(OnProgress);
-            result = await _deps.Fetcher.FetchAsync(request, progress, cancellationToken);
-        }
-        catch (OperationCanceledException)
-        {
-            ShowOutcome(_banners.Canceled());
-        }
-        catch (RemoteSourceException ex)
-        {
-            ShowFailure(ex.Kind, RetryDelay(ex.ResetAt), () => SshConnectCommand.ExecuteAsync(null));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Unexpected failure connecting to {Host}.", profile.Host);
-            ShowFailure(RemoteFailureKind.Upstream, null, () => SshConnectCommand.ExecuteAsync(null));
-        }
-        finally
-        {
-            EndFetch();
-        }
-
+        var result = await ExecuteFetchAsync(request, () => SshConnectCommand.ExecuteAsync(null), cancellationToken);
         if (result is not null)
         {
             CompleteFetch(request, result);

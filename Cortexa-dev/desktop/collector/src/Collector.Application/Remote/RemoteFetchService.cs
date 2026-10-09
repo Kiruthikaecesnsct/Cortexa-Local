@@ -32,22 +32,19 @@ public sealed class RemoteFetchService
         EnsureWithinSizeLimit(repository);
         progress?.Report(new RemoteFetchProgress(RemoteFetchPhase.ReadingTree, 0, 0));
         var client = _clients.For(repository.Provider);
-        var tree = await client.GetTreeAsync(repository, request.Branch, cancellationToken);
-        var context = new RemoteFetchContext(client, repository, request.Branch, tree.CommitSha);
-        var kept = tree.Entries.Where(_filter.Keep).ToList();
-        var selected = kept.Take(_options.Value.MaxFilesPerFetch).ToList();
-        var tally = await DownloadAndCompleteAsync(context, selected, progress, cancellationToken);
-        progress?.Report(new RemoteFetchProgress(RemoteFetchPhase.Completed, selected.Count, selected.Count));
-        var skipped = tree.Entries.Count - kept.Count + tally.Skipped;
+        var resolved = await ResolveEntriesAsync(client, request, cancellationToken);
+        var context = new RemoteFetchContext(client, repository, request.Branch, resolved.CommitSha);
+        var tally = await DownloadAndCompleteAsync(context, resolved.Entries, progress, cancellationToken);
+        progress?.Report(new RemoteFetchProgress(RemoteFetchPhase.Completed, resolved.Entries.Count, resolved.Entries.Count));
         return new RemoteFetchResult(
             repository.Provider,
-            tree.CommitSha,
-            tally.Paths,
+            resolved.CommitSha,
+            tally.Files,
             tally.Downloaded,
             tally.CacheHits,
-            skipped,
+            resolved.SkippedByFilter + tally.Skipped,
             tally.TooLarge,
-            tree.Truncated || kept.Count > selected.Count);
+            resolved.Truncated);
     }
 
     private void EnsureWithinSizeLimit(RemoteRepository repository)
@@ -56,6 +53,40 @@ public sealed class RemoteFetchService
         {
             throw new RemoteSourceException(RemoteFailureKind.RepositoryTooLarge, repository.Provider);
         }
+    }
+
+    private Task<ResolvedEntries> ResolveEntriesAsync(
+        IRemoteRepositoryClient client,
+        RemoteFetchRequest request,
+        CancellationToken cancellationToken) =>
+        request.Selection is { } selection
+            ? Task.FromResult(ResolveSelection(selection))
+            : ResolveTreeAsync(client, request, cancellationToken);
+
+    private ResolvedEntries ResolveSelection(RemoteSelection selection)
+    {
+        var kept = selection.Entries.Where(_filter.Keep).ToList();
+        var capped = kept.Take(_options.Value.MaxSelectedFiles).ToList();
+        return new ResolvedEntries(
+            selection.CommitSha,
+            capped,
+            selection.Entries.Count - kept.Count,
+            selection.TreeTruncated || kept.Count > capped.Count);
+    }
+
+    private async Task<ResolvedEntries> ResolveTreeAsync(
+        IRemoteRepositoryClient client,
+        RemoteFetchRequest request,
+        CancellationToken cancellationToken)
+    {
+        var tree = await client.GetTreeAsync(request.Repository, request.Branch, cancellationToken);
+        var kept = tree.Entries.Where(_filter.Keep).ToList();
+        var selected = kept.Take(_options.Value.MaxFilesPerFetch).ToList();
+        return new ResolvedEntries(
+            tree.CommitSha,
+            selected,
+            tree.Entries.Count - kept.Count,
+            tree.Truncated || kept.Count > selected.Count);
     }
 
     private async Task<RemoteFetchTally> DownloadAndCompleteAsync(
@@ -95,10 +126,16 @@ public sealed class RemoteFetchService
         {
             cached.TryGetValue(entry.Path, out var record);
             var outcome = await _fetcher.FetchAsync(context, entry, record, token);
-            var processed = tally.Record(outcome);
-            progress?.Report(new RemoteFetchProgress(RemoteFetchPhase.Downloading, processed, entries.Count));
+            var processed = tally.Record(entry.Path, outcome);
+            progress?.Report(new RemoteFetchProgress(RemoteFetchPhase.Downloading, processed, entries.Count, entry.Path));
         });
 
         return tally;
     }
+
+    private sealed record ResolvedEntries(
+        string CommitSha,
+        IReadOnlyList<RemoteTreeEntry> Entries,
+        int SkippedByFilter,
+        bool Truncated);
 }

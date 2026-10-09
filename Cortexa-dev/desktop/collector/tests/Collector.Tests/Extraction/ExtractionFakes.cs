@@ -12,8 +12,46 @@ internal sealed class FakePdfTextExtractor : IPdfTextExtractor
 
     public Exception? Failure { get; set; }
 
-    public Task<ParsedDocument> ExtractAsync(string filePath, CancellationToken cancellationToken) =>
-        Failure is null ? Task.FromResult(Result) : Task.FromException<ParsedDocument>(Failure);
+    public TaskCompletionSource? Gate { get; set; }
+
+    public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    public int Active => Volatile.Read(ref _active);
+
+    public int MaxActive => Volatile.Read(ref _maxActive);
+
+    private int _active;
+    private int _maxActive;
+
+    public async Task<ParsedDocument> ExtractAsync(string filePath, CancellationToken cancellationToken)
+    {
+        TrackEntry();
+        try
+        {
+            if (Gate is not null)
+            {
+                await Gate.Task.WaitAsync(cancellationToken);
+            }
+
+            return Failure is null ? Result : throw Failure;
+        }
+        finally
+        {
+            Interlocked.Decrement(ref _active);
+        }
+    }
+
+    private void TrackEntry()
+    {
+        var active = Interlocked.Increment(ref _active);
+        int seen;
+        do
+        {
+            seen = Volatile.Read(ref _maxActive);
+        }
+        while (active > seen && Interlocked.CompareExchange(ref _maxActive, active, seen) != seen);
+        Entered.TrySetResult();
+    }
 }
 
 internal sealed class FakeDocxTextExtractor : IDocxTextExtractor
@@ -53,6 +91,20 @@ internal sealed class InMemoryDocumentStore : IDocumentStore
         long sizeBytes,
         CancellationToken cancellationToken)
     {
+        lock (ByPath)
+        {
+            return Task.FromResult(UpsertLocked(sourceType, sourceKind, sourcePath, filename, contentHash, sizeBytes));
+        }
+    }
+
+    private CollectorDocument UpsertLocked(
+        SourceType sourceType,
+        SourceKind sourceKind,
+        string sourcePath,
+        string filename,
+        string contentHash,
+        long sizeBytes)
+    {
         if (!ByPath.TryGetValue(sourcePath, out var document))
         {
             document = new CollectorDocument
@@ -71,7 +123,7 @@ internal sealed class InMemoryDocumentStore : IDocumentStore
             ByPath[sourcePath] = document;
         }
 
-        return Task.FromResult(document);
+        return document;
     }
 
     public Task<CollectorDocument?> GetAsync(string documentId, CancellationToken cancellationToken) =>
@@ -85,11 +137,14 @@ internal sealed class InMemoryDocumentStore : IDocumentStore
             return Task.FromException(new InvalidOperationException("Status write failed."));
         }
 
-        StatusHistory.Add((documentId, status));
-        var entry = ByPath.Values.FirstOrDefault(d => d.Id == documentId);
-        if (entry is not null)
+        lock (ByPath)
         {
-            ByPath[entry.SourcePath] = entry with { Status = status };
+            StatusHistory.Add((documentId, status));
+            var entry = ByPath.Values.FirstOrDefault(d => d.Id == documentId);
+            if (entry is not null)
+            {
+                ByPath[entry.SourcePath] = entry with { Status = status };
+            }
         }
 
         return Task.CompletedTask;
@@ -102,7 +157,11 @@ internal sealed class InMemoryUnitStore : IUnitStore
 
     public Task ReplaceAsync(string documentId, IReadOnlyList<ExtractionUnit> units, CancellationToken cancellationToken)
     {
-        ByDocumentId[documentId] = units.ToList();
+        lock (ByDocumentId)
+        {
+            ByDocumentId[documentId] = units.ToList();
+        }
+
         return Task.CompletedTask;
     }
 

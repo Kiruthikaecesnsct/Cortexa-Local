@@ -4,7 +4,7 @@ namespace Collector.Application.Remote;
 
 internal sealed class RemoteFetchTally
 {
-    private readonly ConcurrentBag<string> _paths = [];
+    private readonly ConcurrentBag<FetchedFile> _files = [];
     private int _downloaded;
     private int _cacheHits;
     private int _tooLarge;
@@ -19,9 +19,9 @@ internal sealed class RemoteFetchTally
 
     public int Skipped => _skipped;
 
-    public IReadOnlyList<string> Paths => [.. _paths.Order(StringComparer.OrdinalIgnoreCase)];
+    public IReadOnlyList<FetchedFile> Files => [.. _files.OrderBy(file => file.LocalPath, StringComparer.OrdinalIgnoreCase)];
 
-    public int Record(RemoteFileOutcome outcome)
+    public int Record(string repoPath, RemoteFileOutcome outcome)
     {
         switch (outcome.Kind)
         {
@@ -41,7 +41,7 @@ internal sealed class RemoteFetchTally
 
         if (outcome.LocalPath is not null)
         {
-            _paths.Add(outcome.LocalPath);
+            _files.Add(new FetchedFile(outcome.LocalPath, repoPath));
         }
 
         return Interlocked.Increment(ref _processed);

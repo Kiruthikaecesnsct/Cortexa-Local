@@ -76,7 +76,8 @@ public static class RemoteSourceStrings
     public const string StepConnect = "Connect";
     public const string StepRepository = "Repository";
     public const string StepBranch = "Branch";
-    public const string StepFetch = "Fetch";
+    public const string StepFiles = "Files";
+    public const string StepProceed = "Proceed";
     public const string ConnectionTitle = "Connection";
     public const string ConnectingMessage = "Checking your token and finding every repository it can see.";
     public const string ConnectAgain = "Connect again";
@@ -148,7 +149,41 @@ public static class RemoteSourceStrings
     public const string ConnectPromptText =
         "Enter your organization URL and a personal access token, then select Connect and find repositories.";
 
-    private const int StepCount = 4;
+    public const string FilesPromptText =
+        "Check the files you want to process, then select Proceed. Nothing is downloaded until then.";
+
+    public const string ProceedPromptText = "Fetching and splitting your selected files. You can keep working.";
+
+    public const string ProceedDonePromptText =
+        "Done. Review the documents below, or change the files and fetch again.";
+
+    public const string ChooseFiles = "Choose files";
+    public const string FileSearchName = "Search files by path";
+    public const string FileSearchPlaceholder = "Search files by path";
+    public const string SelectAll = "Select all";
+    public const string SelectAllMatching = "Select all matching";
+    public const string ClearSelection = "Clear";
+    public const string ClearMatching = "Clear matching";
+    public const string SelectAllName = "Select all files";
+    public const string SelectAllMatchingName = "Select all matching files";
+    public const string ClearSelectionName = "Clear selected files";
+    public const string ClearMatchingName = "Clear matching files";
+    public const string OnlySupported = "Only supported files";
+    public const string OnlySupportedName = "Keep only supported files";
+    public const string FileTreeName = "Repository files";
+    public const string EmptyTree = "This branch has no files the collector can read.";
+    public const string NoFilesSelected = "No files selected";
+    public const string SelectFileHint = "Select at least one supported file to continue.";
+    public const string ProceedLabel = "Proceed";
+    public const string ProceedName = "Proceed, fetch and split selected files";
+    public const string ChangeFiles = "Change files";
+    public const string ChangeFilesName = "Change files and choose again";
+    public const string UnsupportedLabel = "Unsupported";
+    public const string TooLargeLabel = "Too large";
+    public const string TruncatedTreeNotice =
+        "The provider returned only part of the file list because the repository is very large. Some files are not shown.";
+
+    private const int StepCount = 5;
 
     public static string StepPrompt(int step, string text) => $"Step {step} of {StepCount} - {text}";
 
@@ -159,9 +194,6 @@ public static class RemoteSourceStrings
 
     public static string BranchPromptText(string repository, int count) =>
         $"{repository} has {Plural(count, "branch", "branches")}. Pick the branch whose files you want to fetch. The default branch is listed first.";
-
-    public static string FetchPromptText(string repository, string branch) =>
-        $"Fetch files from {repository} @ {branch} into the extraction cache.";
 
     public static string BranchAutomationName(string name, bool isDefault, bool isProtected, string? shortSha) =>
         string.Join(
@@ -185,6 +217,42 @@ public static class RemoteSourceStrings
     public static string NoMatch(string query) => $"No repositories match \"{query}\".";
 
     public static string OverLimitTag(string limit) => $"Over {limit}";
+
+    public static string LoadingTree(string branch) => $"Reading the file tree for {branch}…";
+
+    public static string NoFileMatch(string query) => $"No files match \"{query}\".";
+
+    public static string FilesSummary(int files, string size, int unsupported, int tooLarge) =>
+        $"{files:N0} files · {size} · {unsupported:N0} unsupported · {tooLarge:N0} too large skipped";
+
+    public static string SelectionText(int files, string size) => $"{files:N0} files · {size}";
+
+    public static string SkippedText(int unsupported, int tooLarge) =>
+        $"{unsupported:N0} unsupported · {tooLarge:N0} too large skipped";
+
+    public static string OverLimitHint(int limit) =>
+        $"That is more than {limit:N0} files. Narrow the selection to continue.";
+
+    public static string HiddenExcludedNotice(int count) =>
+        $"{count:N0} files in build and dependency folders (node_modules, bin, obj, .git) are hidden.";
+
+    public static string FolderSize(int selected, int total) => $"{selected:N0} of {total:N0} files";
+
+    public static string FolderRowName(string name, int level, bool expanded, string check, string size) =>
+        $"{name}, folder, level {level}, {(expanded ? "expanded" : "collapsed")}, {check}, {size} selected";
+
+    public static string FileRowName(string name, string size, int level, bool selected, string verdict) =>
+        $"{name}, {size}, level {level}, {(selected ? "selected" : "not selected")}{verdict}";
+
+    public static string CheckStateName(bool? isChecked) => isChecked switch
+    {
+        true => "selected",
+        false => "not selected",
+        null => "partly selected",
+    };
+
+    public static string FileVerdictSuffix(bool unsupported, bool tooLarge) =>
+        unsupported ? ", unsupported" : tooLarge ? ", too large, will be skipped" : string.Empty;
 
     public static string Commit(string sha) => $"Commit {sha}";
 

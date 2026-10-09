@@ -2,11 +2,12 @@
 
 **Date**: 2026-10-08
 **Item**: US134 (GitHub and Azure DevOps collectors)
-**Status**: Merged to dev (PR #14).
+**Status**: Merged to dev (PR #14). Superseded in part by US138 (PR #19, 2026-10-09).
 
 ## Decision
 
-- GitHub and Azure DevOps personal access tokens are stored in Windows Credential Manager. The slots are `SecretSlot GitHubPat` and `SecretSlot AzureDevOpsPat`.
+- Superseded by US138: remote PATs and the SSH passphrase are held in session memory only. They are never written to Windows Credential Manager or to disk. Previously saved GitHub, Azure DevOps, and SSH passphrase secrets are deleted at startup. The SSH host-key fingerprint pin is removed (accepted risk).
+- Original US134 rule, now superseded: GitHub and Azure DevOps personal access tokens were stored in Windows Credential Manager (slots `SecretSlot GitHubPat` and `SecretSlot AzureDevOpsPat`).
 - A per-client HTTP handler attaches the token only to the configured API origin. Redirects are disabled, so a redirect cannot send the token to another host.
 - A per-provider rate-limit gate pauses requests near the limit. A 429 response is retried after the wait.
 - Pinned API versions:

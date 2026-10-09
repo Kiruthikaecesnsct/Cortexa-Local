@@ -110,14 +110,9 @@
 
     <Grid MaxWidth="{StaticResource Size.WorkspaceMaxWidth}" HorizontalAlignment="Left">
 
-        <Border Style="{StaticResource Card}" Visibility="{Binding ShowEmptyCard, Converter={StaticResource BoolToVisibility}}">
+        <Border VerticalAlignment="Top" Style="{StaticResource Card}" Visibility="{Binding ShowEmptyCard, Converter={StaticResource BoolToVisibility}}">
             <StackPanel HorizontalAlignment="Center">
-                <TextBlock Margin="{StaticResource Thickness.StackGap}"
-                           HorizontalAlignment="Center"
-                           FontFamily="{StaticResource Font.Icon}"
-                           FontSize="{StaticResource FontSize.EmptyGlyph}"
-                           Foreground="{DynamicResource Brush.Text.Muted}"
-                           Text="{x:Static res:Glyphs.Lightbulb}" />
+                <ContentControl Content="{x:Static res:Glyphs.Lightbulb}" Style="{StaticResource EmptyIcon}" />
                 <TextBlock Margin="{StaticResource Thickness.StackGap}"
                            HorizontalAlignment="Center"
                            AutomationProperties.HeadingLevel="Level2"
@@ -163,10 +158,8 @@
                     Style="{StaticResource Card}"
                     Visibility="{Binding ShowResults, Converter={StaticResource BoolToVisibility}}">
                 <StackPanel>
-                    <StackPanel Margin="{StaticResource Thickness.StackGap}" Orientation="Horizontal">
-                        <TextBlock Margin="{StaticResource Thickness.InlineGapLarge}"
-                                   Style="{StaticResource Text.Glyph.Header}"
-                                   Text="{x:Static res:Glyphs.Upload}" />
+                    <StackPanel Margin="{StaticResource Thickness.StackGapMedium}" Orientation="Horizontal">
+                        <ContentControl Margin="{StaticResource Thickness.InlineGapLarge}" Content="{x:Static res:Glyphs.Upload}" Style="{StaticResource IconTile}" />
                         <TextBlock AutomationProperties.HeadingLevel="Level2"
                                    Style="{StaticResource Text.Subtitle}"
                                    Text="{x:Static res:ReviewStrings.ResultsTitle}" />
@@ -296,12 +289,7 @@
                         <StackPanel HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
                                     Visibility="{Binding ShowDetailsPlaceholder, Converter={StaticResource BoolToVisibility}}">
-                            <TextBlock Margin="{StaticResource Thickness.StackGap}"
-                                       HorizontalAlignment="Center"
-                                       FontFamily="{StaticResource Font.Icon}"
-                                       FontSize="{StaticResource FontSize.PlaceholderGlyph}"
-                                       Foreground="{DynamicResource Brush.Text.Muted}"
-                                       Text="{x:Static res:Glyphs.Lightbulb}" />
+                            <ContentControl Content="{x:Static res:Glyphs.Lightbulb}" Style="{StaticResource EmptyIcon.Small}" />
                             <TextBlock HorizontalAlignment="Center"
                                        Style="{StaticResource Text.Helper}"
                                        Text="{x:Static res:ReviewStrings.DetailsPlaceholder}"
@@ -348,7 +336,7 @@
                                                    Foreground="{DynamicResource Brush.Warning}"
                                                    Style="{StaticResource Text.Glyph}"
                                                    Text="{x:Static res:Glyphs.Warning}" />
-                                        <StackPanel MaxWidth="240">
+                                        <StackPanel MaxWidth="{StaticResource Size.EchoTextMaxWidth}">
                                             <TextBlock Style="{StaticResource Text.Label}" Text="{x:Static res:ReviewStrings.EchoTitle}" />
                                             <TextBlock Style="{StaticResource Text.Body}"
                                                        Text="{Binding EchoReasonText}"

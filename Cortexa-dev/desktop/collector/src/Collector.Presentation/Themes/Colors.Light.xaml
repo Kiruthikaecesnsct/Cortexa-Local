@@ -4,38 +4,65 @@
                     xmlns:po="http://schemas.microsoft.com/winfx/2006/xaml/presentation/options"
                     mc:Ignorable="po">
 
-    <Color x:Key="Color.Surface.Page">#F6F7FC</Color>
+    <Color x:Key="Color.Surface.Page">#F4F6FA</Color>
     <Color x:Key="Color.Surface.Card">#FFFFFF</Color>
-    <Color x:Key="Color.Surface.Rail">#EEF0FA</Color>
-    <Color x:Key="Color.Surface.Sunken">#EEF0F8</Color>
-    <Color x:Key="Color.Surface.Selected">#E3E6FB</Color>
-    <Color x:Key="Color.Border.Subtle">#E3E6F0</Color>
-    <Color x:Key="Color.Border.Control">#8A93A8</Color>
-    <Color x:Key="Color.Border.Focus">#4653E8</Color>
-    <Color x:Key="Color.Text.Primary">#171A30</Color>
-    <Color x:Key="Color.Text.Body">#464D6E</Color>
-    <Color x:Key="Color.Text.Muted">#5F6684</Color>
-    <Color x:Key="Color.Text.Disabled">#9AA1B8</Color>
+    <Color x:Key="Color.Surface.Rail">#0F172A</Color>
+    <Color x:Key="Color.Surface.Sunken">#F2F4F8</Color>
+    <Color x:Key="Color.Surface.Hover">#F5F6FA</Color>
+    <Color x:Key="Color.Surface.Selected">#EEF0FF</Color>
+    <Color x:Key="Color.Border.Subtle">#E4E7EE</Color>
+    <Color x:Key="Color.Border.Button">#D0D5DD</Color>
+    <Color x:Key="Color.Border.Control">#858DA2</Color>
+    <Color x:Key="Color.Border.Focus">#4F46E5</Color>
+    <Color x:Key="Color.Text.Primary">#101828</Color>
+    <Color x:Key="Color.Text.Body">#475467</Color>
+    <Color x:Key="Color.Text.Muted">#5D6679</Color>
+    <Color x:Key="Color.Text.Disabled">#98A2B3</Color>
     <Color x:Key="Color.Text.OnAccent">#FFFFFF</Color>
-    <Color x:Key="Color.Text.Link">#3945D6</Color>
-    <Color x:Key="Color.Accent">#4653E8</Color>
-    <Color x:Key="Color.Accent.Hover">#3945D6</Color>
-    <Color x:Key="Color.Accent.Pressed">#2F3BC4</Color>
-    <Color x:Key="Color.Danger">#C4283F</Color>
-    <Color x:Key="Color.Danger.Hover">#A8202F</Color>
-    <Color x:Key="Color.Danger.Surface">#FCEBED</Color>
-    <Color x:Key="Color.Success">#0B7A53</Color>
-    <Color x:Key="Color.Success.Surface">#E7F5EF</Color>
-    <Color x:Key="Color.Warning">#9A4A08</Color>
-    <Color x:Key="Color.Warning.Surface">#FEF3E2</Color>
-    <Color x:Key="Color.Info.Surface">#EAECFD</Color>
+    <Color x:Key="Color.Text.Link">#4338CA</Color>
+    <Color x:Key="Color.Accent">#4F46E5</Color>
+    <Color x:Key="Color.Accent.Hover">#4338CA</Color>
+    <Color x:Key="Color.Accent.Pressed">#3730A3</Color>
+    <Color x:Key="Color.Accent.Subtle">#EEF0FF</Color>
+    <Color x:Key="Color.Accent.SubtleBorder">#C7CBFD</Color>
+    <Color x:Key="Color.Danger">#D92D20</Color>
+    <Color x:Key="Color.Danger.Hover">#B42318</Color>
+    <Color x:Key="Color.Danger.Surface">#FEF3F2</Color>
+    <Color x:Key="Color.Danger.Border">#FECDCA</Color>
+    <Color x:Key="Color.Success">#067647</Color>
+    <Color x:Key="Color.Success.Surface">#ECFDF3</Color>
+    <Color x:Key="Color.Success.Border">#ABEFC6</Color>
+    <Color x:Key="Color.Warning">#B54708</Color>
+    <Color x:Key="Color.Warning.Surface">#FFFAEB</Color>
+    <Color x:Key="Color.Warning.Border">#FEDF89</Color>
+    <Color x:Key="Color.Info">#3538CD</Color>
+    <Color x:Key="Color.Info.Surface">#EEF4FF</Color>
+    <Color x:Key="Color.Info.Border">#C7D7FE</Color>
+    <Color x:Key="Color.Rail.Text">#CBD5E1</Color>
+    <Color x:Key="Color.Rail.Text.Muted">#8B97AD</Color>
+    <Color x:Key="Color.Rail.Text.Selected">#FFFFFF</Color>
+    <Color x:Key="Color.Rail.Text.Disabled">#5E6A82</Color>
+    <Color x:Key="Color.Rail.Hover">#1C2740</Color>
+    <Color x:Key="Color.Rail.Selected">#242F52</Color>
+    <Color x:Key="Color.Rail.Indicator">#818CF8</Color>
+    <Color x:Key="Color.Rail.Divider">#1F2A40</Color>
+    <Color x:Key="Color.Brand.Start">#6366F1</Color>
+    <Color x:Key="Color.Brand.End">#8B5CF6</Color>
+    <Color x:Key="Color.Brand.Deep">#1E1B4B</Color>
+    <Color x:Key="Color.Tooltip.Surface">#101828</Color>
+    <Color x:Key="Color.Tooltip.Text">#F8FAFC</Color>
+    <Color x:Key="Color.ScrollThumb">#C3C9D5</Color>
+    <Color x:Key="Color.ScrollThumb.Hover">#98A2B3</Color>
+    <Color x:Key="Color.Shadow">#101828</Color>
 
     <SolidColorBrush x:Key="Brush.Surface.Page" Color="{StaticResource Color.Surface.Page}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Surface.Card" Color="{StaticResource Color.Surface.Card}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Surface.Rail" Color="{StaticResource Color.Surface.Rail}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Surface.Sunken" Color="{StaticResource Color.Surface.Sunken}" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Surface.Hover" Color="{StaticResource Color.Surface.Hover}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Surface.Selected" Color="{StaticResource Color.Surface.Selected}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Border.Subtle" Color="{StaticResource Color.Border.Subtle}" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Border.Button" Color="{StaticResource Color.Border.Button}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Border.Control" Color="{StaticResource Color.Border.Control}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Border.Focus" Color="{StaticResource Color.Border.Focus}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Text.Primary" Color="{StaticResource Color.Text.Primary}" po:Freeze="True" />
@@ -48,14 +75,61 @@
     <SolidColorBrush x:Key="Brush.Accent" Color="{StaticResource Color.Accent}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Accent.Hover" Color="{StaticResource Color.Accent.Hover}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Accent.Pressed" Color="{StaticResource Color.Accent.Pressed}" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Accent.Subtle" Color="{StaticResource Color.Accent.Subtle}" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Accent.SubtleBorder" Color="{StaticResource Color.Accent.SubtleBorder}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Danger" Color="{StaticResource Color.Danger}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Danger.Hover" Color="{StaticResource Color.Danger.Hover}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Danger.Surface" Color="{StaticResource Color.Danger.Surface}" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Danger.Border" Color="{StaticResource Color.Danger.Border}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Success" Color="{StaticResource Color.Success}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Success.Surface" Color="{StaticResource Color.Success.Surface}" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Success.Border" Color="{StaticResource Color.Success.Border}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Warning" Color="{StaticResource Color.Warning}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Warning.Surface" Color="{StaticResource Color.Warning.Surface}" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Warning.Border" Color="{StaticResource Color.Warning.Border}" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Info" Color="{StaticResource Color.Info}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Info.Surface" Color="{StaticResource Color.Info.Surface}" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Info.Border" Color="{StaticResource Color.Info.Border}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Button.Edge" Color="Transparent" po:Freeze="True" />
-    <SolidColorBrush x:Key="Brush.Info" Color="{StaticResource Color.Text.Link}" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Rail.Text" Color="{StaticResource Color.Rail.Text}" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Rail.Text.Muted" Color="{StaticResource Color.Rail.Text.Muted}" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Rail.Text.Selected" Color="{StaticResource Color.Rail.Text.Selected}" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Rail.Text.Disabled" Color="{StaticResource Color.Rail.Text.Disabled}" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Rail.Hover" Color="{StaticResource Color.Rail.Hover}" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Rail.Selected" Color="{StaticResource Color.Rail.Selected}" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Rail.Indicator" Color="{StaticResource Color.Rail.Indicator}" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Rail.Divider" Color="{StaticResource Color.Rail.Divider}" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Tooltip.Surface" Color="{StaticResource Color.Tooltip.Surface}" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Tooltip.Text" Color="{StaticResource Color.Tooltip.Text}" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.ScrollThumb" Color="{StaticResource Color.ScrollThumb}" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.ScrollThumb.Hover" Color="{StaticResource Color.ScrollThumb.Hover}" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Brand.OnBrand" Color="{StaticResource Color.Text.OnAccent}" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Brand.OnBrandMuted" Color="#D8DAFE" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.Hero.Text" Color="{StaticResource Color.Text.OnAccent}" po:Freeze="True" />
+
+    <LinearGradientBrush x:Key="Brush.Brand" StartPoint="0,0" EndPoint="1,1" po:Freeze="True">
+        <GradientStop Offset="0" Color="{StaticResource Color.Brand.Start}" />
+        <GradientStop Offset="1" Color="{StaticResource Color.Brand.End}" />
+    </LinearGradientBrush>
+    <LinearGradientBrush x:Key="Brush.Brand.Hero" StartPoint="0,0" EndPoint="1,1" po:Freeze="True">
+        <GradientStop Offset="0" Color="{StaticResource Color.Accent.Pressed}" />
+        <GradientStop Offset="0.55" Color="{StaticResource Color.Accent}" />
+        <GradientStop Offset="1" Color="{StaticResource Color.Brand.End}" />
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="Brush.Brand.HeroGlass" Color="#1FFFFFFF" po:Freeze="True" />
+
+    <DropShadowEffect x:Key="Effect.Elevation.Low"
+                      BlurRadius="12"
+                      Direction="270"
+                      Opacity="0.06"
+                      ShadowDepth="2"
+                      Color="{StaticResource Color.Shadow}"
+                      po:Freeze="True" />
+    <DropShadowEffect x:Key="Effect.Elevation.High"
+                      BlurRadius="32"
+                      Direction="270"
+                      Opacity="0.12"
+                      ShadowDepth="8"
+                      Color="{StaticResource Color.Shadow}"
+                      po:Freeze="True" />
 </ResourceDictionary>

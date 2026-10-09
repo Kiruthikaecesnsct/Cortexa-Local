@@ -18,6 +18,8 @@ public sealed record ScreenRegistration
 
     public required string Glyph { get; init; }
 
+    public string Subtitle { get; init; } = string.Empty;
+
     public required NavPlacement Placement { get; init; }
 
     public required int Order { get; init; }

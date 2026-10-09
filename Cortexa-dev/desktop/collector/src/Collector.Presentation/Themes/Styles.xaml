@@ -9,102 +9,161 @@
     <FontFamily x:Key="Font.Display">Segoe UI Variable Display, Segoe UI</FontFamily>
     <FontFamily x:Key="Font.Icon">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
     <FontFamily x:Key="Font.Mono">Cascadia Mono, Consolas</FontFamily>
+    <sys:Double x:Key="FontSize.Overline">11</sys:Double>
     <sys:Double x:Key="FontSize.Caption">12</sys:Double>
+    <sys:Double x:Key="FontSize.PageSubtitle">13</sys:Double>
     <sys:Double x:Key="FontSize.Body">14</sys:Double>
     <sys:Double x:Key="FontSize.BodyLarge">16</sys:Double>
-    <sys:Double x:Key="FontSize.Subtitle">18</sys:Double>
-    <sys:Double x:Key="FontSize.Title">24</sys:Double>
+    <sys:Double x:Key="FontSize.Subtitle">16</sys:Double>
+    <sys:Double x:Key="FontSize.Title">20</sys:Double>
+    <sys:Double x:Key="FontSize.Kpi">24</sys:Double>
+    <sys:Double x:Key="FontSize.Hero">26</sys:Double>
+    <sys:Double x:Key="FontSize.Brand">15</sys:Double>
     <sys:Double x:Key="FontSize.Icon">16</sys:Double>
     <sys:Double x:Key="FontSize.IconSmall">12</sys:Double>
-    <sys:Double x:Key="FontSize.EmptyGlyph">40</sys:Double>
-    <sys:Double x:Key="FontSize.PlaceholderGlyph">28</sys:Double>
+    <sys:Double x:Key="FontSize.EmptyGlyph">30</sys:Double>
+    <sys:Double x:Key="FontSize.PlaceholderGlyph">24</sys:Double>
 
     <sys:Double x:Key="Space.XS">4</sys:Double>
     <sys:Double x:Key="Space.S">8</sys:Double>
     <sys:Double x:Key="Space.M">12</sys:Double>
     <sys:Double x:Key="Space.L">16</sys:Double>
-    <sys:Double x:Key="Space.XL">24</sys:Double>
+    <sys:Double x:Key="Space.XL">20</sys:Double>
     <sys:Double x:Key="Space.XXL">32</sys:Double>
 
-    <Thickness x:Key="Thickness.ContentPadding">32,24,32,32</Thickness>
-    <Thickness x:Key="Thickness.ContentPaddingCompact">16,16,16,24</Thickness>
+    <Thickness x:Key="Thickness.ContentPadding">32,28,32,32</Thickness>
+    <Thickness x:Key="Thickness.ContentPaddingCompact">20,20,20,24</Thickness>
     <Thickness x:Key="Thickness.CardPadding">24</Thickness>
     <Thickness x:Key="Thickness.ControlPadding">12,8,12,8</Thickness>
     <Thickness x:Key="Thickness.ControlPaddingFocused">11,7,11,7</Thickness>
     <Thickness x:Key="Thickness.ButtonPadding">16,8,16,8</Thickness>
-    <Thickness x:Key="Thickness.FieldGap">0,0,0,16</Thickness>
+    <Thickness x:Key="Thickness.FieldGap">0,0,0,18</Thickness>
     <Thickness x:Key="Thickness.Border">1</Thickness>
     <Thickness x:Key="Thickness.FocusRing">2</Thickness>
-    <Thickness x:Key="Thickness.FocusMargin">-2</Thickness>
+    <Thickness x:Key="Thickness.FocusMargin">-3</Thickness>
     <Thickness x:Key="Thickness.None">0</Thickness>
-    <Thickness x:Key="Thickness.NavItemPadding">24,0,12,0</Thickness>
-    <Thickness x:Key="Thickness.ChipPadding">10,4,10,4</Thickness>
+    <Thickness x:Key="Thickness.NavItemPadding">12,0,12,0</Thickness>
+    <Thickness x:Key="Thickness.NavItemMargin">12,2,12,2</Thickness>
+    <Thickness x:Key="Thickness.ChipPadding">12,4,12,4</Thickness>
+    <Thickness x:Key="Thickness.TagPadding">8,3,8,3</Thickness>
+    <Thickness x:Key="Thickness.TagGlyphGap">0,0,6,0</Thickness>
     <Thickness x:Key="Thickness.BannerPadding">16,12,12,12</Thickness>
+    <Thickness x:Key="Thickness.BannerBar">0,0,12,0</Thickness>
     <Thickness x:Key="Thickness.RowPadding">0,12,0,12</Thickness>
-    <Thickness x:Key="Thickness.TopBarPadding">24,0,24,0</Thickness>
+    <Thickness x:Key="Thickness.TopBarPadding">32,0,24,0</Thickness>
     <Thickness x:Key="Thickness.StackGap">0,0,0,8</Thickness>
+    <Thickness x:Key="Thickness.StackGapMedium">0,0,0,16</Thickness>
     <Thickness x:Key="Thickness.StackGapLarge">0,0,0,24</Thickness>
     <Thickness x:Key="Thickness.InlineGap">0,0,8,0</Thickness>
     <Thickness x:Key="Thickness.InlineGapLarge">0,0,12,0</Thickness>
-    <Thickness x:Key="Thickness.LabelPadding">0,0,0,4</Thickness>
+    <Thickness x:Key="Thickness.InlineGapXL">0,0,16,0</Thickness>
+    <Thickness x:Key="Thickness.LabelPadding">0,0,0,6</Thickness>
     <Thickness x:Key="Thickness.HelperGap">0,4,0,0</Thickness>
-    <Thickness x:Key="Thickness.SectionTop">0,24,0,0</Thickness>
-    <Thickness x:Key="Thickness.SignInTop">0,24,0,0</Thickness>
+    <Thickness x:Key="Thickness.SectionTop">0,20,0,0</Thickness>
+    <Thickness x:Key="Thickness.SectionHeader">0,0,0,20</Thickness>
+    <Thickness x:Key="Thickness.SignInTop">0,16,0,0</Thickness>
     <Thickness x:Key="Thickness.BottomBorder">0,0,0,1</Thickness>
-    <Thickness x:Key="Thickness.HintPull">0,-8,0,16</Thickness>
+    <Thickness x:Key="Thickness.RightBorder">0,0,1,0</Thickness>
+    <Thickness x:Key="Thickness.HintPull">0,-10,0,18</Thickness>
     <Thickness x:Key="Thickness.Inset">24,0,24,0</Thickness>
     <Thickness x:Key="Thickness.CheckBoxInset">12,0,0,0</Thickness>
     <Thickness x:Key="Thickness.LeadingGap">12,0,0,0</Thickness>
-    <Thickness x:Key="Thickness.HeaderPadding">16,8,16,8</Thickness>
-    <Thickness x:Key="Thickness.ItemPadding">16,12,16,12</Thickness>
-    <Thickness x:Key="Thickness.FooterPadding">16,12,16,12</Thickness>
+    <Thickness x:Key="Thickness.LeadingGapSmall">8,0,0,0</Thickness>
+    <Thickness x:Key="Thickness.HeaderPadding">16,10,16,10</Thickness>
+    <Thickness x:Key="Thickness.ItemPadding">16,14,16,14</Thickness>
+    <Thickness x:Key="Thickness.FooterPadding">20,14,20,14</Thickness>
     <Thickness x:Key="Thickness.LinkIndent">52,0,16,16</Thickness>
     <Thickness x:Key="Thickness.TopBorder">0,1,0,0</Thickness>
-    <Thickness x:Key="Thickness.FailedHeader">24,16,24,0</Thickness>
-    <Thickness x:Key="Thickness.FailedIntro">24,4,24,8</Thickness>
-    <Thickness x:Key="Thickness.FailedRow">24,12,24,12</Thickness>
+    <Thickness x:Key="Thickness.FailedHeader">24,20,24,0</Thickness>
+    <Thickness x:Key="Thickness.FailedIntro">24,4,24,12</Thickness>
+    <Thickness x:Key="Thickness.FailedRow">24,14,24,14</Thickness>
+    <Thickness x:Key="Thickness.KpiPadding">16,14,16,14</Thickness>
+    <Thickness x:Key="Thickness.KpiGap">0,0,12,12</Thickness>
+    <Thickness x:Key="Thickness.RailBrand">20,0,16,0</Thickness>
+    <Thickness x:Key="Thickness.RailBrandCompact">19,0,19,0</Thickness>
+    <Thickness x:Key="Thickness.RailSection">24,20,16,8</Thickness>
+    <Thickness x:Key="Thickness.RailFooter">12,8,12,16</Thickness>
+    <Thickness x:Key="Thickness.RailUserCard">10,10,10,10</Thickness>
+    <Thickness x:Key="Thickness.HeroPadding">36,40,36,36</Thickness>
+    <Thickness x:Key="Thickness.SignInFormPadding">40,36,40,32</Thickness>
+    <Thickness x:Key="Thickness.HeroPoint">0,0,0,16</Thickness>
+    <Thickness x:Key="Thickness.ComboContent">12,0,36,0</Thickness>
+    <Thickness x:Key="Thickness.ComboChevron">0,0,12,0</Thickness>
+    <Thickness x:Key="Thickness.PopupRoom">8,4,8,16</Thickness>
+    <Thickness x:Key="Thickness.PopupPadding">4</Thickness>
+    <Thickness x:Key="Thickness.ListItemPadding">10,8,10,8</Thickness>
+    <Thickness x:Key="Thickness.TooltipPadding">10,6,10,6</Thickness>
+    <Thickness x:Key="Thickness.ScrollThumbInset">2</Thickness>
+    <Thickness x:Key="Thickness.SearchPadding">12,8,40,8</Thickness>
+    <Thickness x:Key="Thickness.SearchGlyph">0,0,14,0</Thickness>
 
     <sys:Double x:Key="Size.Control">40</sys:Double>
-    <sys:Double x:Key="Size.NavItem">44</sys:Double>
-    <sys:Double x:Key="Size.RowAction">44</sys:Double>
-    <sys:Double x:Key="Size.RowMin">64</sys:Double>
-    <sys:Double x:Key="Size.TopBar">56</sys:Double>
-    <GridLength x:Key="GridLength.TopBar">56</GridLength>
-    <sys:Double x:Key="Size.RailExpanded">232</sys:Double>
-    <sys:Double x:Key="Size.RailCompact">64</sys:Double>
-    <sys:Double x:Key="Size.SignInCardWidth">400</sys:Double>
-    <sys:Double x:Key="Size.ContentMaxWidth">720</sys:Double>
-    <sys:Double x:Key="Size.WorkspaceMaxWidth">960</sys:Double>
-    <sys:Double x:Key="Size.EmailMaxWidth">280</sys:Double>
+    <sys:Double x:Key="Size.NavItem">40</sys:Double>
+    <sys:Double x:Key="Size.RowAction">40</sys:Double>
+    <sys:Double x:Key="Size.RowMin">60</sys:Double>
+    <sys:Double x:Key="Size.TopBar">68</sys:Double>
+    <GridLength x:Key="GridLength.TopBar">68</GridLength>
+    <sys:Double x:Key="Size.RailExpanded">248</sys:Double>
+    <sys:Double x:Key="Size.RailCompact">72</sys:Double>
+    <sys:Double x:Key="Size.SignInCardWidth">880</sys:Double>
+    <sys:Double x:Key="Size.HeroWidth">360</sys:Double>
+    <sys:Double x:Key="Size.ContentMaxWidth">760</sys:Double>
+    <sys:Double x:Key="Size.WorkspaceMaxWidth">1040</sys:Double>
+    <sys:Double x:Key="Size.EmailMaxWidth">220</sys:Double>
+    <sys:Double x:Key="Size.RailEmailMaxWidth">140</sys:Double>
     <sys:Double x:Key="Size.WindowMinWidth">880</sys:Double>
     <sys:Double x:Key="Size.WindowMinHeight">600</sys:Double>
-    <sys:Double x:Key="Size.WindowDefaultWidth">1120</sys:Double>
+    <sys:Double x:Key="Size.WindowDefaultWidth">1280</sys:Double>
     <sys:Double x:Key="Size.WindowDefaultHeight">720</sys:Double>
-    <sys:Double x:Key="Size.Progress">2</sys:Double>
+    <sys:Double x:Key="Size.Progress">4</sys:Double>
+    <sys:Double x:Key="Size.ProgressRunner">120</sys:Double>
     <sys:Double x:Key="Size.IconVisual">32</sys:Double>
     <sys:Double x:Key="Size.IconHit">40</sys:Double>
+    <sys:Double x:Key="Size.IconTile">36</sys:Double>
+    <sys:Double x:Key="Size.EmptyTile">64</sys:Double>
+    <sys:Double x:Key="Size.Avatar">32</sys:Double>
+    <sys:Double x:Key="Size.BrandMark">34</sys:Double>
+    <sys:Double x:Key="Size.HeroMark">44</sys:Double>
+    <sys:Double x:Key="Size.HeroPointTile">28</sys:Double>
     <sys:Double x:Key="Size.NavIndicator">3</sys:Double>
+    <sys:Double x:Key="Size.NavIndicatorHeight">18</sys:Double>
+    <sys:Double x:Key="Size.BannerBar">4</sys:Double>
     <sys:Double x:Key="Size.Divider">1</sys:Double>
-    <sys:Double x:Key="Size.ActionMinWidth">96</sys:Double>
-    <sys:Double x:Key="Size.ComboMin">220</sys:Double>
+    <sys:Double x:Key="Size.ActionMinWidth">104</sys:Double>
+    <sys:Double x:Key="Size.ComboMin">240</sys:Double>
+    <sys:Double x:Key="Size.ComboPopupMax">320</sys:Double>
     <sys:Double x:Key="Breakpoint.RailCompact">1040</sys:Double>
-    <sys:Double x:Key="Size.DetailsPane">320</sys:Double>
+    <sys:Double x:Key="Size.DetailsPane">340</sys:Double>
     <sys:Double x:Key="Size.ListMinWidth">400</sys:Double>
-    <sys:Double x:Key="Size.CheckBox">20</sys:Double>
+    <sys:Double x:Key="Size.CheckBox">18</sys:Double>
     <sys:Double x:Key="Size.ChipVisual">32</sys:Double>
     <sys:Double x:Key="Size.SummaryLineHeight">20</sys:Double>
     <sys:Double x:Key="Size.SummaryMaxHeight">40</sys:Double>
-    <sys:Double x:Key="Size.BatchPane">300</sys:Double>
+    <sys:Double x:Key="Size.BatchPane">320</sys:Double>
     <sys:Double x:Key="Size.FailedListMaxHeight">288</sys:Double>
     <sys:Double x:Key="Size.RepoListMaxHeight">352</sys:Double>
     <sys:Double x:Key="Size.LiveRegion">1</sys:Double>
     <sys:Double x:Key="Size.MetricMinWidth">64</sys:Double>
+    <sys:Double x:Key="Size.KpiMinWidth">150</sys:Double>
+    <sys:Double x:Key="Size.ScrollBar">10</sys:Double>
+    <sys:Double x:Key="Size.ScrollThumbMin">32</sys:Double>
+    <sys:Double x:Key="Size.TooltipMaxWidth">320</sys:Double>
+    <sys:Double x:Key="Size.SnippetMaxHeight">54</sys:Double>
+    <sys:Double x:Key="Size.EchoTextMaxWidth">260</sys:Double>
+    <sys:Double x:Key="Size.LiveDot">8</sys:Double>
 
     <CornerRadius x:Key="Radius.Control">8</CornerRadius>
-    <CornerRadius x:Key="Radius.Card">14</CornerRadius>
+    <CornerRadius x:Key="Radius.Card">12</CornerRadius>
+    <CornerRadius x:Key="Radius.Tile">10</CornerRadius>
+    <CornerRadius x:Key="Radius.Tag">6</CornerRadius>
     <CornerRadius x:Key="Radius.Chip">999</CornerRadius>
     <CornerRadius x:Key="Radius.Focus">10</CornerRadius>
-    <CornerRadius x:Key="Radius.CheckBox">4</CornerRadius>
+    <CornerRadius x:Key="Radius.CheckBox">5</CornerRadius>
+    <CornerRadius x:Key="Radius.Progress">2</CornerRadius>
+    <CornerRadius x:Key="Radius.Scroll">4</CornerRadius>
+    <CornerRadius x:Key="Radius.Bar">2</CornerRadius>
+    <CornerRadius x:Key="Radius.HeroLeft">16,0,0,16</CornerRadius>
+    <CornerRadius x:Key="Radius.Shell">16</CornerRadius>
 
     <b:NotEmptyToBoolConverter x:Key="NotEmptyToBool" />
     <b:NotEmptyToVisibilityConverter x:Key="NotEmptyToVisibility" />
@@ -128,7 +187,22 @@
             </Setter.Value>
         </Setter>
     </Style>
+    <Style x:Key="FocusVisual.Rail">
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <Border Margin="{StaticResource Thickness.NavItemMargin}"
+                            BorderBrush="{DynamicResource Brush.Rail.Indicator}"
+                            BorderThickness="{StaticResource Thickness.FocusRing}"
+                            CornerRadius="{StaticResource Radius.Control}"
+                            IsHitTestVisible="False"
+                            SnapsToDevicePixels="True" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
 
+    <!-- Typography -->
     <Style x:Key="Text.Title" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource Font.Display}" />
         <Setter Property="FontSize" Value="{StaticResource FontSize.Title}" />
@@ -136,11 +210,18 @@
         <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
     </Style>
+    <Style x:Key="Text.PageSubtitle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Body}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.PageSubtitle}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Muted}" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    </Style>
     <Style x:Key="Text.Subtitle" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource Font.Display}" />
         <Setter Property="FontSize" Value="{StaticResource FontSize.Subtitle}" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
     <Style x:Key="Text.Body" TargetType="TextBlock">
@@ -173,6 +254,19 @@
         <Setter Property="FontSize" Value="{StaticResource FontSize.Caption}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Muted}" />
     </Style>
+    <Style x:Key="Text.Overline" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Body}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Overline}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Muted}" />
+    </Style>
+    <Style x:Key="Text.Kpi" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Display}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Kpi}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
+        <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
+    </Style>
     <Style x:Key="Text.Glyph" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource Font.Icon}" />
         <Setter Property="FontSize" Value="{StaticResource FontSize.Icon}" />
@@ -187,15 +281,135 @@
         <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
     </Style>
 
+    <!-- Decorative tiles: icon tile for section headers, empty-state icon, avatar -->
+    <Style x:Key="IconTile" TargetType="ContentControl">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Background" Value="{DynamicResource Brush.Accent.Subtle}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent.SubtleBorder}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContentControl">
+                    <Border Width="{StaticResource Size.IconTile}"
+                            Height="{StaticResource Size.IconTile}"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{StaticResource Thickness.Border}"
+                            CornerRadius="{StaticResource Radius.Tile}">
+                        <TextBlock HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   FontFamily="{StaticResource Font.Icon}"
+                                   FontSize="{StaticResource FontSize.Icon}"
+                                   Foreground="{TemplateBinding Foreground}"
+                                   Text="{TemplateBinding Content}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="IconTile.Danger" TargetType="ContentControl" BasedOn="{StaticResource IconTile}">
+        <Setter Property="Background" Value="{DynamicResource Brush.Danger.Surface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Danger.Border}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Danger}" />
+    </Style>
+
+    <Style x:Key="EmptyIcon" TargetType="ContentControl">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="Margin" Value="{StaticResource Thickness.StackGapMedium}" />
+        <Setter Property="Background" Value="{DynamicResource Brush.Accent.Subtle}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent.SubtleBorder}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.EmptyGlyph}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContentControl">
+                    <Border Width="{StaticResource Size.EmptyTile}"
+                            Height="{StaticResource Size.EmptyTile}"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{StaticResource Thickness.Border}"
+                            CornerRadius="{StaticResource Radius.Chip}">
+                        <TextBlock HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   FontFamily="{StaticResource Font.Icon}"
+                                   FontSize="{TemplateBinding FontSize}"
+                                   Foreground="{TemplateBinding Foreground}"
+                                   Text="{TemplateBinding Content}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <Style x:Key="EmptyIcon.Small" TargetType="ContentControl" BasedOn="{StaticResource EmptyIcon}">
+        <Setter Property="FontSize" Value="{StaticResource FontSize.PlaceholderGlyph}" />
+    </Style>
+    <Style x:Key="EmptyIcon.Warning" TargetType="ContentControl" BasedOn="{StaticResource EmptyIcon.Small}">
+        <Setter Property="Background" Value="{DynamicResource Brush.Warning.Surface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Warning.Border}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Warning}" />
+    </Style>
+
+    <Style x:Key="Avatar" TargetType="ContentControl">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContentControl">
+                    <Border Width="{StaticResource Size.Avatar}"
+                            Height="{StaticResource Size.Avatar}"
+                            Background="{DynamicResource Brush.Brand}"
+                            CornerRadius="{StaticResource Radius.Chip}">
+                        <TextBlock HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   FontFamily="{StaticResource Font.Body}"
+                                   FontSize="{StaticResource FontSize.Caption}"
+                                   FontWeight="SemiBold"
+                                   Foreground="{DynamicResource Brush.Brand.OnBrand}"
+                                   Text="{TemplateBinding Content}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="BrandMark" TargetType="ContentControl">
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Width" Value="{StaticResource Size.BrandMark}" />
+        <Setter Property="Height" Value="{StaticResource Size.BrandMark}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContentControl">
+                    <Border Background="{DynamicResource Brush.Brand}" CornerRadius="{StaticResource Radius.Tile}">
+                        <TextBlock HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   FontFamily="{StaticResource Font.Icon}"
+                                   FontSize="{StaticResource FontSize.Icon}"
+                                   Foreground="{DynamicResource Brush.Brand.OnBrand}"
+                                   Text="{x:Static res:Glyphs.Lightbulb}" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <Style x:Key="Label.Field" TargetType="Label">
         <Setter Property="FontFamily" Value="{StaticResource Font.Body}" />
-        <Setter Property="FontSize" Value="{StaticResource FontSize.Body}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.PageSubtitle}" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
         <Setter Property="Padding" Value="{StaticResource Thickness.LabelPadding}" />
         <Setter Property="Focusable" Value="False" />
     </Style>
 
+    <!-- Buttons -->
     <ControlTemplate x:Key="Button.Template" TargetType="Button">
         <Border Background="{TemplateBinding Background}"
                 BorderBrush="{TemplateBinding BorderBrush}"
@@ -234,6 +448,7 @@
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
                 <Setter Property="Background" Value="{DynamicResource Brush.Surface.Sunken}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
                 <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Disabled}" />
                 <Setter Property="Cursor" Value="Arrow" />
             </Trigger>
@@ -243,13 +458,30 @@
     <Style x:Key="Button.Secondary" TargetType="Button" BasedOn="{StaticResource Button.Base}">
         <Setter Property="Background" Value="{DynamicResource Brush.Surface.Card}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Control}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Button}" />
         <Style.Triggers>
             <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="{DynamicResource Brush.Surface.Selected}" />
+                <Setter Property="Background" Value="{DynamicResource Brush.Surface.Hover}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Control}" />
             </Trigger>
             <Trigger Property="IsPressed" Value="True">
-                <Setter Property="Background" Value="{DynamicResource Brush.Surface.Selected}" />
+                <Setter Property="Background" Value="{DynamicResource Brush.Surface.Sunken}" />
+            </Trigger>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Disabled}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
+                <Setter Property="Cursor" Value="Arrow" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="Button.Ghost" TargetType="Button" BasedOn="{StaticResource Button.Base}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Brush.Surface.Sunken}" />
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
                 <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Disabled}" />
@@ -283,6 +515,7 @@
         <Setter Property="Padding" Value="{StaticResource Thickness.ControlPadding}" />
         <Setter Property="FontFamily" Value="{StaticResource Font.Body}" />
         <Setter Property="FontSize" Value="{StaticResource FontSize.Body}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Link}" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Cursor" Value="Hand" />
@@ -324,7 +557,7 @@
         <Setter Property="Height" Value="{StaticResource Size.IconHit}" />
         <Setter Property="FontFamily" Value="{StaticResource Font.Icon}" />
         <Setter Property="FontSize" Value="{StaticResource FontSize.IconSmall}" />
-        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Body}" />
         <Setter Property="Background" Value="Transparent" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
@@ -341,7 +574,11 @@
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Visual" Property="Background" Value="{DynamicResource Brush.Surface.Selected}" />
+                            <Setter TargetName="Visual" Property="Background" Value="{DynamicResource Brush.Surface.Sunken}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Disabled}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -349,6 +586,7 @@
         </Setter>
     </Style>
 
+    <!-- Text fields -->
     <ControlTemplate x:Key="Field.Template" TargetType="Control">
         <Border x:Name="Root"
                 Background="{TemplateBinding Background}"
@@ -357,7 +595,7 @@
                 CornerRadius="{StaticResource Radius.Control}"
                 SnapsToDevicePixels="True">
             <ScrollViewer x:Name="PART_ContentHost"
-                          Margin="{TemplateBinding Padding}"
+                          Margin="{StaticResource Thickness.None}"
                           VerticalAlignment="Center"
                           Focusable="False"
                           HorizontalScrollBarVisibility="Hidden"
@@ -378,6 +616,9 @@
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Template" Value="{StaticResource Field.Template}" />
         <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.Text.Body}" />
+            </Trigger>
             <Trigger Property="b:FieldState.HasError" Value="True">
                 <Setter Property="BorderBrush" Value="{DynamicResource Brush.Danger}" />
                 <Setter Property="BorderThickness" Value="{StaticResource Thickness.FocusRing}" />
@@ -390,6 +631,7 @@
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
                 <Setter Property="Background" Value="{DynamicResource Brush.Surface.Sunken}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
                 <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Disabled}" />
             </Trigger>
         </Style.Triggers>
@@ -402,6 +644,7 @@
 
     <Style x:Key="TextBox.Url" TargetType="TextBox" BasedOn="{StaticResource TextBox.Field}">
         <Setter Property="FontFamily" Value="{StaticResource Font.Mono}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.PageSubtitle}" />
     </Style>
 
     <Style x:Key="PasswordBox.Field" TargetType="PasswordBox" BasedOn="{StaticResource Field.Base}">
@@ -441,6 +684,7 @@
         </Setter>
     </Style>
 
+    <!-- Check box and chips -->
     <Style x:Key="CheckBox.Default" TargetType="CheckBox">
         <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Default}" />
         <Setter Property="MinWidth" Value="{StaticResource Size.RowAction}" />
@@ -472,7 +716,7 @@
                                            Visibility="Collapsed" />
                             </Border>
                             <ContentPresenter x:Name="Caption"
-                                              Margin="{StaticResource Thickness.InlineGap}"
+                                              Margin="{StaticResource Thickness.LeadingGapSmall}"
                                               VerticalAlignment="Center"
                                               RecognizesAccessKey="True" />
                         </StackPanel>
@@ -480,6 +724,9 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="HasContent" Value="False">
                             <Setter TargetName="Caption" Property="Visibility" Value="Collapsed" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
                             <Setter TargetName="Box" Property="Background" Value="{DynamicResource Brush.Accent}" />
@@ -493,7 +740,7 @@
                             <Setter TargetName="Mark" Property="Visibility" Value="Visible" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="Box" Property="Background" Value="{DynamicResource Brush.Surface.Card}" />
+                            <Setter TargetName="Box" Property="Background" Value="{DynamicResource Brush.Surface.Sunken}" />
                             <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource Brush.Text.Muted}" />
                             <Setter TargetName="Mark" Property="Foreground" Value="{DynamicResource Brush.Text.Muted}" />
                             <Setter Property="Cursor" Value="Arrow" />
@@ -509,7 +756,8 @@
         <Setter Property="MinHeight" Value="{StaticResource Size.RowAction}" />
         <Setter Property="Margin" Value="{StaticResource Thickness.InlineGap}" />
         <Setter Property="FontFamily" Value="{StaticResource Font.Body}" />
-        <Setter Property="FontSize" Value="{StaticResource FontSize.Body}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.PageSubtitle}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Body}" />
         <Setter Property="Cursor" Value="Hand" />
         <Setter Property="Template">
@@ -520,9 +768,9 @@
                                 Height="{StaticResource Size.ChipVisual}"
                                 VerticalAlignment="Center"
                                 Background="{DynamicResource Brush.Surface.Card}"
-                                BorderBrush="{DynamicResource Brush.Border.Control}"
+                                BorderBrush="{DynamicResource Brush.Border.Button}"
                                 BorderThickness="{StaticResource Thickness.Border}"
-                                CornerRadius="{StaticResource Radius.Chip}"
+                                CornerRadius="{StaticResource Radius.Control}"
                                 Padding="{StaticResource Thickness.ChipPadding}"
                                 TextElement.Foreground="{TemplateBinding Foreground}">
                             <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
@@ -538,15 +786,23 @@
                         </Border>
                     </Grid>
                     <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Pill" Property="Background" Value="{DynamicResource Brush.Surface.Hover}" />
+                            <Setter TargetName="Pill" Property="BorderBrush" Value="{DynamicResource Brush.Border.Control}" />
+                        </Trigger>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="Pill" Property="Background" Value="{DynamicResource Brush.Accent}" />
+                            <Setter TargetName="Pill" Property="Background" Value="{DynamicResource Brush.Accent.Subtle}" />
                             <Setter TargetName="Pill" Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
-                            <Setter TargetName="Pill" Property="TextElement.Foreground" Value="{DynamicResource Brush.Text.OnAccent}" />
+                            <Setter TargetName="Pill" Property="TextElement.Foreground" Value="{DynamicResource Brush.Text.Link}" />
                             <Setter TargetName="Mark" Property="Visibility" Value="Visible" />
                         </Trigger>
                         <Trigger Property="IsKeyboardFocused" Value="True">
                             <Setter TargetName="Pill" Property="BorderBrush" Value="{DynamicResource Brush.Border.Focus}" />
                             <Setter TargetName="Pill" Property="BorderThickness" Value="{StaticResource Thickness.FocusRing}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Pill" Property="TextElement.Foreground" Value="{DynamicResource Brush.Text.Disabled}" />
+                            <Setter Property="Cursor" Value="Arrow" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -554,43 +810,51 @@
         </Setter>
     </Style>
 
+    <!-- Tags -->
     <Style x:Key="Tag.Surface" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource Brush.Surface.Sunken}" />
-        <Setter Property="CornerRadius" Value="{StaticResource Radius.Chip}" />
-        <Setter Property="Padding" Value="{StaticResource Thickness.ChipPadding}" />
+        <Setter Property="CornerRadius" Value="{StaticResource Radius.Tag}" />
+        <Setter Property="Padding" Value="{StaticResource Thickness.TagPadding}" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="BorderThickness" Value="{StaticResource Thickness.Border}" />
-        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Button.Edge}" />
-        <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Text.Muted}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
+        <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Text.Body}" />
     </Style>
     <Style x:Key="Tag.Surface.Warning" TargetType="Border" BasedOn="{StaticResource Tag.Surface}">
         <Setter Property="Background" Value="{DynamicResource Brush.Warning.Surface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Warning.Border}" />
         <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Warning}" />
     </Style>
     <Style x:Key="Tag.Surface.Danger" TargetType="Border" BasedOn="{StaticResource Tag.Surface}">
         <Setter Property="Background" Value="{DynamicResource Brush.Danger.Surface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Danger.Border}" />
         <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Danger}" />
     </Style>
     <Style x:Key="Tag.Surface.Success" TargetType="Border" BasedOn="{StaticResource Tag.Surface}">
         <Setter Property="Background" Value="{DynamicResource Brush.Success.Surface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Success.Border}" />
         <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Success}" />
     </Style>
     <Style x:Key="Tag.Surface.Info" TargetType="Border" BasedOn="{StaticResource Tag.Surface}">
         <Setter Property="Background" Value="{DynamicResource Brush.Info.Surface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Info.Border}" />
         <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Info}" />
     </Style>
     <Style x:Key="Tag.State" TargetType="Border" BasedOn="{StaticResource Tag.Surface}">
         <Style.Triggers>
             <DataTrigger Binding="{Binding StateKind}" Value="{x:Static vm:BatchState.InProgress}">
                 <Setter Property="Background" Value="{DynamicResource Brush.Info.Surface}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.Info.Border}" />
                 <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Info}" />
             </DataTrigger>
             <DataTrigger Binding="{Binding StateKind}" Value="{x:Static vm:BatchState.Completed}">
                 <Setter Property="Background" Value="{DynamicResource Brush.Success.Surface}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.Success.Border}" />
                 <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Success}" />
             </DataTrigger>
             <DataTrigger Binding="{Binding StateKind}" Value="{x:Static vm:BatchState.Failed}">
                 <Setter Property="Background" Value="{DynamicResource Brush.Danger.Surface}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.Danger.Border}" />
                 <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Danger}" />
             </DataTrigger>
         </Style.Triggers>
@@ -598,19 +862,20 @@
     <Style x:Key="Tag.Glyph" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource Font.Icon}" />
         <Setter Property="FontSize" Value="{StaticResource FontSize.IconSmall}" />
-        <Setter Property="Margin" Value="{StaticResource Thickness.InlineGap}" />
+        <Setter Property="Margin" Value="{StaticResource Thickness.TagGlyphGap}" />
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
     <Style x:Key="Tag.Label" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource Font.Body}" />
         <Setter Property="FontSize" Value="{StaticResource FontSize.Caption}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
     <Style x:Key="Banner.Slot" TargetType="ContentControl">
         <Setter Property="Focusable" Value="False" />
         <Setter Property="IsTabStop" Value="False" />
-        <Setter Property="Margin" Value="{StaticResource Thickness.StackGap}" />
+        <Setter Property="Margin" Value="{StaticResource Thickness.StackGapMedium}" />
         <Style.Triggers>
             <DataTrigger Binding="{Binding Content, RelativeSource={RelativeSource Self}}" Value="{x:Null}">
                 <Setter Property="Margin" Value="{StaticResource Thickness.None}" />
@@ -618,12 +883,29 @@
         </Style.Triggers>
     </Style>
 
+    <!-- Surfaces -->
     <Style x:Key="Card" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource Brush.Surface.Card}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
         <Setter Property="BorderThickness" Value="{StaticResource Thickness.Border}" />
         <Setter Property="CornerRadius" Value="{StaticResource Radius.Card}" />
         <Setter Property="Padding" Value="{StaticResource Thickness.CardPadding}" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+    </Style>
+
+    <Style x:Key="Kpi.Tile" TargetType="Border">
+        <Setter Property="MinWidth" Value="{StaticResource Size.KpiMinWidth}" />
+        <Setter Property="Margin" Value="{StaticResource Thickness.KpiGap}" />
+        <Setter Property="Padding" Value="{StaticResource Thickness.KpiPadding}" />
+        <Setter Property="Background" Value="{DynamicResource Brush.Surface.Card}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
+        <Setter Property="BorderThickness" Value="{StaticResource Thickness.Border}" />
+        <Setter Property="CornerRadius" Value="{StaticResource Radius.Tile}" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+    </Style>
+    <Style x:Key="Kpi.Tile.Sunken" TargetType="Border" BasedOn="{StaticResource Kpi.Tile}">
+        <Setter Property="Background" Value="{DynamicResource Brush.Surface.Sunken}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
     </Style>
 
     <Style x:Key="Progress.Thin" TargetType="ProgressBar">
@@ -633,6 +915,35 @@
         <Setter Property="BorderThickness" Value="{StaticResource Thickness.None}" />
         <Setter Property="IsIndeterminate" Value="True" />
         <Setter Property="Focusable" Value="False" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ProgressBar">
+                    <Grid ClipToBounds="True">
+                        <Border x:Name="PART_Track"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="{StaticResource Radius.Progress}" />
+                        <Grid x:Name="PART_Indicator" HorizontalAlignment="Left" ClipToBounds="True">
+                            <Border x:Name="Fill"
+                                    Background="{TemplateBinding Foreground}"
+                                    CornerRadius="{StaticResource Radius.Progress}" />
+                            <Border x:Name="PART_GlowRect"
+                                    Width="{StaticResource Size.ProgressRunner}"
+                                    HorizontalAlignment="Left"
+                                    Background="{TemplateBinding Foreground}"
+                                    CornerRadius="{StaticResource Radius.Progress}"
+                                    Visibility="Collapsed" />
+                        </Grid>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsIndeterminate" Value="True">
+                            <Setter TargetName="Fill" Property="Visibility" Value="Collapsed" />
+                            <Setter TargetName="PART_GlowRect" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
     </Style>
 
     <Style x:Key="Divider" TargetType="Border">
@@ -640,33 +951,40 @@
         <Setter Property="Background" Value="{DynamicResource Brush.Border.Subtle}" />
     </Style>
 
+    <!-- Navigation rail -->
     <Style x:Key="Nav.Glyph" TargetType="TextBlock" BasedOn="{StaticResource Text.Glyph}">
-        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Body}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Rail.Text.Muted}" />
         <Setter Property="Margin" Value="{StaticResource Thickness.InlineGapLarge}" />
     </Style>
     <Style x:Key="Nav.Label" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource Font.Body}" />
         <Setter Property="FontSize" Value="{StaticResource FontSize.Body}" />
-        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Body}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Rail.Text}" />
         <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
     <Style x:Key="Nav.Lock" TargetType="TextBlock" BasedOn="{StaticResource Text.Glyph}">
-        <Setter Property="Margin" Value="{StaticResource Thickness.InlineGap}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.IconSmall}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Rail.Text.Disabled}" />
+        <Setter Property="Margin" Value="{StaticResource Thickness.LeadingGapSmall}" />
         <Setter Property="Visibility" Value="Collapsed" />
     </Style>
     <Style x:Key="Nav.Indicator" TargetType="Border">
         <Setter Property="Width" Value="{StaticResource Size.NavIndicator}" />
+        <Setter Property="Height" Value="{StaticResource Size.NavIndicatorHeight}" />
         <Setter Property="HorizontalAlignment" Value="Left" />
-        <Setter Property="Background" Value="{DynamicResource Brush.Accent}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="CornerRadius" Value="{StaticResource Radius.Bar}" />
+        <Setter Property="Background" Value="{DynamicResource Brush.Rail.Indicator}" />
         <Setter Property="Visibility" Value="Collapsed" />
     </Style>
 
     <Style x:Key="NavRail.Item" TargetType="ListBoxItem">
-        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Default}" />
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Rail}" />
         <Setter Property="IsEnabled" Value="{Binding IsEnabled}" />
         <Setter Property="Visibility" Value="{Binding IsVisible, Converter={StaticResource BoolToVisibility}}" />
         <Setter Property="ToolTip" Value="{Binding ToolTip}" />
         <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
+        <Setter Property="ToolTipService.Placement" Value="Right" />
         <Setter Property="AutomationProperties.Name" Value="{Binding Title}" />
         <Setter Property="AutomationProperties.HelpText" Value="{Binding HelpText}" />
         <Setter Property="b:CommandBehaviors.ActivateCommand" Value="{Binding ActivateCommand}" />
@@ -674,8 +992,12 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ListBoxItem">
-                    <Grid x:Name="Root" Height="{StaticResource Size.NavItem}" Background="Transparent" SnapsToDevicePixels="True">
-                        <Border x:Name="Highlight" />
+                    <Grid x:Name="Root"
+                          Height="{StaticResource Size.NavItem}"
+                          Margin="{StaticResource Thickness.NavItemMargin}"
+                          Background="Transparent"
+                          SnapsToDevicePixels="True">
+                        <Border x:Name="Highlight" CornerRadius="{StaticResource Radius.Control}" />
                         <Border x:Name="Indicator" Style="{StaticResource Nav.Indicator}" />
                         <StackPanel Margin="{StaticResource Thickness.NavItemPadding}"
                                     VerticalAlignment="Center"
@@ -697,18 +1019,20 @@
                             <Setter TargetName="LockGlyph" Property="Visibility" Value="Visible" />
                         </MultiDataTrigger>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Highlight" Property="Background" Value="{DynamicResource Brush.Surface.Selected}" />
+                            <Setter TargetName="Highlight" Property="Background" Value="{DynamicResource Brush.Rail.Hover}" />
+                            <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Brush.Rail.Text.Selected}" />
+                            <Setter TargetName="GlyphText" Property="Foreground" Value="{DynamicResource Brush.Rail.Text}" />
                         </Trigger>
                         <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                            <Setter TargetName="Highlight" Property="Background" Value="{DynamicResource Brush.Surface.Selected}" />
+                            <Setter TargetName="Highlight" Property="Background" Value="{DynamicResource Brush.Rail.Selected}" />
                             <Setter TargetName="Indicator" Property="Visibility" Value="Visible" />
-                            <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Brush.Text.Link}" />
+                            <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Brush.Rail.Text.Selected}" />
                             <Setter TargetName="Label" Property="FontWeight" Value="SemiBold" />
-                            <Setter TargetName="GlyphText" Property="Foreground" Value="{DynamicResource Brush.Text.Link}" />
+                            <Setter TargetName="GlyphText" Property="Foreground" Value="{DynamicResource Brush.Rail.Text.Selected}" />
                         </DataTrigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Brush.Text.Disabled}" />
-                            <Setter TargetName="GlyphText" Property="Foreground" Value="{DynamicResource Brush.Text.Disabled}" />
+                            <Setter TargetName="Label" Property="Foreground" Value="{DynamicResource Brush.Rail.Text.Disabled}" />
+                            <Setter TargetName="GlyphText" Property="Foreground" Value="{DynamicResource Brush.Rail.Text.Disabled}" />
                             <Setter Property="Cursor" Value="Arrow" />
                         </Trigger>
                     </ControlTemplate.Triggers>
@@ -741,6 +1065,7 @@
         </Setter>
     </Style>
 
+    <!-- List rows -->
     <Style x:Key="Row.Text.Base" TargetType="TextBlock" BasedOn="{StaticResource Text.Label}">
         <Setter Property="TextWrapping" Value="NoWrap" />
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
@@ -759,6 +1084,7 @@
     <Style x:Key="Row.Title" TargetType="TextBlock" BasedOn="{StaticResource Row.Text.Base}" />
     <Style x:Key="Row.Body" TargetType="TextBlock" BasedOn="{StaticResource Row.Text.Base}">
         <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.PageSubtitle}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Body}" />
         <Setter Property="TextWrapping" Value="Wrap" />
         <Setter Property="LineStackingStrategy" Value="BlockLineHeight" />
@@ -793,6 +1119,7 @@
         <Setter Property="FontFamily" Value="{StaticResource Font.Mono}" />
         <Setter Property="FontSize" Value="{StaticResource FontSize.Caption}" />
         <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="SelectionBrush" Value="{DynamicResource Brush.Accent}" />
         <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Default}" />
         <Setter Property="Template">
             <Setter.Value>
@@ -815,15 +1142,23 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="ListBoxItem">
-                    <Border x:Name="Highlight" Background="Transparent" SnapsToDevicePixels="True">
-                        <ContentPresenter />
-                    </Border>
+                    <Grid SnapsToDevicePixels="True">
+                        <Border x:Name="Highlight" Background="Transparent">
+                            <ContentPresenter />
+                        </Border>
+                        <Border x:Name="Indicator"
+                                Width="{StaticResource Size.NavIndicator}"
+                                HorizontalAlignment="Left"
+                                Background="{DynamicResource Brush.Accent}"
+                                Visibility="Collapsed" />
+                    </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Highlight" Property="Background" Value="{DynamicResource Brush.Surface.Selected}" />
+                            <Setter TargetName="Highlight" Property="Background" Value="{DynamicResource Brush.Surface.Hover}" />
                         </Trigger>
                         <Trigger Property="IsSelected" Value="True">
                             <Setter TargetName="Highlight" Property="Background" Value="{DynamicResource Brush.Surface.Selected}" />
+                            <Setter TargetName="Indicator" Property="Visibility" Value="Visible" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -846,6 +1181,7 @@
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
     </Style>
 
+    <!-- History stage stepper -->
     <Style x:Key="Step.Glyph" TargetType="TextBlock" BasedOn="{StaticResource Text.Glyph}">
         <Setter Property="Text" Value="{x:Static res:Glyphs.CircleRing}" />
         <Setter Property="Foreground" Value="{DynamicResource Brush.Border.Control}" />
@@ -883,12 +1219,21 @@
         <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
     <Style x:Key="Step.Connector" TargetType="Border" BasedOn="{StaticResource Divider}">
+        <Setter Property="Height" Value="{StaticResource Size.Progress}" />
+        <Setter Property="CornerRadius" Value="{StaticResource Radius.Progress}" />
         <Setter Property="VerticalAlignment" Value="Center" />
         <Setter Property="Margin" Value="{StaticResource Thickness.InlineGap}" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Status}" Value="{x:Static vm:StepStatus.Done}">
+                <Setter Property="Background" Value="{DynamicResource Brush.Success}" />
+            </DataTrigger>
+        </Style.Triggers>
     </Style>
 
     <Style x:Key="Metric.Value" TargetType="TextBlock" BasedOn="{StaticResource Row.Text.Base}">
         <Setter Property="TextAlignment" Value="Right" />
+        <Setter Property="FontFamily" Value="{StaticResource Font.Display}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.BodyLarge}" />
         <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
         <Style.Triggers>
             <DataTrigger Binding="{Binding IsNull}" Value="True">
@@ -920,6 +1265,7 @@
                                     <ControlTemplate TargetType="ToggleButton">
                                         <Border x:Name="Surface"
                                                 Background="Transparent"
+                                                CornerRadius="{StaticResource Radius.Control}"
                                                 Padding="{TemplateBinding Padding}"
                                                 SnapsToDevicePixels="True">
                                             <Grid>
@@ -930,6 +1276,7 @@
                                                 <TextBlock x:Name="Chevron"
                                                            Margin="{StaticResource Thickness.InlineGapLarge}"
                                                            VerticalAlignment="Center"
+                                                           FontSize="{StaticResource FontSize.IconSmall}"
                                                            Style="{StaticResource Text.Glyph}"
                                                            Text="{x:Static res:Glyphs.ChevronRight}" />
                                                 <ContentPresenter Grid.Column="1" VerticalAlignment="Center" />
@@ -937,11 +1284,12 @@
                                         </Border>
                                         <ControlTemplate.Triggers>
                                             <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="Surface" Property="Background" Value="{DynamicResource Brush.Surface.Selected}" />
+                                                <Setter TargetName="Surface" Property="Background" Value="{DynamicResource Brush.Surface.Hover}" />
                                                 <Setter TargetName="Chevron" Property="Foreground" Value="{DynamicResource Brush.Text.OnSelected}" />
                                             </Trigger>
                                             <Trigger Property="IsChecked" Value="True">
                                                 <Setter TargetName="Chevron" Property="Text" Value="{x:Static res:Glyphs.ChevronDown}" />
+                                                <Setter TargetName="Chevron" Property="Foreground" Value="{DynamicResource Brush.Accent}" />
                                             </Trigger>
                                         </ControlTemplate.Triggers>
                                     </ControlTemplate>
@@ -956,6 +1304,268 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsExpanded" Value="True">
                             <Setter TargetName="Body" Property="Visibility" Value="Visible" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Implicit control templates: tooltip, scroll bar, combo box -->
+    <Style TargetType="ToolTip">
+        <Setter Property="Background" Value="{DynamicResource Brush.Tooltip.Surface}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Tooltip.Text}" />
+        <Setter Property="FontFamily" Value="{StaticResource Font.Body}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Caption}" />
+        <Setter Property="Padding" Value="{StaticResource Thickness.TooltipPadding}" />
+        <Setter Property="HasDropShadow" Value="False" />
+        <Setter Property="MaxWidth" Value="{StaticResource Size.TooltipMaxWidth}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToolTip">
+                    <Border Background="{TemplateBinding Background}"
+                            BorderBrush="{DynamicResource Brush.Border.Subtle}"
+                            BorderThickness="{StaticResource Thickness.None}"
+                            CornerRadius="{StaticResource Radius.Tag}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter>
+                            <ContentPresenter.Resources>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextWrapping" Value="Wrap" />
+                                </Style>
+                            </ContentPresenter.Resources>
+                        </ContentPresenter>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ScrollBar.Thumb" TargetType="Thumb">
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Thumb">
+                    <Border x:Name="Bar"
+                            Margin="{StaticResource Thickness.ScrollThumbInset}"
+                            Background="{DynamicResource Brush.ScrollThumb}"
+                            CornerRadius="{StaticResource Radius.Scroll}" />
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bar" Property="Background" Value="{DynamicResource Brush.ScrollThumb.Hover}" />
+                        </Trigger>
+                        <Trigger Property="IsDragging" Value="True">
+                            <Setter TargetName="Bar" Property="Background" Value="{DynamicResource Brush.ScrollThumb.Hover}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ScrollBar.Page" TargetType="RepeatButton">
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="IsTabStop" Value="False" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="RepeatButton">
+                    <Border Background="Transparent" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="ScrollBar">
+        <Setter Property="OverridesDefaultStyle" Value="True" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Width" Value="{StaticResource Size.ScrollBar}" />
+        <Setter Property="MinWidth" Value="{StaticResource Size.ScrollBar}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ScrollBar">
+                    <Grid Background="{TemplateBinding Background}">
+                        <Track x:Name="PART_Track" IsDirectionReversed="True">
+                            <Track.DecreaseRepeatButton>
+                                <RepeatButton Command="ScrollBar.PageUpCommand" Style="{StaticResource ScrollBar.Page}" />
+                            </Track.DecreaseRepeatButton>
+                            <Track.Thumb>
+                                <Thumb MinHeight="{StaticResource Size.ScrollThumbMin}" Style="{StaticResource ScrollBar.Thumb}" />
+                            </Track.Thumb>
+                            <Track.IncreaseRepeatButton>
+                                <RepeatButton Command="ScrollBar.PageDownCommand" Style="{StaticResource ScrollBar.Page}" />
+                            </Track.IncreaseRepeatButton>
+                        </Track>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="Orientation" Value="Horizontal">
+                <Setter Property="Width" Value="Auto" />
+                <Setter Property="MinWidth" Value="0" />
+                <Setter Property="Height" Value="{StaticResource Size.ScrollBar}" />
+                <Setter Property="MinHeight" Value="{StaticResource Size.ScrollBar}" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="ScrollBar">
+                            <Grid Background="{TemplateBinding Background}">
+                                <Track x:Name="PART_Track" IsDirectionReversed="False">
+                                    <Track.DecreaseRepeatButton>
+                                        <RepeatButton Command="ScrollBar.PageLeftCommand" Style="{StaticResource ScrollBar.Page}" />
+                                    </Track.DecreaseRepeatButton>
+                                    <Track.Thumb>
+                                        <Thumb MinWidth="{StaticResource Size.ScrollThumbMin}" Style="{StaticResource ScrollBar.Thumb}" />
+                                    </Track.Thumb>
+                                    <Track.IncreaseRepeatButton>
+                                        <RepeatButton Command="ScrollBar.PageRightCommand" Style="{StaticResource ScrollBar.Page}" />
+                                    </Track.IncreaseRepeatButton>
+                                </Track>
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style TargetType="ComboBoxItem">
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Padding" Value="{StaticResource Thickness.ListItemPadding}" />
+        <Setter Property="FontFamily" Value="{StaticResource Font.Body}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Body}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBoxItem">
+                    <Border x:Name="Surface"
+                            Background="Transparent"
+                            CornerRadius="{StaticResource Radius.Tag}"
+                            Padding="{TemplateBinding Padding}"
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter TargetName="Surface" Property="Background" Value="{DynamicResource Brush.Surface.Sunken}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Surface" Property="Background" Value="{DynamicResource Brush.Accent.Subtle}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Link}" />
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Disabled}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <ControlTemplate x:Key="ComboBox.Toggle" TargetType="ToggleButton">
+        <Border x:Name="Chrome"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                CornerRadius="{StaticResource Radius.Control}"
+                SnapsToDevicePixels="True">
+            <TextBlock x:Name="Chevron"
+                       Margin="{StaticResource Thickness.ComboChevron}"
+                       HorizontalAlignment="Right"
+                       VerticalAlignment="Center"
+                       FontFamily="{StaticResource Font.Icon}"
+                       FontSize="{StaticResource FontSize.IconSmall}"
+                       Foreground="{DynamicResource Brush.Text.Body}"
+                       Text="{x:Static res:Glyphs.ChevronDown}" />
+        </Border>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="Chevron" Property="Foreground" Value="{DynamicResource Brush.Text.Disabled}" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+
+    <Style TargetType="ComboBox">
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Background" Value="{DynamicResource Brush.Surface.Card}" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Control}" />
+        <Setter Property="BorderThickness" Value="{StaticResource Thickness.Border}" />
+        <Setter Property="MinHeight" Value="{StaticResource Size.Control}" />
+        <Setter Property="FontFamily" Value="{StaticResource Font.Body}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Body}" />
+        <Setter Property="MaxDropDownHeight" Value="{StaticResource Size.ComboPopupMax}" />
+        <Setter Property="ScrollViewer.CanContentScroll" Value="True" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ComboBox">
+                    <Grid SnapsToDevicePixels="True">
+                        <ToggleButton x:Name="Toggle"
+                                      Background="{TemplateBinding Background}"
+                                      BorderBrush="{TemplateBinding BorderBrush}"
+                                      BorderThickness="{TemplateBinding BorderThickness}"
+                                      ClickMode="Press"
+                                      Focusable="False"
+                                      IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                      Template="{StaticResource ComboBox.Toggle}" />
+                        <ContentPresenter x:Name="ContentSite"
+                                          Margin="{StaticResource Thickness.ComboContent}"
+                                          HorizontalAlignment="Left"
+                                          VerticalAlignment="Center"
+                                          Content="{TemplateBinding SelectionBoxItem}"
+                                          ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"
+                                          ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                          ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                          IsHitTestVisible="False" />
+                        <Popup x:Name="PART_Popup"
+                               AllowsTransparency="True"
+                               Focusable="False"
+                               HorizontalOffset="-8"
+                               IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}}"
+                               Placement="Bottom"
+                               PopupAnimation="Fade">
+                            <Grid MinWidth="{Binding ActualWidth, ElementName=Toggle}"
+                                  MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                                  Margin="{StaticResource Thickness.PopupRoom}">
+                                <Border Background="{DynamicResource Brush.Surface.Card}"
+                                        CornerRadius="{StaticResource Radius.Control}"
+                                        Effect="{DynamicResource Effect.Elevation.High}" />
+                                <Border Background="{DynamicResource Brush.Surface.Card}"
+                                        BorderBrush="{DynamicResource Brush.Border.Subtle}"
+                                        BorderThickness="{StaticResource Thickness.Border}"
+                                        CornerRadius="{StaticResource Radius.Control}"
+                                        Padding="{StaticResource Thickness.PopupPadding}">
+                                    <ScrollViewer SnapsToDevicePixels="True">
+                                        <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
+                                    </ScrollViewer>
+                                </Border>
+                            </Grid>
+                        </Popup>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Toggle" Property="BorderBrush" Value="{DynamicResource Brush.Text.Body}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                            <Setter TargetName="Toggle" Property="BorderBrush" Value="{DynamicResource Brush.Border.Focus}" />
+                            <Setter TargetName="Toggle" Property="BorderThickness" Value="{StaticResource Thickness.FocusRing}" />
+                        </Trigger>
+                        <Trigger Property="IsDropDownOpen" Value="True">
+                            <Setter TargetName="Toggle" Property="BorderBrush" Value="{DynamicResource Brush.Border.Focus}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="Toggle" Property="Background" Value="{DynamicResource Brush.Surface.Sunken}" />
+                            <Setter TargetName="Toggle" Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
+                            <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Disabled}" />
+                            <Setter Property="Cursor" Value="Arrow" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

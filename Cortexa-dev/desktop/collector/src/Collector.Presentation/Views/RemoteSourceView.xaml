@@ -94,10 +94,8 @@
                 Style="{StaticResource Card}"
                 Visibility="{Binding ShowForm, Converter={StaticResource BoolToVisibility}}">
             <StackPanel IsEnabled="{Binding AreControlsEnabled}">
-                <StackPanel Margin="{StaticResource Thickness.StackGap}" Orientation="Horizontal">
-                    <TextBlock Margin="{StaticResource Thickness.InlineGapLarge}"
-                               Style="{StaticResource Text.Glyph.Header}"
-                               Text="{x:Static res:Glyphs.Repository}" />
+                <StackPanel Margin="{StaticResource Thickness.StackGapMedium}" Orientation="Horizontal">
+                    <ContentControl Margin="{StaticResource Thickness.InlineGapLarge}" Content="{x:Static res:Glyphs.Repository}" Style="{StaticResource IconTile}" />
                     <TextBlock AutomationProperties.HeadingLevel="Level2"
                                Style="{StaticResource Text.Subtitle}"
                                Text="{x:Static res:RemoteSourceStrings.RepositoryCard}" />
@@ -145,6 +143,8 @@
                                             b:FieldState.Error="{Binding SshPortError}">
                         <TextBox AutomationProperties.HelpText="{Binding SshPortError}"
                                  AutomationProperties.Name="{x:Static res:RemoteSourceStrings.SshPortName}"
+                                 HorizontalAlignment="Left"
+                                 MinWidth="{StaticResource Size.ComboMin}"
                                  MaxWidth="{StaticResource Size.ComboMin}"
                                  Style="{StaticResource TextBox.Field}"
                                  Text="{Binding SshPort, UpdateSourceTrigger=PropertyChanged}"
@@ -215,12 +215,7 @@
                 <Border Style="{StaticResource Repository.Surface}"
                         Visibility="{Binding ShowEmptyList, Converter={StaticResource BoolToVisibility}}">
                     <StackPanel Style="{StaticResource Repository.ListState}">
-                        <TextBlock Margin="{StaticResource Thickness.StackGap}"
-                                   HorizontalAlignment="Center"
-                                   FontFamily="{StaticResource Font.Icon}"
-                                   FontSize="28"
-                                   Foreground="{DynamicResource Brush.Text.Muted}"
-                                   Text="{x:Static res:Glyphs.Repository}" />
+                        <ContentControl Content="{x:Static res:Glyphs.Repository}" Style="{StaticResource EmptyIcon.Small}" />
                         <TextBlock HorizontalAlignment="Center"
                                    Style="{StaticResource Text.Label}"
                                    Text="{x:Static res:RemoteSourceStrings.EmptyTitle}" />
@@ -247,12 +242,12 @@
                                             Style="{StaticResource FormField}">
                         <Grid>
                             <TextBox AutomationProperties.Name="{x:Static res:RemoteSourceStrings.SearchName}"
-                                     Padding="12,8,40,8"
+                                     Padding="{StaticResource Thickness.SearchPadding}"
                                      Style="{StaticResource TextBox.Field}"
                                      Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                                      ToolTip="{x:Static res:RemoteSourceStrings.SearchPlaceholder}"
                                      b:FocusRouter.Key="RemoteSearch" />
-                            <TextBlock Margin="{StaticResource Thickness.LeadingGap}"
+                            <TextBlock Margin="{StaticResource Thickness.SearchGlyph}"
                                        HorizontalAlignment="Right"
                                        IsHitTestVisible="False"
                                        Style="{StaticResource Text.Glyph}"

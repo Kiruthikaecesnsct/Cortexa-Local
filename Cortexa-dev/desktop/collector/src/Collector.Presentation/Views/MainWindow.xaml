@@ -20,20 +20,65 @@
         <Style x:Key="Rail.Surface" TargetType="Border">
             <Setter Property="Width" Value="{StaticResource Size.RailExpanded}" />
             <Setter Property="Background" Value="{DynamicResource Brush.Surface.Rail}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Rail.Divider}" />
+            <Setter Property="BorderThickness" Value="{StaticResource Thickness.RightBorder}" />
             <Style.Triggers>
                 <DataTrigger Binding="{Binding IsRailCompact}" Value="True">
                     <Setter Property="Width" Value="{StaticResource Size.RailCompact}" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
-        <Style x:Key="Rail.Header" TargetType="TextBlock" BasedOn="{StaticResource Text.Subtitle}">
-            <Setter Property="VerticalAlignment" Value="Center" />
-            <Setter Property="Margin" Value="{StaticResource Thickness.Inset}" />
-            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-            <Setter Property="TextWrapping" Value="NoWrap" />
+        <Style x:Key="Rail.ExpandedOnly" TargetType="FrameworkElement">
             <Style.Triggers>
                 <DataTrigger Binding="{Binding IsRailCompact}" Value="True">
                     <Setter Property="Visibility" Value="Collapsed" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="Rail.Brand" TargetType="StackPanel">
+            <Setter Property="Margin" Value="{StaticResource Thickness.RailBrand}" />
+            <Setter Property="Orientation" Value="Horizontal" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsRailCompact}" Value="True">
+                    <Setter Property="Margin" Value="{StaticResource Thickness.RailBrandCompact}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="Rail.Name" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{StaticResource Font.Display}" />
+            <Setter Property="FontSize" Value="{StaticResource FontSize.Brand}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Rail.Text.Selected}" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+        <Style x:Key="Rail.Caption" TargetType="TextBlock" BasedOn="{StaticResource Text.Caption}">
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Rail.Text.Muted}" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+        </Style>
+        <Style x:Key="Rail.Section" TargetType="TextBlock" BasedOn="{StaticResource Text.Overline}">
+            <Setter Property="Margin" Value="{StaticResource Thickness.RailSection}" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Rail.Text.Muted}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsRailCompact}" Value="True">
+                    <Setter Property="Visibility" Value="Hidden" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="Rail.UserCard" TargetType="Border">
+            <Setter Property="Margin" Value="{StaticResource Thickness.RailFooter}" />
+            <Setter Property="Padding" Value="{StaticResource Thickness.RailUserCard}" />
+            <Setter Property="Background" Value="{DynamicResource Brush.Rail.Hover}" />
+            <Setter Property="CornerRadius" Value="{StaticResource Radius.Tile}" />
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding Badge.Kind}" Value="{x:Static vm:BadgeKind.SignedIn}">
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding IsRailCompact}" Value="True">
+                    <Setter Property="Background" Value="Transparent" />
+                    <Setter Property="HorizontalAlignment" Value="Center" />
+                    <Setter Property="Padding" Value="{StaticResource Thickness.None}" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -46,7 +91,7 @@
             </Style.Triggers>
         </Style>
         <Style x:Key="Badge.Glyph" TargetType="TextBlock" BasedOn="{StaticResource Text.Glyph}">
-            <Setter Property="Margin" Value="{StaticResource Thickness.InlineGapLarge}" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
             <Style.Triggers>
                 <DataTrigger Binding="{Binding Kind}" Value="{x:Static vm:BadgeKind.SignedIn}">
                     <Setter Property="Foreground" Value="{DynamicResource Brush.Success}" />
@@ -58,6 +103,9 @@
         </Style>
         <Style x:Key="Badge.Line2" TargetType="TextBlock" BasedOn="{StaticResource Text.Caption}">
             <Style.Triggers>
+                <DataTrigger Binding="{Binding Kind}" Value="{x:Static vm:BadgeKind.SignedIn}">
+                    <Setter Property="Foreground" Value="{DynamicResource Brush.Success}" />
+                </DataTrigger>
                 <DataTrigger Binding="{Binding Kind}" Value="{x:Static vm:BadgeKind.Expired}">
                     <Setter Property="Foreground" Value="{DynamicResource Brush.Warning}" />
                 </DataTrigger>
@@ -65,8 +113,19 @@
         </Style>
         <DataTemplate x:Key="Badge.Template" DataType="{x:Type vm:SessionBadge}">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Style="{StaticResource Badge.Glyph}" Text="{Binding Glyph}" />
-                <StackPanel Margin="{StaticResource Thickness.InlineGapLarge}" VerticalAlignment="Center">
+                <Grid Margin="{StaticResource Thickness.InlineGapLarge}" VerticalAlignment="Center">
+                    <ContentControl Content="{Binding Initials}"
+                                    Style="{StaticResource Avatar}"
+                                    Visibility="{Binding HasInitials, Converter={StaticResource BoolToVisibility}}" />
+                    <Border Width="{StaticResource Size.Avatar}"
+                            Height="{StaticResource Size.Avatar}"
+                            Background="{DynamicResource Brush.Surface.Sunken}"
+                            CornerRadius="{StaticResource Radius.Chip}"
+                            Visibility="{Binding HasInitials, Converter={StaticResource InverseBoolToVisibility}}">
+                        <TextBlock Style="{StaticResource Badge.Glyph}" Text="{Binding Glyph}" />
+                    </Border>
+                </Grid>
+                <StackPanel Margin="{StaticResource Thickness.InlineGapXL}" VerticalAlignment="Center">
                     <TextBlock MaxWidth="{StaticResource Size.EmailMaxWidth}"
                                Style="{StaticResource Text.Label}"
                                Text="{Binding Line1}"
@@ -86,7 +145,7 @@
                 <Button AutomationProperties.Name="{Binding SignInActionText}"
                         Command="{Binding DataContext.OpenSignInCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                         Content="{Binding SignInActionText}"
-                        Style="{StaticResource Button.Link}"
+                        Style="{StaticResource Button.Secondary}"
                         Visibility="{Binding ShowSignInAction, Converter={StaticResource BoolToVisibility}}" />
             </StackPanel>
         </DataTemplate>
@@ -104,14 +163,43 @@
 
         <Border Grid.RowSpan="2" Grid.Column="0" Style="{StaticResource Rail.Surface}">
             <DockPanel>
+                <Grid DockPanel.Dock="Top" Height="{StaticResource Size.TopBar}">
+                    <StackPanel Style="{StaticResource Rail.Brand}">
+                        <ContentControl Style="{StaticResource BrandMark}" />
+                        <StackPanel Margin="{StaticResource Thickness.LeadingGap}"
+                                    VerticalAlignment="Center"
+                                    Style="{StaticResource Rail.ExpandedOnly}">
+                            <TextBlock Style="{StaticResource Rail.Name}" Text="{x:Static res:ShellStrings.AppName}" />
+                            <TextBlock Style="{StaticResource Rail.Caption}" Text="{x:Static res:ShellStrings.AppTagline}" />
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
                 <TextBlock DockPanel.Dock="Top"
-                           Height="{StaticResource Size.TopBar}"
-                           Style="{StaticResource Rail.Header}"
-                           Text="{x:Static res:ShellStrings.AppName}" />
-                <ListBox DockPanel.Dock="Bottom"
-                         AutomationProperties.Name="{x:Static res:ShellStrings.FooterNavName}"
-                         ItemsSource="{Binding FooterItems}"
-                         Style="{StaticResource NavRail}" />
+                           Style="{StaticResource Rail.Section}"
+                           Text="{x:Static res:ShellStrings.WorkspaceSection}" />
+
+                <StackPanel DockPanel.Dock="Bottom">
+                    <ListBox AutomationProperties.Name="{x:Static res:ShellStrings.FooterNavName}"
+                             ItemsSource="{Binding FooterItems}"
+                             Style="{StaticResource NavRail}" />
+                    <Border Style="{StaticResource Rail.UserCard}"
+                            ToolTip="{Binding Badge.Line1}">
+                        <StackPanel Orientation="Horizontal">
+                            <ContentControl Content="{Binding Badge.Initials}" Style="{StaticResource Avatar}" />
+                            <StackPanel Margin="{StaticResource Thickness.LeadingGap}"
+                                        VerticalAlignment="Center"
+                                        Style="{StaticResource Rail.ExpandedOnly}">
+                                <TextBlock MaxWidth="{StaticResource Size.RailEmailMaxWidth}"
+                                           FontWeight="SemiBold"
+                                           Foreground="{DynamicResource Brush.Rail.Text.Selected}"
+                                           Style="{StaticResource Rail.Caption}"
+                                           Text="{Binding Badge.Line1}" />
+                                <TextBlock Style="{StaticResource Rail.Caption}" Text="{Binding Badge.Line2}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
                 <ListBox AutomationProperties.Name="{x:Static res:ShellStrings.MainNavName}"
                          ItemsSource="{Binding MainItems}"
                          Style="{StaticResource NavRail}" />
@@ -128,12 +216,15 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0"
-                           VerticalAlignment="Center"
-                           AutomationProperties.HeadingLevel="Level1"
-                           AutomationProperties.Name="{Binding Title}"
-                           Style="{StaticResource Text.Title}"
-                           Text="{Binding Title}" />
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock AutomationProperties.HeadingLevel="Level1"
+                               AutomationProperties.Name="{Binding Title}"
+                               Style="{StaticResource Text.Title}"
+                               Text="{Binding Title}" />
+                    <TextBlock Style="{StaticResource Text.PageSubtitle}"
+                               Text="{Binding Subtitle}"
+                               Visibility="{Binding Subtitle, Converter={StaticResource NotEmptyToVisibility}}" />
+                </StackPanel>
                 <ContentControl Grid.Column="1"
                                 VerticalAlignment="Center"
                                 AutomationProperties.ItemStatus="{Binding Badge.ItemStatus}"

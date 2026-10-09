@@ -8,24 +8,23 @@
              Focusable="False"
              IsTabStop="False">
     <UserControl.Resources>
-        <Style x:Key="Chip.Surface" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource Brush.Surface.Sunken}" />
-            <Setter Property="CornerRadius" Value="{StaticResource Radius.Chip}" />
-            <Setter Property="Padding" Value="{StaticResource Thickness.ChipPadding}" />
-            <Setter Property="VerticalAlignment" Value="Center" />
+        <Style x:Key="Chip.Surface" TargetType="Border" BasedOn="{StaticResource Tag.Surface}">
             <Setter Property="Margin" Value="{StaticResource Thickness.InlineGap}" />
             <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Text.Body}" />
             <Style.Triggers>
                 <DataTrigger Binding="{Binding ChipKind}" Value="{x:Static vm:KeyChipKind.Set}">
                     <Setter Property="Background" Value="{DynamicResource Brush.Success.Surface}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Success.Border}" />
                     <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Success}" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding ChipKind}" Value="{x:Static vm:KeyChipKind.NoKeyNeeded}">
                     <Setter Property="Background" Value="{DynamicResource Brush.Info.Surface}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Info.Border}" />
                     <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Text.Primary}" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding ChipKind}" Value="{x:Static vm:KeyChipKind.Unknown}">
                     <Setter Property="Background" Value="{DynamicResource Brush.Warning.Surface}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Warning.Border}" />
                     <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Warning}" />
                 </DataTrigger>
             </Style.Triggers>
@@ -114,6 +113,7 @@
                         <TextBlock VerticalAlignment="Center"
                                    FontFamily="{StaticResource Font.Body}"
                                    FontSize="{StaticResource FontSize.Caption}"
+                                   FontWeight="SemiBold"
                                    Text="{Binding ChipText}" />
                     </StackPanel>
                 </Border>

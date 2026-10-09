@@ -13,6 +13,7 @@ public static class ScreenCatalog
         {
             Key = ScreenKeys.SignIn,
             Title = ShellStrings.SignIn,
+            Subtitle = ShellStrings.SignInSubtitle,
             ViewModelType = typeof(SignInViewModel),
             RequiresSignIn = false,
             Glyph = Glyphs.SignIn,
@@ -23,6 +24,7 @@ public static class ScreenCatalog
         {
             Key = ScreenKeys.Extract,
             Title = ShellStrings.Extract,
+            Subtitle = ShellStrings.ExtractSubtitle,
             ViewModelType = typeof(ExtractionViewModel),
             RequiresSignIn = false,
             Glyph = Glyphs.Document,
@@ -33,6 +35,7 @@ public static class ScreenCatalog
         {
             Key = ScreenKeys.Review,
             Title = ShellStrings.Review,
+            Subtitle = ShellStrings.ReviewSubtitle,
             ViewModelType = typeof(ReviewViewModel),
             RequiresSignIn = true,
             Glyph = Glyphs.Lightbulb,
@@ -43,6 +46,7 @@ public static class ScreenCatalog
         {
             Key = ScreenKeys.History,
             Title = ShellStrings.History,
+            Subtitle = ShellStrings.HistorySubtitle,
             ViewModelType = typeof(HistoryViewModel),
             RequiresSignIn = true,
             Glyph = Glyphs.History,
@@ -53,6 +57,7 @@ public static class ScreenCatalog
         {
             Key = ScreenKeys.Settings,
             Title = ShellStrings.Settings,
+            Subtitle = ShellStrings.SettingsSubtitle,
             ViewModelType = typeof(SettingsViewModel),
             RequiresSignIn = false,
             Glyph = Glyphs.Settings,

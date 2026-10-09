@@ -2,6 +2,8 @@ namespace Collector.Presentation.Resources;
 
 public static class ExtractionStrings
 {
+    public const string SourceLabel = "SOURCE";
+    public const string DocumentsCaption = "Files queued on this computer";
     public const string ScreenTitle = "Extract";
     public const string PickFilesDialogTitle = "Choose files to parse";
     public const string PickFiles = "Choose files…";

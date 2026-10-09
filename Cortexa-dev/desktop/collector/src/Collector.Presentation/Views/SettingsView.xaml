@@ -16,23 +16,37 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+        <Style x:Key="Section.Header" TargetType="Grid">
+            <Setter Property="Margin" Value="{StaticResource Thickness.SectionHeader}" />
+        </Style>
+        <Style x:Key="Section.Footer" TargetType="Border">
+            <Setter Property="Margin" Value="{StaticResource Thickness.FieldGap}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
+            <Setter Property="BorderThickness" Value="{StaticResource Thickness.BottomBorder}" />
+        </Style>
     </UserControl.Resources>
 
     <StackPanel MaxWidth="{StaticResource Size.ContentMaxWidth}" HorizontalAlignment="Left">
         <Border Style="{StaticResource Card}">
             <StackPanel>
                 <ProgressBar Margin="{StaticResource Thickness.StackGap}" Style="{StaticResource Settings.Progress}" />
-                <StackPanel Margin="{StaticResource Thickness.StackGap}" Orientation="Horizontal">
-                    <TextBlock Margin="{StaticResource Thickness.InlineGapLarge}"
-                               Style="{StaticResource Text.Glyph.Header}"
-                               Text="{x:Static res:Glyphs.Globe}" />
-                    <TextBlock AutomationProperties.HeadingLevel="Level2"
-                               Style="{StaticResource Text.Subtitle}"
-                               Text="{x:Static res:SettingsStrings.ConnectionsTitle}" />
-                </StackPanel>
-                <TextBlock Margin="{StaticResource Thickness.StackGapLarge}"
-                           Style="{StaticResource Text.Helper}"
-                           Text="{x:Static res:SettingsStrings.ConnectionsIntro}" />
+                <Grid Style="{StaticResource Section.Header}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <ContentControl Margin="{StaticResource Thickness.InlineGapLarge}"
+                                    VerticalAlignment="Top"
+                                    Content="{x:Static res:Glyphs.Globe}"
+                                    Style="{StaticResource IconTile}" />
+                    <StackPanel Grid.Column="1">
+                        <TextBlock AutomationProperties.HeadingLevel="Level2"
+                                   Style="{StaticResource Text.Subtitle}"
+                                   Text="{x:Static res:SettingsStrings.ConnectionsTitle}" />
+                        <TextBlock Style="{StaticResource Text.Helper}" Text="{x:Static res:SettingsStrings.ConnectionsIntro}" />
+                    </StackPanel>
+                </Grid>
+                <Border Style="{StaticResource Section.Footer}" />
 
                 <HeaderedContentControl Header="{x:Static res:SettingsStrings.GatewayLabel}"
                                         Style="{StaticResource FormField}"
@@ -85,27 +99,31 @@
                             IsEnabled="{Binding AreFieldsEnabled}"
                             Style="{StaticResource Button.Secondary}"
                             Visibility="{Binding IsDirty, Converter={StaticResource BoolToVisibility}}" />
-                    <TextBlock VerticalAlignment="Center"
-                               Style="{StaticResource Text.Caption}"
-                               Text="{x:Static res:SettingsStrings.Unsaved}"
-                               Visibility="{Binding IsDirty, Converter={StaticResource BoolToVisibility}}" />
+                    <Border Style="{StaticResource Tag.Surface.Warning}" Visibility="{Binding IsDirty, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Style="{StaticResource Tag.Label}" Text="{x:Static res:SettingsStrings.Unsaved}" />
+                    </Border>
                 </StackPanel>
             </StackPanel>
         </Border>
 
         <Border Margin="{StaticResource Thickness.SectionTop}" Style="{StaticResource Card}">
             <StackPanel>
-                <StackPanel Margin="{StaticResource Thickness.StackGap}" Orientation="Horizontal">
-                    <TextBlock Margin="{StaticResource Thickness.InlineGapLarge}"
-                               Style="{StaticResource Text.Glyph.Header}"
-                               Text="{x:Static res:Glyphs.Key}" />
-                    <TextBlock AutomationProperties.HeadingLevel="Level2"
-                               Style="{StaticResource Text.Subtitle}"
-                               Text="{x:Static res:SettingsStrings.KeysTitle}" />
-                </StackPanel>
-                <TextBlock Margin="{StaticResource Thickness.StackGap}"
-                           Style="{StaticResource Text.Helper}"
-                           Text="{x:Static res:SettingsStrings.KeysIntro}" />
+                <Grid Style="{StaticResource Section.Header}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <ContentControl Margin="{StaticResource Thickness.InlineGapLarge}"
+                                    VerticalAlignment="Top"
+                                    Content="{x:Static res:Glyphs.Key}"
+                                    Style="{StaticResource IconTile}" />
+                    <StackPanel Grid.Column="1">
+                        <TextBlock AutomationProperties.HeadingLevel="Level2"
+                                   Style="{StaticResource Text.Subtitle}"
+                                   Text="{x:Static res:SettingsStrings.KeysTitle}" />
+                        <TextBlock Style="{StaticResource Text.Helper}" Text="{x:Static res:SettingsStrings.KeysIntro}" />
+                    </StackPanel>
+                </Grid>
                 <ItemsControl AlternationCount="100"
                               Focusable="False"
                               IsTabStop="False"
@@ -116,17 +134,22 @@
 
         <Border Margin="{StaticResource Thickness.SectionTop}" Style="{StaticResource Card}">
             <StackPanel>
-                <StackPanel Margin="{StaticResource Thickness.StackGap}" Orientation="Horizontal">
-                    <TextBlock Margin="{StaticResource Thickness.InlineGapLarge}"
-                               Style="{StaticResource Text.Glyph.Header}"
-                               Text="{x:Static res:Glyphs.Code}" />
-                    <TextBlock AutomationProperties.HeadingLevel="Level2"
-                               Style="{StaticResource Text.Subtitle}"
-                               Text="{x:Static res:SettingsStrings.RepositoryTitle}" />
-                </StackPanel>
-                <TextBlock Margin="{StaticResource Thickness.StackGap}"
-                           Style="{StaticResource Text.Helper}"
-                           Text="{x:Static res:SettingsStrings.RepositoryIntro}" />
+                <Grid Style="{StaticResource Section.Header}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <ContentControl Margin="{StaticResource Thickness.InlineGapLarge}"
+                                    VerticalAlignment="Top"
+                                    Content="{x:Static res:Glyphs.Code}"
+                                    Style="{StaticResource IconTile}" />
+                    <StackPanel Grid.Column="1">
+                        <TextBlock AutomationProperties.HeadingLevel="Level2"
+                                   Style="{StaticResource Text.Subtitle}"
+                                   Text="{x:Static res:SettingsStrings.RepositoryTitle}" />
+                        <TextBlock Style="{StaticResource Text.Helper}" Text="{x:Static res:SettingsStrings.RepositoryIntro}" />
+                    </StackPanel>
+                </Grid>
                 <ItemsControl AlternationCount="100"
                               Focusable="False"
                               IsTabStop="False"

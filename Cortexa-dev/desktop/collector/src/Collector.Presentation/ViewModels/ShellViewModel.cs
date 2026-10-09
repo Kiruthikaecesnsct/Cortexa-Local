@@ -44,6 +44,9 @@ public sealed partial class ShellViewModel : ObservableObject
     public partial string Title { get; set; } = ShellStrings.AppName;
 
     [ObservableProperty]
+    public partial string Subtitle { get; set; } = string.Empty;
+
+    [ObservableProperty]
     public partial bool IsRailCompact { get; set; }
 
     [ObservableProperty]
@@ -102,6 +105,7 @@ public sealed partial class ShellViewModel : ObservableObject
     {
         CurrentScreen = _navigation.CurrentViewModel;
         Title = _navigation.CurrentScreen?.Title ?? ShellStrings.AppName;
+        Subtitle = _navigation.CurrentScreen?.Subtitle ?? string.Empty;
         foreach (var item in MainItems.Concat(FooterItems))
         {
             item.IsSelected = item.Registration == _navigation.CurrentScreen;

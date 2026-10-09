@@ -200,19 +200,19 @@
 
             <ContentControl Grid.Row="1" Content="{Binding Banner}" Style="{StaticResource Banner.Slot}" />
 
-            <Grid Grid.Row="0" Margin="{StaticResource Thickness.StackGap}">
+            <Grid Grid.Row="0" Margin="{StaticResource Thickness.StackGapMedium}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0"
-                           VerticalAlignment="Center"
-                           AutomationProperties.HeadingLevel="Level1"
-                           Style="{StaticResource Text.Title}"
-                           Text="{x:Static res:HistoryStrings.Title}" />
+                <Ellipse Grid.Column="0"
+                         Width="{StaticResource Size.LiveDot}"
+                         Height="{StaticResource Size.LiveDot}"
+                         Margin="{StaticResource Thickness.InlineGap}"
+                         VerticalAlignment="Center"
+                         Fill="{DynamicResource Brush.Success}" />
                 <TextBlock Grid.Column="1"
-                           Margin="{StaticResource Thickness.LeadingGap}"
                            VerticalAlignment="Center"
                            Style="{StaticResource Text.Caption}"
                            Text="{Binding PollingCaption}"
@@ -221,9 +221,17 @@
                         AutomationProperties.Name="{x:Static res:HistoryStrings.Refresh}"
                         b:FocusRouter.Key="Refresh"
                         Command="{Binding RefreshCommand}"
-                        Content="{x:Static res:Glyphs.Refresh}"
-                        Style="{StaticResource Button.Icon}"
-                        ToolTip="{x:Static res:HistoryStrings.RefreshTip}" />
+                        Style="{StaticResource Button.Secondary}"
+                        ToolTip="{x:Static res:HistoryStrings.RefreshTip}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Margin="{StaticResource Thickness.InlineGap}"
+                                   VerticalAlignment="Center"
+                                   FontFamily="{StaticResource Font.Icon}"
+                                   FontSize="{StaticResource FontSize.IconSmall}"
+                                   Text="{x:Static res:Glyphs.Refresh}" />
+                        <TextBlock VerticalAlignment="Center" Text="{x:Static res:HistoryStrings.RefreshLabel}" />
+                    </StackPanel>
+                </Button>
             </Grid>
 
             <views:FailedUploadsView Grid.Row="2" DataContext="{Binding FailedUploads}" />
@@ -244,12 +252,7 @@
                         Style="{StaticResource Card}"
                         Visibility="{Binding ShowEmpty, Converter={StaticResource BoolToVisibility}}">
                     <StackPanel HorizontalAlignment="Center">
-                        <TextBlock Margin="{StaticResource Thickness.StackGap}"
-                                   HorizontalAlignment="Center"
-                                   FontFamily="{StaticResource Font.Icon}"
-                                   FontSize="{StaticResource FontSize.EmptyGlyph}"
-                                   Foreground="{DynamicResource Brush.Text.Muted}"
-                                   Text="{x:Static res:Glyphs.History}" />
+                        <ContentControl Content="{x:Static res:Glyphs.History}" Style="{StaticResource EmptyIcon}" />
                         <TextBlock Margin="{StaticResource Thickness.StackGap}"
                                    HorizontalAlignment="Center"
                                    AutomationProperties.HeadingLevel="Level2"
@@ -293,12 +296,7 @@
                             Style="{StaticResource Card}"
                             Visibility="{Binding ShowPlaceholder, Converter={StaticResource BoolToVisibility}}">
                         <StackPanel HorizontalAlignment="Center">
-                            <TextBlock Margin="{StaticResource Thickness.StackGap}"
-                                       HorizontalAlignment="Center"
-                                       FontFamily="{StaticResource Font.Icon}"
-                                       FontSize="{StaticResource FontSize.PlaceholderGlyph}"
-                                       Foreground="{DynamicResource Brush.Text.Muted}"
-                                       Text="{x:Static res:Glyphs.History}" />
+                            <ContentControl Content="{x:Static res:Glyphs.History}" Style="{StaticResource EmptyIcon.Small}" />
                             <TextBlock HorizontalAlignment="Center"
                                        Style="{StaticResource Text.Helper}"
                                        Text="{x:Static res:HistoryStrings.DetailsPlaceholder}"
@@ -311,12 +309,7 @@
                             Style="{StaticResource Card}"
                             Visibility="{Binding ShowNotFound, Converter={StaticResource BoolToVisibility}}">
                         <StackPanel HorizontalAlignment="Center">
-                            <TextBlock Margin="{StaticResource Thickness.StackGap}"
-                                       HorizontalAlignment="Center"
-                                       FontFamily="{StaticResource Font.Icon}"
-                                       FontSize="{StaticResource FontSize.PlaceholderGlyph}"
-                                       Foreground="{DynamicResource Brush.Warning}"
-                                       Text="{x:Static res:Glyphs.Warning}" />
+                            <ContentControl Content="{x:Static res:Glyphs.Warning}" Style="{StaticResource EmptyIcon.Warning}" />
                             <TextBlock Margin="{StaticResource Thickness.StackGap}"
                                        HorizontalAlignment="Center"
                                        AutomationProperties.HeadingLevel="Level2"
@@ -410,10 +403,12 @@
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="0"
-                                                   AutomationProperties.HeadingLevel="Level2"
-                                                   Style="{StaticResource Text.Subtitle}"
-                                                   Text="{x:Static res:HistoryStrings.CandidatesName}" />
+                                        <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                                   <ContentControl Margin="{StaticResource Thickness.InlineGapLarge}" Content="{x:Static res:Glyphs.Lightbulb}" Style="{StaticResource IconTile}" />
+                                                   <TextBlock AutomationProperties.HeadingLevel="Level2"
+                                                              Style="{StaticResource Text.Subtitle}"
+                                                              Text="{x:Static res:HistoryStrings.CandidatesName}" />
+                                                   </StackPanel>
                                         <TextBlock Grid.Column="1"
                                                    VerticalAlignment="Center"
                                                    Style="{StaticResource Text.Caption}"

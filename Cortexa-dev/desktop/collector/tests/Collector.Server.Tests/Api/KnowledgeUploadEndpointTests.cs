@@ -18,6 +18,8 @@ public class KnowledgeUploadEndpointTests
     private const string LocationPrefix = "/collector/batches/";
     private const string SecretExcerpt = "EXCERPT-MUST-NOT-BE-LOGGED";
     private const string SecretKey = "IDEMPOTENCY-KEY-MUST-NOT-BE-LOGGED";
+    private const string KeyDriftLogMarker = "US146 key-drift symptom";
+    private const string OtherAuthFailureLogMarker = "JWT rejected for a reason other than signature/key mismatch";
     private const int OverLongKeyLength = 129;
     private const int ReplayedPublishCount = 2;
     private const long TinyBodyLimit = 256;
@@ -148,6 +150,32 @@ public class KnowledgeUploadEndpointTests
 
         Assert.True(response.StatusCode == HttpStatusCode.Unauthorized, scenario);
         Assert.Equal(0, factory.Store.WriteCalls);
+    }
+
+    [Fact]
+    public async Task Post_BadSignatureToken_Returns401AndLogsKeyDriftDiagnostic()
+    {
+        await using var factory = new CollectorServerFactory();
+        var token = TestJwtFactory.Create(new TokenSpec { SigningKey = OtherSigningKey });
+
+        using var response = await factory.PostAsync(new UploadCall { Token = token });
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Contains(factory.Logs.Messages, message => message.Contains(KeyDriftLogMarker, StringComparison.Ordinal));
+        Assert.DoesNotContain(factory.Logs.Messages, message => message.Contains(OtherAuthFailureLogMarker, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task Post_ExpiredToken_Returns401AndLogsGenericDiagnosticNotKeyDrift()
+    {
+        await using var factory = new CollectorServerFactory();
+        var token = TestJwtFactory.Create(new TokenSpec { ExpiresIn = TimeSpan.FromHours(-1) });
+
+        using var response = await factory.PostAsync(new UploadCall { Token = token });
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Contains(factory.Logs.Messages, message => message.Contains(OtherAuthFailureLogMarker, StringComparison.Ordinal));
+        Assert.DoesNotContain(factory.Logs.Messages, message => message.Contains(KeyDriftLogMarker, StringComparison.Ordinal));
     }
 
     [Theory]

@@ -139,6 +139,30 @@ public sealed class ExtractKnowledgeHandlerTests
     }
 
     [Fact]
+    public async Task ExtractAsync_AllUnitsFailPermanent_RunCarriesPermanentFailureKind()
+    {
+        var provider = EchoProvider((_, _) => throw new AiProviderException(AiFailureKind.Permanent, "key rejected"));
+        AddDocument("doc-a", "one");
+
+        var result = await Handler(provider).ExtractAsync(Request("doc-a"), null, TestSupport.Ct);
+
+        Assert.True(result.IsFailed);
+        Assert.Equal(AiFailureKind.Permanent, result.FailureKind);
+    }
+
+    [Fact]
+    public async Task ExtractAsync_AllUnitsFailQuotaExceeded_RunCarriesQuotaExceededFailureKind()
+    {
+        var provider = EchoProvider((_, _) => throw new AiProviderException(AiFailureKind.QuotaExceeded, "quota hit"));
+        AddDocument("doc-a", "one");
+
+        var result = await Handler(provider).ExtractAsync(Request("doc-a"), null, TestSupport.Ct);
+
+        Assert.True(result.IsFailed);
+        Assert.Equal(AiFailureKind.QuotaExceeded, result.FailureKind);
+    }
+
+    [Fact]
     public async Task ExtractAsync_PartialFailure_CountsFailedUnitsAndOnlyFullyFailedDocuments()
     {
         AddDocument("doc-a", "fine one", FailMarker + " bad");

@@ -19,7 +19,7 @@ public sealed class KnowledgeRunner(
                 new ExtractionRunRequest(request.DocumentIds, request.Provider, request.Model),
                 progress,
                 cancellationToken);
-            return new KnowledgeRunOutcome(result.IsFailed ? KnowledgeRunStatus.Failed : KnowledgeRunStatus.Completed, result);
+            return new KnowledgeRunOutcome(StatusFor(result), result);
         }
         catch (OperationCanceledException)
         {
@@ -34,5 +34,21 @@ public sealed class KnowledgeRunner(
             logger.LogWarning(exception, "Knowledge extraction failed unexpectedly.");
             return new KnowledgeRunOutcome(KnowledgeRunStatus.Failed);
         }
+    }
+
+    private static KnowledgeRunStatus StatusFor(ExtractionRunResult result)
+    {
+        if (!result.IsFailed)
+        {
+            return KnowledgeRunStatus.Completed;
+        }
+
+        return result.FailureKind switch
+        {
+            AiFailureKind.Permanent => KnowledgeRunStatus.KeyRejected,
+            AiFailureKind.QuotaExceeded => KnowledgeRunStatus.QuotaExceeded,
+            AiFailureKind.Transient => KnowledgeRunStatus.NetworkFailed,
+            _ => KnowledgeRunStatus.Failed,
+        };
     }
 }

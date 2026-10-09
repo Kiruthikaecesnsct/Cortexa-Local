@@ -32,4 +32,18 @@ public sealed class WpfFilePicker : IFilePicker
         string? file = picked ? dialog.FileName : null;
         return Task.FromResult(file);
     }
+
+    public Task<string?> PickSaveFileAsync(string dialogTitle, string filter, string defaultFileName, CancellationToken cancellationToken)
+    {
+        var dialog = new SaveFileDialog
+        {
+            Title = dialogTitle,
+            Filter = filter,
+            FileName = defaultFileName,
+            OverwritePrompt = true,
+        };
+        var picked = dialog.ShowDialog() == true;
+        string? file = picked ? dialog.FileName : null;
+        return Task.FromResult(file);
+    }
 }

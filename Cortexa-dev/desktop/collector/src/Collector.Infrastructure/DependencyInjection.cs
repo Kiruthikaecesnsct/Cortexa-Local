@@ -4,6 +4,7 @@ using Collector.Application.Ports;
 using Collector.Infrastructure.Ai;
 using Collector.Infrastructure.Auth;
 using Collector.Infrastructure.Cache;
+using Collector.Infrastructure.Export;
 using Collector.Infrastructure.Extraction;
 using Collector.Infrastructure.History;
 using Collector.Infrastructure.Http;
@@ -45,6 +46,7 @@ public static class DependencyInjection
         services.AddSingleton<ITokenCounter, MlTokenizerCounter>();
         services.AddAiProviders();
         services.AddSingleton<IKnowledgeUploadClient, CollectorUploadClient>();
+        services.AddSingleton<IKnowledgePdfExporter, QuestPdfKnowledgeExporter>();
         services.AddSingleton<HistoryRetryPolicy>();
         services.AddSingleton<IBatchHistoryClient, CollectorHistoryClient>();
         services.AddCollectorRemoteSources(configuration);

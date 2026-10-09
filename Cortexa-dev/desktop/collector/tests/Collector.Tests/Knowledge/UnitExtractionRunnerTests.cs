@@ -100,7 +100,23 @@ public sealed class UnitExtractionRunnerTests
         var outcome = await Runner(provider).ExtractAsync(TestData.FileUnit("code"), TestData.Document(), KnowledgePipeline.DefaultContext, TestSupport.Ct);
 
         Assert.Equal(UnitOutcomeStatus.Failed, outcome.Status);
+        Assert.Equal(kind, outcome.FailureKind);
         Assert.Single(provider.Requests);
+    }
+
+    [Fact]
+    public async Task ExtractAsync_TruncatedHalvesFailWithDifferentKinds_CombinedKeepsPermanentOverQuotaExceeded()
+    {
+        var provider = new ScriptedAiProvider()
+            .Then(Completions.Truncated())
+            .Throw(new AiProviderException(AiFailureKind.QuotaExceeded, "quota"))
+            .Throw(new AiProviderException(AiFailureKind.Permanent, "key rejected"));
+        var unit = TestData.FileUnit("line one\nline two\nline three\nline four");
+
+        var outcome = await Runner(provider).ExtractAsync(unit, TestData.Document(), KnowledgePipeline.DefaultContext, TestSupport.Ct);
+
+        Assert.Equal(UnitOutcomeStatus.Failed, outcome.Status);
+        Assert.Equal(AiFailureKind.Permanent, outcome.FailureKind);
     }
 
     [Fact]

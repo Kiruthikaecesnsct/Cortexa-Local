@@ -64,6 +64,12 @@ public static class ReviewStrings
     public const string UploadPartialTitle = "Some batches didn't upload.";
     public const string UploadFailedTitle = "Upload failed.";
     public const string ResultsTitle = "Upload results";
+    public const string DownloadPdf = "Download PDF";
+    public const string DownloadPdfName = "Download the uploaded knowledge items as a PDF";
+    public const string PdfSaveDialogTitle = "Save knowledge items as PDF";
+    public const string PdfSaveDialogFilter = "PDF document (*.pdf)|*.pdf";
+    public const string PdfExportedTitle = "PDF saved.";
+    public const string PdfExportFailedTitle = "Couldn't save the PDF. Try again.";
     public const string Copied = "Copied";
     public const string Retry = "Retry";
     public const string RetryFailed = "Retry failed batches";
@@ -82,6 +88,10 @@ public static class ReviewStrings
     public const string ErrorSession = "Your session expired. Sign in again, then retry.";
     public const string ErrorNetwork = "Couldn't reach the Collector server. Check your connection, then retry.";
     public const string ErrorUnknown = "The batch couldn't be uploaded. Try again.";
+
+    public static string PdfDefaultFileName(DateTimeOffset generatedAt) => $"Cortexa-Knowledge-{generatedAt:yyyyMMdd-HHmmss}.pdf";
+
+    public static string PdfExportedMessage(string path) => $"Saved to {path}.";
 
     public static string ChipLabel(string kind, int count) => $"{kind} {count}";
 

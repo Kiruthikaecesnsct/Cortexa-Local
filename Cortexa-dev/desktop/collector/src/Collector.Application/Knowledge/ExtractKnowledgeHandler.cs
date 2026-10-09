@@ -124,7 +124,14 @@ public sealed class ExtractKnowledgeHandler(
             Provider = request.Provider,
             Model = outcomes.Select(outcome => outcome.Model).FirstOrDefault(model => model is not null) ?? string.Empty,
             PromptVersion = prompt.Version,
+            FailureKind = DominantFailureKind(outcomes),
         };
+
+    private static AiFailureKind? DominantFailureKind(UnitOutcome[] outcomes) =>
+        FailureKindPrecedence.Dominant(
+            outcomes
+                .Where(outcome => outcome.Status == UnitOutcomeStatus.Failed)
+                .Select(outcome => outcome.FailureKind));
 
     private List<ExtractedKnowledgeItem> MergeItems(UnitOutcome[] outcomes) =>
     [

@@ -1,3 +1,5 @@
+using Collector.Application.Ports;
+
 namespace Collector.Application.Knowledge;
 
 public enum UnitOutcomeStatus
@@ -7,9 +9,13 @@ public enum UnitOutcomeStatus
     Failed,
 }
 
-public sealed record UnitOutcome(UnitOutcomeStatus Status, IReadOnlyList<ExtractedKnowledgeItem> Items, string? Model)
+public sealed record UnitOutcome(
+    UnitOutcomeStatus Status,
+    IReadOnlyList<ExtractedKnowledgeItem> Items,
+    string? Model,
+    AiFailureKind? FailureKind = null)
 {
-    public static UnitOutcome Failed { get; } = new(UnitOutcomeStatus.Failed, [], null);
+    public static UnitOutcome Failed(AiFailureKind? kind = null) => new(UnitOutcomeStatus.Failed, [], null, kind);
 
     public static UnitOutcome Skipped(string? model) => new(UnitOutcomeStatus.Skipped, [], model);
 

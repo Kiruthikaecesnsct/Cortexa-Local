@@ -39,7 +39,7 @@ public sealed class UnitExtractionRunner(
         catch (AiProviderException exception) when (exception.Kind != AiFailureKind.MissingApiKey)
         {
             logger.LogWarning("Unit {UnitId} failed with a {Kind} provider error.", state.Unit.Id, exception.Kind);
-            return UnitOutcome.Failed;
+            return UnitOutcome.Failed(exception.Kind);
         }
 
         return completion.Outcome switch
@@ -62,7 +62,7 @@ public sealed class UnitExtractionRunner(
         if (!parsed.Succeeded)
         {
             logger.LogWarning("Unit {UnitId} returned a response that could not be parsed.", unit.Id);
-            return UnitOutcome.Failed;
+            return UnitOutcome.Failed();
         }
 
         if (parsed.DroppedItems > 0)
@@ -80,7 +80,7 @@ public sealed class UnitExtractionRunner(
         if (halves is null)
         {
             logger.LogWarning("Unit {UnitId} was cut off and cannot be split further.", state.Unit.Id);
-            return UnitOutcome.Failed;
+            return UnitOutcome.Failed();
         }
 
         var first = await ExtractAsync(state with { Unit = halves.Value.First, Depth = state.Depth + 1 }, cancellationToken);
@@ -92,7 +92,7 @@ public sealed class UnitExtractionRunner(
     {
         if (first.Status == UnitOutcomeStatus.Failed || second.Status == UnitOutcomeStatus.Failed)
         {
-            return UnitOutcome.Failed;
+            return UnitOutcome.Failed(FailureKindPrecedence.Dominant(first.FailureKind, second.FailureKind));
         }
 
         var model = first.Model ?? second.Model;

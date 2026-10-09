@@ -8,6 +8,7 @@ public class RemoteFailureMessagesTests
     [Theory]
     [InlineData(SourceType.Github, "GitHub")]
     [InlineData(SourceType.AzureDevops, "Azure DevOps")]
+    [InlineData(SourceType.Ssh, "SSH")]
     public void For_ProviderSpecificFailures_NameTheProvider(SourceType provider, string expectedName)
     {
         RemoteFailureKind[] providerKinds =
@@ -46,6 +47,15 @@ public class RemoteFailureMessagesTests
     [Fact]
     public void DisplayName_UnmappedProvider_FallsBackToEnumName()
     {
-        Assert.Equal("Ssh", RemoteFailureMessages.DisplayName(SourceType.Ssh));
+        Assert.Equal("CortexaRepo", RemoteFailureMessages.DisplayName(SourceType.CortexaRepo));
+    }
+
+    [Fact]
+    public void For_FingerprintMismatch_NamesSshAndRefuses()
+    {
+        var message = RemoteFailureMessages.For(RemoteFailureKind.FingerprintMismatch, SourceType.Ssh);
+
+        Assert.Contains("SSH", message, StringComparison.Ordinal);
+        Assert.Contains("fingerprint", message, StringComparison.Ordinal);
     }
 }

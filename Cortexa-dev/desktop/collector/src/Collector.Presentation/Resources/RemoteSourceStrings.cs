@@ -186,6 +186,12 @@ public static class RemoteSourceStrings
     public const string SshFingerprintMismatchMessage =
         "This may mean the server changed or someone is intercepting the connection. Verify the fingerprint with the server administrator before continuing.";
 
+    public const string SshAuthTitle = "The server didn't accept your key.";
+    public const string SshAuthMessage = "Check the key file and its passphrase, then try again.";
+
+    public const string SshDeniedTitle = "You don't have permission to read these files.";
+    public const string SshDeniedMessage = "Ask the server administrator for read access, then try again.";
+
     public const string SshConnectionFailedTitle = "Couldn't connect to the server.";
     public const string SshConnectionFailedMessage = "Check the host, port, and your network connection, then try again.";
 }

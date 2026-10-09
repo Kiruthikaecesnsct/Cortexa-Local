@@ -45,7 +45,8 @@ public sealed class SftpRepositoryClient(
         {
             var client = await EnsureConnectedAsync(profile, cancellationToken);
             var entries = new List<RemoteTreeEntry>();
-            await WalkAsync(client, profile.RemoteRoot, string.Empty, 0, options.CurrentValue.Ssh.MaxWalkDepth, entries, cancellationToken);
+            var walk = new SftpWalk(client, options.CurrentValue.Ssh.MaxWalkDepth, entries, cancellationToken);
+            await WalkAsync(walk, profile.RemoteRoot, string.Empty, 0);
             return new RemoteTree(string.Empty, entries, Truncated: false);
         }
         catch (Exception exception) when (IsConnectionFailure(exception))
@@ -154,23 +155,22 @@ public sealed class SftpRepositoryClient(
         && string.Equals(left.Username, right.Username, StringComparison.Ordinal)
         && string.Equals(left.RemoteRoot, right.RemoteRoot, StringComparison.Ordinal);
 
-    private static async Task WalkAsync(
-        SftpClient client,
-        string absoluteDir,
-        string relativePrefix,
-        int depth,
-        int maxDepth,
-        ICollection<RemoteTreeEntry> entries,
-        CancellationToken cancellationToken)
+    private sealed record SftpWalk(
+        SftpClient Client,
+        int MaxDepth,
+        ICollection<RemoteTreeEntry> Entries,
+        CancellationToken CancellationToken);
+
+    private static async Task WalkAsync(SftpWalk walk, string absoluteDir, string relativePrefix, int depth)
     {
-        if (depth > maxDepth)
+        if (depth > walk.MaxDepth)
         {
             return;
         }
 
-        await foreach (var file in client.ListDirectoryAsync(absoluteDir, cancellationToken))
+        await foreach (var file in walk.Client.ListDirectoryAsync(absoluteDir, walk.CancellationToken))
         {
-            if (IsSelfOrParent(file.Name) || file.IsSymbolicLink)
+            if (IsSelfOrParent(file.Name) || file.IsSymbolicLink || !SshBlobKeyCodec.CanEncode(file.Name))
             {
                 continue;
             }
@@ -178,17 +178,14 @@ public sealed class SftpRepositoryClient(
             if (file.IsDirectory)
             {
                 await WalkAsync(
-                    client,
+                    walk,
                     JoinRemoteDir(absoluteDir, file.Name),
                     JoinRelative(relativePrefix, file.Name),
-                    depth + 1,
-                    maxDepth,
-                    entries,
-                    cancellationToken);
+                    depth + 1);
             }
             else if (file.IsRegularFile)
             {
-                entries.Add(ToEntry(relativePrefix, file));
+                walk.Entries.Add(ToEntry(relativePrefix, file));
             }
         }
     }

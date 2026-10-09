@@ -21,11 +21,17 @@ public sealed class SftpConnectionFactory(ISecretStore secrets, ILogger<SftpConn
         using var keyFile = CreatePrivateKeyFile(profile, passphrase);
         var connectionInfo = CreateConnectionInfo(profile, keyFile, options);
         var client = new SftpClient(connectionInfo);
-        client.HostKeyReceived += (_, args) => OnHostKeyReceived(args, profile);
+        var hostKeyRejected = false;
+        client.HostKeyReceived += (_, args) => hostKeyRejected = !TrustHostKey(args, profile);
 
         try
         {
             await client.ConnectAsync(cancellationToken);
+        }
+        catch (Exception exception) when (hostKeyRejected)
+        {
+            client.Dispose();
+            throw new RemoteSourceException(RemoteFailureKind.FingerprintMismatch, SourceType.Ssh, null, exception);
         }
         catch
         {
@@ -55,20 +61,16 @@ public sealed class SftpConnectionFactory(ISecretStore secrets, ILogger<SftpConn
         return connectionInfo;
     }
 
-    private void OnHostKeyReceived(HostKeyEventArgs args, SshConnectionProfile profile)
+    private bool TrustHostKey(HostKeyEventArgs args, SshConnectionProfile profile)
     {
-        var fingerprint = SshFingerprint.Compute(args.HostKey);
-        var trusted = !string.IsNullOrEmpty(profile.PinnedFingerprint)
-            && SshFingerprint.Matches(profile.PinnedFingerprint, fingerprint);
-        args.CanTrust = trusted;
-        if (trusted)
+        args.CanTrust = SshFingerprint.IsTrusted(profile.PinnedFingerprint, args.HostKey);
+        if (!args.CanTrust)
         {
-            return;
+            logger.LogWarning(
+                "Rejected SSH host key for {Host}: fingerprint did not match the pinned value.",
+                profile.Host);
         }
 
-        logger.LogWarning(
-            "Rejected SSH host key for {Host}: fingerprint did not match the pinned value.",
-            profile.Host);
-        throw new RemoteSourceException(RemoteFailureKind.FingerprintMismatch, SourceType.Ssh);
+        return args.CanTrust;
     }
 }

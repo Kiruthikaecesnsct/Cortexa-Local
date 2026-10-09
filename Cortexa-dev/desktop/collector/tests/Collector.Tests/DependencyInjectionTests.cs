@@ -15,6 +15,7 @@ using Collector.Infrastructure.Remote;
 using Collector.Infrastructure.Remote.AzureDevOps;
 using Collector.Infrastructure.Remote.GitHub;
 using Collector.Infrastructure.Remote.RateLimit;
+using Collector.Infrastructure.Remote.Ssh;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
@@ -62,13 +63,14 @@ public class DependencyInjectionTests
         [.. Handlers(factory, name).Select(handler => handler.GetType())];
 
     [Fact]
-    public void RemoteRepositoryClients_Always_ResolvesBothProviders()
+    public void RemoteRepositoryClients_Always_ResolvesEveryProvider()
     {
         using var provider = Build();
         var clients = provider.GetRequiredService<IRemoteRepositoryClients>();
 
         Assert.IsType<GitHubRepositoryClient>(clients.For(SourceType.Github));
         Assert.IsType<AzureDevOpsRepositoryClient>(clients.For(SourceType.AzureDevops));
+        Assert.IsType<SftpRepositoryClient>(clients.For(SourceType.Ssh));
     }
 
     [Fact]
@@ -77,7 +79,7 @@ public class DependencyInjectionTests
         using var provider = Build();
         var clients = provider.GetRequiredService<IRemoteRepositoryClients>();
 
-        Assert.Throws<NotSupportedException>(() => clients.For(SourceType.Ssh));
+        Assert.Throws<NotSupportedException>(() => clients.For(SourceType.CortexaRepo));
     }
 
     [Fact]

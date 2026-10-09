@@ -24,6 +24,9 @@
     <ProjectReference Include="..\Collector.Application\Collector.Application.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="Collector.Tests" />
+  </ItemGroup>
+  <ItemGroup>
     <EmbeddedResource Include="Cache\Schema\*.sql" />
   </ItemGroup>
 </Project>

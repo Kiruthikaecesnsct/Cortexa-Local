@@ -11,7 +11,7 @@ internal static class SshBlobKeyCodec
 
     public static string Encode(string relativePath, long mtimeTicks, long sizeBytes)
     {
-        if (relativePath.IndexOf(FieldDelimiter) >= 0 || relativePath.IndexOf(PairDelimiter) >= 0)
+        if (!CanEncode(relativePath))
         {
             throw new ArgumentException("Relative path contains a reserved control character.", nameof(relativePath));
         }
@@ -20,6 +20,9 @@ internal static class SshBlobKeyCodec
         var size = sizeBytes.ToString(CultureInfo.InvariantCulture);
         return $"{relativePath}{FieldDelimiter}{mtime}{PairDelimiter}{size}";
     }
+
+    public static bool CanEncode(string relativePath) =>
+        relativePath.IndexOf(FieldDelimiter) < 0 && relativePath.IndexOf(PairDelimiter) < 0;
 
     public static SshBlobKey Parse(string blobKey)
     {

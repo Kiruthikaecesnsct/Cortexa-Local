@@ -34,6 +34,8 @@ public static class DependencyInjection
         services.AddCollectorHttpClients();
         services.TryAddSingleton(TimeProvider.System);
         services.AddSingleton<ISecretStore, CredentialManagerStore>();
+        services.AddSingleton<IGeminiKeyStore, GeminiKeyStore>();
+        services.AddSingleton<IGeminiKeyStatusStore, GeminiKeyStatusStore>();
         services.AddSingleton<IAuthClient, GatewayAuthClient>();
         services.AddSingleton<IUserSettingsStore, JsonUserSettingsStore>();
         services.AddSingleton<SqliteConnectionFactory>();
@@ -78,6 +80,7 @@ public static class DependencyInjection
             BedrockProviderOptions.SectionName);
         services.AddValidatedOptions<AiOptions, AiOptionsValidator>(configuration, AiOptions.SectionName);
         services.AddOptions<AiModelChoiceOptions>().Bind(configuration.GetSection(AiModelChoiceOptions.SectionName));
+        services.AddOptions<GeminiRotationOptions>().Bind(configuration.GetSection(GeminiRotationOptions.SectionName));
         services.AddSingleton<IProviderModelCatalog, ProviderModelCatalogAdapter>();
         services.AddOptions<ProviderModelCatalog>().Bind(configuration.GetSection(ProviderModelCatalog.SectionName));
         services.AddOptions<KnowledgeExtractionOptions>()

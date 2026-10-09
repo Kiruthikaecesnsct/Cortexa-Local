@@ -13,7 +13,7 @@ public class SettingsServiceTests
 
     public SettingsServiceTests()
     {
-        _service = new SettingsService(_store, _secrets);
+        _service = new SettingsService(_store, _secrets, new FakeGeminiKeyStore());
     }
 
     [Fact]

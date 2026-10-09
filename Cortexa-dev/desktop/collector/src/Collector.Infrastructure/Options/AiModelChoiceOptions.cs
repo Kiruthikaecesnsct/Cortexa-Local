@@ -10,3 +10,10 @@ public sealed class AiModelChoiceOptions
 
     public string? Model { get; set; }
 }
+
+public sealed class GeminiRotationOptions
+{
+    public const string SectionName = "GeminiRotation";
+
+    public string? ActiveKeyId { get; set; }
+}

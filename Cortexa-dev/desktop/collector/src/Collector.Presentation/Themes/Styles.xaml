@@ -4,7 +4,8 @@
                     xmlns:b="clr-namespace:Collector.Presentation.Behaviors"
                     xmlns:res="clr-namespace:Collector.Presentation.Resources"
                     xmlns:svc="clr-namespace:Collector.Presentation.Services"
-                    xmlns:vm="clr-namespace:Collector.Presentation.ViewModels">
+                    xmlns:vm="clr-namespace:Collector.Presentation.ViewModels"
+                    xmlns:ai="clr-namespace:Collector.Application.Ai;assembly=Collector.Application">
 
     <FontFamily x:Key="Font.Body">Cambria, Georgia, Times New Roman</FontFamily>
     <FontFamily x:Key="Font.Display">Cambria, Georgia, Times New Roman</FontFamily>
@@ -956,6 +957,25 @@
             </DataTrigger>
         </Style.Triggers>
     </Style>
+    <Style x:Key="GeminiStatusChip" TargetType="Border" BasedOn="{StaticResource Tag.Surface}">
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Status}" Value="{x:Static ai:GeminiKeyStatus.Ok}">
+                <Setter Property="Background" Value="{DynamicResource Brush.Success.Surface}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.Success.Border}" />
+                <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Success}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Status}" Value="{x:Static ai:GeminiKeyStatus.RateLimited}">
+                <Setter Property="Background" Value="{DynamicResource Brush.Warning.Surface}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.Warning.Border}" />
+                <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Warning}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Status}" Value="{x:Static ai:GeminiKeyStatus.Rejected}">
+                <Setter Property="Background" Value="{DynamicResource Brush.Danger.Surface}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.Danger.Border}" />
+                <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Danger.Text}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
     <Style x:Key="Tag.Glyph" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource Font.Icon}" />
         <Setter Property="FontSize" Value="{StaticResource FontSize.IconSmall}" />
@@ -967,6 +987,20 @@
         <Setter Property="FontSize" Value="{StaticResource FontSize.Caption}" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style x:Key="GeminiStatusChip.Glyph" TargetType="TextBlock" BasedOn="{StaticResource Tag.Glyph}">
+        <Setter Property="Text" Value="{x:Static res:Glyphs.CircleRing}" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Status}" Value="{x:Static ai:GeminiKeyStatus.Ok}">
+                <Setter Property="Text" Value="{x:Static res:Glyphs.Success}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Status}" Value="{x:Static ai:GeminiKeyStatus.RateLimited}">
+                <Setter Property="Text" Value="{x:Static res:Glyphs.Warning}" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Status}" Value="{x:Static ai:GeminiKeyStatus.Rejected}">
+                <Setter Property="Text" Value="{x:Static res:Glyphs.Error}" />
+            </DataTrigger>
+        </Style.Triggers>
     </Style>
 
     <Style x:Key="Banner.Slot" TargetType="ContentControl">

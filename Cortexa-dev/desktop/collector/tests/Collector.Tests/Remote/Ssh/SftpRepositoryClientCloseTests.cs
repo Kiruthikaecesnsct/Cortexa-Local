@@ -10,7 +10,7 @@ public sealed class SftpRepositoryClientCloseTests
 {
     private static SftpRepositoryClient CreateClient() => new(
         new SftpConnectionFactory(new InMemorySessionCredentials()),
-        new SettingsService(new FakeUserSettingsStore(), new InMemorySecretStore()),
+        new SettingsService(new FakeUserSettingsStore(), new InMemorySecretStore(), new FakeGeminiKeyStore()),
         RemoteData.Options(),
         NullLogger<SftpRepositoryClient>.Instance);
 

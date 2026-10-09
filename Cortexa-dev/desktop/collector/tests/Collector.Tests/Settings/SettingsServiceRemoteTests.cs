@@ -16,7 +16,7 @@ public class SettingsServiceRemoteTests
 
     public SettingsServiceRemoteTests()
     {
-        _service = new SettingsService(_store, _secrets);
+        _service = new SettingsService(_store, _secrets, new FakeGeminiKeyStore());
     }
 
     [Fact]

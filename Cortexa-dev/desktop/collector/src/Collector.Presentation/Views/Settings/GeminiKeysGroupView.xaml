@@ -1,0 +1,163 @@
+<UserControl x:Class="Collector.Presentation.Views.SettingsSections.GeminiKeysGroupView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:b="clr-namespace:Collector.Presentation.Behaviors"
+             xmlns:res="clr-namespace:Collector.Presentation.Resources"
+             xmlns:vm="clr-namespace:Collector.Presentation.ViewModels"
+             b:FocusRouter.IsHost="True"
+             Focusable="False"
+             IsTabStop="False">
+    <UserControl.Resources>
+        <DataTemplate x:Key="GeminiKeyItemTemplate" DataType="{x:Type vm:GeminiKeyItemViewModel}">
+            <StackPanel>
+                <Border Style="{StaticResource Divider}"
+                        Visibility="{Binding (ItemsControl.AlternationIndex), RelativeSource={RelativeSource AncestorType=ContentPresenter}, Converter={StaticResource NotZeroToVisibility}}" />
+                <Grid MinHeight="{StaticResource Size.RowMin}" Margin="{StaticResource Thickness.RowPadding}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0"
+                               Margin="{StaticResource Thickness.InlineGapLarge}"
+                               VerticalAlignment="Center"
+                               Style="{StaticResource Text.Caption}"
+                               Text="{Binding Position}" />
+                    <TextBlock Grid.Column="1"
+                               Margin="{StaticResource Thickness.InlineGapLarge}"
+                               VerticalAlignment="Center"
+                               AutomationProperties.Name="{Binding PreviewAutomationName}"
+                               FontFamily="{StaticResource Font.Mono}"
+                               FontSize="{StaticResource FontSize.Mono}"
+                               Foreground="{DynamicResource Brush.Text.Body}"
+                               Text="{Binding Preview}" />
+                    <Border Grid.Column="2"
+                            HorizontalAlignment="Left"
+                            AutomationProperties.Name="{Binding StatusAutomationName}"
+                            Style="{StaticResource GeminiStatusChip}"
+                            Visibility="{Binding ShowRowActions, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource GeminiStatusChip.Glyph}" />
+                            <TextBlock Style="{StaticResource Tag.Label}" Text="{Binding StatusLabel}" />
+                        </StackPanel>
+                    </Border>
+                    <StackPanel Grid.Column="3"
+                                Orientation="Horizontal"
+                                Visibility="{Binding ShowRowActions, Converter={StaticResource BoolToVisibility}}">
+                        <Button AutomationProperties.Name="{Binding UpAutomationName}"
+                                Command="{Binding MoveUpCommand}"
+                                Content="{x:Static res:Glyphs.ChevronUp}"
+                                IsEnabled="{Binding CanMoveUp}"
+                                Style="{StaticResource Button.Icon}"
+                                b:FocusRouter.Key="{Binding UpKey}" />
+                        <Button AutomationProperties.Name="{Binding DownAutomationName}"
+                                Command="{Binding MoveDownCommand}"
+                                Content="{x:Static res:Glyphs.ChevronDown}"
+                                IsEnabled="{Binding CanMoveDown}"
+                                Style="{StaticResource Button.Icon}"
+                                b:FocusRouter.Key="{Binding DownKey}" />
+                        <Button MinHeight="{StaticResource Size.RowAction}"
+                                Margin="{StaticResource Thickness.LeadingGapSmall}"
+                                AutomationProperties.Name="{Binding RemoveAutomationName}"
+                                Command="{Binding BeginRemoveCommand}"
+                                Content="{x:Static res:SettingsStrings.Remove}"
+                                Style="{StaticResource Button.Link}"
+                                b:FocusRouter.Key="{Binding RemoveKey}" />
+                    </StackPanel>
+                </Grid>
+                <StackPanel Visibility="{Binding IsConfirmingRemove, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel.InputBindings>
+                        <KeyBinding Key="Escape" Command="{Binding KeepCommand}" />
+                    </StackPanel.InputBindings>
+                    <TextBlock Margin="{StaticResource Thickness.StackGap}"
+                               Style="{StaticResource Text.Body}"
+                               Text="{Binding ConfirmRemoveText}" />
+                    <StackPanel Margin="{StaticResource Thickness.StackGap}" Orientation="Horizontal">
+                        <Button MinHeight="{StaticResource Size.RowAction}"
+                                Margin="{StaticResource Thickness.InlineGap}"
+                                AutomationProperties.Name="{Binding RemoveAutomationName}"
+                                Command="{Binding ConfirmRemoveCommand}"
+                                Content="{Binding ConfirmRemoveLabel}"
+                                IsEnabled="{Binding IsConfirmEnabled}"
+                                Style="{StaticResource Button.Danger}"
+                                b:FocusRouter.Key="{Binding ConfirmRemoveKey}" />
+                        <Button MinHeight="{StaticResource Size.RowAction}"
+                                Command="{Binding KeepCommand}"
+                                Content="{x:Static res:SettingsStrings.KeepKey}"
+                                IsEnabled="{Binding IsConfirmEnabled}"
+                                Style="{StaticResource Button.Secondary}"
+                                b:FocusRouter.Key="{Binding KeepKey}" />
+                    </StackPanel>
+                    <Grid Margin="{StaticResource Thickness.HelperGap}"
+                          Visibility="{Binding HasError, Converter={StaticResource BoolToVisibility}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0"
+                                   Margin="{StaticResource Thickness.InlineGap}"
+                                   VerticalAlignment="Top"
+                                   Style="{StaticResource Text.Glyph.Error}"
+                                   Text="{x:Static res:Glyphs.Error}" />
+                        <TextBlock Grid.Column="1" Style="{StaticResource Text.Error}" Text="{Binding ErrorMessage}" />
+                    </Grid>
+                </StackPanel>
+            </StackPanel>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <StackPanel>
+        <Border Style="{StaticResource Divider}" />
+        <StackPanel Margin="{StaticResource Thickness.SectionTop}">
+            <TextBlock Style="{StaticResource Text.Label}" Text="{x:Static res:SettingsStrings.GeminiName}" />
+            <TextBlock Style="{StaticResource Text.Helper}" Text="{Binding Description}" />
+        </StackPanel>
+
+        <ItemsControl AlternationCount="100"
+                      Focusable="False"
+                      IsTabStop="False"
+                      ItemTemplate="{StaticResource GeminiKeyItemTemplate}"
+                      ItemsSource="{Binding Items}"
+                      Visibility="{Binding HasKeys, Converter={StaticResource BoolToVisibility}}" />
+
+        <Button Margin="{StaticResource Thickness.ActionTop}"
+                HorizontalAlignment="Left"
+                AutomationProperties.Name="{x:Static res:SettingsStrings.AddGeminiKey}"
+                Command="{Binding OpenEditorCommand}"
+                Content="{x:Static res:SettingsStrings.AddGeminiKey}"
+                Style="{StaticResource Button.Secondary}"
+                Visibility="{Binding HasKeys, Converter={StaticResource BoolToVisibility}}"
+                b:FocusRouter.Key="GeminiAddKey" />
+
+        <Border Visibility="{Binding IsEmpty, Converter={StaticResource BoolToVisibility}}">
+            <StackPanel HorizontalAlignment="Center" Margin="{StaticResource Thickness.ActionTop}">
+                <ContentControl Content="{x:Static res:Glyphs.Key}" Style="{StaticResource EmptyIcon.Small}" />
+                <TextBlock Margin="{StaticResource Thickness.StackGap}"
+                           HorizontalAlignment="Center"
+                           Style="{StaticResource Text.Label}"
+                           Text="{x:Static res:SettingsStrings.NoGeminiKeysTitle}" />
+                <TextBlock Margin="{StaticResource Thickness.StackGapLarge}"
+                           HorizontalAlignment="Center"
+                           Style="{StaticResource Text.Helper}"
+                           Text="{x:Static res:SettingsStrings.NoGeminiKeysHelper}"
+                           TextAlignment="Center" />
+                <Button HorizontalAlignment="Center"
+                        AutomationProperties.Name="{x:Static res:SettingsStrings.AddGeminiKey}"
+                        Command="{Binding OpenEditorCommand}"
+                        Content="{x:Static res:SettingsStrings.AddGeminiKey}"
+                        Style="{StaticResource Button.Primary}"
+                        b:FocusRouter.Key="GeminiAddKeyEmpty" />
+            </StackPanel>
+        </Border>
+
+        <ContentControl Content="{Binding Editor}" Focusable="False" IsTabStop="False" />
+
+        <TextBlock Width="{StaticResource Size.LiveRegion}"
+                   Height="{StaticResource Size.LiveRegion}"
+                   AutomationProperties.LiveSetting="{Binding AnnouncementSetting}"
+                   ClipToBounds="True"
+                   Opacity="0"
+                   Text="{Binding Announcement}" />
+    </StackPanel>
+</UserControl>

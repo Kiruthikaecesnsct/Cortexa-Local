@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using Collector.Application.Ai;
 using Collector.Application.Auth;
 using Collector.Application.Ports;
 using Collector.Application.Secrets;
@@ -54,6 +55,69 @@ internal sealed class InMemorySecretStore : ISecretStore
     }
 }
 
+internal sealed class FakeGeminiKeyStore : IGeminiKeyStore
+{
+    public List<GeminiKey> Keys { get; } = [];
+
+    public int AddKeyCalls { get; private set; }
+
+    public int RemoveKeyCalls { get; private set; }
+
+    public int ReorderCalls { get; private set; }
+
+    public Exception? ReorderFailure { get; set; }
+
+    public Task<GeminiKeyList> GetKeysAsync(CancellationToken cancellationToken) =>
+        Task.FromResult(new GeminiKeyList([.. Keys]));
+
+    public Task<GeminiKey> AddKeyAsync(string rawKey, CancellationToken cancellationToken)
+    {
+        AddKeyCalls++;
+        var created = new GeminiKey(Guid.NewGuid().ToString("N")[..8], rawKey.Trim());
+        Keys.Add(created);
+        return Task.FromResult(created);
+    }
+
+    public Task RemoveKeyAsync(string id, CancellationToken cancellationToken)
+    {
+        RemoveKeyCalls++;
+        Keys.RemoveAll(key => key.Id == id);
+        return Task.CompletedTask;
+    }
+
+    public Task ReorderAsync(IReadOnlyList<string> orderedIds, CancellationToken cancellationToken)
+    {
+        ReorderCalls++;
+        if (ReorderFailure is not null)
+        {
+            return Task.FromException(ReorderFailure);
+        }
+
+        var byId = Keys.ToDictionary(key => key.Id);
+        Keys.Clear();
+        Keys.AddRange(orderedIds.Where(byId.ContainsKey).Select(id => byId[id]));
+        return Task.CompletedTask;
+    }
+}
+
+internal sealed class FakeGeminiKeyStatusStore : IGeminiKeyStatusStore
+{
+    private readonly Dictionary<string, GeminiKeyStatus> _statuses = [];
+
+    public event EventHandler? Changed;
+
+    public GeminiKeyStatus GetStatus(string keyId) =>
+        _statuses.TryGetValue(keyId, out var status) ? status : GeminiKeyStatus.Untested;
+
+    public void SetStatus(string keyId, GeminiKeyStatus status)
+    {
+        _statuses[keyId] = status;
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
+
+    public IReadOnlyDictionary<string, GeminiKeyStatus> Snapshot() => _statuses;
+}
+
 internal sealed class FakeAuthClient : IAuthClient
 {
     private readonly Queue<AuthCallResult> _refreshResults = new();
@@ -99,7 +163,17 @@ internal sealed class FakeUserSettingsStore : IUserSettingsStore
 
     public AiModelChoice? Choice { get; private set; }
 
+    public string? GeminiActiveKeyId { get; private set; }
+
     public EndpointSettings GetEndpoints() => Current;
+
+    public string? GetGeminiActiveKeyId() => GeminiActiveKeyId;
+
+    public Task SaveGeminiActiveKeyIdAsync(string? keyId, CancellationToken cancellationToken)
+    {
+        GeminiActiveKeyId = keyId;
+        return Task.CompletedTask;
+    }
 
     public AiModelChoice? GetAiModelChoice() => Choice;
 

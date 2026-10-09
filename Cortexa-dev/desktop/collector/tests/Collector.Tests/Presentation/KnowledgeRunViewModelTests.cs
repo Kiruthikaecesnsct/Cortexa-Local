@@ -329,6 +329,63 @@ public sealed class KnowledgeRunViewModelTests
     }
 
     [Fact]
+    public async Task ExtractKnowledgeCommand_KeyRejectedWithMultipleConfiguredKeys_ShowsAllKeysFailedBanner()
+    {
+        var harness = Ready();
+        const int ConfiguredKeyCount = 3;
+        harness.Runner.Outcome = new KnowledgeRunOutcome(KnowledgeRunStatus.KeyRejected, ConfiguredKeyCount: ConfiguredKeyCount);
+
+        await harness.ViewModel.ExtractKnowledgeCommand.ExecuteAsync(null);
+
+        var banner = harness.ViewModel.Banner!;
+        Assert.Equal(BannerSeverity.Error, banner.Severity);
+        Assert.Equal(ExtractionStrings.AllKeysFailedTitle, banner.Title);
+        Assert.Equal(ExtractionStrings.AllKeysFailedMessage(ConfiguredKeyCount), banner.Message);
+    }
+
+    [Fact]
+    public async Task ExtractKnowledgeCommand_QuotaExceededWithMultipleConfiguredKeys_ShowsAllKeysFailedBanner()
+    {
+        var harness = Ready();
+        const int ConfiguredKeyCount = 2;
+        harness.Runner.Outcome = new KnowledgeRunOutcome(KnowledgeRunStatus.QuotaExceeded, ConfiguredKeyCount: ConfiguredKeyCount);
+
+        await harness.ViewModel.ExtractKnowledgeCommand.ExecuteAsync(null);
+
+        var banner = harness.ViewModel.Banner!;
+        Assert.Equal(BannerSeverity.Error, banner.Severity);
+        Assert.Equal(ExtractionStrings.AllKeysFailedTitle, banner.Title);
+        Assert.Equal(ExtractionStrings.AllKeysFailedMessage(ConfiguredKeyCount), banner.Message);
+    }
+
+    [Fact]
+    public async Task ExtractKnowledgeCommand_KeyRejectedWithOnlyOneConfiguredKey_KeepsTheSingleKeyBanner()
+    {
+        var harness = Ready();
+        harness.Runner.Outcome = new KnowledgeRunOutcome(KnowledgeRunStatus.KeyRejected, ConfiguredKeyCount: 1);
+
+        await harness.ViewModel.ExtractKnowledgeCommand.ExecuteAsync(null);
+
+        var banner = harness.ViewModel.Banner!;
+        Assert.Equal(ExtractionStrings.KeyRejectedTitle, banner.Title);
+        Assert.Equal(ExtractionStrings.KeyRejectedMessage, banner.Message);
+        Assert.NotEqual(ExtractionStrings.AllKeysFailedTitle, banner.Title);
+    }
+
+    [Fact]
+    public async Task ExtractKnowledgeCommand_QuotaExceededWithZeroConfiguredKeyCount_KeepsTheSingleKeyBanner()
+    {
+        var harness = Ready();
+        harness.Runner.Outcome = new KnowledgeRunOutcome(KnowledgeRunStatus.QuotaExceeded);
+
+        await harness.ViewModel.ExtractKnowledgeCommand.ExecuteAsync(null);
+
+        var banner = harness.ViewModel.Banner!;
+        Assert.Equal(ExtractionStrings.QuotaExceededTitle, banner.Title);
+        Assert.Equal(ExtractionStrings.QuotaExceededMessage, banner.Message);
+    }
+
+    [Fact]
     public async Task DismissCommand_BannerShown_ClearsIt()
     {
         var harness = Ready();

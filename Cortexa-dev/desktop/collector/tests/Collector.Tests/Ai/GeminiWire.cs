@@ -4,6 +4,7 @@ using Collector.Application.Ports;
 using Collector.Application.Secrets;
 using Collector.Infrastructure.Ai;
 using Collector.Infrastructure.Options;
+using Collector.Infrastructure.Secrets;
 using Collector.Tests.Support;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -32,12 +33,25 @@ internal static class GeminiWire
     public static GeminiDirectProvider Provider(
         StubHttpHandler handler,
         GeminiProviderOptions? options = null,
-        InMemorySecretStore? secrets = null)
+        InMemorySecretStore? secrets = null,
+        FakeUserSettingsStore? userSettings = null,
+        IGeminiKeyStore? keyStore = null,
+        FakeGeminiKeyStatusStore? statusStore = null,
+        Microsoft.Extensions.Logging.ILogger<GeminiDirectProvider>? logger = null)
     {
         var settings = Microsoft.Extensions.Options.Options.Create(options ?? new GeminiProviderOptions { MaxRetries = 0 });
         var store = secrets ?? WithKey();
-        var factory = new GeminiClientFactory(store, new StubHttpClientFactory(handler), settings);
-        return new GeminiDirectProvider(factory, settings, NullLogger<GeminiDirectProvider>.Instance);
+        var factory = new GeminiClientFactory(new StubHttpClientFactory(handler), settings);
+        var effectiveKeyStore = keyStore ?? new GeminiKeyStore(store);
+        var effectiveStatusStore = statusStore ?? new FakeGeminiKeyStatusStore();
+        var settingsStore = userSettings ?? new FakeUserSettingsStore();
+        return new GeminiDirectProvider(
+            factory,
+            effectiveKeyStore,
+            effectiveStatusStore,
+            settingsStore,
+            settings,
+            logger ?? NullLogger<GeminiDirectProvider>.Instance);
     }
 
     public static InMemorySecretStore WithKey()

@@ -1,4 +1,3 @@
-using Collector.Application.Ports;
 using Collector.Application.Secrets;
 using Collector.Infrastructure.Http;
 using Collector.Infrastructure.Options;
@@ -9,33 +8,27 @@ using Microsoft.Extensions.Options;
 namespace Collector.Infrastructure.Ai;
 
 public sealed class GeminiClientFactory(
-    ISecretStore secrets,
     IHttpClientFactory httpClients,
     IOptions<GeminiProviderOptions> options) : IDisposable
 {
     public const string MissingKeyMessage = "Add your Gemini key in Settings.";
 
     private readonly object gate = new();
-    private (string Key, Client Client)? cached;
+    private readonly Dictionary<string, Client> cached = [];
 
-    public async Task<Client> CreateAsync(CancellationToken cancellationToken)
+    public Client GetOrCreate(IReadOnlyList<GeminiKey> keys, string keyId)
     {
-        var key = await secrets.ReadAsync(SecretSlot.GeminiApiKey, cancellationToken);
-        if (string.IsNullOrWhiteSpace(key))
-        {
-            throw new AiProviderException(AiFailureKind.MissingApiKey, MissingKeyMessage);
-        }
-
         lock (gate)
         {
-            if (cached is { } current && string.Equals(current.Key, key, StringComparison.Ordinal))
+            PruneLocked(keys);
+            if (cached.TryGetValue(keyId, out var existing))
             {
-                return current.Client;
+                return existing;
             }
 
-            cached?.Client.Dispose();
+            var key = keys.First(candidate => candidate.Id == keyId).Key;
             var client = Build(key);
-            cached = (key, client);
+            cached[keyId] = client;
             return client;
         }
     }
@@ -44,8 +37,22 @@ public sealed class GeminiClientFactory(
     {
         lock (gate)
         {
-            cached?.Client.Dispose();
-            cached = null;
+            foreach (var client in cached.Values)
+            {
+                client.Dispose();
+            }
+
+            cached.Clear();
+        }
+    }
+
+    private void PruneLocked(IReadOnlyList<GeminiKey> keys)
+    {
+        var validIds = keys.Select(key => key.Id).ToHashSet(StringComparer.Ordinal);
+        foreach (var staleId in cached.Keys.Where(id => !validIds.Contains(id)).ToArray())
+        {
+            cached[staleId].Dispose();
+            cached.Remove(staleId);
         }
     }
 

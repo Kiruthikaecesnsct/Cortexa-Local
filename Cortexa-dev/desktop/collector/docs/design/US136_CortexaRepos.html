@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>US136 Cortexa saved repositories - design prototype</title>
+<style>
+/* Tokens mirror Themes/Colors.Light.xaml and Styles.xaml (same set as US128/US133/US134). Prototype only.
+   The "High contrast" toggle approximates Colors.HighContrast.xaml (SystemColors, HC Black).
+   No new tokens in US136. */
+:root{
+  --surface-page:#F6F7FC;--surface-card:#FFFFFF;--surface-rail:#EEF0FA;--surface-sunken:#EEF0F8;--surface-selected:#E3E6FB;
+  --border-subtle:#E3E6F0;--border-control:#8A93A8;--border-focus:#4653E8;--button-edge:transparent;
+  --text-primary:#171A30;--text-body:#464D6E;--text-muted:#5F6684;--text-disabled:#9AA1B8;--text-link:#3945D6;--text-on-accent:#FFFFFF;--text-on-selected:#171A30;
+  --accent:#4653E8;--danger:#C4283F;--danger-surface:#FCEBED;--success:#0B7A53;--success-surface:#E7F5EF;
+  --warning:#9A4A08;--warning-surface:#FEF3E2;--info-surface:#EAECFD;--info:#3945D6;
+  --fs-caption:12px;--fs-body:14px;--fs-subtitle:18px;--fs-title:24px;
+  --r-control:8px;--r-card:14px;--r-chip:999px;
+  --content-max:720px;--workspace-max:960px;--row-action:44px;--row-min:64px;--combo-min:220px;--action-min:96px;
+  --chip-visual:32px;--repo-list-max:352px;
+}
+body.hc{
+  --surface-page:#000;--surface-card:#000;--surface-rail:#000;--surface-sunken:#000;--surface-selected:#1AEBFF;
+  --border-subtle:#FFF;--border-control:#FFF;--border-focus:#1AEBFF;--button-edge:#FFF;
+  --text-primary:#FFF;--text-body:#FFF;--text-muted:#FFF;--text-disabled:#3FF23F;--text-link:#FFFF00;--text-on-accent:#000;--text-on-selected:#000;
+  --accent:#1AEBFF;--danger:#FFF;--danger-surface:#000;--success:#FFF;--success-surface:#000;
+  --warning:#FFF;--warning-surface:#000;--info-surface:#000;--info:#FFF;
+}
+*{box-sizing:border-box}
+body{margin:0;font:var(--fs-body)/1.4 "Segoe UI Variable Text","Segoe UI",sans-serif;color:var(--text-body);background:var(--surface-page)}
+.mono{font-family:"Cascadia Mono",Consolas,monospace}
+.proto-bar{background:#171A30;color:#fff;padding:8px 16px;display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12px}
+.proto-bar .grp{display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin-right:10px}
+.proto-bar button{font:inherit;padding:3px 8px;border-radius:6px;border:1px solid #8A93A8;background:#2a2f52;color:#fff;cursor:pointer}
+.proto-bar button[aria-pressed=true]{background:#4653E8;border-color:#4653E8}
+.window{display:grid;grid-template-columns:232px 1fr;min-height:calc(100vh - 40px);min-width:880px}
+.rail{background:var(--surface-rail);padding:16px 0;border-right:1px solid var(--button-edge)}
+.rail .nav{height:44px;display:flex;align-items:center;gap:12px;padding:0 12px 0 24px;color:var(--text-primary);position:relative}
+.rail .nav.sel{background:var(--surface-selected);color:var(--text-on-selected);font-weight:600}
+.rail .nav.sel::before{content:"";position:absolute;left:8px;top:12px;bottom:12px;width:3px;border-radius:2px;background:var(--accent)}
+body.hc .rail .nav.sel::before{background:var(--text-on-selected)}
+.content{padding:24px 32px 32px}
+.ws{max-width:var(--workspace-max)}
+h1{font:600 var(--fs-title) "Segoe UI Variable Display","Segoe UI";color:var(--text-primary);margin:0 0 16px}
+h2{font:600 var(--fs-subtitle) "Segoe UI Variable Display","Segoe UI";color:var(--text-primary);margin:0}
+h3{font:600 var(--fs-body) "Segoe UI";color:var(--text-primary);margin:0}
+.caption{font-size:var(--fs-caption);color:var(--text-muted)}
+.helper{font-size:var(--fs-caption);color:var(--text-muted)}
+.label{font-weight:600;color:var(--text-primary)}
+.err{color:var(--danger);font-size:var(--fs-caption)}
+.card{background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--r-card);padding:24px;margin-bottom:24px}
+.card-h{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.card-h .g{color:var(--text-primary);width:20px;text-align:center}
+:focus-visible{outline:2px solid var(--border-focus);outline-offset:2px;border-radius:10px}
+.btn{font:inherit;font-weight:600;border-radius:8px;padding:8px 16px;min-height:40px;cursor:pointer;white-space:nowrap}
+.btn-primary{border:1px solid var(--button-edge);background:var(--accent);color:var(--text-on-accent)}
+.btn-secondary{border:1px solid var(--border-control);background:var(--surface-card);color:var(--text-primary);min-width:var(--action-min)}
+.btn-secondary:hover{background:var(--surface-selected);color:var(--text-on-selected)}
+.btn:disabled{background:var(--surface-sunken);color:var(--text-disabled);border-color:var(--text-disabled);cursor:default}
+.link-btn{border:0;background:transparent;color:var(--text-link);font:inherit;font-weight:600;padding:8px 12px;min-height:40px;cursor:pointer;white-space:nowrap}
+.link-btn:hover{text-decoration:underline}
+.icon-btn{width:40px;height:40px;display:inline-grid;place-items:center;border:0;background:transparent;border-radius:8px;cursor:pointer;color:var(--text-primary);font-size:16px}
+.icon-btn:hover{background:var(--surface-selected)}
+.tag{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:var(--r-chip);font-size:12px;background:var(--surface-sunken);color:var(--text-muted);white-space:nowrap;border:1px solid var(--button-edge)}
+.tag.danger{background:var(--danger-surface);color:var(--danger)}
+.tag.success{background:var(--success-surface);color:var(--success)}
+.banner{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--info);background:var(--info-surface);border-radius:8px;padding:12px 12px 12px 16px;margin-bottom:16px}
+.banner.error{border-color:var(--danger);background:var(--danger-surface)}
+.banner.warning{border-color:var(--warning);background:var(--warning-surface)}
+.banner .g{width:20px;text-align:center;color:var(--info)}
+.banner.error .g{color:var(--danger)}.banner.warning .g{color:var(--warning)}
+.banner .msg{flex:1;color:var(--text-body)}
+.banner .acts{display:flex;gap:4px;flex-wrap:wrap}
+.field{margin-bottom:16px}
+.field label,.field .flabel{display:block;font-weight:600;color:var(--text-primary);padding-bottom:4px}
+.input{font:inherit;color:var(--text-primary);background:var(--surface-card);border:1px solid var(--border-control);border-radius:8px;padding:8px 12px;min-height:40px;width:100%}
+.input:focus{outline:none;border:2px solid var(--border-focus);padding:7px 11px}
+.inline{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+.inline .grow{flex:1 1 260px}
+.inline .field{margin-bottom:0}
+.progress{height:2px;background:var(--surface-sunken);position:relative;overflow:hidden;margin:8px 0}
+body.hc .progress{outline:1px solid #fff}
+.progress span{position:absolute;left:0;top:0;bottom:0;background:var(--accent)}
+.progress.ind span{width:30%;animation:ind 1.4s linear infinite}
+@keyframes ind{from{left:-30%}to{left:100%}}
+/* Source selector: matches the shipped FilterChip RadioButton template (Styles.xaml), not the US134 prototype:
+   checked = Brush.Accent fill + Brush.Text.OnAccent + CheckMark glyph; 44px hit target, 32px visual pill. */
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.chip{display:inline-flex;align-items:center;min-height:var(--row-action);padding:0;border:0;background:transparent;font:inherit;cursor:pointer;color:var(--text-body)}
+.chip .pill{display:inline-flex;align-items:center;gap:6px;height:var(--chip-visual);padding:4px 10px;border-radius:var(--r-chip);border:1px solid var(--border-control);background:var(--surface-card)}
+.chip[aria-checked=true] .pill{background:var(--accent);border-color:var(--accent);color:var(--text-on-accent)}
+.chip:focus-visible{outline:none}
+.chip:focus-visible .pill{border:2px solid var(--border-focus);padding:3px 9px}
+.chip:disabled{cursor:default}
+.chip:disabled .pill{color:var(--text-disabled);border-color:var(--text-disabled)}
+.chip .new{font-size:10px;font-weight:700;letter-spacing:.04em;color:var(--warning);margin-left:4px}
+/* Repository list (unchanged from US134) */
+.repo-list{max-height:var(--repo-list-max);overflow-y:auto;border:1px solid var(--border-subtle);border-radius:8px}
+.repo{display:grid;grid-template-columns:24px 1fr auto;gap:12px;align-items:center;padding:12px 16px;min-height:var(--row-min);border-top:1px solid var(--border-subtle);cursor:pointer}
+.repo:first-child{border-top:0}
+.repo:hover,.repo[aria-selected=true]{background:var(--surface-selected);color:var(--text-on-selected)}
+.repo[aria-selected=true] .label,.repo[aria-selected=true] .caption{color:var(--text-on-selected)}
+.repo .g{text-align:center;color:var(--text-muted)}
+.repo .tags{display:flex;gap:6px}
+.repo .name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.list-state{padding:32px 16px;text-align:center}
+.list-state .big{font-size:28px;color:var(--text-muted);margin-bottom:8px}
+.count-line{margin:8px 0}
+.ro-branch{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:8px 12px;border-radius:8px;background:var(--surface-sunken);color:var(--text-primary);border:1px solid var(--button-edge)}
+.fetch-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:16px}
+.run{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+.summary{display:grid;grid-template-columns:24px 1fr auto;gap:12px;align-items:center}
+.doc{display:grid;grid-template-columns:24px 1fr auto auto;gap:12px;align-items:center;padding:12px 0;min-height:var(--row-min);border-top:1px solid var(--border-subtle)}
+.doc:first-of-type{border-top:0}
+.doc .src{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Live region echo + annotations */
+.live{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.live-echo{margin-top:8px;font-size:12px;color:var(--text-muted)}
+.live-echo b{color:var(--text-primary)}
+.annot{margin-top:24px;font-size:12px;color:var(--text-muted);border-left:3px solid var(--accent);padding-left:12px}
+.annot h3{font-size:13px;margin:12px 0 4px}
+.annot ul{margin:4px 0;padding-left:18px}
+/* Handoff spec */
+.spec{margin-top:32px;background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--r-card);padding:24px;color:var(--text-body)}
+.spec h2{margin:24px 0 8px}.spec h2:first-child{margin-top:0}
+.spec table{border-collapse:collapse;width:100%;font-size:12px;margin:8px 0}
+.spec th,.spec td{border:1px solid var(--border-subtle);padding:6px 8px;text-align:left;vertical-align:top}
+.spec th{background:var(--surface-sunken);color:var(--text-primary)}
+.spec code{font-family:"Cascadia Mono",Consolas,monospace;font-size:12px}
+.spec .add{color:var(--warning);font-weight:600}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="proto-bar" role="toolbar" aria-label="Prototype states">
+  <strong>US136 prototype</strong>
+  <span class="grp">List:
+    <button data-s="c-loading">Loading</button>
+    <button data-s="c-list" aria-pressed="true">List</button>
+    <button data-s="c-selected">Selected</button>
+    <button data-s="c-big">Over 500 MB selected</button>
+    <button data-s="c-nomatch">No search match</button>
+    <button data-s="c-empty">Empty</button>
+  </span>
+  <span class="grp">Fetch:
+    <button data-s="f-tree">Reading tree</button>
+    <button data-s="f-count">Fetching</button>
+    <button data-s="t-done">Done</button>
+  </span>
+  <span class="grp">Errors:
+    <button data-s="e-auth">401 session expired</button>
+    <button data-s="e-denied">403 access denied</button>
+    <button data-s="e-notfound">NotFound</button>
+    <button data-s="e-toolarge">RepositoryTooLarge</button>
+    <button data-s="e-upstream">Upstream</button>
+  </span>
+  <span class="grp"><button id="hcToggle" aria-pressed="false">High contrast</button></span>
+</div>
+
+<div class="window">
+  <nav class="rail" aria-label="Screens">
+    <div class="nav">Sign in</div>
+    <div class="nav sel">Extract</div>
+    <div class="nav">Review</div>
+    <div class="nav">History</div>
+    <div class="nav">Settings</div>
+  </nav>
+  <main class="content">
+    <div class="ws" id="screen"></div>
+    <div class="ws">
+      <div class="live" id="live" aria-live="polite" role="status"></div>
+      <div class="live-echo">Screen reader announcement (live region, shown here for review): <b id="liveEcho">none</b></div>
+      <div class="annot" id="annot"></div>
+      <section class="spec" aria-labelledby="specH" id="spec"></section>
+    </div>
+  </main>
+</div>
+
+<script>
+/* ---------- Strings: existing RemoteSourceStrings plus US136 additions ---------- */
+const S={
+ sourceGroup:"Source",
+ repoCard:"Repository",
+ loadingRepos:"Loading repositories…", reload:"Reload repositories",
+ searchPh:"Filter by name",
+ showing:(v,t)=>`Showing ${v} of ${t}`,
+ emptyTitle:"No repositories to show",
+ noMatch:q=>`No repositories match "${q}".`, clearSearch:"Clear search",
+ branchLabel:"Branch",
+ fetchHelp:"Pick a repository first.",
+ fetchNote:"Downloads text and code files from the branch. Files already cached on this computer aren't downloaded again.",
+ tooBigHelp:s=>`This repository is about ${s}. The fetch limit is 500 MB.`,
+ overLimit:"Over 500 MB",
+ fetchingTitle:(r,b)=>`Fetching ${r} @ ${b}`,
+ readingTree:"Reading the file list…",
+ progress:(d,t)=>`Fetched ${d} of ${t} files`,
+ cancel:"Cancel", cancelName:"Cancel repository fetch",
+ summary:(d,c,f,l)=>`Fetched ${d+c} files · ${c} from cache · ${f+l} skipped (${f} by filter, ${l} too large)`,
+ changeRepo:"Change repository", fetchAgain:"Fetch again",
+ tryAgain:"Try again", dismiss:"Dismiss", localName:"Local files", switchLocal:"Switch to Local files",
+ notFoundTitle:"Repository or branch not found.",
+ notFoundMsg:(r,b)=>`${r} @ ${b} may have been renamed, moved, or deleted. Reload the list and pick it again.`,
+ tooLargeTitle:"This repository is too large to fetch.",
+ tooLargeMsg:(r,s)=>`${r} is ${s}. The limit is 500 MB. Clone it yourself, then use Local files with the folders you need.`,
+ upstreamTitle:p=>`${p} isn't responding.`,
+ upstreamMsg:"The service returned an error. Try again in a few minutes.",
+ // ---- US136 additions ----
+ CortexaLabel:"Cortexa sa_ved",
+ CortexaName:"Cortexa saved",
+ EmptyCortexa:"No saved repositories. Save one from the Cortexa web app.",
+ CortexaAuthTitle:"Your Cortexa session expired.",
+ CortexaAuthMessage:"Sign in again.",
+ CortexaDeniedTitle:"Cortexa access denied.",
+ CortexaDeniedMessage:"Your Cortexa account does not have permission to read saved repositories.",
+ UpstreamGitHubTag:"GitHub",
+ UpstreamAzureTag:"Azure DevOps",
+ CortexaBranchHelper:"Saved branch. To fetch a different branch, save it in the Cortexa web app.",
+ CortexaBranchName:b=>`Branch, ${b}`,
+ CortexaRepositoryAutomationName:(full,up,b,size,over)=>`${full} @ ${b}, from ${up}, ${size}${over?`, over the ${over} fetch limit`:""}`
+};
+/* ---------- Domain data: RemoteRepository rows from GET saved clones (Provider = CortexaRepo) ---------- */
+const TAG={github:S.UpstreamGitHubTag,"azure-devops":S.UpstreamAzureTag};
+const REPOS=[
+ {Owner:"contoso-research",Name:"pricing-engine",FullName:"contoso-research/pricing-engine",DefaultBranch:"main",SizeBytes:50540134,Project:"github"},
+ {Owner:"contoso-research",Name:"pricing-engine",FullName:"contoso-research/pricing-engine",DefaultBranch:"release/2026.10",SizeBytes:49283072,Project:"github"},
+ {Owner:"contoso",Name:"firmware-core",FullName:"contoso/firmware-core",DefaultBranch:"develop",SizeBytes:96468992,Project:"azure-devops"},
+ {Owner:"alpha-dev",Name:"docs-site",FullName:"alpha-dev/docs-site",DefaultBranch:"main",SizeBytes:917504,Project:"github"},
+ {Owner:"contoso-research",Name:"sensor-fusion",FullName:"contoso-research/sensor-fusion",DefaultBranch:"main",SizeBytes:778043392,Project:"github"},
+ {Owner:"contoso",Name:"identity-service",FullName:"contoso/identity-service",DefaultBranch:"main",SizeBytes:8388608,Project:"azure-devops"},
+ {Owner:"contoso-research",Name:"ingest-pipeline",FullName:"contoso-research/ingest-pipeline",DefaultBranch:"main",SizeBytes:13316915,Project:"github"}
+];
+const LIMIT=500*1024*1024;
+/* Glyphs: existing Glyphs.* only (Repository E8F1, Branch F003, Search E721, Refresh, Error, Warning, Info, CheckMark). */
+const G={repo:"&#x2630;",branch:"&#x2442;",info:"&#x24D8;",err:"&#x2715;",warn:"&#x26A0;",ok:"&#x2713;",doc:"&#x1F5CE;",refresh:"&#x21bb;"};
+
+let state="c-list", query="", selIdx=-1;
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
+function size(b){const kb=b/1024,mb=kb/1024,gb=mb/1024;if(mb<1)return `${Math.round(kb)} KB`;if(gb>=1)return `${gb.toFixed(1)} GB`;return mb<100?`${mb.toFixed(1)} MB`:`${Math.round(mb)} MB`;}
+function announce(t){document.getElementById("live").textContent=t||"";document.getElementById("liveEcho").textContent=t||"none";}
+function accessText(label){const i=label.indexOf("_");if(i<0)return [esc(label),""];return [`${esc(label.slice(0,i))}<u>${esc(label[i+1])}</u>${esc(label.slice(i+2))}`,label[i+1].toLowerCase()];}
+
+/* ---------- Components ---------- */
+function banner(sev,title,msg,acts=[],dismiss=false){
+ const glyph={error:G.err,warning:G.warn,info:G.info}[sev];
+ const role=sev==="error"?"alert":"status";
+ return `<div class="banner ${sev==="info"?"":sev}" role="${role}" tabindex="-1" data-banner aria-label="${esc(title+(msg?" "+msg:""))}">
+  <span class="g" aria-hidden="true">${glyph}</span>
+  <div class="msg"><div class="label">${esc(title)}</div>${msg?`<div>${esc(msg)}</div>`:""}</div>
+  <div class="acts">${acts.map(a=>`<button class="link-btn" ${a.go?`data-go="${a.go}"`:""} aria-label="${esc(a.name||a.text)}">${esc(a.text)}</button>`).join("")}
+  ${dismiss?`<button class="icon-btn" aria-label="${S.dismiss}" data-dismiss>${G.err}</button>`:""}</div></div>`;
+}
+function chips(disabled){
+ const o=[["local","_Local files"],["gh","_GitHub"],["ado","Azure _DevOps"],["ssh","_SSH"],["cx",S.CortexaLabel]];
+ return `<div class="chips" role="radiogroup" aria-label="${S.sourceGroup}">${o.map(([k,l])=>{
+  const on=k==="cx";const [html,key]=accessText(l);
+  return `<button class="chip" role="radio" aria-checked="${on}" tabindex="${on?0:-1}" ${disabled?"disabled":""} accesskey="${key}" aria-label="${esc(l.replace("_",""))}"><span class="pill">${on?`<span aria-hidden="true">${G.ok}</span>`:""}${html}</span></button>`;}).join("")}</div>`;
+}
+function repoRow(r,i,sel){
+ const big=r.SizeBytes>LIMIT, up=TAG[r.Project];
+ const an=S.CortexaRepositoryAutomationName(r.FullName,up,r.DefaultBranch,size(r.SizeBytes),big?"500 MB":null);
+ return `<div class="repo" role="option" aria-selected="${sel}" tabindex="${sel||(selIdx<0&&i===0)?0:-1}" data-i="${i}" aria-label="${esc(an)}">
+  <span class="g" aria-hidden="true">${G.repo}</span>
+  <div style="min-width:0"><div class="label name">${esc(r.Name)}</div>
+   <div class="caption name">${esc(r.FullName)} · <span aria-hidden="true">${G.branch}</span> ${esc(r.DefaultBranch)} · ${size(r.SizeBytes)}</div></div>
+  <div class="tags"><span class="tag">${esc(up)}</span>${big?`<span class="tag danger"><span aria-hidden="true">${G.warn}</span>${S.overLimit}</span>`:""}</div>
+ </div>`;
+}
+function repoList(mode){
+ if(mode==="loading") return `<div class="progress ind" role="progressbar" aria-label="${S.loadingRepos}"><span></span></div><div class="caption" aria-hidden="true">${S.loadingRepos}</div>`;
+ if(mode==="empty") return `<div class="repo-list"><div class="list-state"><div class="big" aria-hidden="true">${G.repo}</div><div class="label">${S.emptyTitle}</div><div class="helper">${S.EmptyCortexa}</div><button class="btn btn-secondary" style="margin-top:12px">${S.reload}</button></div></div>`;
+ const vis=REPOS.map((r,i)=>[r,i]).filter(([r])=>r.FullName.toLowerCase().includes(query.trim().toLowerCase()));
+ const searchBox=`<div class="inline"><div class="field grow"><label for="q"><u>S</u>earch repositories</label>
+   <input id="q" class="input" type="search" placeholder="${S.searchPh}" value="${esc(query)}" aria-label="Search repositories"></div>
+   <button class="icon-btn" title="${S.reload} (F5)" aria-label="${S.reload}">${G.refresh}</button></div>
+   <div class="caption count-line" aria-live="polite">${S.showing(vis.length,REPOS.length)}</div>`;
+ if(!vis.length) return searchBox+`<div class="repo-list"><div class="list-state"><div class="helper">${esc(S.noMatch(query))}</div><button class="link-btn" id="clrq">${S.clearSearch}</button></div></div>`;
+ return searchBox+`<div class="repo-list" role="listbox" aria-label="Repositories" id="rl">${vis.map(([r,i])=>repoRow(r,i,i===selIdx)).join("")}</div>`;
+}
+function branchField(r){
+ return `<div class="field" style="margin-top:16px"><span class="flabel" id="brL">${S.branchLabel}</span>
+  <span class="ro-branch" role="text" tabindex="-1" aria-label="${esc(S.CortexaBranchName(r?r.DefaultBranch:"none"))}" aria-describedby="brH"><span aria-hidden="true">${G.branch}</span><span class="mono">${r?esc(r.DefaultBranch):"—"}</span></span>
+  <div class="helper" id="brH" style="margin-top:4px">${S.CortexaBranchHelper}</div></div>`;
+}
+function fetchRow(r){
+ const big=r&&r.SizeBytes>LIMIT, on=r&&!big;
+ const help=!r?S.fetchHelp:big?S.tooBigHelp(size(r.SizeBytes)):S.fetchNote;
+ return `<div class="fetch-row"><button class="btn btn-primary" id="fetchBtn" ${on?"":"disabled"} title="${esc(help)}" aria-describedby="fh"><u>F</u>etch files</button>
+  <span class="helper" id="fh">${big?`<span class="err"><span aria-hidden="true">${G.err} </span>${esc(help)}</span>`:esc(help)}</span></div>`;
+}
+function runCard(r,text,pct){
+ return `<div class="card"><div class="run"><div>
+  <div class="label">${esc(S.fetchingTitle(r.FullName,r.DefaultBranch))}</div>
+  <div class="progress ${pct==null?"ind":""}" role="progressbar" aria-label="Repository fetch progress" ${pct!=null?`aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"`:""}><span style="${pct!=null?`width:${pct}%`:""}"></span></div>
+  <div class="caption" id="runText">${esc(text)}</div></div>
+  <button class="btn btn-secondary" id="cancelBtn" aria-label="${S.cancelName}">${S.cancel}</button></div></div>`;
+}
+function summaryCard(r){
+ return `<div class="card"><div class="summary"><span aria-hidden="true" class="caption">${G.repo}</span>
+  <div style="min-width:0"><div class="label">${esc(r.FullName)}</div>
+  <div class="caption"><span aria-hidden="true">${G.branch}</span> ${esc(r.DefaultBranch)} · ${esc(S.summary(168,12,6,2))}</div></div>
+  <div><button class="btn btn-secondary">${S.fetchAgain}</button><button class="link-btn" data-go="c-list">${S.changeRepo}</button></div></div></div>
+  <div class="card"><div class="card-h"><span class="g" aria-hidden="true">${G.doc}</span><h2>Documents</h2></div>
+  ${[["RateTable.cs","src/Pricing/RateTable.cs"],["README.md","README.md"]].map(f=>`<div class="doc"><span aria-hidden="true" class="caption">${G.doc}</span>
+   <div style="min-width:0"><div class="label src">${f[0]}</div><div class="caption src">${esc(r.FullName)} @ ${esc(r.DefaultBranch)} · ${f[1]}</div></div>
+   <span class="caption">14 units</span><span class="tag success"><span aria-hidden="true">${G.ok}</span>Extracted</span></div>`).join("")}
+  <div class="caption" style="padding-top:8px">…178 more. Documents panel is unchanged from US134.</div></div>`;
+}
+
+/* ---------- States ---------- */
+const MODES={
+ "c-loading":{list:"loading"}, "c-list":{}, "c-selected":{sel:0}, "c-big":{sel:4}, "c-nomatch":{q:"quantum"}, "c-empty":{list:"empty"},
+ "f-tree":{sel:0,run:"tree"}, "f-count":{sel:0,run:"count"}, "t-done":{sel:0,done:true},
+ "e-auth":{banner:"auth",noList:true}, "e-denied":{banner:"denied",noList:true},
+ "e-notfound":{sel:1,banner:"notfound"}, "e-toolarge":{sel:2,banner:"toolarge"}, "e-upstream":{banner:"upstream",noList:true}
+};
+function errorBanner(kind,r){
+ switch(kind){
+  case "auth": return [banner("error",S.CortexaAuthTitle,S.CortexaAuthMessage,[{text:S.tryAgain,go:"c-loading"}]),S.CortexaAuthTitle+" "+S.CortexaAuthMessage];
+  case "denied": return [banner("error",S.CortexaDeniedTitle,S.CortexaDeniedMessage,[],true),S.CortexaDeniedTitle+" "+S.CortexaDeniedMessage];
+  case "notfound": return [banner("error",S.notFoundTitle,S.notFoundMsg(r.FullName,r.DefaultBranch),[{text:S.reload,go:"c-loading"}]),S.notFoundTitle+" "+S.notFoundMsg(r.FullName,r.DefaultBranch)];
+  case "toolarge": return [banner("error",S.tooLargeTitle,S.tooLargeMsg(r.FullName,"612 MB"),[{text:S.localName,name:S.switchLocal}],true),S.tooLargeTitle];
+  case "upstream": return [banner("error",S.upstreamTitle("Cortexa"),S.upstreamMsg,[{text:S.tryAgain,go:"c-loading"}],true),S.upstreamTitle("Cortexa")+" "+S.upstreamMsg];
+ }
+ return ["",""];
+}
+function extract(){
+ const m=MODES[state]||MODES["c-list"];
+ const r=selIdx>=0?REPOS[selIdx]:null;
+ const running=!!m.run;
+ let [bn,live]=errorBanner(m.banner,r||REPOS[0]);
+ let body="";
+ if(m.done){ body=summaryCard(r); }
+ else if(!m.noList){
+  const pick=!m.list;
+  body=`<section class="card" aria-labelledby="rch">
+   <div class="card-h"><span class="g" aria-hidden="true">${G.repo}</span><h2 id="rch">${S.repoCard}</h2></div>
+   ${repoList(m.list)}
+   ${pick&&!(query&&!REPOS.some(x=>x.FullName.includes(query)))?branchField(r):""}
+   ${pick&&!running?fetchRow(r):""}
+  </section>`;
+  if(running){
+   body+=runCard(r,m.run==="tree"?S.readingTree:S.progress(42,180),m.run==="tree"?null:23);
+   if(m.run==="tree") live=S.fetchingTitle(r.FullName,r.DefaultBranch);
+  }
+  if(m.list==="loading") live=S.loadingRepos;
+ }
+ document.getElementById("screen").innerHTML=`<h1>Extract</h1>${chips(running)}<div id="fetchBannerSlot">${bn}</div>${body}`;
+ announce(live);
+ wire();
+}
+function wire(){
+ document.querySelectorAll("[data-go]").forEach(c=>c.onclick=()=>{if(c.dataset.go==="c-loading"){go("c-loading");setTimeout(()=>go("c-list"),1200);}else go(c.dataset.go);});
+ document.querySelectorAll("[data-dismiss]").forEach(c=>c.onclick=()=>{c.closest("[data-banner]").remove();});
+ const q=document.getElementById("q");
+ if(q){q.oninput=()=>{query=q.value;const p=q.selectionStart;extract();const n=document.getElementById("q");n.focus();n.setSelectionRange(p,p);};}
+ const cq=document.getElementById("clrq"); if(cq) cq.onclick=()=>{query="";extract();document.getElementById("q").focus();};
+ document.querySelectorAll(".repo").forEach(row=>row.onclick=()=>{selIdx=+row.dataset.i;if(state.startsWith("e-")||state==="c-list")state="c-selected";extract();const n=document.querySelector(`.repo[data-i="${selIdx}"]`);n&&n.focus();});
+ const rl=document.getElementById("rl");
+ if(rl) rl.onkeydown=e=>{if(e.key!=="ArrowDown"&&e.key!=="ArrowUp")return;e.preventDefault();const rows=[...rl.querySelectorAll(".repo")];const cur=rows.indexOf(document.activeElement);
+  const n=rows[Math.max(0,Math.min(rows.length-1,cur+(e.key==="ArrowDown"?1:-1)))];selIdx=+n.dataset.i;state="c-selected";extract();document.querySelector(`.repo[data-i="${selIdx}"]`).focus();};
+ const fb=document.getElementById("fetchBtn"); if(fb) fb.onclick=simulate;
+ const cb=document.getElementById("cancelBtn"); if(cb) cb.onclick=()=>{clearInterval(timer);clearTimeout(timer);go("c-selected");};
+}
+let timer=null;
+function simulate(){
+ clearInterval(timer); go("f-tree"); document.getElementById("cancelBtn").focus();
+ let d=0;
+ timer=setTimeout(()=>{go("f-count");timer=setInterval(()=>{d+=30;
+  if(d>=180){clearInterval(timer);go("t-done");return;}
+  const t=document.getElementById("runText");if(!t){clearInterval(timer);return;}
+  t.textContent=S.progress(d,180);document.querySelector(".run .progress span").style.width=(d/180*100)+"%";},400);},800);
+}
+
+/* ---------- Annotations (per state) ---------- */
+function annotations(){
+ const extra={
+  "c-loading":"Auto-load: selecting the chip always starts a fresh list request (cancels any in-flight one). Only the thin progress bar and caption show; no card body, no search box.",
+  "c-empty":"Empty: reuses the existing empty surface. Title = existing EmptyTitle, helper = EmptyCortexa via the EmptyText binding. Reload button stays (F5 also works).",
+  "c-nomatch":"No match: search matches FullName (owner/repository), case-insensitive, trimmed. Existing NoMatch text and Clear search link are reused.",
+  "c-selected":"Selected: the branch is not a ComboBox. It renders read-only (no branch request, no Loading branches state, no commit line). Fetch enables at once.",
+  "c-big":"Over limit: same Over 500 MB danger tag and inline error helper as US134. Fetch stays disabled with the reason in the tooltip and helper.",
+  "e-auth":"401: error banner, focus moves to it, Assertive. One action: Try again (re-runs the failed step: list load or fetch). No dismiss, no Settings link. The Repository card is hidden until a load succeeds.",
+  "e-denied":"403: error banner, Dismiss only. No Try again (retrying cannot change permissions) and no Open Settings (there is no token to change).",
+  "e-notfound":"NotFound: existing banner and Reload action. For Cortexa this usually means the saved clone was deleted in the web app.",
+  "e-toolarge":"Too large: existing banner and Local files action, unchanged.",
+  "e-upstream":"Other failures: existing Upstream banner with provider name \"Cortexa\" (\"Cortexa isn't responding.\"), Try again + Dismiss."
+ }[state];
+ document.getElementById("annot").innerHTML=`<h3>This state</h3><ul>${extra?`<li>${extra}</li>`:""}
+  <li>Try it: type in search, click or arrow through rows, press Fetch files for a simulated run.</li></ul>`;
+}
+
+/* ---------- Handoff spec (static) ---------- */
+document.getElementById("spec").innerHTML=`
+<h2 id="specH">Handoff spec: US136 Cortexa saved repositories</h2>
+<p>Adds a fifth source chip to the Extract screen. It lists repositories already saved (cloned) in the Cortexa web app and fetches one through the same pipeline as GitHub and Azure DevOps. No new tokens, no new styles, no new glyphs. The only new visuals are the neutral upstream tag and the read-only branch value.</p>
+
+<h2>1. Screen inventory</h2>
+<table><tr><th>Screen / state</th><th>Shows</th><th>Binds to</th></tr>
+<tr><td>Extract, Cortexa saved: loading</td><td>Chip checked, thin indeterminate progress + "Loading repositories…"</td><td>IsListLoading</td></tr>
+<tr><td>List</td><td>Repository card: search, Reload icon, "Showing N of M", list, read-only Branch (after a pick), Fetch files</td><td>RemoteRepository: Name, FullName, DefaultBranch, SizeBytes, Project (upstream tag)</td></tr>
+<tr><td>No search match</td><td>Existing no-match surface + Clear search</td><td>SearchText vs FullName</td></tr>
+<tr><td>Empty</td><td>Existing empty surface, EmptyTitle + EmptyCortexa, Reload</td><td>ShowEmptyList, EmptyText</td></tr>
+<tr><td>Selected</td><td>Row selected, read-only branch, Fetch enabled (or disabled when over 500 MB)</td><td>SelectedRepository, DefaultBranch</td></tr>
+<tr><td>Fetching / Done</td><td>Existing run card and summary card, unchanged</td><td>IsFetching, Summary</td></tr>
+<tr><td>401</td><td>Error banner CortexaAuthTitle/Message, Try again only. Card hidden.</td><td>RemoteFailureKind.Auth</td></tr>
+<tr><td>403</td><td>Error banner CortexaDeniedTitle/Message, Dismiss only. Card hidden.</td><td>RemoteFailureKind.AccessDenied</td></tr>
+<tr><td>NotFound / RepositoryTooLarge</td><td>Existing banners</td><td>Existing factory methods</td></tr>
+<tr><td>Other (upstream, rate limit, network)</td><td>Existing Upstream banner, provider "Cortexa"</td><td>default branch of the factory switch</td></tr></table>
+
+<h2>2. Strings (RemoteSourceStrings)</h2>
+<table><tr><th>Key</th><th>Exact text</th><th>Use</th></tr>
+<tr><td><code>CortexaLabel</code></td><td><code>Cortexa sa_ved</code></td><td>Chip AccessLabel. Alt+V.</td></tr>
+<tr><td><code>CortexaName</code></td><td><code>Cortexa saved</code></td><td>Chip AutomationName</td></tr>
+<tr><td><code>EmptyCortexa</code></td><td><code>No saved repositories. Save one from the Cortexa web app.</code></td><td>EmptyText when Cortexa is selected</td></tr>
+<tr><td><code>CortexaAuthTitle</code></td><td><code>Your Cortexa session expired.</code></td><td>401 banner title</td></tr>
+<tr><td><code>CortexaAuthMessage</code></td><td><code>Sign in again.</code></td><td>401 banner message</td></tr>
+<tr><td><code>CortexaDeniedTitle</code></td><td><code>Cortexa access denied.</code></td><td>403 banner title</td></tr>
+<tr><td><code>CortexaDeniedMessage</code></td><td><code>Your Cortexa account does not have permission to read saved repositories.</code></td><td>403 banner message</td></tr>
+<tr><td><code>UpstreamGitHubTag</code></td><td><code>GitHub</code></td><td>Row tag when Project = "github"</td></tr>
+<tr><td><code>UpstreamAzureTag</code></td><td><code>Azure DevOps</code></td><td>Row tag when Project = "azure-devops"</td></tr>
+<tr><td class="add"><code>CortexaBranchHelper</code> (addition)</td><td><code>Saved branch. To fetch a different branch, save it in the Cortexa web app.</code></td><td>Helper under the read-only branch</td></tr>
+<tr><td class="add"><code>CortexaBranchName(branch)</code> (addition)</td><td><code>$"Branch, {branch}"</code></td><td>AutomationName of the read-only branch</td></tr>
+<tr><td class="add"><code>CortexaRepositoryAutomationName(fullName, upstream, branch, size, overLimit?)</code> (addition)</td><td><code>$"{fullName} @ {branch}, from {upstream}, {size}"</code> + <code>$", over the {overLimit} fetch limit"</code> when set</td><td>Row AutomationName. Leads with FullName @ branch because the same repository can be saved on two branches.</td></tr></table>
+<p>Reused as is: EmptyTitle, Reload, SearchLabel/Name/Placeholder, Showing, NoMatch, ClearSearch, BranchLabel, Fetch/FetchName/FetchHelp/FetchNote, TooBigHelp, OverLimitTag, run and summary strings, TryAgain, NotFound*, TooLarge*, UpstreamTitle("Cortexa"), UpstreamMessage. Unknown Project values show no tag.</p>
+
+<h2>3. Components (reuse only)</h2>
+<table><tr><th>Element</th><th>Reuse</th><th>Change</th></tr>
+<tr><td>Source chip</td><td><code>FilterChip</code> RadioButton via <code>SourceChipViewModel(SourceType.CortexaRepo, CortexaLabel, CortexaName, Select)</code>, appended last in <code>Remote.Sources</code></td><td>None. WrapPanel fits five chips at 720 px.</td></tr>
+<tr><td>Repository card, search, Reload, count, list, empty, no match</td><td>RemoteSourceView as is (<code>Card</code>, <code>FormField</code>, <code>TextBox.Field</code>, <code>Button.Icon</code>, <code>Repository.List</code>, <code>Repository.Surface</code>, <code>Repository.ListState</code>)</td><td>Search predicate uses FullName for Cortexa (Name for others, or FullName for all since FullName contains Name).</td></tr>
+<tr><td>Row</td><td>RemoteRepositoryRowViewModel DataTemplate</td><td>Add a third tag Border, first in the tag StackPanel: <code>Tag.Surface</code> (neutral) + <code>Tag.Label</code>, no glyph, Text = <code>UpstreamTag</code>, visible when non-empty. Private tag never shows (IsPrivate = false). Glyph stays Repository.</td></tr>
+<tr><td>Branch</td><td><code>FormField</code> header "Branch"</td><td>When IsCortexa: hide the ComboBox and branch-loading/commit lines. Show a read-only Border (<code>Brush.Surface.Sunken</code>, <code>Radius.Control</code>, MinHeight 40) holding Branch glyph + DefaultBranch in <code>Font.Mono</code>, plus <code>Text.Helper</code> CortexaBranchHelper. Skip LoadBranchesAsync; build one BranchOption from DefaultBranch so the fetch path is unchanged.</td></tr>
+<tr><td>Fetch row, run card, summary card</td><td>As is</td><td>None</td></tr>
+<tr><td>Banners</td><td><code>BannerView</code> via <code>RemoteBannerFactory</code></td><td>Add <code>ForCortexaFailure</code>: Auth = Error, Title/Message, ActionText TryAgain → actions.TryAgain, no secondary, CanDismiss false. AccessDenied = Dismissible(Error, CortexaDeniedTitle, CortexaDeniedMessage), no action. NotFound, EmptyRepository, RepositoryTooLarge → existing methods. Everything else → Upstream("Cortexa"). MissingToken and SsoRequired cannot occur; map them to Upstream.</td></tr></table>
+
+<h2>4. Interaction and navigation</h2>
+<ul>
+<li>Chip order: Local files, GitHub, Azure DevOps, SSH, Cortexa saved. Rejected: putting Cortexa saved first. It needs no setup, but moving existing chips breaks muscle memory and arrow-key order. Trade-off: one more Right-arrow press to reach it.</li>
+<li>Selecting the chip loads the list every time, not only the first time (GitHub loads once). Rejected: cache like GitHub. Saved repositories change in the web app while the desktop app is open, and the request is cheap. Trade-off: a short loading flash on each switch. Switching away cancels the in-flight load (existing CancelList). Selection resets on chip change (existing ResetSelection).</li>
+<li>No Organization field, no Load repositories button, no Settings or token actions. F5 and the Reload icon reload.</li>
+<li>Rows are keyed by FullName + DefaultBranch. Two rows can share a FullName; both show, and "Showing N of M" counts both.</li>
+<li>Branch is fixed to the saved branch. Picking a row enables Fetch at once.</li>
+<li>Fetch, progress, cancel (Esc), summary, extraction: identical to US134. Origin line reads "owner/repository @ branch".</li>
+<li>401 Try again re-runs whatever failed (list or fetch). If the session is still expired, the same banner returns and is announced again. Picking another row or switching chips clears NotFound and TooLarge banners (existing rule).</li>
+<li>Backend assumption: the list contains only clones whose status is stored. In-progress and failed clones are filtered out server-side; no status UI here.</li>
+</ul>
+
+<h2>5. Accessibility (WCAG 2.1 AA)</h2>
+<table><tr><th>Element</th><th>AutomationProperties / keyboard</th></tr>
+<tr><td>Chip</td><td>Name "Cortexa saved". Access key Alt+V. Radio group: TabNavigation Once, arrows move within. Checked state uses fill + check mark, not color alone.</td></tr>
+<tr><td>Loading</td><td>ProgressBar Name "Loading repositories…"</td></tr>
+<tr><td>Search</td><td>Name "Search repositories", Alt+S. Count line LiveSetting Polite.</td></tr>
+<tr><td>List</td><td>Name "Repositories". Row Name = CortexaRepositoryAutomationName, for example "contoso-research/pricing-engine @ main, from GitHub, 48.2 MB". Up/Down move, Tab leaves the list.</td></tr>
+<tr><td>Upstream tag</td><td>Decorative for screen readers (covered by row Name). Text-muted on sunken: 5.1:1. HC: white on black with white border.</td></tr>
+<tr><td>Branch</td><td>Read-only, not a tab stop. Name CortexaBranchName ("Branch, main"), HelpText CortexaBranchHelper. Text-primary on sunken: well above 4.5:1. A disabled ComboBox would be about 2.6:1, which is why it is not used.</td></tr>
+<tr><td>Fetch</td><td>Name "Fetch files", Alt+F, HelpText = FetchHelp (reason when disabled).</td></tr>
+<tr><td>Banners</td><td>Error severity: focus moves to the banner (FocusRouter "Banner"), LiveSetting Assertive. Dismiss button Name "Dismiss". All actions 44 px tall.</td></tr>
+<tr><td>Tab order</td><td>Source chips → (banner actions) → Search → Reload → Repositories → Fetch files → (Cancel while fetching).</td></tr>
+</table>
+<p>Access keys checked on the Extract scope: L, G, D, S, O, R, B, F, P, M, plus H, U, K, C from the SSH form. Free letters in "Cortexa saved" were T, E, X, A, V. V was chosen because it sits in "saved", the word that separates this source from the others. The shell rail has no access keys.</p>
+
+<h2>6. Artifact</h2>
+<p><code>desktop/collector/docs/design/US136_CortexaRepos.html</code>, opened at localhost or directly from disk. No new design tokens.</p>`;
+
+function go(s){
+ state=s;
+ document.querySelectorAll(".proto-bar button[data-s]").forEach(x=>x.setAttribute("aria-pressed",String(x.dataset.s===s)));
+ extract(); annotations();
+ const bnr=document.querySelector("#fetchBannerSlot [data-banner]"); if(bnr&&bnr.getAttribute("role")==="alert") bnr.focus();
+}
+document.querySelectorAll(".proto-bar button[data-s]").forEach(b=>b.onclick=()=>{clearInterval(timer);clearTimeout(timer);
+ const m=MODES[b.dataset.s]||{}; query=m.q||""; selIdx=m.sel!=null?m.sel:-1; go(b.dataset.s);});
+document.getElementById("hcToggle").onclick=e=>{const on=document.body.classList.toggle("hc");e.target.setAttribute("aria-pressed",String(on));};
+go("c-list");
+</script>
+</body>
+</html>

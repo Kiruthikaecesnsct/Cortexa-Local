@@ -261,4 +261,70 @@ public class RemoteFetchServiceTests
 
         Assert.Equal(1, result.Downloaded);
     }
+
+    private RemoteFetchService CreateCompletingService(CompletingRemoteClient client)
+    {
+        var options = MsOptions.Create(_options);
+        return new RemoteFetchService(
+            new FakeRemoteClients(client),
+            new RemoteFileFilter(options),
+            options,
+            new RemoteFileFetcher(_store, _cache, _time));
+    }
+
+    private static CompletingRemoteClient CompletingClientWith(string path, string sha)
+    {
+        var client = new CompletingRemoteClient(SourceType.Github);
+        client.SetTree(new RemoteTree(CommitSha, [RemoteData.Entry(path, sha)], false));
+        client.AddBlob(sha, "content");
+        return client;
+    }
+
+    [Fact]
+    public async Task FetchAsync_ClientSupportsCompletion_CompletesOnceAfterSuccess()
+    {
+        var client = CompletingClientWith("a.md", "s1");
+
+        await CreateCompletingService(client).FetchAsync(new RemoteFetchRequest(_repository, Branch), null, TestSupport.Ct);
+
+        Assert.Equal([(_repository, Branch)], client.Completions);
+    }
+
+    [Fact]
+    public async Task FetchAsync_DownloadThrows_StillCompletesAndRethrows()
+    {
+        var client = CompletingClientWith("a.md", "s1");
+        client.OpenError = new RemoteSourceException(RemoteFailureKind.Upstream, SourceType.Github);
+
+        var exception = await Assert.ThrowsAsync<RemoteSourceException>(
+            () => CreateCompletingService(client).FetchAsync(new RemoteFetchRequest(_repository, Branch), null, TestSupport.Ct));
+
+        Assert.Equal(RemoteFailureKind.Upstream, exception.Kind);
+        Assert.Equal([(_repository, Branch)], client.Completions);
+    }
+
+    [Fact]
+    public async Task FetchAsync_Canceled_StillCompletes()
+    {
+        var client = CompletingClientWith("a.md", "s1");
+        using var canceled = new CancellationTokenSource();
+        await canceled.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => CreateCompletingService(client).FetchAsync(new RemoteFetchRequest(_repository, Branch), null, canceled.Token));
+
+        Assert.Equal([(_repository, Branch)], client.Completions);
+    }
+
+    [Fact]
+    public async Task FetchAsync_RepositoryOverLimit_DoesNotComplete()
+    {
+        _options.MaxRepositoryBytes = 1;
+        var client = CompletingClientWith("a.md", "s1");
+        var request = new RemoteFetchRequest(RemoteData.GitHubRepo(2), Branch);
+
+        await Assert.ThrowsAsync<RemoteSourceException>(() => CreateCompletingService(client).FetchAsync(request, null, TestSupport.Ct));
+
+        Assert.Empty(client.Completions);
+    }
 }

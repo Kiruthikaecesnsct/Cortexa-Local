@@ -407,4 +407,247 @@ public sealed class RemoteSourceViewModelTests
         Assert.Equal(RemoteSourceStrings.SsoTitle("octo"), viewModel.Banner.Title);
         Assert.Equal(new Uri(RemoteSourceStrings.GitHubTokensUrl), Assert.Single(harness.Links.Opened));
     }
+
+    [Fact]
+    public void Sources_Always_ListCortexaLast()
+    {
+        var harness = new RemoteSourceHarness();
+
+        Assert.Equal(SourceType.CortexaRepo, harness.ViewModel.Sources[^1].Source);
+    }
+
+    [Fact]
+    public async Task SelectingCortexa_WithoutAnyToken_LoadsSavedRepositoriesWithoutAMissingTokenBanner()
+    {
+        var harness = new RemoteSourceHarness();
+
+        var viewModel = await harness.OpenCortexaAsync(RemoteSourceHarness.CortexaRepo("alpha"));
+
+        Assert.Equal(1, harness.Cortexa.ListCalls);
+        Assert.Equal(RemoteListState.Ready, viewModel.ListState);
+        Assert.Single(viewModel.Repositories);
+        Assert.Null(viewModel.Banner);
+        Assert.True(viewModel.ShowForm);
+        Assert.True(viewModel.IsCortexa);
+    }
+
+    [Fact]
+    public async Task SelectingCortexa_Again_ReloadsTheList()
+    {
+        var harness = new RemoteSourceHarness();
+        var viewModel = await harness.OpenCortexaAsync(RemoteSourceHarness.CortexaRepo("alpha"));
+        harness.Cortexa.Repositories = [RemoteSourceHarness.CortexaRepo("alpha"), RemoteSourceHarness.CortexaRepo("beta")];
+
+        viewModel.SelectedSource = SourceType.Local;
+        viewModel.SelectedSource = SourceType.CortexaRepo;
+
+        Assert.Equal(2, harness.Cortexa.ListCalls);
+        Assert.Equal(2, viewModel.Repositories.Count);
+    }
+
+    [Fact]
+    public async Task SelectingCortexa_EmptyList_ShowsTheCortexaEmptyText()
+    {
+        var harness = new RemoteSourceHarness();
+
+        var viewModel = await harness.OpenCortexaAsync();
+
+        Assert.True(viewModel.ShowEmptyList);
+        Assert.Equal(RemoteSourceStrings.EmptyCortexa, viewModel.EmptyText);
+    }
+
+    [Fact]
+    public void CortexaListAccessDenied_ShowsADismissibleBannerAndHidesTheCard()
+    {
+        var harness = new RemoteSourceHarness();
+        harness.Cortexa.ListError = new RemoteSourceException(RemoteFailureKind.AccessDenied, SourceType.CortexaRepo);
+
+        harness.ViewModel.SelectedSource = SourceType.CortexaRepo;
+
+        Assert.Equal(RemoteSourceStrings.CortexaDeniedTitle, harness.ViewModel.Banner!.Title);
+        Assert.Equal(BannerSeverity.Error, harness.ViewModel.Banner.Severity);
+        Assert.True(harness.ViewModel.Banner.CanDismiss);
+        Assert.False(harness.ViewModel.ShowForm);
+    }
+
+    [Fact]
+    public void CortexaListAccessDenied_Dismissed_ClearsTheBanner()
+    {
+        var harness = new RemoteSourceHarness();
+        harness.Cortexa.ListError = new RemoteSourceException(RemoteFailureKind.AccessDenied, SourceType.CortexaRepo);
+        harness.ViewModel.SelectedSource = SourceType.CortexaRepo;
+
+        harness.ViewModel.Banner!.DismissCommand!.Execute(null);
+
+        Assert.Null(harness.ViewModel.Banner);
+    }
+
+    [Fact]
+    public void CortexaListUnauthorized_ShowsATryAgainBannerThatCannotBeDismissed()
+    {
+        var harness = new RemoteSourceHarness();
+        harness.Cortexa.ListError = new RemoteSourceException(RemoteFailureKind.Auth, SourceType.CortexaRepo);
+
+        harness.ViewModel.SelectedSource = SourceType.CortexaRepo;
+
+        var banner = harness.ViewModel.Banner!;
+        Assert.Equal(RemoteSourceStrings.CortexaAuthTitle, banner.Title);
+        Assert.Equal(RemoteSourceStrings.TryAgain, banner.ActionText);
+        Assert.False(banner.CanDismiss);
+        Assert.False(harness.ViewModel.ShowForm);
+    }
+
+    [Fact]
+    public async Task CortexaListUnauthorized_TryAgain_ReloadsAndRestoresTheCard()
+    {
+        var harness = new RemoteSourceHarness();
+        harness.Cortexa.ListError = new RemoteSourceException(RemoteFailureKind.Auth, SourceType.CortexaRepo);
+        harness.ViewModel.SelectedSource = SourceType.CortexaRepo;
+        harness.Cortexa.ListError = null;
+        harness.Cortexa.Repositories = [RemoteSourceHarness.CortexaRepo("alpha")];
+
+        await ((CommunityToolkit.Mvvm.Input.IAsyncRelayCommand)harness.ViewModel.Banner!.ActionCommand!).ExecuteAsync(null);
+
+        Assert.Equal(2, harness.Cortexa.ListCalls);
+        Assert.Null(harness.ViewModel.Banner);
+        Assert.True(harness.ViewModel.ShowForm);
+        Assert.Single(harness.ViewModel.Repositories);
+    }
+
+    [Fact]
+    public void CortexaListUpstreamFailure_ShowsTheGenericUpstreamBanner()
+    {
+        var harness = new RemoteSourceHarness();
+        harness.Cortexa.ListError = new RemoteSourceException(RemoteFailureKind.Upstream, SourceType.CortexaRepo);
+
+        harness.ViewModel.SelectedSource = SourceType.CortexaRepo;
+
+        Assert.Equal(RemoteSourceStrings.UpstreamTitle("Cortexa"), harness.ViewModel.Banner!.Title);
+    }
+
+    [Fact]
+    public async Task SelectingCortexaRepository_BuildsTheBranchFromTheSavedOneWithoutLoadingBranches()
+    {
+        var harness = new RemoteSourceHarness();
+        harness.Cortexa.BranchError = new RemoteSourceException(RemoteFailureKind.Upstream, SourceType.CortexaRepo);
+        var viewModel = await harness.OpenCortexaAsync(RemoteSourceHarness.CortexaRepo("alpha", branch: "release"));
+
+        viewModel.SelectedRepository = viewModel.Repositories[0];
+
+        Assert.Equal(["release"], viewModel.Branches.Select(branch => branch.Name));
+        Assert.Equal("release", viewModel.SelectedBranch!.Name);
+        Assert.Null(viewModel.CommitText);
+        Assert.Null(viewModel.Banner);
+        Assert.False(viewModel.IsLoadingBranches);
+        Assert.True(viewModel.FetchCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task CortexaFetch_Success_RaisesFilesFetchedWithTheCortexaSource()
+    {
+        var harness = new RemoteSourceHarness();
+        harness.Fetcher.Result = new RemoteFetchResult(SourceType.CortexaRepo, "3f2a9c1e55", ["a.md"], 1, 0, 0, 0, false);
+        var viewModel = await harness.OpenCortexaAsync(RemoteSourceHarness.CortexaRepo("alpha", branch: "release"));
+        viewModel.SelectedRepository = viewModel.Repositories[0];
+        RemoteFilesFetchedEventArgs? raised = null;
+        viewModel.FilesFetched += (_, args) => raised = args;
+
+        await viewModel.FetchCommand.ExecuteAsync(null);
+
+        Assert.Equal(SourceType.CortexaRepo, raised!.Source);
+        Assert.Equal(["a.md"], raised.Paths);
+        Assert.Equal("octo/alpha @ release", raised.Origin);
+        Assert.Equal(SourceType.CortexaRepo, harness.Fetcher.LastRequest!.Repository.Provider);
+        Assert.Equal("release", harness.Fetcher.LastRequest.Branch);
+        Assert.True(viewModel.HasSummary);
+    }
+
+    [Fact]
+    public async Task CortexaFetch_RepositoryGone_ShowsTheNotFoundBannerAndKeepsTheForm()
+    {
+        var harness = new RemoteSourceHarness();
+        harness.Fetcher.Error = new RemoteSourceException(RemoteFailureKind.NotFound, SourceType.CortexaRepo);
+        var viewModel = await harness.OpenCortexaAsync(RemoteSourceHarness.CortexaRepo("alpha"));
+        viewModel.SelectedRepository = viewModel.Repositories[0];
+
+        await viewModel.FetchCommand.ExecuteAsync(null);
+
+        Assert.Equal(RemoteSourceStrings.NotFoundTitle, viewModel.Banner!.Title);
+        Assert.True(viewModel.ShowForm);
+        Assert.False(viewModel.IsFetching);
+    }
+
+    [Fact]
+    public async Task CortexaFetch_SessionExpired_ShowsTheAuthBannerAndHidesTheCard()
+    {
+        var harness = new RemoteSourceHarness();
+        harness.Fetcher.Error = new RemoteSourceException(RemoteFailureKind.Auth, SourceType.CortexaRepo);
+        var viewModel = await harness.OpenCortexaAsync(RemoteSourceHarness.CortexaRepo("alpha"));
+        viewModel.SelectedRepository = viewModel.Repositories[0];
+
+        await viewModel.FetchCommand.ExecuteAsync(null);
+
+        Assert.Equal(RemoteSourceStrings.CortexaAuthTitle, viewModel.Banner!.Title);
+        Assert.False(viewModel.ShowForm);
+    }
+
+    [Fact]
+    public async Task CortexaSearch_MatchesTheOwnerThroughTheFullName()
+    {
+        var harness = new RemoteSourceHarness();
+        var viewModel = await harness.OpenCortexaAsync(
+            RemoteSourceHarness.CortexaRepo("alpha", owner: "octo"),
+            RemoteSourceHarness.CortexaRepo("beta", owner: "acme"));
+
+        viewModel.SearchText = "ACME";
+
+        Assert.Equal(["beta"], viewModel.Repositories.Select(row => row.Name));
+    }
+
+    [Fact]
+    public void SwitchingAwayFromCortexa_ClearsItsBanner()
+    {
+        var harness = new RemoteSourceHarness();
+        harness.Cortexa.ListError = new RemoteSourceException(RemoteFailureKind.AccessDenied, SourceType.CortexaRepo);
+        harness.ViewModel.SelectedSource = SourceType.CortexaRepo;
+
+        harness.ViewModel.SelectedSource = SourceType.Local;
+
+        Assert.Null(harness.ViewModel.Banner);
+        Assert.False(harness.ViewModel.IsCortexa);
+    }
+
+    [Theory]
+    [InlineData("github", "GitHub")]
+    [InlineData("azure-devops", "Azure DevOps")]
+    [InlineData("gitlab", null)]
+    [InlineData(null, null)]
+    public void CortexaRow_UpstreamTag_ReflectsTheSavedRepositorySource(string? tag, string? expected)
+    {
+        var row = new RemoteRepositoryRowViewModel(RemoteSourceHarness.CortexaRepo("alpha", tag), long.MaxValue);
+
+        Assert.Equal(expected, row.UpstreamTag);
+        Assert.Equal(expected is not null, row.HasUpstreamTag);
+    }
+
+    [Fact]
+    public void NonCortexaRow_WithGitHubLikeProject_HasNoUpstreamTag()
+    {
+        var repository = RemoteSourceHarness.AzureRepo("core") with { Project = "github" };
+
+        var row = new RemoteRepositoryRowViewModel(repository, long.MaxValue);
+
+        Assert.Null(row.UpstreamTag);
+    }
+
+    [Fact]
+    public void CortexaRow_OverTheSizeLimit_IsMarkedTooBig()
+    {
+        const long Limit = 100;
+        var repository = RemoteSourceHarness.CortexaRepo("alpha") with { SizeBytes = Limit + 1 };
+
+        var row = new RemoteRepositoryRowViewModel(repository, Limit);
+
+        Assert.True(row.IsTooBig);
+    }
 }

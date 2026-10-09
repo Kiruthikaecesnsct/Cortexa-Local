@@ -7,4 +7,5 @@ public static class HttpClientNames
     public const string Gemini = "Gemini";
     public const string GitHub = "GitHub";
     public const string AzureDevOps = "AzureDevOps";
+    public const string CortexaGateway = "CortexaGateway";
 }

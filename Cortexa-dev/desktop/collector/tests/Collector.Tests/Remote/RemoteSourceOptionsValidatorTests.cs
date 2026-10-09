@@ -49,6 +49,19 @@ public class RemoteSourceOptionsValidatorTests
         { "MaxConcurrency", options => options.RateLimit.MaxConcurrency = 0 },
         { "MaxRetries", options => options.RateLimit.MaxRetries = -1 },
         { "CacheRoot", options => options.CacheRoot = " " },
+        { "Cortexa:GitHubClonesPath", options => options.Cortexa.GitHubClonesPath = string.Empty },
+        { "Cortexa:GitHubClonesPath", options => options.Cortexa.GitHubClonesPath = "/scan/github/clones" },
+        { "Cortexa:GitHubClonesPath", options => options.Cortexa.GitHubClonesPath = "scan/../clones" },
+        { "Cortexa:AzureDevOpsClonesPath", options => options.Cortexa.AzureDevOpsClonesPath = " " },
+        { "Cortexa:AzureDevOpsClonesPath", options => options.Cortexa.AzureDevOpsClonesPath = "/scan/azure-devops/clones" },
+        { "Cortexa:AzureDevOpsClonesPath", options => options.Cortexa.AzureDevOpsClonesPath = "..\\clones" },
+        { "Cortexa:DownloadTimeoutSeconds", options => options.Cortexa.DownloadTimeoutSeconds = 0 },
+        { "Cortexa:DownloadTimeoutSeconds", options => options.Cortexa.DownloadTimeoutSeconds = -1 },
+        { "Cortexa:ArchiveFolder", options => options.Cortexa.ArchiveFolder = string.Empty },
+        { "Cortexa:ArchiveFolder", options => options.Cortexa.ArchiveFolder = ".." },
+        { "Cortexa:ArchiveFolder", options => options.Cortexa.ArchiveFolder = "." },
+        { "Cortexa:ArchiveFolder", options => options.Cortexa.ArchiveFolder = "a/b" },
+        { "Cortexa:ArchiveFolder", options => options.Cortexa.ArchiveFolder = "a\\b" },
     };
 
     [Theory]
@@ -72,5 +85,32 @@ public class RemoteSourceOptionsValidatorTests
         });
 
         Assert.Equal(3, result.Failures!.Count());
+    }
+
+    [Fact]
+    public void Validate_CustomRelativeCortexaPathsAndFolder_Succeeds()
+    {
+        var result = Validate(options =>
+        {
+            options.Cortexa.GitHubClonesPath = "api/v2/github/clones";
+            options.Cortexa.AzureDevOpsClonesPath = "api/v2/azure/clones/";
+            options.Cortexa.ArchiveFolder = "zips-v2";
+        });
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void Validate_MultipleInvalidCortexaSettings_ReportsEachFailure()
+    {
+        var result = Validate(options =>
+        {
+            options.Cortexa.GitHubClonesPath = string.Empty;
+            options.Cortexa.AzureDevOpsClonesPath = "/abs";
+            options.Cortexa.DownloadTimeoutSeconds = 0;
+            options.Cortexa.ArchiveFolder = "a/b";
+        });
+
+        Assert.Equal(4, result.Failures!.Count());
     }
 }

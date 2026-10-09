@@ -2,10 +2,12 @@ using Collector.Application.Ports;
 using Collector.Application.Remote;
 using Collector.Application.Secrets;
 using Collector.Domain.Enums;
+using Collector.Infrastructure.Auth;
 using Collector.Infrastructure.Cache;
 using Collector.Infrastructure.Http;
 using Collector.Infrastructure.Options;
 using Collector.Infrastructure.Remote.AzureDevOps;
+using Collector.Infrastructure.Remote.Cortexa;
 using Collector.Infrastructure.Remote.GitHub;
 using Collector.Infrastructure.Remote.RateLimit;
 using Collector.Infrastructure.Remote.Ssh;
@@ -39,6 +41,7 @@ internal static class RemoteSourceRegistration
         services.AddSingleton<IRemoteRepositoryClient, GitHubRepositoryClient>();
         services.AddSingleton<IRemoteRepositoryClient, AzureDevOpsRepositoryClient>();
         services.AddCollectorSshRemoteSource();
+        services.AddCollectorCortexaRemoteSource();
         services.AddSingleton<IRemoteRepositoryClients, RemoteRepositoryClients>();
         services.AddRemoteClient(new RemoteClientSpec(
             HttpClientNames.GitHub,
@@ -59,6 +62,23 @@ internal static class RemoteSourceRegistration
     {
         services.AddSingleton<SftpConnectionFactory>();
         services.AddSingleton<IRemoteRepositoryClient, SftpRepositoryClient>();
+    }
+
+    private static void AddCollectorCortexaRemoteSource(this IServiceCollection services)
+    {
+        services.AddSingleton<CortexaErrorMapper>();
+        services.AddSingleton<CortexaGatewayHttp>();
+        services.AddSingleton<CortexaArchiveStore>();
+        services.AddSingleton<IRemoteRepositoryClient, CortexaRepositoryClient>();
+        services.AddHttpClient(HttpClientNames.CortexaGateway)
+            .ConfigureHttpClient((sp, client) =>
+            {
+                client.BaseAddress = RemoteUrl.BaseAddress(sp.GetRequiredService<IOptions<GatewayOptions>>().Value.BaseUrl);
+                client.Timeout = Timeout.InfiniteTimeSpan;
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { UseCookies = false, AllowAutoRedirect = false })
+            .AddHttpMessageHandler<BearerTokenHandler>()
+            .RedactLoggedHeaders(name => RedactedHeaders.Contains(name, StringComparer.OrdinalIgnoreCase));
     }
 
     private static void AddRemoteClient(this IServiceCollection services, RemoteClientSpec spec) =>

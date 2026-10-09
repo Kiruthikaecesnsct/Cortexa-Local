@@ -7,18 +7,24 @@ namespace Collector.Presentation.ViewModels;
 
 public sealed class RemoteRepositoryRowViewModel
 {
+    private const string GitHubUpstream = "github";
+    private const string AzureUpstream = "azure-devops";
+
     public RemoteRepositoryRowViewModel(RemoteRepository repository, long limitBytes)
     {
         Repository = repository;
         IsTooBig = repository.SizeBytes > limitBytes;
         SizeText = RemoteSizeFormatter.Format(repository.SizeBytes);
         LimitText = RemoteSizeFormatter.Format(limitBytes);
-        AutomationName = RemoteSourceStrings.RepositoryAutomationName(
-            repository.Name,
-            repository.IsPrivate,
-            repository.DefaultBranch,
-            SizeText,
-            IsTooBig ? LimitText : null);
+        UpstreamTag = ResolveUpstreamTag(repository);
+        AutomationName = repository.Provider == SourceType.CortexaRepo
+            ? CortexaAutomationName()
+            : RemoteSourceStrings.RepositoryAutomationName(
+                repository.Name,
+                repository.IsPrivate,
+                repository.DefaultBranch,
+                SizeText,
+                IsTooBig ? LimitText : null);
     }
 
     public RemoteRepository Repository { get; }
@@ -31,6 +37,10 @@ public sealed class RemoteRepositoryRowViewModel
 
     public bool IsPrivate => Repository.IsPrivate;
 
+    public string? UpstreamTag { get; }
+
+    public bool HasUpstreamTag => UpstreamTag is not null;
+
     public bool IsTooBig { get; }
 
     public string SizeText { get; }
@@ -42,6 +52,19 @@ public sealed class RemoteRepositoryRowViewModel
     public string AutomationName { get; }
 
     public string HelpText => FullName;
+
+    private static string? ResolveUpstreamTag(RemoteRepository repository) =>
+        repository.Provider != SourceType.CortexaRepo
+            ? null
+            : repository.Project switch
+            {
+                GitHubUpstream => RemoteSourceStrings.UpstreamGitHubTag,
+                AzureUpstream => RemoteSourceStrings.UpstreamAzureTag,
+                _ => null,
+            };
+
+    private string CortexaAutomationName() => RemoteSourceStrings.CortexaRepositoryAutomationName(
+        new CortexaRowDescription(FullName, DefaultBranch, UpstreamTag, SizeText, IsTooBig ? LimitText : null));
 }
 
 public sealed class BranchOptionViewModel(string name, string? commitSha, bool isDefault)

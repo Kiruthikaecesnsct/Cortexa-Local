@@ -194,4 +194,23 @@ public static class RemoteSourceStrings
 
     public const string SshConnectionFailedTitle = "Couldn't connect to the server.";
     public const string SshConnectionFailedMessage = "Check the host, port, and your network connection, then try again.";
+
+    public const string CortexaLabel = "Cortexa sa_ved";
+    public const string CortexaName = "Cortexa saved";
+    public const string EmptyCortexa = "No saved repositories. Save one from the Cortexa web app.";
+    public const string CortexaAuthTitle = "Your Cortexa session expired.";
+    public const string CortexaAuthMessage = "Sign in again.";
+    public const string CortexaDeniedTitle = "Cortexa access denied.";
+    public const string CortexaDeniedMessage = "Your Cortexa account does not have permission to read saved repositories.";
+    public const string UpstreamGitHubTag = "GitHub";
+    public const string UpstreamAzureTag = "Azure DevOps";
+    public const string CortexaBranchHelper = "Saved branch. To fetch a different branch, save it in the Cortexa web app.";
+
+    public static string CortexaBranchName(string branch) => $"Branch, {branch}";
+
+    public static string CortexaRepositoryAutomationName(CortexaRowDescription row) =>
+        $"{row.FullName} @ {row.Branch}{(row.Upstream is null ? string.Empty : $", from {row.Upstream}")}, {row.Size}"
+        + (row.OverLimit is null ? string.Empty : $", over the {row.OverLimit} fetch limit");
 }
+
+public sealed record CortexaRowDescription(string FullName, string Branch, string? Upstream, string Size, string? OverLimit);

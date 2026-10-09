@@ -36,7 +36,7 @@ public sealed class RemoteFetchService
         var context = new RemoteFetchContext(client, repository, request.Branch, tree.CommitSha);
         var kept = tree.Entries.Where(_filter.Keep).ToList();
         var selected = kept.Take(_options.Value.MaxFilesPerFetch).ToList();
-        var tally = await DownloadAsync(context, selected, progress, cancellationToken);
+        var tally = await DownloadAndCompleteAsync(context, selected, progress, cancellationToken);
         progress?.Report(new RemoteFetchProgress(RemoteFetchPhase.Completed, selected.Count, selected.Count));
         var skipped = tree.Entries.Count - kept.Count + tally.Skipped;
         return new RemoteFetchResult(
@@ -55,6 +55,25 @@ public sealed class RemoteFetchService
         if (repository.SizeBytes > _options.Value.MaxRepositoryBytes)
         {
             throw new RemoteSourceException(RemoteFailureKind.RepositoryTooLarge, repository.Provider);
+        }
+    }
+
+    private async Task<RemoteFetchTally> DownloadAndCompleteAsync(
+        RemoteFetchContext context,
+        IReadOnlyList<RemoteTreeEntry> entries,
+        IProgress<RemoteFetchProgress>? progress,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await DownloadAsync(context, entries, progress, cancellationToken);
+        }
+        finally
+        {
+            if (context.Client is IRemoteFetchCompletion completion)
+            {
+                await completion.CompleteFetchAsync(context.Repository, context.Branch);
+            }
         }
     }
 

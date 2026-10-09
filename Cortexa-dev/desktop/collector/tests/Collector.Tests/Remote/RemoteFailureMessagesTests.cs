@@ -9,6 +9,7 @@ public class RemoteFailureMessagesTests
     [InlineData(SourceType.Github, "GitHub")]
     [InlineData(SourceType.AzureDevops, "Azure DevOps")]
     [InlineData(SourceType.Ssh, "SSH")]
+    [InlineData(SourceType.CortexaRepo, "Cortexa")]
     public void For_ProviderSpecificFailures_NameTheProvider(SourceType provider, string expectedName)
     {
         RemoteFailureKind[] providerKinds =
@@ -47,7 +48,7 @@ public class RemoteFailureMessagesTests
     [Fact]
     public void DisplayName_UnmappedProvider_FallsBackToEnumName()
     {
-        Assert.Equal("CortexaRepo", RemoteFailureMessages.DisplayName(SourceType.CortexaRepo));
+        Assert.Equal("Cortexa", RemoteFailureMessages.DisplayName(SourceType.CortexaRepo));
     }
 
     [Fact]
@@ -57,5 +58,48 @@ public class RemoteFailureMessagesTests
 
         Assert.Contains("SSH", message, StringComparison.Ordinal);
         Assert.Contains("fingerprint", message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void For_CortexaAuth_TellsTheUserToSignInAgain()
+    {
+        var message = RemoteFailureMessages.For(RemoteFailureKind.Auth, SourceType.CortexaRepo);
+
+        Assert.Contains("session expired", message, StringComparison.Ordinal);
+        Assert.Contains("Sign in", message, StringComparison.Ordinal);
+        Assert.DoesNotContain("token", message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void For_CortexaAccessDenied_ExplainsMissingPermissionWithoutMentioningTokens()
+    {
+        var message = RemoteFailureMessages.For(RemoteFailureKind.AccessDenied, SourceType.CortexaRepo);
+
+        Assert.Contains("permission", message, StringComparison.Ordinal);
+        Assert.Contains("saved repositories", message, StringComparison.Ordinal);
+        Assert.DoesNotContain("token", message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Theory]
+    [InlineData(RemoteFailureKind.NotFound)]
+    [InlineData(RemoteFailureKind.RateLimited)]
+    [InlineData(RemoteFailureKind.Upstream)]
+    [InlineData(RemoteFailureKind.RepositoryTooLarge)]
+    public void For_CortexaOtherKinds_UseTheGenericWording(RemoteFailureKind kind)
+    {
+        var cortexa = RemoteFailureMessages.For(kind, SourceType.CortexaRepo);
+
+        Assert.Equal(RemoteFailureMessages.For(kind, SourceType.Github).Replace("GitHub", "Cortexa", StringComparison.Ordinal), cortexa);
+    }
+
+    [Fact]
+    public void For_EveryKindForCortexa_ReturnsDistinctNonEmptyMessage()
+    {
+        var kinds = Enum.GetValues<RemoteFailureKind>();
+
+        var messages = kinds.Select(kind => RemoteFailureMessages.For(kind, SourceType.CortexaRepo)).ToList();
+
+        Assert.All(messages, message => Assert.False(string.IsNullOrWhiteSpace(message)));
+        Assert.Equal(kinds.Length, messages.Distinct().Count());
     }
 }

@@ -243,6 +243,7 @@ public sealed class RemoteSourceOptionsValidator : IValidateOptions<RemoteSource
         CheckProvider(failures, "GitHub", options.GitHub);
         CheckProvider(failures, "AzureDevOps", options.AzureDevOps);
         CheckSsh(failures, options.Ssh);
+        CheckCortexa(failures, options.Cortexa);
         CheckPositive(failures, nameof(options.TimeoutSeconds), options.TimeoutSeconds);
         CheckPositive(failures, nameof(options.MaxPages), options.MaxPages);
         CheckPositive(failures, $"RateLimit:{nameof(options.RateLimit.MaxPauseSeconds)}", options.RateLimit.MaxPauseSeconds);
@@ -268,6 +269,35 @@ public sealed class RemoteSourceOptionsValidator : IValidateOptions<RemoteSource
         CheckPositive(failures, $"Ssh:{nameof(options.ConnectTimeoutSeconds)}", options.ConnectTimeoutSeconds);
         CheckPositive(failures, $"Ssh:{nameof(options.MaxWalkDepth)}", options.MaxWalkDepth);
     }
+
+    private static void CheckCortexa(List<string> failures, CortexaRepoSourceOptions options)
+    {
+        const string Prefix = $"{RemoteSourceOptions.SectionName}:Cortexa";
+        CheckClonesPath(failures, $"{Prefix}:{nameof(options.GitHubClonesPath)}", options.GitHubClonesPath);
+        CheckClonesPath(failures, $"{Prefix}:{nameof(options.AzureDevOpsClonesPath)}", options.AzureDevOpsClonesPath);
+        CheckPositive(failures, $"Cortexa:{nameof(options.DownloadTimeoutSeconds)}", options.DownloadTimeoutSeconds);
+        if (!IsSingleSafeSegment(options.ArchiveFolder))
+        {
+            failures.Add($"{Prefix}:{nameof(options.ArchiveFolder)} must be a single folder name.");
+        }
+    }
+
+    private static void CheckClonesPath(List<string> failures, string name, string value)
+    {
+        var relative = !string.IsNullOrWhiteSpace(value)
+            && !value.StartsWith('/')
+            && !value.Contains("..", StringComparison.Ordinal);
+        if (!relative)
+        {
+            failures.Add($"{name} must be a non-empty relative path.");
+        }
+    }
+
+    private static bool IsSingleSafeSegment(string value) =>
+        !string.IsNullOrWhiteSpace(value)
+        && value is not ("." or "..")
+        && value.IndexOfAny(Path.GetInvalidFileNameChars()) < 0
+        && value.IndexOfAny(['/', '\\']) < 0;
 
     private static void CheckProvider(List<string> failures, string provider, RemoteProviderOptions options)
     {

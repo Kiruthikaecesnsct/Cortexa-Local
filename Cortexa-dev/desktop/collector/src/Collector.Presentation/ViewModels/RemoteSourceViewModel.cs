@@ -61,6 +61,7 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
     private Func<Task>? _retry;
     private bool _rebuilding;
     private bool _isLocked;
+    private bool _cortexaBlocked;
 
     public RemoteSourceViewModel(
         RemoteSourceDependencies dependencies,
@@ -100,9 +101,11 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
 
     public bool IsSsh => SelectedSource == SourceType.Ssh;
 
+    public bool IsCortexa => SelectedSource == SourceType.CortexaRepo;
+
     public bool AreControlsEnabled => !IsFetching && !_isLocked;
 
-    public bool ShowForm => Summary is null && (IsAzure || IsSsh || ListState != RemoteListState.Idle);
+    public bool ShowForm => Summary is null && !_cortexaBlocked && (IsAzure || IsSsh || ListState != RemoteListState.Idle);
 
     public bool HasSummary => Summary is not null;
 
@@ -120,9 +123,16 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
 
     public string NoMatchText => RemoteSourceStrings.NoMatch(SearchText);
 
-    public string EmptyText => IsAzure
-        ? RemoteSourceStrings.EmptyAzureDevOps(OrganizationText)
-        : RemoteSourceStrings.EmptyGitHub;
+    public string EmptyText => SelectedSource switch
+    {
+        SourceType.AzureDevops => RemoteSourceStrings.EmptyAzureDevOps(OrganizationText),
+        SourceType.CortexaRepo => RemoteSourceStrings.EmptyCortexa,
+        _ => RemoteSourceStrings.EmptyGitHub,
+    };
+
+    public string CortexaBranchName => RemoteSourceStrings.CortexaBranchName(SelectedBranch?.Name ?? string.Empty);
+
+    public string? CortexaBranchText => SelectedBranch?.Name;
 
     public string FetchHelp => SelectedRepository switch
     {
@@ -211,16 +221,31 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
         Banner = null;
         Summary = null;
         OrganizationError = null;
+        _cortexaBlocked = false;
         ResetSelection();
         SyncChips();
+        if (value == SourceType.CortexaRepo)
+        {
+            _loaded.Remove(value);
+        }
+
         _all = _loaded.GetValueOrDefault(value) ?? [];
         ListState = _loaded.ContainsKey(value) ? RemoteListState.Ready : RemoteListState.Idle;
         SearchText = string.Empty;
         RebuildRows();
         NotifyFetchState();
-        if (value == SourceType.Github && ListState == RemoteListState.Idle)
+        if (ListState == RemoteListState.Idle && value is SourceType.Github or SourceType.CortexaRepo)
         {
             _ = LoadRepositoriesCommand.ExecuteAsync(null);
+        }
+    }
+
+    partial void OnBannerChanged(BannerViewModel? value)
+    {
+        if (value is null && _cortexaBlocked)
+        {
+            _cortexaBlocked = false;
+            NotifyFetchState();
         }
     }
 
@@ -256,6 +281,7 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
         new(SourceType.Github, RemoteSourceStrings.GitHubLabel, RemoteSourceStrings.GitHubName, Select),
         new(SourceType.AzureDevops, RemoteSourceStrings.AzureDevOpsLabel, RemoteSourceStrings.AzureDevOpsName, Select),
         new(SourceType.Ssh, RemoteSourceStrings.SshLabel, RemoteSourceStrings.SshName, Select),
+        new(SourceType.CortexaRepo, RemoteSourceStrings.CortexaLabel, RemoteSourceStrings.CortexaName, Select),
     ];
 
     private void Select(SourceType source)
@@ -275,6 +301,9 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
         OnPropertyChanged(nameof(IsRemote));
         OnPropertyChanged(nameof(IsAzure));
         OnPropertyChanged(nameof(IsSsh));
+        OnPropertyChanged(nameof(IsCortexa));
+        OnPropertyChanged(nameof(CortexaBranchName));
+        OnPropertyChanged(nameof(CortexaBranchText));
         OnPropertyChanged(nameof(AreControlsEnabled));
         OnPropertyChanged(nameof(ShowForm));
         OnPropertyChanged(nameof(HasSummary));
@@ -345,7 +374,10 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
     private void ShowFailure(RemoteFailureKind kind, TimeSpan? retryAfter, Func<Task> retry)
     {
         _retry = retry;
+        _cortexaBlocked = SelectedSource == SourceType.CortexaRepo
+            && kind is RemoteFailureKind.Auth or RemoteFailureKind.AccessDenied;
         ShowOutcome(_banners.ForFailure(kind, FailureContext(retryAfter)));
+        OnPropertyChanged(nameof(ShowForm));
     }
 
     private RemoteFailureContext FailureContext(TimeSpan? retryAfter)

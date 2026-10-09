@@ -70,6 +70,17 @@ public sealed class SshSourceOptions
     public List<SshProfileOptions> Profiles { get; set; } = [];
 }
 
+public sealed class CortexaRepoSourceOptions
+{
+    public string GitHubClonesPath { get; set; } = "scan/github/clones";
+
+    public string AzureDevOpsClonesPath { get; set; } = "scan/azure-devops/clones";
+
+    public int DownloadTimeoutSeconds { get; set; } = 600;
+
+    public string ArchiveFolder { get; set; } = "_zips";
+}
+
 public sealed class RemoteSourceOptions
 {
     public const string SectionName = "RemoteSources";
@@ -85,6 +96,8 @@ public sealed class RemoteSourceOptions
     public AzureDevOpsSourceOptions AzureDevOps { get; set; } = new();
 
     public SshSourceOptions Ssh { get; set; } = new();
+
+    public CortexaRepoSourceOptions Cortexa { get; set; } = new();
 
     public RateLimitOptions RateLimit { get; set; } = new();
 }

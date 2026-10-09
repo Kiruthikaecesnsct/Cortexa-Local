@@ -13,6 +13,7 @@ using Collector.Infrastructure.Http;
 using Collector.Infrastructure.Options;
 using Collector.Infrastructure.Remote;
 using Collector.Infrastructure.Remote.AzureDevOps;
+using Collector.Infrastructure.Remote.Cortexa;
 using Collector.Infrastructure.Remote.GitHub;
 using Collector.Infrastructure.Remote.RateLimit;
 using Collector.Infrastructure.Remote.Ssh;
@@ -71,6 +72,16 @@ public class DependencyInjectionTests
         Assert.IsType<GitHubRepositoryClient>(clients.For(SourceType.Github));
         Assert.IsType<AzureDevOpsRepositoryClient>(clients.For(SourceType.AzureDevops));
         Assert.IsType<SftpRepositoryClient>(clients.For(SourceType.Ssh));
+        Assert.IsType<CortexaRepositoryClient>(clients.For(SourceType.CortexaRepo));
+    }
+
+    [Fact]
+    public void RemoteRepositoryClients_Cortexa_ReleasesArchivesThroughFetchCompletion()
+    {
+        using var provider = Build();
+        var clients = provider.GetRequiredService<IRemoteRepositoryClients>();
+
+        Assert.IsAssignableFrom<IRemoteFetchCompletion>(clients.For(SourceType.CortexaRepo));
     }
 
     [Fact]
@@ -79,7 +90,7 @@ public class DependencyInjectionTests
         using var provider = Build();
         var clients = provider.GetRequiredService<IRemoteRepositoryClients>();
 
-        Assert.Throws<NotSupportedException>(() => clients.For(SourceType.CortexaRepo));
+        Assert.Throws<NotSupportedException>(() => clients.For(SourceType.Local));
     }
 
     [Fact]

@@ -65,6 +65,10 @@
                         </TextBlock>
                     </StackPanel>
                     <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal">
+                        <Border Style="{StaticResource Tag.Surface}"
+                                Visibility="{Binding HasUpstreamTag, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock Style="{StaticResource Tag.Label}" Text="{Binding UpstreamTag}" />
+                        </Border>
                         <Border Style="{StaticResource Tag.Surface.Warning}"
                                 Visibility="{Binding IsPrivate, Converter={StaticResource BoolToVisibility}}">
                             <StackPanel Orientation="Horizontal">
@@ -296,6 +300,31 @@
                 <StackPanel Visibility="{Binding HasRepositories, Converter={StaticResource BoolToVisibility}}">
                     <HeaderedContentControl Header="{x:Static res:RemoteSourceStrings.BranchLabel}" Style="{StaticResource FormField}">
                         <StackPanel HorizontalAlignment="Left">
+                            <StackPanel Visibility="{Binding IsCortexa, Converter={StaticResource BoolToVisibility}}">
+                                <Border MinHeight="{StaticResource Size.Control}"
+                                        MinWidth="{StaticResource Size.ComboMin}"
+                                        Padding="{StaticResource Thickness.ChipPadding}"
+                                        Background="{DynamicResource Brush.Surface.Sunken}"
+                                        Focusable="False"
+                                        IsEnabled="{Binding ShowBranchField}"
+                                        Style="{StaticResource Repository.Surface}">
+                                    <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                        <TextBlock Margin="{StaticResource Thickness.InlineGap}"
+                                                   Style="{StaticResource Text.Glyph}"
+                                                   Text="{x:Static res:Glyphs.Branch}" />
+                                        <TextBlock AutomationProperties.HelpText="{x:Static res:RemoteSourceStrings.CortexaBranchHelper}"
+                                                   AutomationProperties.Name="{Binding CortexaBranchName}"
+                                                   FontFamily="{StaticResource Font.Mono}"
+                                                   Style="{StaticResource Text.Label}"
+                                                   Text="{Binding CortexaBranchText}" />
+                                    </StackPanel>
+                                </Border>
+                                <TextBlock MaxWidth="{StaticResource Size.ContentMaxWidth}"
+                                           Margin="{StaticResource Thickness.HelperGap}"
+                                           Style="{StaticResource Text.Helper}"
+                                           Text="{x:Static res:RemoteSourceStrings.CortexaBranchHelper}" />
+                            </StackPanel>
+                            <StackPanel Visibility="{Binding IsCortexa, Converter={StaticResource InverseBoolToVisibility}}">
                             <ComboBox MinWidth="{StaticResource Size.ComboMin}"
                                       AutomationProperties.Name="{x:Static res:RemoteSourceStrings.BranchName}"
                                       DisplayMemberPath="DisplayName"
@@ -313,6 +342,7 @@
                                        Style="{StaticResource Text.Caption}"
                                        Text="{Binding CommitText}"
                                        Visibility="{Binding HasCommit, Converter={StaticResource BoolToVisibility}}" />
+                            </StackPanel>
                         </StackPanel>
                     </HeaderedContentControl>
                     <StackPanel Orientation="Horizontal">

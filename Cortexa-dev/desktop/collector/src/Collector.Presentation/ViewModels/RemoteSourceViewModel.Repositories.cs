@@ -28,10 +28,18 @@ public sealed partial class RemoteSourceViewModel
         Branches.Clear();
         SelectedBranch = null;
         NotifyFetchState();
-        if (value is not null)
+        if (value is null)
         {
-            _ = LoadBranchesAsync(value);
+            return;
         }
+
+        if (value.Repository.Provider == SourceType.CortexaRepo)
+        {
+            ApplySavedBranch(value);
+            return;
+        }
+
+        _ = LoadBranchesAsync(value);
     }
 
     private bool CanLoadRepositories() => IsRemote && !IsSsh && AreControlsEnabled && !IsListLoading;
@@ -76,7 +84,7 @@ public sealed partial class RemoteSourceViewModel
 
     private async Task ListRepositoriesAsync(SourceType source, string? scope, CancellationToken token)
     {
-        if (!await HasTokenAsync(source))
+        if (RequiresToken(source) && !await HasTokenAsync(source))
         {
             FailList(source, RemoteFailureKind.MissingToken, null);
             return;
@@ -86,6 +94,8 @@ public sealed partial class RemoteSourceViewModel
         token.ThrowIfCancellationRequested();
         ApplyRepositories(source, repositories);
     }
+
+    private static bool RequiresToken(SourceType source) => source != SourceType.CortexaRepo;
 
     private async Task<bool> HasTokenAsync(SourceType source)
     {
@@ -223,7 +233,7 @@ public sealed partial class RemoteSourceViewModel
 
     private bool MatchesSearch(RemoteRepository repository) =>
         string.IsNullOrWhiteSpace(SearchText)
-        || repository.Name.Contains(SearchText.Trim(), StringComparison.OrdinalIgnoreCase);
+        || repository.FullName.Contains(SearchText.Trim(), StringComparison.OrdinalIgnoreCase);
 
     private void ResetSelection()
     {
@@ -286,6 +296,13 @@ public sealed partial class RemoteSourceViewModel
         {
             ShowFailure(kind, null, () => LoadBranchesAsync(row));
         }
+    }
+
+    private void ApplySavedBranch(RemoteRepositoryRowViewModel row)
+    {
+        Branches.Clear();
+        Branches.Add(new BranchOptionViewModel(row.DefaultBranch, null, true));
+        SelectedBranch = Branches[0];
     }
 
     private void ApplyBranches(RemoteRepositoryRowViewModel row, IReadOnlyList<RemoteBranch> remote)

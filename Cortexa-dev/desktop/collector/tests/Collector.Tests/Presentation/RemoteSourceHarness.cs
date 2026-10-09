@@ -102,7 +102,7 @@ internal sealed class RemoteSourceHarness
     public RemoteSourceHarness()
     {
         Settings = new SettingsService(Store, Secrets);
-        var clients = new FakeRemoteClients(GitHub, AzureDevOps);
+        var clients = new FakeRemoteClients(GitHub, AzureDevOps, Cortexa);
         var dependencies = new RemoteSourceDependencies(
             clients,
             Fetcher,
@@ -128,6 +128,8 @@ internal sealed class RemoteSourceHarness
 
     public ScriptedRemoteClient AzureDevOps { get; } = new(SourceType.AzureDevops);
 
+    public ScriptedRemoteClient Cortexa { get; } = new(SourceType.CortexaRepo);
+
     public FakeRemoteFetcher Fetcher { get; } = new();
 
     public FakeRateLimitMonitor RateLimits { get; } = new();
@@ -147,6 +149,17 @@ internal sealed class RemoteSourceHarness
 
     public static RemoteRepository AzureRepo(string name) =>
         new(SourceType.AzureDevops, "contoso", "Research", name, $"contoso/Research/{name}", "main", "https://dev.azure.com/contoso", 2048, true);
+
+    public static RemoteRepository CortexaRepo(string name, string? tag = "github", string owner = "octo", string branch = "saved") =>
+        new(SourceType.CortexaRepo, owner, tag, name, $"{owner}/{name}", branch, $"cortexa://{tag}/{owner}/{name}", 1024, false);
+
+    public async Task<RemoteSourceViewModel> OpenCortexaAsync(params RemoteRepository[] repositories)
+    {
+        Cortexa.Repositories = repositories;
+        ViewModel.SelectedSource = SourceType.CortexaRepo;
+        await Task.Yield();
+        return ViewModel;
+    }
 
     public async Task<RemoteSourceViewModel> OpenGitHubAsync(params RemoteRepository[] repositories)
     {

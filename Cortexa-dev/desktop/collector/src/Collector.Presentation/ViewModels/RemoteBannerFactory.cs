@@ -26,8 +26,21 @@ public sealed record RemoteFailureContext(
 
 public sealed class RemoteBannerFactory(RemoteBannerActions actions)
 {
-    public BannerContent ForFailure(RemoteFailureKind kind, RemoteFailureContext context) =>
-        context.Provider == SourceType.Ssh ? ForSshFailure(kind, context) : ForTokenFailure(kind, context);
+    public BannerContent ForFailure(RemoteFailureKind kind, RemoteFailureContext context) => context.Provider switch
+    {
+        SourceType.Ssh => ForSshFailure(kind, context),
+        SourceType.CortexaRepo => ForCortexaFailure(kind, context),
+        _ => ForTokenFailure(kind, context),
+    };
+
+    private BannerContent ForCortexaFailure(RemoteFailureKind kind, RemoteFailureContext context) => kind switch
+    {
+        RemoteFailureKind.Auth => CortexaAuth(),
+        RemoteFailureKind.AccessDenied => CortexaDenied(),
+        RemoteFailureKind.NotFound or RemoteFailureKind.EmptyRepository or RemoteFailureKind.RepositoryTooLarge =>
+            ForTokenFailure(kind, context),
+        _ => Upstream(RemoteFailureMessages.DisplayName(SourceType.CortexaRepo)),
+    };
 
     private BannerContent ForSshFailure(RemoteFailureKind kind, RemoteFailureContext context) => kind switch
     {
@@ -184,6 +197,20 @@ public sealed class RemoteBannerFactory(RemoteBannerActions actions)
         ActionText = RemoteSourceStrings.TryAgain,
         ActionCommand = actions.TryAgain,
     };
+
+    private BannerContent CortexaAuth() => new()
+    {
+        Severity = BannerSeverity.Error,
+        Title = RemoteSourceStrings.CortexaAuthTitle,
+        Message = RemoteSourceStrings.CortexaAuthMessage,
+        ActionText = RemoteSourceStrings.TryAgain,
+        ActionCommand = actions.TryAgain,
+    };
+
+    private BannerContent CortexaDenied() => Dismissible(
+        BannerSeverity.Error,
+        RemoteSourceStrings.CortexaDeniedTitle,
+        RemoteSourceStrings.CortexaDeniedMessage);
 
     private BannerContent SshDenied() => Dismissible(
         BannerSeverity.Error,

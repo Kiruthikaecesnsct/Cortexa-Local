@@ -3,6 +3,7 @@ using Collector.Application.Extraction;
 using Collector.Application.History;
 using Collector.Application.Knowledge;
 using Collector.Application.Remote;
+using Collector.Application.Secrets;
 using Collector.Application.Settings;
 using Collector.Application.Upload;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,6 +20,7 @@ public static class DependencyInjection
         services.AddSingleton<IAccessTokenProvider>(sp => sp.GetRequiredService<SessionService>());
         services.AddSingleton<ISessionState>(sp => sp.GetRequiredService<SessionService>());
         services.AddSingleton<SettingsService>();
+        services.AddSingleton<StaleRemoteSecretPurge>();
         services.AddSingleton<LocalSourceResolver>();
         services.AddCollectorExtraction();
         services.AddCollectorKnowledge();

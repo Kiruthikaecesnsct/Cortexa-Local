@@ -6,7 +6,7 @@ using Collector.Presentation.Resources;
 namespace Collector.Presentation.ViewModels;
 
 public sealed record RemoteBannerActions(
-    ICommand OpenSettings,
+    ICommand ChangeToken,
     ICommand TryAgain,
     ICommand Reload,
     ICommand OpenGitHubTokens,
@@ -46,7 +46,6 @@ public sealed class RemoteBannerFactory(RemoteBannerActions actions)
     {
         RemoteFailureKind.Auth => SshAuth(),
         RemoteFailureKind.AccessDenied => SshDenied(),
-        RemoteFailureKind.FingerprintMismatch => FingerprintMismatch(),
         RemoteFailureKind.NotFound or RemoteFailureKind.EmptyRepository or RemoteFailureKind.RepositoryTooLarge =>
             ForTokenFailure(kind, context),
         _ => SshConnectionFailed(),
@@ -106,9 +105,9 @@ public sealed class RemoteBannerFactory(RemoteBannerActions actions)
         Severity = BannerSeverity.Warning,
         Title = RemoteSourceStrings.MissingTitle(provider),
         Message = RemoteSourceStrings.MissingMessage(provider),
-        ActionText = RemoteSourceStrings.OpenSettings,
-        ActionName = RemoteSourceStrings.OpenSettingsAddName(provider),
-        ActionCommand = actions.OpenSettings,
+        ActionText = RemoteSourceStrings.ChangeToken,
+        ActionName = RemoteSourceStrings.ChangeTokenName(provider),
+        ActionCommand = actions.ChangeToken,
         SecondaryActionText = RemoteSourceStrings.TryAgain,
         SecondaryActionCommand = actions.TryAgain,
     };
@@ -118,9 +117,9 @@ public sealed class RemoteBannerFactory(RemoteBannerActions actions)
         Severity = BannerSeverity.Error,
         Title = RemoteSourceStrings.AuthTitle(provider),
         Message = RemoteSourceStrings.AuthMessage,
-        ActionText = RemoteSourceStrings.OpenSettings,
-        ActionName = RemoteSourceStrings.OpenSettingsReplaceName(provider),
-        ActionCommand = actions.OpenSettings,
+        ActionText = RemoteSourceStrings.ChangeToken,
+        ActionName = RemoteSourceStrings.ChangeTokenName(provider),
+        ActionCommand = actions.ChangeToken,
         SecondaryActionText = RemoteSourceStrings.TryAgain,
         SecondaryActionCommand = actions.TryAgain,
     };
@@ -130,9 +129,9 @@ public sealed class RemoteBannerFactory(RemoteBannerActions actions)
         Severity = BannerSeverity.Error,
         Title = RemoteSourceStrings.DeniedTitle,
         Message = RemoteSourceStrings.DeniedMessage(repository, isGitHub),
-        ActionText = RemoteSourceStrings.OpenSettings,
-        ActionName = RemoteSourceStrings.OpenSettingsReplaceName(provider),
-        ActionCommand = actions.OpenSettings,
+        ActionText = RemoteSourceStrings.ChangeToken,
+        ActionName = RemoteSourceStrings.ChangeTokenName(provider),
+        ActionCommand = actions.ChangeToken,
     };
 
     private BannerContent Sso(string owner) => new()
@@ -216,11 +215,6 @@ public sealed class RemoteBannerFactory(RemoteBannerActions actions)
         BannerSeverity.Error,
         RemoteSourceStrings.SshDeniedTitle,
         RemoteSourceStrings.SshDeniedMessage);
-
-    private BannerContent FingerprintMismatch() => Dismissible(
-        BannerSeverity.Error,
-        RemoteSourceStrings.SshFingerprintMismatchTitle,
-        RemoteSourceStrings.SshFingerprintMismatchMessage);
 
     private BannerContent SshConnectionFailed() => Dismissible(
         BannerSeverity.Error,

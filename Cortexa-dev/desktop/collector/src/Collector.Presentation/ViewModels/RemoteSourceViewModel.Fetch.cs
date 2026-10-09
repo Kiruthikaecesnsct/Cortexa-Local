@@ -60,14 +60,6 @@ public sealed partial class RemoteSourceViewModel
     [RelayCommand(CanExecute = nameof(CanFetch))]
     private Task FetchAgainAsync() => FetchCommand.ExecuteAsync(null);
 
-    [RelayCommand(CanExecute = nameof(AreControlsEnabled))]
-    private void ChangeRepository()
-    {
-        Summary = null;
-        Banner = null;
-        RequestFocus(RemoteFocusKeys.Repositories);
-    }
-
     public void ApplyRateStatus(RateLimitStatus status)
     {
         if (!IsFetching || status.Provider != SelectedSource)

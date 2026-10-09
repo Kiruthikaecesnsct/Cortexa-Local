@@ -167,40 +167,42 @@
         </Style>
     </UserControl.Resources>
 
-    <StackPanel MaxWidth="{StaticResource Size.WorkspaceMaxWidth}" HorizontalAlignment="Left">
+    <StackPanel>
 
         <TextBlock Margin="{StaticResource Thickness.StackGap}"
                    Style="{StaticResource Text.Overline}"
                    Text="{x:Static res:ExtractionStrings.SourceLabel}" />
-        <ItemsControl Margin="{StaticResource Thickness.StackGapMedium}"
-                      AutomationProperties.Name="{x:Static res:RemoteSourceStrings.SourceGroupName}"
-                      Focusable="False"
-                      IsEnabled="{Binding Remote.AreControlsEnabled}"
-                      IsTabStop="False"
-                      ItemsSource="{Binding Remote.Sources}"
-                      KeyboardNavigation.DirectionalNavigation="Contained"
-                      KeyboardNavigation.TabNavigation="Once">
-            <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <WrapPanel />
-                </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-                <DataTemplate DataType="{x:Type vm:SourceChipViewModel}">
-                    <RadioButton AutomationProperties.Name="{Binding AutomationName}"
-                                 GroupName="ExtractionSource"
-                                 IsChecked="{Binding IsSelected}"
-                                 Style="{StaticResource FilterChip}">
-                        <AccessText Foreground="{Binding (TextElement.Foreground), RelativeSource={RelativeSource AncestorType=Border}}" Text="{Binding AccessLabel}" />
-                    </RadioButton>
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-        </ItemsControl>
+        <Grid Margin="{StaticResource Thickness.StackGapMedium}">
+            <ItemsControl Margin="{StaticResource Thickness.GridBleed.Section}"
+                          AutomationProperties.Name="{x:Static res:RemoteSourceStrings.SourceGroupName}"
+                          Focusable="False"
+                          IsEnabled="{Binding Remote.AreControlsEnabled}"
+                          IsTabStop="False"
+                          ItemsSource="{Binding SourceCards}"
+                          KeyboardNavigation.DirectionalNavigation="Contained"
+                          KeyboardNavigation.TabNavigation="Once">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Columns="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=ItemsControl}, Converter={StaticResource Columns.SourceCards}}" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:SourceCardViewModel}">
+                        <RadioButton AutomationProperties.HelpText="{Binding Description}"
+                                     AutomationProperties.Name="{Binding Title}"
+                                     GroupName="ExtractionSource"
+                                     IsChecked="{Binding IsSelected}"
+                                     Style="{StaticResource SourceCard}">
+                            <AccessText Text="{Binding AccessLabel}" TextWrapping="Wrap" />
+                        </RadioButton>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Grid>
 
         <ContentControl Content="{Binding Remote.Banner}" Style="{StaticResource Banner.Slot}" />
 
-        <views:RemoteSourceView MinWidth="{StaticResource Size.ContentMaxWidth}"
-                                DataContext="{Binding Remote}"
+        <views:RemoteSourceView DataContext="{Binding Remote}"
                                 Visibility="{Binding IsRemote, Converter={StaticResource BoolToVisibility}}" />
 
         <Border Style="{StaticResource Card}" Visibility="{Binding ShowLocalEmpty, Converter={StaticResource BoolToVisibility}}">

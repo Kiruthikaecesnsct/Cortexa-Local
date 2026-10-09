@@ -32,7 +32,7 @@ public static class RemoteFailureMessages
     {
         return kind switch
         {
-            RemoteFailureKind.MissingToken => $"No {name} access token is saved. Add one in Settings.",
+            RemoteFailureKind.MissingToken => $"Enter a {name} access token to connect.",
             RemoteFailureKind.Auth => $"{name} rejected the access token. Check that it is valid and has not expired.",
             RemoteFailureKind.AccessDenied => $"The {name} access token does not have permission for this request.",
             RemoteFailureKind.SsoRequired => $"This {name} organization requires single sign-on. Authorize the token for SSO and try again.",
@@ -40,8 +40,6 @@ public static class RemoteFailureMessages
             RemoteFailureKind.EmptyRepository => "This repository has no files on the selected branch.",
             RemoteFailureKind.RateLimited => $"{name} rate limit reached. Try again after the limit resets.",
             RemoteFailureKind.RepositoryTooLarge => "This repository is too large to collect.",
-            RemoteFailureKind.FingerprintMismatch =>
-                $"The {name} host key fingerprint does not match the pinned fingerprint. Refusing to connect.",
             _ => $"{name} could not be reached or returned an unexpected response.",
         };
     }

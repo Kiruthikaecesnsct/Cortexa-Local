@@ -64,6 +64,8 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
         knowledge.PropertyChanged += OnKnowledgeChanged;
         Remote.FocusRequested += (_, key) => RequestFocus(key);
         Remote.PropertyChanged += OnRemoteChanged;
+        SourceCards = CreateSourceCards();
+        SyncSourceCards();
         Remote.FilesFetched += OnFilesFetched;
         Knowledge.Provider = SelectedProvider;
         UpdateAvailableModels(SelectedProvider);
@@ -72,6 +74,8 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
     public KnowledgeRunViewModel Knowledge { get; }
 
     public RemoteSourceViewModel Remote { get; }
+
+    public IReadOnlyList<SourceCardViewModel> SourceCards { get; }
 
     public ObservableCollection<DocumentRowViewModel> Documents { get; }
 
@@ -473,6 +477,33 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
         if (e.PropertyName == nameof(RemoteSourceViewModel.IsLocal))
         {
             OnPropertyChanged(nameof(ShowLocalEmpty));
+        }
+
+        if (e.PropertyName == nameof(RemoteSourceViewModel.SelectedSource))
+        {
+            SyncSourceCards();
+        }
+    }
+
+    private SourceCardViewModel[] CreateSourceCards() =>
+        [.. SourceCardCatalog.All.Select(content => new SourceCardViewModel(content, SelectSource))];
+
+    private void SelectSource(SourceType source)
+    {
+        if (Remote.AreControlsEnabled)
+        {
+            Remote.SelectedSource = source;
+            return;
+        }
+
+        SyncSourceCards();
+    }
+
+    private void SyncSourceCards()
+    {
+        foreach (var card in SourceCards)
+        {
+            card.Sync(Remote.SelectedSource);
         }
     }
 

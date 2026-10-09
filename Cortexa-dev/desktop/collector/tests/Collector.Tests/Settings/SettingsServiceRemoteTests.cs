@@ -78,35 +78,6 @@ public class SettingsServiceRemoteTests
         Assert.True(await _service.HasSecretAsync(SecretSlot.AzureDevOpsPat, TestSupport.Ct));
     }
 
-    [Theory]
-    [InlineData(SourceType.Github, SecretSlot.GitHubPat)]
-    [InlineData(SourceType.AzureDevops, SecretSlot.AzureDevOpsPat)]
-    public async Task HasRemoteTokenAsync_SavedToken_ReturnsTrueForMatchingSource(SourceType source, SecretSlot slot)
-    {
-        _secrets.Values[slot] = Token;
-
-        Assert.True(await _service.HasRemoteTokenAsync(source, TestSupport.Ct));
-    }
-
-    [Fact]
-    public async Task HasRemoteTokenAsync_OtherProvidersToken_ReturnsFalse()
-    {
-        _secrets.Values[SecretSlot.GitHubPat] = Token;
-
-        Assert.False(await _service.HasRemoteTokenAsync(SourceType.AzureDevops, TestSupport.Ct));
-    }
-
-    [Theory]
-    [InlineData(SourceType.Local)]
-    [InlineData(SourceType.Ssh)]
-    [InlineData(SourceType.CortexaRepo)]
-    public async Task HasRemoteTokenAsync_SourceWithoutTokenSlot_ReturnsFalse(SourceType source)
-    {
-        _secrets.Values[SecretSlot.GitHubPat] = Token;
-
-        Assert.False(await _service.HasRemoteTokenAsync(source, TestSupport.Ct));
-    }
-
     [Fact]
     public async Task SaveRemoteSourcesAsync_ValidOrganization_SavesTrimmedValue()
     {

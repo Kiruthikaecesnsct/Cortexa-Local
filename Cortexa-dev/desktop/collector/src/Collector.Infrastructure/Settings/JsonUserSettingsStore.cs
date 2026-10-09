@@ -63,7 +63,7 @@ public sealed class JsonUserSettingsStore(
         source.Count == 0 ? Array.Empty<SshConnectionProfile>() : source.Select(ToProfile).ToArray();
 
     private static SshConnectionProfile ToProfile(SshProfileOptions options) =>
-        new(options.Host, options.Port, options.Username, options.KeyFilePath, options.PinnedFingerprint, options.RemoteRoot);
+        new(options.Host, options.Port, options.Username, options.KeyFilePath, options.RemoteRoot);
 
     private static JsonArray SerializeProfiles(IReadOnlyList<SshConnectionProfile> profiles)
     {
@@ -76,7 +76,6 @@ public sealed class JsonUserSettingsStore(
                 [nameof(SshProfileOptions.Port)] = profile.Port,
                 [nameof(SshProfileOptions.Username)] = profile.Username,
                 [nameof(SshProfileOptions.KeyFilePath)] = profile.KeyFilePath,
-                [nameof(SshProfileOptions.PinnedFingerprint)] = profile.PinnedFingerprint,
                 [nameof(SshProfileOptions.RemoteRoot)] = profile.RemoteRoot,
             });
         }

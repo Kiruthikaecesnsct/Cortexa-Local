@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>US138 Source collectors match the web scan flow - design prototype</title>
+<style>
+/* Tokens mirror the US137 dictionaries: Themes/Colors.Light.xaml and Themes/Styles.xaml.
+   "High contrast" approximates Colors.HighContrast.xaml (SystemColors, HC Black). Prototype only. */
+:root{
+  --surface-page:#F4F6FA;--surface-card:#FFFFFF;--surface-rail:#0F172A;--surface-sunken:#F2F4F8;--surface-hover:#F5F6FA;--surface-selected:#EEF0FF;
+  --border-subtle:#E4E7EE;--border-button:#D0D5DD;--border-control:#858DA2;--border-focus:#4F46E5;--button-edge:transparent;
+  --text-primary:#101828;--text-body:#475467;--text-muted:#5D6679;--text-disabled:#98A2B3;--text-on-accent:#FFFFFF;--text-link:#4338CA;
+  --accent:#4F46E5;--accent-hover:#4338CA;--accent-subtle:#EEF0FF;--accent-subtle-border:#C7CBFD;
+  --danger:#D92D20;--danger-text:#B42318;--danger-surface:#FEF3F2;--danger-border:#FECDCA;
+  --success:#067647;--success-surface:#ECFDF3;--success-border:#ABEFC6;
+  --warning:#B54708;--warning-surface:#FFFAEB;--warning-border:#FEDF89;
+  --info:#3538CD;--info-surface:#EEF4FF;--info-border:#C7D7FE;
+  --rail-text:#CBD5E1;--rail-text-muted:#8B97AD;--rail-text-selected:#FFFFFF;--rail-selected:#242F52;--rail-indicator:#818CF8;--rail-divider:#1F2A40;
+  --fs-overline:11px;--fs-caption:12px;--fs-page-subtitle:13px;--fs-body:14px;--fs-subtitle:16px;--fs-title:20px;
+  --r-control:8px;--r-card:12px;--r-tile:10px;--r-tag:6px;--r-chip:999px;--r-focus:10px;
+  --size-control:40px;--rail-expanded:248px;--rail-compact:72px;--repo-list-max:352px;
+  /* US138 additions (proposed) */
+  --size-source-card-min:176px;--size-repo-card-min:280px;--size-section-card-min:320px;--size-step-badge:30px;--size-number-badge:26px;
+  --shadow-low:0 2px 12px rgba(16,24,40,.06);
+}
+body.hc{
+  --surface-page:#000;--surface-card:#000;--surface-rail:#000;--surface-sunken:#000;--surface-hover:#000;--surface-selected:#1AEBFF;
+  --border-subtle:#FFF;--border-button:#FFF;--border-control:#FFF;--border-focus:#1AEBFF;--button-edge:#FFF;
+  --text-primary:#FFF;--text-body:#FFF;--text-muted:#FFF;--text-disabled:#3FF23F;--text-on-accent:#000;--text-link:#FFFF00;
+  --accent:#1AEBFF;--accent-hover:#1AEBFF;--accent-subtle:#000;--accent-subtle-border:#1AEBFF;
+  --danger:#FFF;--danger-text:#FFF;--danger-surface:#000;--danger-border:#FFF;--success:#FFF;--success-surface:#000;--success-border:#FFF;
+  --warning:#FFF;--warning-surface:#000;--warning-border:#FFF;--info:#FFF;--info-surface:#000;--info-border:#FFF;
+  --rail-text:#FFF;--rail-text-muted:#FFF;--rail-text-selected:#FFF;--rail-selected:#000;--rail-indicator:#1AEBFF;--rail-divider:#FFF;
+  --shadow-low:none;
+}
+*{box-sizing:border-box}
+body{margin:0;font:var(--fs-body)/1.45 "Segoe UI Variable Text","Segoe UI",sans-serif;color:var(--text-body);background:#d9dde6}
+body.hc{background:#222}
+.mono{font-family:"Cascadia Mono",Consolas,monospace}
+/* Prototype bar */
+.proto-bar{position:sticky;top:0;z-index:5;background:#101828;color:#fff;padding:6px 12px;display:flex;gap:4px 10px;flex-wrap:wrap;align-items:center;font-size:12px}
+.proto-bar .grp{display:flex;gap:3px;flex-wrap:wrap;align-items:center}
+.proto-bar .grp>span{color:#98A2B3;margin-right:2px}
+.proto-bar button{font:inherit;padding:2px 7px;border-radius:6px;border:1px solid #475467;background:#1d2539;color:#fff;cursor:pointer}
+.proto-bar button[aria-pressed=true]{background:#4F46E5;border-color:#4F46E5}
+.stage{padding:16px;overflow-x:auto}
+/* Window */
+.window{display:grid;grid-template-columns:var(--rail-expanded) 1fr;min-height:720px;background:var(--surface-page);margin:0 auto;box-shadow:0 8px 32px rgba(16,24,40,.18);border-radius:8px;overflow:hidden}
+.window.compact{grid-template-columns:var(--rail-compact) 1fr}
+.rail{background:var(--surface-rail);padding:16px 0;border-right:1px solid var(--rail-divider);color:var(--rail-text)}
+.brand{display:flex;align-items:center;gap:10px;padding:0 16px 16px 20px;font-weight:600;color:#fff}
+.brand .mark{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#6366F1,#8B5CF6);display:grid;place-items:center;font-size:15px;flex:none}
+body.hc .brand .mark{background:#000;border:1px solid #fff}
+.rail .nav{height:40px;margin:2px 12px;display:flex;align-items:center;gap:12px;padding:0 12px;border-radius:8px;position:relative;color:var(--rail-text);cursor:pointer;border:0;background:transparent;font:inherit;width:calc(100% - 24px);text-align:left}
+.rail .nav .gl{width:20px;text-align:center}
+.rail .nav.sel{background:var(--rail-selected);color:var(--rail-text-selected);font-weight:600}
+.rail .nav.sel::before{content:"";position:absolute;left:-12px;top:11px;height:18px;width:3px;border-radius:2px;background:var(--rail-indicator)}
+.window.compact .rail .nav .lbl,.window.compact .brand .name{display:none}
+.window.compact .brand{padding:0 19px 16px}
+.content{padding:28px 32px 32px;min-width:0}
+/* Body containers: US138 removes MaxWidth from every signed-in body. The dashed outline only marks the body bounds for review. */
+.body{width:100%}
+.show-bounds .body{outline:1px dashed #F79009;outline-offset:4px}
+h1{font:600 var(--fs-title) "Segoe UI Variable Display","Segoe UI";color:var(--text-primary);margin:0 0 2px}
+.page-sub{font-size:var(--fs-page-subtitle);color:var(--text-muted);margin:0 0 20px}
+h2{font:600 var(--fs-subtitle) "Segoe UI Variable Display","Segoe UI";color:var(--text-primary);margin:0}
+h3{font:600 var(--fs-body) "Segoe UI";color:var(--text-primary);margin:0}
+.overline{font-size:var(--fs-overline);font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin:0 0 8px}
+.caption,.helper{font-size:var(--fs-caption);color:var(--text-muted)}
+.label{font-weight:600;color:var(--text-primary)}
+.err{color:var(--danger);font-size:var(--fs-caption);display:flex;gap:6px;margin-top:4px}
+.card{background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--r-card);padding:24px;margin-bottom:16px;box-shadow:var(--shadow-low)}
+.card-h{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.tile{width:36px;height:36px;border-radius:var(--r-tile);background:var(--accent-subtle);color:var(--text-link);display:grid;place-items:center;flex:none;border:1px solid var(--button-edge)}
+:focus-visible{outline:2px solid var(--border-focus);outline-offset:3px;border-radius:var(--r-focus)}
+.btn{font:inherit;font-weight:600;border-radius:8px;padding:8px 16px;min-height:40px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:8px}
+.btn-primary{border:1px solid var(--button-edge);background:var(--accent);color:var(--text-on-accent)}
+.btn-primary:hover{background:var(--accent-hover)}
+.btn-secondary{border:1px solid var(--border-button);background:var(--surface-card);color:var(--text-primary);min-width:104px;justify-content:center}
+.btn-secondary:hover{background:var(--surface-hover);border-color:var(--border-control)}
+.btn-ghost{border:1px solid var(--button-edge);background:transparent;color:var(--text-primary)}
+.btn-ghost:hover{background:var(--surface-hover)}
+.btn:disabled{background:var(--surface-sunken);color:var(--text-disabled);border-color:var(--border-subtle);cursor:default}
+.link-btn{border:0;background:transparent;color:var(--text-link);font:inherit;font-weight:600;padding:8px 10px;min-height:40px;cursor:pointer;white-space:nowrap}
+.link-btn:hover,a:hover{text-decoration:underline}
+a{color:var(--text-link);font-weight:600;text-decoration:none}
+.icon-btn{width:40px;height:40px;display:inline-grid;place-items:center;border:0;background:transparent;border-radius:8px;cursor:pointer;color:var(--text-muted);font-size:16px;flex:none}
+.icon-btn:hover{background:var(--surface-hover);color:var(--text-primary)}
+.icon-btn[aria-pressed=true]{color:var(--text-link)}
+/* Tags / badges (Tag.Surface family) */
+.tag{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:var(--r-tag);font-size:12px;font-weight:600;background:var(--surface-sunken);border:1px solid var(--border-subtle);color:var(--text-body);white-space:nowrap;line-height:1.3}
+.tag.warning{background:var(--warning-surface);border-color:var(--warning-border);color:var(--warning)}
+.tag.danger{background:var(--danger-surface);border-color:var(--danger-border);color:var(--danger-text)}
+.tag.success{background:var(--success-surface);border-color:var(--success-border);color:var(--success)}
+.tag.info{background:var(--info-surface);border-color:var(--info-border);color:var(--info)}
+.tag.accent{background:var(--accent-subtle);border-color:var(--accent-subtle-border);color:var(--text-link)}
+.tag .dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+/* Banner (BannerView, US137) */
+.banner{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--info-border);background:var(--info-surface);border-radius:8px;padding:12px 12px 12px 0;margin-bottom:16px;position:relative}
+.banner::before{content:"";width:4px;align-self:stretch;border-radius:2px;background:var(--info);margin-right:4px}
+.banner.error{border-color:var(--danger-border);background:var(--danger-surface)}.banner.error::before{background:var(--danger)}
+.banner.warning{border-color:var(--warning-border);background:var(--warning-surface)}.banner.warning::before{background:var(--warning)}
+.banner .g{width:20px;text-align:center;color:var(--info);padding-top:1px}
+.banner.error .g{color:var(--danger)}.banner.warning .g{color:var(--warning)}
+.banner .msg{flex:1;color:var(--text-body)}
+.banner .acts{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+/* Fields */
+.field{margin-bottom:16px}.field:last-child{margin-bottom:0}
+.field label,.field .flabel{display:block;font-weight:600;color:var(--text-primary);padding-bottom:6px}
+.input{font:inherit;color:var(--text-primary);background:var(--surface-card);border:1px solid var(--border-control);border-radius:8px;padding:8px 12px;min-height:40px;width:100%}
+.input.url{font-family:"Cascadia Mono",Consolas,monospace;font-size:13px}
+.input:focus{outline:none;border:2px solid var(--border-focus);padding:7px 11px}
+.input.bad{border-color:var(--danger)}
+.input:disabled{background:var(--surface-sunken);color:var(--text-disabled)}
+.input::placeholder{color:var(--text-muted)}
+.with-trail{position:relative}
+.with-trail .input{padding-right:48px}
+.with-trail .input:focus{padding-right:47px}
+.with-trail .icon-btn{position:absolute;right:0;top:0}
+.searchbox{position:relative}
+.searchbox .input{padding-left:36px}.searchbox .input:focus{padding-left:35px}
+.searchbox .sg{position:absolute;left:12px;top:10px;color:var(--text-muted);pointer-events:none}
+.file-row{display:flex;gap:8px}
+.file-row .input{flex:1}
+.progress{height:4px;background:var(--surface-sunken);position:relative;overflow:hidden;margin:8px 0;border-radius:2px}
+body.hc .progress{outline:1px solid #fff}
+.progress span{position:absolute;left:0;top:0;bottom:0;background:var(--accent);border-radius:2px}
+.progress.ind span{width:120px;animation:ind 1.4s linear infinite}
+@keyframes ind{from{left:-120px}to{left:100%}}
+/* ---- New: SourceCard ---- */
+.sources{display:grid;gap:16px;margin-bottom:20px}
+.source{position:relative;display:flex;flex-direction:column;gap:8px;align-items:flex-start;text-align:left;padding:16px;min-height:120px;border-radius:var(--r-card);border:1px solid var(--border-subtle);background:var(--surface-card);box-shadow:var(--shadow-low);cursor:pointer;font:inherit;color:var(--text-primary)}
+.source:hover{border-color:var(--border-control);background:var(--surface-hover)}
+.source .tile{width:36px;height:36px}
+.source .t{font-weight:600}
+.source .d{font-size:var(--fs-caption);color:var(--text-muted);line-height:1.4}
+.source .check{position:absolute;top:12px;right:12px;width:20px;height:20px;border-radius:50%;background:var(--accent);color:var(--text-on-accent);display:none;place-items:center;font-size:11px}
+.source[aria-checked=true]{border:2px solid var(--accent);padding:15px;background:var(--surface-card)}
+.source[aria-checked=true] .check{display:grid}
+.source:disabled{cursor:default;opacity:1}
+.source:disabled .t,.source:disabled .d{color:var(--text-disabled)}
+.source u{text-decoration:underline}
+/* ---- Connection card header ---- */
+.conn-h{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.conn-h .titles{flex:1;min-width:200px}
+.conn-h .status{display:flex;align-items:center;gap:8px}
+/* ---- New: Stepper ---- */
+.stepper-bar{padding:14px 18px;border-radius:var(--r-control);background:var(--surface-sunken);border:1px solid var(--border-subtle);margin-bottom:16px}
+.stepper{display:flex;align-items:center;gap:12px;list-style:none;margin:0;padding:0}
+.stepper li{display:contents}
+.step{display:flex;align-items:center;gap:10px;border:0;background:transparent;padding:4px;margin:-4px;font:inherit;text-align:left;min-width:0;cursor:pointer;border-radius:8px;min-height:40px}
+.step:disabled{cursor:default}
+.step .num{width:var(--size-step-badge);height:var(--size-step-badge);border-radius:50%;flex:none;display:grid;place-items:center;font-weight:600;font-size:13px}
+.step[data-s=done] .num{background:var(--accent);color:var(--text-on-accent);border:1px solid var(--accent)}
+.step[data-s=current] .num{background:var(--surface-card);color:var(--text-link);border:2px solid var(--accent)}
+.step[data-s=upcoming] .num{background:var(--surface-card);color:var(--text-muted);border:1px solid var(--border-control)}
+.step .st{display:flex;flex-direction:column;min-width:0}
+.step .st b{font-weight:600;font-size:13px;color:var(--text-primary)}
+.step[data-s=upcoming] .st b{color:var(--text-muted)}
+.step .st i{font-style:normal;font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
+.step[data-s=done]:not(:disabled):hover .st b{text-decoration:underline}
+.conn{flex:1;height:2px;min-width:16px;border-radius:1px;background:var(--border-subtle)}
+.conn.on{background:var(--accent)}
+body.hc .conn{background:#fff}
+/* ---- New: StepPrompt ---- */
+.prompt{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:14px 18px 14px 14px;border-radius:var(--r-control);background:var(--info-surface);border:1px solid var(--info-border);border-left:4px solid var(--accent);margin-bottom:20px}
+.prompt .ol{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-link)}
+.prompt .pt{font-weight:600;font-size:15px;color:var(--text-primary);margin:2px 0}
+.prompt .pm{color:var(--text-body)}
+.prompt .pa{display:flex;gap:8px;flex:none}
+/* ---- New: NumberedSectionCard ---- */
+.sections{display:grid;gap:16px;align-items:stretch;margin-bottom:16px}
+.section{margin:0;min-width:0;padding:20px;background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--r-card);box-shadow:var(--shadow-low)}
+.section legend{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.section .sh{display:flex;gap:12px;align-items:flex-start;margin-bottom:16px}
+.section .nb{width:var(--size-number-badge);height:var(--size-number-badge);flex:none;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:600;color:var(--text-link);background:var(--accent-subtle);border:1px solid var(--accent-subtle-border)}
+.section .stt{font-weight:600;font-size:15px;color:var(--text-primary)}
+.section .shint{font-size:13px;color:var(--text-muted)}
+.split{display:grid;grid-template-columns:minmax(0,1fr) 110px;gap:12px}
+.actions-row{display:flex;justify-content:flex-end;align-items:center;gap:12px;flex-wrap:wrap}
+.loader{margin-top:16px;padding:16px;border-radius:var(--r-control);border:1px solid var(--border-subtle);background:var(--surface-sunken)}
+/* ---- New: SegmentedToggle ---- */
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.toolbar .grow{flex:1 1 260px}
+.seg-wrap{display:flex;align-items:center;gap:8px}
+.seg-wrap .sl{font-size:12px;font-weight:600;color:var(--text-muted)}
+.seg{display:inline-flex;padding:3px;gap:2px;border-radius:var(--r-control);background:var(--surface-sunken);border:1px solid var(--border-subtle)}
+.seg button{border:1px solid transparent;cursor:pointer;padding:0 12px;min-height:32px;border-radius:6px;font:inherit;font-size:13px;font-weight:600;background:transparent;color:var(--text-muted)}
+.seg button:hover{color:var(--text-primary)}
+.seg button[aria-checked=true]{background:var(--surface-card);color:var(--text-primary);border-color:var(--border-button);box-shadow:0 1px 2px rgba(16,24,40,.08)}
+body.hc .seg button[aria-checked=true]{background:#1AEBFF;color:#000}
+.seg button:focus-visible{outline-offset:1px;border-radius:6px}
+/* ---- New: RepoCard ---- */
+.repo-grid{display:grid;gap:12px;align-content:start;max-height:var(--repo-list-max);overflow-y:auto;padding:4px 8px 4px 4px;margin:0 -8px 0 -4px}
+.repo{position:relative;display:flex;flex-direction:column;gap:8px;padding:16px;text-align:left;cursor:pointer;font:inherit;color:var(--text-primary);background:var(--surface-card);border-radius:var(--r-control);border:1px solid var(--border-subtle);min-width:0}
+.repo:hover{border-color:var(--border-control);background:var(--surface-hover)}
+.repo[aria-checked=true]{border:2px solid var(--accent);padding:15px}
+.repo .top{display:flex;align-items:center;gap:8px}
+.repo .nm{font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.repo .desc{font-size:13px;color:var(--text-muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:38px}
+.repo .meta{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:12px;color:var(--text-muted);align-items:center}
+.repo .chev,.brow .chev{color:var(--text-muted)}
+.repo .sel-mark{width:18px;height:18px;border-radius:50%;background:var(--accent);color:var(--text-on-accent);display:grid;place-items:center;font-size:10px;flex:none}
+.state-box{padding:28px 16px;text-align:center;border:1px dashed var(--border-subtle);border-radius:var(--r-control)}
+.state-box .big{font-size:28px;color:var(--text-muted);margin-bottom:6px}
+/* ---- New: BranchRow ---- */
+.branches{list-style:none;margin:0;padding:4px;display:flex;flex-direction:column;gap:8px;max-height:var(--repo-list-max);overflow:auto}
+.brow{display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;min-height:48px;text-align:left;cursor:pointer;font:inherit;color:var(--text-primary);background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--r-control)}
+.brow:hover{border-color:var(--border-control);background:var(--surface-hover)}
+.brow[aria-checked=true]{border:2px solid var(--accent);padding:9px 13px;background:var(--info-surface)}
+.brow .bg{color:var(--text-link)}
+.brow .bn{font-family:"Cascadia Mono",Consolas,monospace;font-size:13px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.brow .sha{font-family:"Cascadia Mono",Consolas,monospace;font-size:12px;color:var(--text-muted)}
+/* Fetch, run, summary (existing) */
+.sel-line{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 16px;border-radius:var(--r-control);background:var(--surface-sunken);border:1px solid var(--border-subtle);margin-bottom:16px}
+.fetch-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.run{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+.summary{display:grid;grid-template-columns:24px 1fr auto;gap:12px;align-items:center}
+/* Shell screens */
+.signin{display:grid;place-items:center;min-height:640px}
+.signin .sc{width:880px;max-width:100%;display:grid;grid-template-columns:360px 1fr;border-radius:16px;overflow:hidden;background:var(--surface-card);border:1px solid var(--border-subtle);box-shadow:0 8px 32px rgba(16,24,40,.12)}
+.signin .hero{background:linear-gradient(135deg,#3730A3,#4F46E5 55%,#8B5CF6);color:#fff;padding:40px 36px}
+body.hc .signin .hero{background:#000;border-right:1px solid #fff}
+.signin .form{padding:36px 40px}
+.table{width:100%;border-collapse:collapse;font-size:13px}
+.table th,.table td{text-align:left;padding:12px 16px;border-bottom:1px solid var(--border-subtle)}
+.table th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);background:var(--surface-sunken)}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--r-card);padding:14px 16px}
+.kpi b{display:block;font-size:24px;color:var(--text-primary)}
+.keyrow{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:14px 0;border-top:1px solid var(--border-subtle)}
+.keyrow:first-of-type{border-top:0}
+.two-col{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+/* Review aids */
+.live{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.review{max-width:1280px;margin:16px auto 0;font-size:13px}
+.live-echo{font-size:12px;color:#475467;margin-bottom:8px}
+body.hc .live-echo{color:#fff}
+.annot{font-size:12px;color:#344054;border-left:3px solid #4F46E5;padding:4px 12px;background:#fff;border-radius:4px;margin-bottom:12px}
+body.hc .annot{background:#000;color:#fff}
+.annot ul{margin:4px 0;padding-left:18px}
+.spec{background:#fff;border:1px solid #E4E7EE;border-radius:12px;padding:24px;color:#344054}
+.spec h2{margin:24px 0 8px;color:#101828}.spec h2:first-child{margin-top:0}
+.spec table{border-collapse:collapse;width:100%;font-size:12px;margin:8px 0}
+.spec th,.spec td{border:1px solid #E4E7EE;padding:6px 8px;text-align:left;vertical-align:top}
+.spec th{background:#F2F4F8;color:#101828}
+.spec code{font-family:"Cascadia Mono",Consolas,monospace;font-size:12px}
+.spec .add{color:#B54708;font-weight:600}.spec .del{color:#B42318;text-decoration:line-through}
+.spec .pass{color:#067647;font-weight:600}.spec .fail{color:#B42318;font-weight:600}
+[hidden]{display:none!important}
+</style>
+</head>
+<body class="show-bounds">
+<div class="proto-bar" role="toolbar" aria-label="Prototype states">
+  <strong>US138</strong>
+  <span class="grp" data-g="screen"><span>Screen</span>
+    <button data-v="extract" aria-pressed="true">Extract</button><button data-v="review">Review</button><button data-v="history">History</button><button data-v="settings">Settings</button><button data-v="signin">Sign in</button>
+  </span>
+  <span class="grp" data-g="width"><span>Window</span>
+    <button data-v="880">880</button><button data-v="1280" aria-pressed="true">1280</button><button data-v="1920">1920</button>
+  </span>
+  <span class="grp" data-g="source"><span>Source</span>
+    <button data-v="local">Local</button><button data-v="github" aria-pressed="true">GitHub</button><button data-v="ado">Azure DevOps</button><button data-v="ssh">SSH</button><button data-v="cortexa">Cortexa</button>
+  </span>
+  <span class="grp" data-g="step"><span>GitHub / ADO</span>
+    <button data-v="connect" aria-pressed="true">Connect</button><button data-v="connect-err">Connect errors</button><button data-v="connecting">Connecting</button><button data-v="repo">Repository</button><button data-v="repo-sel">Repo filtered</button><button data-v="repo-nomatch">No match</button><button data-v="repo-empty">No repos</button><button data-v="branch-loading">Branches loading</button><button data-v="branch">Branch</button><button data-v="fetch">Fetch ready</button><button data-v="fetch-big">Over 500 MB</button><button data-v="fetching">Fetching</button><button data-v="fetched">Fetched</button>
+  </span>
+  <span class="grp" data-g="ssh"><span>SSH</span>
+    <button data-v="form" aria-pressed="true">Form</button><button data-v="form-err">Form errors</button><button data-v="key-set">Key chosen</button><button data-v="running">Connecting / fetching</button><button data-v="done">Done</button>
+  </span>
+  <span class="grp" data-g="banner"><span>Banner</span>
+    <button data-v="none" aria-pressed="true">None</button><button data-v="auth">Bad token / key</button><button data-v="notfound">Not found</button><button data-v="rate">Rate limit</button><button data-v="failed">Connection failed</button>
+  </span>
+  <span class="grp"><button id="hcToggle" aria-pressed="false">High contrast</button><button id="boundsToggle" aria-pressed="true">Body bounds</button></span>
+</div>
+
+<div class="stage">
+  <div class="window" id="win">
+    <nav class="rail" aria-label="Screens">
+      <div class="brand"><span class="mark" aria-hidden="true">C</span><span class="name">Cortexa Collector</span></div>
+      <div id="railItems"></div>
+    </nav>
+    <main class="content" id="content"></main>
+  </div>
+  <div class="review">
+    <div class="live" id="live" role="status" aria-live="polite"></div>
+    <div class="live-echo">Screen reader announcement (live region, echoed for review): <b id="liveEcho">none</b></div>
+    <div class="annot" id="annot"></div>
+    <section class="spec" id="spec" aria-labelledby="specH"></section>
+  </div>
+</div>
+
+<script>
+/* ======================= Strings (RemoteSourceStrings / ExtractionStrings) ======================= */
+const S={
+ sourceOverline:"Source",
+ sources:[
+  {k:"local",label:"_Local files",name:"Local files",d:"Pick files and folders on this computer.",g:"doc"},
+  {k:"github",label:"_GitHub",name:"GitHub",d:"Connect an organization with a token and fetch a repository.",g:"code"},
+  {k:"ado",label:"Azure _DevOps",name:"Azure DevOps",d:"Connect an organization with a token and fetch a repository.",g:"cloud"},
+  {k:"ssh",label:"_SSH",name:"SSH",d:"Connect to a server with a key and fetch a folder.",g:"term"},
+  {k:"cortexa",label:"Cortexa sa_ved",name:"Cortexa saved",d:"Fetch a repository already saved in the Cortexa web app.",g:"repo"}
+ ],
+ notConnected:"Not connected", connecting:"Connecting…", connectedTo:o=>`Connected to ${o}`, disconnect:"Disconnect",
+ disconnectName:p=>`Disconnect from ${p}`,
+ stepTitles:["Connect","Repository","Branch","Fetch"],
+ stepLabel:n=>`Step ${n} of 4 - What's next`,
+ stepperName:"Fetch progress steps",
+ orgTitle:"Organization", tokenTitle:"Access token",
+ orgUrlLabel:"Organization _URL", orgUrlName:"Organization URL",
+ tokenLabel:"Personal access _token", tokenName:"Personal access token",
+ showToken:"Show token", hideToken:"Hide token",
+ tokenNever:"Used only while the app is open. Never saved.",
+ connectBtn:"Connect and find _repositories", connectName:"Connect and find repositories",
+ connectingBtn:p=>`Connecting to ${p}…`,
+ connectingMsg:"Checking your token and finding every repository it can see.",
+ urlError:ex=>`Enter a URL like ${ex}`, tokenError:"Enter a personal access token",
+ searchRepos:"Search repositories", searchReposPh:"Search by name or description",
+ visibility:"Visibility", sortBy:"Sort by", vis:["All","Public","Private"], sort:["Name","Recently updated"],
+ showing:(v,t)=>`Showing ${v} of ${t}`, noMatch:q=>`No repositories match "${q}".`, clearSearch:"Clear search",
+ noRepos:"This token can't see any repositories here. Check that it has access to the organization, then connect again.",
+ connectAgain:"Connect again",
+ noDescription:"No description", updated:t=>`Updated ${t}`,
+ privateTag:"Private", publicTag:"Public", defaultTag:"Default", protectedTag:"Protected",
+ searchBranches:"Search branches", noBranchMatch:"No branches match your search.",
+ loadingBranches:r=>`Loading the branches of ${r}…`,
+ changeRepo:"Change repository", changeBranch:"Change branch",
+ fetch:"_Fetch files", fetchNote:"Downloads text and code files from the branch. Files already cached on this computer aren't downloaded again.",
+ tooBig:s=>`This repository is about ${s}. The fetch limit is 500 MB.`, overLimit:"Over 500 MB",
+ fetchingTitle:(r,b)=>`Fetching ${r} @ ${b}`, progress:(d,t)=>`Fetched ${d} of ${t} files`, cancel:"Cancel",
+ summary:"Fetched 180 files · 12 from cache · 8 skipped (6 by filter, 2 too large)", fetchAgain:"Fetch again",
+ // SSH
+ sshTitle:"SSH server", sshSub:"Fetch text and code files from a folder on a server you can reach over SSH.",
+ server:"Server", serverHint:"Where the server lives on the network.",
+ host:"IP address or _hostname", hostName:"IP address or hostname", hostPh:"203.0.113.10",
+ port:"_Port", portName:"SSH port",
+ auth:"Authentication", authHint:"Sign in with an SSH key. Passwords are not supported.",
+ user:"SSH _username", userName:"SSH username",
+ keyFile:"Private _key file", keyFileName:"Private key file", keyPh:"No file chosen", browse:"_Browse…", browseName:"Browse for a private key file",
+ pass:"Key passphrase (optional)", passName:"Private key passphrase", passPh:"Leave blank if the key isn't encrypted",
+ showPass:"Show passphrase", hidePass:"Hide passphrase",
+ folder:"Folder", folderHint:"The folder to fetch from. Everything under it is read.",
+ path:"Folder _path", pathName:"Folder path", pathPh:"/home/ubuntu/project", pathHelp:"Use an absolute path like /var/data, or start with ~ for the user's home folder.",
+ sshConnect:"Connect and browse _files", sshConnectName:"Connect and browse files", sshConnecting:"Connecting to the server…",
+ hostErr:"Enter the IP address or hostname", portErr:"Enter a port between 1 and 65535", userErr:"Enter the SSH username",
+ keyErr:"Choose the SSH private key file", pathErr:"Enter an absolute path (e.g. /var/data) or start with ~",
+ // banners
+ authTitle:p=>`${p} didn't accept your token.`, authMsg:"It may have expired or been revoked, or it can't read this organization. Check the token and connect again.",
+ editToken:"Edit token", editTokenName:"Edit the personal access token",
+ orgNotFound:o=>`Couldn't find the organization "${o}". Check the spelling, or check that your token was created for it.`,
+ orgNotFoundTitle:"Organization not found.", editUrl:"Edit URL",
+ rateTitle:p=>p==="GitHub"?"GitHub rate limit reached.":`${p} is limiting requests.`, rateMsg:"Try again in 12 minutes.",
+ upTitle:p=>`${p} isn't responding.`, upMsg:"The service returned an error. Try again in a few minutes.", tryAgain:"Try again", dismiss:"Dismiss",
+ sshAuthTitle:"The server didn't accept your key.", sshAuthMsg:"Check the key file and its passphrase, then try again.",
+ sshNotFoundTitle:"Folder not found.", sshNotFoundMsg:p=>`${p} doesn't exist on the server, or you can't open it. Check the path, then try again.`,
+ sshFailTitle:"Couldn't connect to the server.", sshFailMsg:"Check the host, port, and your network connection, then try again."
+};
+const PROVIDERS={
+ github:{name:"GitHub",g:"code",sub:"Fetch code from a GitHub organization's repositories.",
+  orgHint:"The GitHub organization whose repositories you want to fetch.",
+  ph:"https://github.com/your-organization", example:"https://github.com/contoso-research",
+  urlHelp:"Example: https://github.com/contoso-research. Copy it from the address bar of the organization's GitHub page.",
+  tokenHint:"A personal access token that can read the organization's repositories.", tokenPh:"github_pat_…",
+  tokenHelp:"Needs read access to repository metadata and contents.", tokenLink:"Create a token on GitHub",
+  tokenUrl:"https://github.com/settings/personal-access-tokens", org:"contoso-research",
+  pattern:/^https:\/\/(www\.)?github\.com\/(orgs\/)?[A-Za-z0-9][A-Za-z0-9-]{0,38}\/?$/},
+ ado:{name:"Azure DevOps",g:"cloud",sub:"Fetch code from an Azure DevOps organization's repositories.",
+  orgHint:"The Azure DevOps organization whose repositories you want to fetch.",
+  ph:"https://dev.azure.com/your-organization", example:"https://dev.azure.com/contoso",
+  urlHelp:"Example: https://dev.azure.com/contoso. Copy it from the address bar of the organization's Azure DevOps page.",
+  tokenHint:"A personal access token that can read the organization's code.", tokenPh:"Paste your Azure DevOps PAT",
+  tokenHelp:"Needs Code (Read).", tokenLink:"How to create a PAT",
+  tokenUrl:"https://learn.microsoft.com/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate", org:"contoso",
+  pattern:/^https:\/\/dev\.azure\.com\/[A-Za-z0-9][A-Za-z0-9-]{0,48}[A-Za-z0-9]?\/?$/}
+};
+/* ======================= Domain data ======================= */
+/* RemoteRepository + proposed Description / UpdatedAt. GitHub returns both; Azure DevOps returns neither (fallbacks shown). */
+const REPOS={
+ github:[
+  {Name:"pricing-engine",Desc:"Rate tables and quote calculation for the Contoso pricing API.",Branch:"main",Upd:"2 hours ago",UpdRank:1,Size:"48.2 MB",Private:true},
+  {Name:"sensor-fusion",Desc:"Kalman filter pipeline that merges lidar and radar frames on the edge device.",Branch:"main",Upd:"3 days ago",UpdRank:3,Size:"742 MB",Private:true,Big:true},
+  {Name:"docs-site",Desc:"Public documentation site.",Branch:"main",Upd:"5 weeks ago",UpdRank:6,Size:"896 KB",Private:false},
+  {Name:"ingest-pipeline",Desc:"",Branch:"develop",Upd:"yesterday",UpdRank:2,Size:"12.7 MB",Private:true},
+  {Name:"battery-model",Desc:"Cell degradation model and fitting notebooks.",Branch:"main",Upd:"2 weeks ago",UpdRank:5,Size:"31.0 MB",Private:true},
+  {Name:"open-telemetry-kit",Desc:"Shared OpenTelemetry setup for Contoso services.",Branch:"main",Upd:"6 days ago",UpdRank:4,Size:"2.1 MB",Private:false},
+  {Name:"thermal-sim",Desc:"Finite-element thermal simulation for enclosure design.",Branch:"main",Upd:"3 months ago",UpdRank:7,Size:"88.4 MB",Private:true}
+ ],
+ ado:[
+  {Name:"firmware-core",Project:"Devices",Desc:null,Branch:"develop",Upd:null,Size:"92.0 MB",Private:true},
+  {Name:"media-assets",Project:"Devices",Desc:null,Branch:"main",Upd:null,Size:"612 MB",Private:true,Big:true},
+  {Name:"identity-service",Project:"Platform",Desc:null,Branch:"main",Upd:null,Size:"8.0 MB",Private:true},
+  {Name:"firmware-core",Project:"Legacy",Desc:null,Branch:"main",Upd:null,Size:"61.3 MB",Private:true},
+  {Name:"build-templates",Project:"Platform",Desc:null,Branch:"main",Upd:null,Size:"440 KB",Private:true}
+ ]
+};
+/* RemoteBranch(Name, CommitSha) + proposed IsProtected. Azure DevOps always false (no policy lookup). */
+const BRANCHES=[
+ {Name:"main",Sha:"9f3c2a17be04",Protected:true},
+ {Name:"develop",Sha:"41aa0c9de211",Protected:true},
+ {Name:"feature/quote-cache",Sha:"c07be1f3a9d2",Protected:false},
+ {Name:"fix/rounding-half-even",Sha:"e1d44b0a7cc3",Protected:false},
+ {Name:"release/2026.10",Sha:"7b2e90f1d4a8",Protected:true},
+ {Name:"spike/grpc",Sha:"0aa3f7c2e5b1",Protected:false}
+];
+/* Glyphs: existing Glyphs.* plus proposed View E890, Hide ED1A, Cloud E753, CommandPrompt E756 (shown with stand-ins here). */
+const G={doc:"&#x1F5CE;",code:"&lt;/&gt;",cloud:"&#x2601;",term:"&gt;_",repo:"&#x2630;",branch:"&#x2442;",lock:"&#x1F512;",chev:"&#x203A;",
+ check:"&#x2713;",err:"&#x2715;",warn:"&#x26A0;",info:"&#x24D8;",search:"&#x2315;",eye:"&#x1F441;",eyeOff:"&#x2298;",folder:"&#x1F4C2;",
+ upload:"&#x2191;",history:"&#x23F2;",gear:"&#x2699;",signin:"&#x2192;",review:"&#x2611;"};
+
+/* ======================= State ======================= */
+const st={screen:"extract",width:1280,source:"github",step:"connect",ssh:"form",banner:"none",q:"",vis:0,sort:0,bq:"",tokenShown:false,passShown:false,selRepo:-1,selBranch:""};
+const esc=s=>String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
+function ak(label){const i=label.indexOf("_");if(i<0)return esc(label);return `<span>${esc(label.slice(0,i))}<u>${esc(label[i+1])}</u>${esc(label.slice(i+2))}</span>`;}
+function plain(label){return label.replace("_","");}
+function announce(t){document.getElementById("live").textContent=t||"";document.getElementById("liveEcho").textContent=t||"none";}
+function contentWidth(){const rail=st.width<1040?72:248;return st.width-rail-64;}
+/* Mirrors the proposed ColumnsForWidth converter: floor((width + gap) / (min + gap)), clamped to [1, max]. */
+const CARD_INSET=50; /* Card padding 24 + border 1, both sides */
+function cols(min,gap,max,inset=0){return Math.max(1,Math.min(max,Math.floor((contentWidth()-inset+gap)/(min+gap))));}
+function isRemoteToken(){return st.source==="github"||st.source==="ado";}
+function P(){return PROVIDERS[st.source];}
+
+/* ======================= Components ======================= */
+function tag(text,variant,glyph){return `<span class="tag ${variant||""}">${glyph?`<span aria-hidden="true">${glyph}</span>`:""}${esc(text)}</span>`;}
+function banner(sev,title,msg,acts=[],dismiss=false){
+ const glyph={error:G.err,warning:G.warn,info:G.info}[sev];
+ return `<div class="banner ${sev}" role="${sev==="error"?"alert":"status"}" tabindex="-1" data-banner>
+  <span class="g" aria-hidden="true">${glyph}</span>
+  <div class="msg"><div class="label">${esc(title)}</div>${msg?`<div>${esc(msg)}</div>`:""}</div>
+  <div class="acts">${acts.map(a=>`<button class="link-btn" data-act="${a.act||""}" aria-label="${esc(a.name||a.text)}">${esc(a.text)}</button>`).join("")}
+  ${dismiss?`<button class="icon-btn" aria-label="${S.dismiss}" data-dismiss>${G.err}</button>`:""}</div></div>`;
+}
+function sourceCards(disabled){
+ const c=cols(176,16,5);
+ return `<div class="overline" id="srcL">${S.sourceOverline}</div>
+ <div class="sources" role="radiogroup" aria-labelledby="srcL" style="grid-template-columns:repeat(${c},minmax(0,1fr))">
+ ${S.sources.map(s=>{const on=s.k===st.source;
+  return `<button class="source" role="radio" aria-checked="${on}" tabindex="${on?0:-1}" data-src="${s.k}" ${disabled?"disabled":""} aria-label="${esc(s.name)}" aria-description="${esc(s.d)}">
+   <span class="check" aria-hidden="true">${G.check}</span>
+   <span class="tile" aria-hidden="true">${G[s.g]}</span>
+   <span class="t">${ak(s.label)}</span><span class="d">${esc(s.d)}</span></button>`;}).join("")}
+ </div>`;
+}
+function status(){
+ const s=st.step;
+ if(s==="connect"||s==="connect-err") return tag(S.notConnected,"","<span class='dot'></span>");
+ if(s==="connecting") return tag(S.connecting,"info","<span class='dot'></span>");
+ return `${tag(S.connectedTo(P().org),"success",G.check)}<button class="btn btn-ghost" data-act="disconnect" aria-label="${esc(S.disconnectName(P().name))}">${S.disconnect}</button>`;
+}
+const STEP_INDEX={"connect":0,"connect-err":0,"connecting":0,"repo":1,"repo-sel":1,"repo-nomatch":1,"repo-empty":1,"branch-loading":2,"branch":2,"fetch":3,"fetch-big":3,"fetching":3,"fetched":3};
+function selectedRepo(){const list=REPOS[st.source];if(st.selRepo>=0)return list[st.selRepo];return st.step==="fetch-big"?list[1]:list[0];}
+function stepper(){
+ const cur=STEP_INDEX[st.step];
+ const r=selectedRepo();
+ const detail=[cur>0?P().org:"Organization and token", cur>1?r.Name:"Pick one", cur>2?(st.selBranch||r.Branch):"Pick one", st.step==="fetched"?"180 files":"Not started"];
+ return `<div class="stepper-bar"><ol class="stepper" aria-label="${S.stepperName}">${S.stepTitles.map((t,i)=>{
+  const s=i===cur?"current":i<cur?"done":"upcoming";
+  const conn=i>0?`<li aria-hidden="true"><span class="conn ${i<=cur?"on":""}"></span></li>`:"";
+  const itemStatus={done:"Done",current:"Current step",upcoming:"Not available yet"}[s];
+  return `${conn}<li><button class="step" data-s="${s}" data-step="${i}" ${s!=="done"?"disabled":""} ${s==="current"?'aria-current="step"':""}
+    aria-label="${esc(`${t}, ${detail[i]}, ${itemStatus}`)}">
+   <span class="num" aria-hidden="true">${s==="done"?G.check:i+1}</span>
+   <span class="st"><b>${t}</b><i>${esc(detail[i])}</i></span></button></li>`;}).join("")}</ol></div>`;
+}
+function promptCopy(){
+ const p=P(), r=selectedRepo(), cur=STEP_INDEX[st.step], n=REPOS[st.source].length;
+ const c=[
+  {t:`Connect to ${p.name}`,m:"Enter your organization URL and a personal access token, then select Connect and find repositories."},
+  {t:"Choose a repository",m:`We found ${n} repositories in ${p.org}. Pick the one you want to fetch.`},
+  {t:"Choose a branch",m:st.step==="branch-loading"?S.loadingBranches(r.Name):`${r.Name} has ${BRANCHES.length} branches. Pick the branch to fetch. The default branch is listed first.`},
+  {t:"Fetch files",m:`Fetch the text and code files on ${r.Name} @ ${st.selBranch||r.Branch} into this computer's cache, then extract knowledge from them.`}
+ ][cur];
+ let acts="";
+ if(cur===2) acts=`<button class="btn btn-secondary" data-goto="1">${S.changeRepo}</button>`;
+ if(cur===3) acts=`<button class="btn btn-secondary" data-goto="2">${S.changeBranch}</button><button class="btn btn-secondary" data-goto="1">${S.changeRepo}</button>`;
+ return {label:S.stepLabel(cur+1),...c,acts};
+}
+function stepPrompt(){
+ const c=promptCopy();
+ return `<div class="prompt" id="prompt"><div><div class="ol">${esc(c.label)}</div><div class="pt">${esc(c.t)}</div><div class="pm">${esc(c.m)}</div></div>${c.acts?`<div class="pa">${c.acts}</div>`:""}</div>`;
+}
+function section(n,title,hint,body){
+ return `<fieldset class="section" aria-labelledby="sec${n}"><legend>${esc(title)}</legend>
+  <div class="sh"><span class="nb" aria-hidden="true">${n}</span><div><div class="stt" id="sec${n}">${esc(title)}</div><div class="shint">${esc(hint)}</div></div></div>${body}</fieldset>`;
+}
+function field({id,label,name,value="",ph="",cls="",err="",help="",type="text",trail="",disabled=false}){
+ const desc=err?`${id}-e`:help?`${id}-h`:"";
+ const input=`<input id="${id}" class="input ${cls} ${err?"bad":""}" type="${type}" value="${esc(value)}" placeholder="${esc(ph)}" aria-label="${esc(name)}" ${err?'aria-invalid="true"':""} ${desc?`aria-describedby="${desc}"`:""} ${disabled?"disabled":""} autocomplete="off" spellcheck="false">`;
+ return `<div class="field"><label for="${id}">${ak(label)}</label>${trail?`<div class="with-trail">${input}${trail}</div>`:input}
+  ${err?`<div class="err" id="${id}-e"><span aria-hidden="true">${G.err}</span>${esc(err)}</div>`:help?`<div class="helper" id="${id}-h" style="margin-top:4px">${help}</div>`:""}</div>`;
+}
+function revealBtn(kind,shown){
+ const name=kind==="token"?(shown?S.hideToken:S.showToken):(shown?S.hidePass:S.showPass);
+ return `<button class="icon-btn" data-reveal="${kind}" aria-pressed="${shown}" aria-label="${esc(name)}" title="${esc(name)}">${shown?G.eyeOff:G.eye}</button>`;
+}
+function connectStep(){
+ const p=P(), err=st.step==="connect-err", busy=st.step==="connecting";
+ const filled=busy||st.banner!=="none";
+ const c=cols(320,16,2,CARD_INSET);
+ const org=section(1,S.orgTitle,p.orgHint,field({id:"org",label:S.orgUrlLabel,name:S.orgUrlName,cls:"url",ph:p.ph,
+   value:err?"github.com/contoso":filled?p.example:"",err:err?S.urlError(p.ph):"",help:esc(p.urlHelp),disabled:busy}));
+ const tok=section(2,S.tokenTitle,p.tokenHint,field({id:"pat",label:S.tokenLabel,name:S.tokenName,cls:st.tokenShown?"mono":"",ph:p.tokenPh,
+   type:st.tokenShown?"text":"password",value:filled?"github_pat_11ABCDEF0123456789":"",err:err?S.tokenError:"",disabled:busy,
+   help:`${esc(p.tokenHelp)} <a href="${p.tokenUrl}" target="_blank" rel="noopener noreferrer">${esc(p.tokenLink)}</a>. ${S.tokenNever}`,
+   trail:revealBtn("token",st.tokenShown)}));
+ return `<div class="sections" style="grid-template-columns:repeat(${c},minmax(0,1fr))">${org}${tok}</div>
+  <div class="actions-row"><button class="btn btn-primary" id="connectBtn" ${busy?"disabled":""} aria-label="${S.connectName}">${busy?esc(S.connectingBtn(p.name)):ak(S.connectBtn)}</button></div>
+  ${busy?`<div class="loader"><div class="label">${esc(S.connectingBtn(p.name))}</div><div class="progress ind" role="progressbar" aria-label="${esc(S.connectingBtn(p.name))}"><span></span></div><div class="caption">${S.connectingMsg}</div></div>`:""}`;
+}
+function seg(label,opts,val,key){
+ return `<div class="seg-wrap"><span class="sl" id="${key}L">${label}</span><div class="seg" role="radiogroup" aria-labelledby="${key}L">${opts.map((o,i)=>
+  `<button role="radio" aria-checked="${i===val}" tabindex="${i===val?0:-1}" data-seg="${key}" data-i="${i}">${esc(o)}</button>`).join("")}</div></div>`;
+}
+function filteredRepos(){
+ const list=REPOS[st.source].map((r,i)=>({...r,i}));
+ const q=st.q.trim().toLowerCase();
+ let v=list.filter(r=>(st.vis===0||(st.vis===1?!r.Private:r.Private))&&(!q||r.Name.toLowerCase().includes(q)||(r.Desc||"").toLowerCase().includes(q)));
+ if(st.sort===0) v.sort((a,b)=>a.Name.localeCompare(b.Name,undefined,{sensitivity:"base"})||(a.Project||"").localeCompare(b.Project||""));
+ else v.sort((a,b)=>(a.UpdRank??99)-(b.UpdRank??99)||a.Name.localeCompare(b.Name));
+ return v;
+}
+function repoAutomationName(r){
+ return `${r.Name}${r.Project?`, project ${r.Project}`:""}, ${r.Private?"private":"public"}, default branch ${r.Branch}${r.Upd?`, updated ${r.Upd}`:""}, ${r.Size}${r.Big?", over the 500 MB fetch limit":""}`;
+}
+function repoCard(r,first){
+ const sel=r.i===st.selRepo;
+ return `<button class="repo" role="radio" aria-checked="${sel}" tabindex="${sel||(st.selRepo<0&&first)?0:-1}" data-repo="${r.i}" aria-label="${esc(repoAutomationName(r))}" aria-description="${esc(r.Desc||S.noDescription)}">
+  <span class="top">${r.Private?`<span aria-hidden="true">${G.lock}</span>`:""}<span class="nm">${esc(r.Name)}</span>
+   ${r.Private?tag(S.privateTag,"warning"):tag(S.publicTag,"")}${sel?`<span class="sel-mark" aria-hidden="true">${G.check}</span>`:`<span class="chev" aria-hidden="true">${G.chev}</span>`}</span>
+  <span class="desc">${esc(r.Desc||S.noDescription)}</span>
+  <span class="meta"><span><span aria-hidden="true">${G.branch}</span> ${esc(r.Branch)}</span>${r.Project?`<span>Project ${esc(r.Project)}</span>`:""}${r.Upd?`<span>${esc(S.updated(r.Upd))}</span>`:""}<span>${esc(r.Size)}</span>${r.Big?tag(S.overLimit,"danger",G.warn):""}</span>
+ </button>`;
+}
+function repoStep(){
+ if(st.step==="repo-empty") return `<div class="state-box"><div class="big" aria-hidden="true">${G.repo}</div><div class="label">No repositories to show</div><div class="helper" style="max-width:520px;margin:4px auto 12px">${esc(S.noRepos)}</div><button class="btn btn-secondary" data-act="disconnect">${S.connectAgain}</button></div>`;
+ const all=REPOS[st.source].length, v=filteredRepos();
+ const tb=`<div class="toolbar"><div class="grow searchbox"><span class="sg" aria-hidden="true">${G.search}</span>
+   <input id="rq" class="input" type="search" placeholder="${S.searchReposPh}" aria-label="${S.searchRepos}" value="${esc(st.q)}"></div>
+   ${seg(S.visibility,S.vis,st.vis,"vis")}${seg(S.sortBy,S.sort,st.sort,"sort")}</div>
+   <div class="caption" aria-live="polite" style="margin-bottom:10px">${S.showing(v.length,all)}</div>`;
+ if(!v.length) return tb+`<div class="state-box"><div class="helper">${esc(S.noMatch(st.q))}</div><button class="link-btn" data-act="clearq">${S.clearSearch}</button></div>`;
+ return tb+`<div class="repo-grid" role="radiogroup" aria-label="Repositories" id="rg" style="grid-template-columns:repeat(${cols(280,12,6,CARD_INSET)},minmax(0,1fr))">${v.map((r,k)=>repoCard(r,k===0)).join("")}</div>`;
+}
+function orderedBranches(){
+ const r=selectedRepo(), q=st.bq.trim().toLowerCase();
+ const def=r.Branch;
+ const list=BRANCHES.map(b=>({...b,Protected:st.source==="ado"?false:b.Protected})).filter(b=>!q||b.Name.toLowerCase().includes(q));
+ return list.sort((a,b)=>(a.Name===def?0:1)-(b.Name===def?0:1)||a.Name.localeCompare(b.Name)).map(b=>({...b,Default:b.Name===def}));
+}
+function branchStep(){
+ const r=selectedRepo();
+ if(st.step==="branch-loading") return `<div class="loader"><div class="label">Loading branches</div><div class="progress ind" role="progressbar" aria-label="Loading branches"><span></span></div><div class="caption">${esc(S.loadingBranches(r.Name))}</div></div>`;
+ const v=orderedBranches();
+ return `<div class="searchbox" style="margin-bottom:12px"><span class="sg" aria-hidden="true">${G.search}</span><input id="bq" class="input" type="search" placeholder="${S.searchBranches}" aria-label="${S.searchBranches}" value="${esc(st.bq)}"></div>
+ ${!v.length?`<div class="state-box"><div class="helper">${S.noBranchMatch}</div></div>`:
+ `<ul class="branches" role="radiogroup" aria-label="Branches" id="bl">${v.map((b,k)=>{const sel=b.Name===st.selBranch;
+  const an=`${b.Name}${b.Default?", default":""}${b.Protected?", protected":""}, commit ${b.Sha.slice(0,7)}`;
+  return `<li><button class="brow" role="radio" aria-checked="${sel}" tabindex="${sel||(!st.selBranch&&k===0)?0:-1}" data-branch="${esc(b.Name)}" aria-label="${esc(an)}">
+   <span class="bg" aria-hidden="true">${G.branch}</span><span class="bn">${esc(b.Name)}</span>
+   ${b.Default?tag(S.defaultTag,"accent"):""}${b.Protected?tag(S.protectedTag,"info"):""}
+   <span class="sha" aria-hidden="true">${b.Sha.slice(0,7)}</span><span class="chev" aria-hidden="true">${G.chev}</span></button></li>`;}).join("")}</ul>`}`;
+}
+function fetchStep(){
+ const r=selectedRepo(), b=st.selBranch||r.Branch;
+ const sel=`<div class="sel-line"><span aria-hidden="true">${G.repo}</span><span class="label">${esc(P().org)}/${esc(r.Name)}</span><span class="caption"><span aria-hidden="true">${G.branch}</span> <span class="mono">${esc(b)}</span> · ${esc(r.Size)}</span>${r.Big?tag(S.overLimit,"danger",G.warn):""}</div>`;
+ if(st.step==="fetching") return sel+`<div class="card" style="margin:0;box-shadow:none"><div class="run"><div><div class="label">${esc(S.fetchingTitle(r.Name,b))}</div>
+   <div class="progress" role="progressbar" aria-label="Repository fetch progress" aria-valuenow="23" aria-valuemin="0" aria-valuemax="100"><span style="width:23%"></span></div><div class="caption">${S.progress(42,180)}</div></div>
+   <button class="btn btn-secondary" aria-label="Cancel repository fetch">${S.cancel}</button></div></div>`;
+ if(st.step==="fetched") return `<div class="card" style="margin:0;box-shadow:none"><div class="summary"><span aria-hidden="true" class="caption">${G.repo}</span>
+   <div style="min-width:0"><div class="label">${esc(P().org)}/${esc(r.Name)}</div><div class="caption"><span aria-hidden="true">${G.branch}</span> ${esc(b)} · ${S.summary}</div></div>
+   <div><button class="btn btn-secondary">${S.fetchAgain}</button></div></div></div>
+   <div class="caption" style="margin-top:8px">Documents panel below is unchanged from US134 and now spans the full body width.</div>`;
+ const big=!!r.Big;
+ return sel+`<div class="fetch-row"><button class="btn btn-primary" ${big?"disabled":""} aria-describedby="fh" data-act="fetch">${ak(S.fetch)}</button>
+  <span class="helper" id="fh">${big?`<span class="err" style="margin:0"><span aria-hidden="true">${G.err}</span>${esc(S.tooBig(r.Size))}</span>`:esc(S.fetchNote)}</span></div>`;
+}
+function tokenRemote(){
+ const p=P(), cur=STEP_INDEX[st.step];
+ const body=cur===0?connectStep():cur===1?repoStep():cur===2?branchStep():fetchStep();
+ return `<section class="card" aria-labelledby="connT">
+  <div class="conn-h"><span class="tile" aria-hidden="true">${G[p.g]}</span><div class="titles"><h2 id="connT">${esc(p.name)}</h2><div class="caption">${esc(p.sub)}</div></div>
+   <div class="status" role="status">${status()}</div></div>
+  ${stepper()}${stepPrompt()}<div id="stepBody">${body}</div></section>`;
+}
+function sshRemote(){
+ const e=st.ssh==="form-err", busy=st.ssh==="running", keySet=st.ssh!=="form"&&!e;
+ const filled=st.ssh!=="form"&&!e;
+ const c=cols(320,16,3,CARD_INSET);
+ const server=section(1,S.server,S.serverHint,`<div class="split">${field({id:"host",label:S.host,name:S.hostName,ph:S.hostPh,value:filled?"10.20.4.18":"",err:e?S.hostErr:"",disabled:busy})}
+   ${field({id:"port",label:S.port,name:S.portName,value:e?"70000":"22",err:e?S.portErr:"",disabled:busy})}</div>`);
+ const auth=section(2,S.auth,S.authHint,
+   field({id:"user",label:S.user,name:S.userName,ph:"ubuntu",value:filled?"ubuntu":"",err:e?S.userErr:"",disabled:busy})+
+   `<div class="field"><label for="key">${ak(S.keyFile)}</label><div class="file-row"><input id="key" class="input ${e?"bad":""}" readonly value="${keySet?"C:\\Users\\alpha\\.ssh\\id_ed25519":""}" placeholder="${S.keyPh}" aria-label="${S.keyFileName}" ${e?'aria-invalid="true" aria-describedby="key-e"':""} ${busy?"disabled":""}>
+    <button class="btn btn-secondary" aria-label="${S.browseName}" ${busy?"disabled":""}>${ak(S.browse)}</button></div>
+    ${e?`<div class="err" id="key-e"><span aria-hidden="true">${G.err}</span>${S.keyErr}</div>`:""}</div>`+
+   field({id:"pass",label:S.pass,name:S.passName,ph:S.passPh,type:st.passShown?"text":"password",value:filled?"correct horse":"",cls:st.passShown?"mono":"",disabled:busy,trail:revealBtn("pass",st.passShown)}));
+ const folder=section(3,S.folder,S.folderHint,field({id:"path",label:S.path,name:S.pathName,cls:"url",ph:S.pathPh,value:e?"var/data":filled?"/var/data":"/",err:e?S.pathErr:"",help:S.pathHelp,disabled:busy}));
+ let tail="";
+ if(busy) tail=`<div class="card" style="margin:16px 0 0;box-shadow:none"><div class="run"><div><div class="label">Fetching ubuntu@10.20.4.18:/var/data</div>
+   <div class="progress" role="progressbar" aria-label="Fetch progress" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100"><span style="width:40%"></span></div><div class="caption">${S.progress(64,160)}</div></div>
+   <button class="btn btn-secondary">${S.cancel}</button></div></div>`;
+ if(st.ssh==="done") tail=`<div class="card" style="margin:16px 0 0;box-shadow:none"><div class="summary"><span aria-hidden="true" class="caption">${G.term}</span><div><div class="label">ubuntu@10.20.4.18:/var/data</div><div class="caption">Fetched 160 files · 0 from cache · 4 skipped (4 by filter, 0 too large)</div></div><div><button class="btn btn-secondary">${S.fetchAgain}</button></div></div></div>`;
+ return `<section class="card" aria-labelledby="sshT"><div class="conn-h"><span class="tile" aria-hidden="true">${G.term}</span><div class="titles"><h2 id="sshT">${S.sshTitle}</h2><div class="caption">${S.sshSub}</div></div></div>
+  <div class="sections" style="grid-template-columns:repeat(${c},minmax(0,1fr))">${server}${auth}${folder}</div>
+  <div class="actions-row"><button class="btn btn-primary" id="sshBtn" ${busy?"disabled":""} aria-label="${S.sshConnectName}">${busy?S.sshConnecting:ak(S.sshConnect)}</button></div>${tail}</section>`;
+}
+function localBody(){
+ return `<div class="card" style="text-align:center;padding:40px 24px"><div style="font-size:30px;color:var(--text-muted)" aria-hidden="true">${G.doc}</div>
+  <h2 style="margin:8px 0 4px">No files yet</h2><p style="margin:0 0 16px">Pick files or a folder on this computer to extract knowledge from them.</p>
+  <button class="btn btn-primary">Pick files</button><div class="caption" style="margin-top:12px">Unchanged flow. Only the body width changes.</div></div>`;
+}
+function cortexaBody(){
+ return `<div class="card"><div class="card-h" style="margin-bottom:12px"><span class="tile" aria-hidden="true">${G.repo}</span><h2>Repository</h2></div>
+  <div class="searchbox" style="margin-bottom:8px"><span class="sg" aria-hidden="true">${G.search}</span><input class="input" type="search" placeholder="Filter by name" aria-label="Search repositories"></div>
+  <div class="caption">Showing 7 of 7. US136 list, read-only branch and Fetch row are unchanged. Only the body width changes.</div></div>`;
+}
+function bannerHtml(){
+ if(st.banner==="none") return ["",""];
+ if(st.source==="ssh"){
+  const m={auth:["error",S.sshAuthTitle,S.sshAuthMsg,[{text:S.tryAgain}]],notfound:["error",S.sshNotFoundTitle,S.sshNotFoundMsg("/var/data"),[{text:S.tryAgain}]],
+   rate:["error",S.sshFailTitle,S.sshFailMsg,[{text:S.tryAgain}]],failed:["error",S.sshFailTitle,S.sshFailMsg,[{text:S.tryAgain}]]}[st.banner];
+  return [banner(m[0],m[1],m[2],m[3],true),m[1]+" "+m[2]];
+ }
+ if(!isRemoteToken()) return ["",""];
+ const p=P();
+ const m={auth:["error",S.authTitle(p.name),S.authMsg,[{text:S.editToken,name:S.editTokenName,act:"edittoken"}],false],
+  notfound:["error",S.orgNotFoundTitle,S.orgNotFound(p.org+"-reserch"),[{text:S.editUrl,act:"editurl"}],true],
+  rate:["warning",S.rateTitle(p.name),S.rateMsg,[],true],
+  failed:["error",S.upTitle(p.name),S.upMsg,[{text:S.tryAgain}],true]}[st.banner];
+ return [banner(m[0],m[1],m[2],m[3],m[4]),m[1]+" "+m[2]];
+}
+/* ======================= Screens ======================= */
+function extract(){
+ const running=st.step==="fetching"||st.step==="connecting"||st.ssh==="running"&&st.source==="ssh";
+ const [bn,live]=bannerHtml();
+ let body="";
+ if(isRemoteToken()) body=tokenRemote(); else if(st.source==="ssh") body=sshRemote(); else if(st.source==="local") body=localBody(); else body=cortexaBody();
+ return {html:`<h1>Extract</h1><p class="page-sub">Pick a source, fetch its files, then extract knowledge from them.</p><div class="body">${sourceCards(running)}<div id="bannerSlot">${bn}</div>${body}</div>`,live};
+}
+function review(){
+ return {html:`<h1>Review</h1><p class="page-sub">Check extracted knowledge before you upload it.</p><div class="body">
+ <div class="card" style="padding:0;overflow:hidden"><table class="table"><thead><tr><th>Item</th><th>Source</th><th>Kind</th><th>Units</th></tr></thead><tbody>
+ <tr><td class="label">Quote rounding uses half-even</td><td>contoso-research/pricing-engine @ main · src/Pricing/RateTable.cs</td><td>Technique</td><td>3</td></tr>
+ <tr><td class="label">Cached rate lookup per region</td><td>contoso-research/pricing-engine @ main · src/Pricing/RateCache.cs</td><td>Method</td><td>2</td></tr>
+ <tr><td class="label">Thermal derating curve</td><td>ubuntu@10.20.4.18:/var/data/notes/derating.md</td><td>Finding</td><td>4</td></tr></tbody></table></div>
+ <div class="caption">Behavior unchanged. The body spans the full width; the list and details pane share it.</div></div>`,live:""};
+}
+function history(){
+ return {html:`<h1>History</h1><p class="page-sub">Uploads from this computer.</p><div class="body">
+ <div class="kpis"><div class="kpi"><span class="caption">Batches</span><b>14</b></div><div class="kpi"><span class="caption">Items uploaded</span><b>312</b></div><div class="kpi"><span class="caption">Failed</span><b>1</b></div><div class="kpi"><span class="caption">Last upload</span><b>2h</b></div></div>
+ <div class="card" style="padding:0;overflow:hidden"><table class="table"><thead><tr><th>Batch</th><th>Started</th><th>Items</th><th>State</th></tr></thead><tbody>
+ <tr><td class="label">pricing-engine @ main</td><td>Today 09:14</td><td>42</td><td>${tag("Completed","success",G.check)}</td></tr>
+ <tr><td class="label">10.20.4.18:/var/data</td><td>Yesterday 16:02</td><td>18</td><td>${tag("Failed","danger",G.err)}</td></tr></tbody></table></div>
+ <div class="caption">Behavior unchanged. The ColumnDefinition MaxWidth is removed so the grid uses the full width.</div></div>`,live:""};
+}
+function settings(){
+ const row=(n,d,chip,act)=>`<div class="keyrow"><div><div class="label">${n}</div><div class="caption">${d}</div></div>${chip}<button class="btn btn-secondary">${act}</button></div>`;
+ return {html:`<h1>Settings</h1><p class="page-sub">Endpoints and AI provider keys for this computer.</p><div class="body"><div class="two-col">
+ <section class="card"><h2>Connections</h2><p class="caption" style="margin:2px 0 16px">Where the app sends sign-in and uploads.</p>
+  ${field({id:"gw",label:"_Gateway URL",name:"Gateway URL",cls:"url",value:"https://gateway.cortexa.example.com",help:"Cortexa API gateway. Used for sign-in."})}
+  ${field({id:"cs",label:"C_ollector server URL",name:"Collector server URL",cls:"url",value:"https://collector.cortexa.example.com",help:"Receives the knowledge you upload."})}
+  <button class="btn btn-primary" disabled>Save endpoints</button></section>
+ <section class="card"><h2>AI provider keys</h2><p class="caption" style="margin:2px 0 8px">Stored in Windows Credential Manager on this computer.</p>
+  ${row("Claude (Anthropic API)",'Used for "Claude direct" runs.',tag("Set","success",G.check),"Replace")}
+  ${row("Google Gemini",'Used for "Gemini direct" runs.',tag("Not set",""),"Add key")}
+  ${row("Claude on AWS Bedrock","Uses AWS SSO, no key.",tag("Connected","success",G.check),"Disconnect")}</section></div>
+ <div class="caption">The "Repository access" card (GitHub and Azure DevOps token rows) is removed. Tokens are entered on the Extract screen for the current session only.</div></div>`,live:""};
+}
+function signin(){
+ return {html:`<div class="signin"><div class="sc"><div class="hero"><div style="font-size:26px;font-weight:600;margin-bottom:12px">Cortexa Collector</div><div>Extract knowledge from your files and code, then upload it to Cortexa.</div></div>
+ <div class="form"><h1 style="margin-bottom:16px">Sign in</h1>${field({id:"em",label:"_Email",name:"Email",value:"alpha@contoso.com"})}${field({id:"pw",label:"_Password",name:"Password",type:"password",value:"xxxxxxxx"})}<button class="btn btn-primary">Sign in</button>
+ <div class="caption" style="margin-top:16px">Unchanged. The sign-in card stays centered at Size.SignInCardWidth.</div></div></div></div>`,live:""};
+}
+/* ======================= Render & wiring ======================= */
+function render(focusSel){
+ const win=document.getElementById("win");
+ win.style.width=st.width+"px";
+ win.classList.toggle("compact",st.width<1040);
+ const navs=[["signin","Sign in",G.signin],["extract","Extract",G.upload],["review","Review",G.review],["history","History",G.history],["settings","Settings",G.gear]];
+ document.getElementById("railItems").innerHTML=navs.map(([k,l,g])=>`<button class="nav ${k===st.screen?"sel":""}" data-nav="${k}" aria-current="${k===st.screen?"page":"false"}" aria-label="${l}"><span class="gl" aria-hidden="true">${g}</span><span class="lbl">${l}</span></button>`).join("");
+ const r={extract,review,history,settings,signin}[st.screen]();
+ document.getElementById("content").innerHTML=r.html;
+ announce(r.live);
+ wire();
+ annotations();
+ if(focusSel){const el=document.querySelector(focusSel);if(el){el.focus();if(el.select&&el.dataset.selectall)el.select();}}
+}
+function setStep(s,focusSel){st.step=s;st.banner="none";syncBar();render(focusSel||defaultFocus());const c=promptCopy();if(isRemoteToken())announce(`${c.label}. ${c.t}. ${c.m}`);}
+function defaultFocus(){const i=STEP_INDEX[st.step];return i===1?"#rq":i===2?"#bq":i===3?"[data-act=fetch]":"#org";}
+function wire(){
+ document.querySelectorAll("[data-nav]").forEach(b=>b.onclick=()=>{st.screen=b.dataset.nav;syncBar();render();});
+ document.querySelectorAll("[data-src]").forEach(b=>b.onclick=()=>{st.source=b.dataset.src;st.tokenShown=false;st.passShown=false;st.banner="none";st.step="connect";st.ssh="form";st.selRepo=-1;st.selBranch="";syncBar();render(`[data-src=${st.source}]`);});
+ const sg=document.querySelector(".sources");
+ if(sg) sg.onkeydown=e=>{const k={ArrowRight:1,ArrowDown:1,ArrowLeft:-1,ArrowUp:-1}[e.key];if(!k)return;e.preventDefault();
+  const i=S.sources.findIndex(s=>s.k===st.source);const n=S.sources[(i+k+S.sources.length)%S.sources.length];document.querySelector(`[data-src=${n.k}]`).click();};
+ document.querySelectorAll("[data-reveal]").forEach(b=>b.onclick=()=>{const k=b.dataset.reveal;if(k==="token")st.tokenShown=!st.tokenShown;else st.passShown=!st.passShown;
+  const val=document.getElementById(k==="token"?"pat":"pass").value;render(`[data-reveal=${k}]`);document.getElementById(k==="token"?"pat":"pass").value=val;});
+ const cb=document.getElementById("connectBtn");
+ if(cb) cb.onclick=()=>{const p=P();const url=document.getElementById("org").value.trim(),tok=document.getElementById("pat").value.trim();
+  if(!p.pattern.test(url)||!tok){st.step="connect-err";syncBar();render(!p.pattern.test(url)?"#org":"#pat");announce([!p.pattern.test(url)?S.urlError(p.ph):"",!tok?S.tokenError:""].filter(Boolean).join(". "));return;}
+  setStep("connecting","#connectBtn");setTimeout(()=>{if(st.step==="connecting")setStep("repo");},1400);};
+ const sb=document.getElementById("sshBtn");
+ if(sb) sb.onclick=()=>{st.ssh=st.ssh==="form"?"form-err":"running";syncBar();render(st.ssh==="form-err"?"#host":null);if(st.ssh==="running")setTimeout(()=>{if(st.ssh==="running"){st.ssh="done";syncBar();render();}},1600);};
+ document.querySelectorAll("[data-act=disconnect]").forEach(b=>b.onclick=()=>{st.tokenShown=false;st.selRepo=-1;st.selBranch="";setStep("connect","#org");announce(`Disconnected from ${P().name}. Token cleared.`);});
+ document.querySelectorAll("[data-act=edittoken]").forEach(b=>b.onclick=()=>{st.banner="none";st.step="connect";syncBar();render("#pat");const p=document.getElementById("pat");p.value="github_pat_11ABCDEF0123456789";p.select();});
+ document.querySelectorAll("[data-act=editurl]").forEach(b=>b.onclick=()=>{st.banner="none";syncBar();render("#org");document.getElementById("org").select();});
+ document.querySelectorAll("[data-act=clearq]").forEach(b=>b.onclick=()=>{st.q="";render("#rq");});
+ document.querySelectorAll("[data-dismiss]").forEach(b=>b.onclick=()=>{st.banner="none";syncBar();render();});
+ document.querySelectorAll("[data-goto]").forEach(b=>b.onclick=()=>{const t=+b.dataset.goto;setStep(t===1?"repo-sel":"branch",t===1?"#rq":"#bq");});
+ document.querySelectorAll(".step:not(:disabled)").forEach(b=>b.onclick=()=>{const t=+b.dataset.step;if(t===0)return setStep("connect","#org");setStep(t===1?"repo-sel":"branch",t===1?"#rq":"#bq");});
+ const rq=document.getElementById("rq");
+ if(rq) rq.oninput=()=>{st.q=rq.value;const p=rq.selectionStart;render();const n=document.getElementById("rq");n.focus();n.setSelectionRange(p,p);};
+ const bq=document.getElementById("bq");
+ if(bq) bq.oninput=()=>{st.bq=bq.value;const p=bq.selectionStart;render();const n=document.getElementById("bq");n.focus();n.setSelectionRange(p,p);};
+ document.querySelectorAll("[data-seg]").forEach(b=>b.onclick=()=>{st[b.dataset.seg]=+b.dataset.i;render(`[data-seg=${b.dataset.seg}][data-i="${b.dataset.i}"]`);});
+ document.querySelectorAll(".seg").forEach(g=>g.onkeydown=e=>{const k={ArrowRight:1,ArrowLeft:-1}[e.key];if(!k)return;e.preventDefault();const bs=[...g.querySelectorAll("button")];const i=bs.indexOf(document.activeElement);bs[(i+k+bs.length)%bs.length].click();});
+ /* Arrow keys move focus only. Enter, Space or click commits and advances. */
+ function arrowFocus(container,sel){if(!container)return;container.onkeydown=e=>{const items=[...container.querySelectorAll(sel)];const i=items.indexOf(document.activeElement);if(i<0)return;
+  const c=container.id==="rg"?cols(280,12,6,CARD_INSET):1;const d={ArrowRight:1,ArrowLeft:-1,ArrowDown:c,ArrowUp:-c}[e.key];if(!d)return;e.preventDefault();
+  const n=items[Math.max(0,Math.min(items.length-1,i+d))];items.forEach(x=>x.tabIndex=-1);n.tabIndex=0;n.focus();};}
+ arrowFocus(document.getElementById("rg"),".repo");arrowFocus(document.getElementById("bl"),".brow");
+ document.querySelectorAll("[data-repo]").forEach(b=>b.onclick=()=>{st.selRepo=+b.dataset.repo;st.selBranch="";st.bq="";setStep("branch-loading","#prompt");setTimeout(()=>{if(st.step==="branch-loading")setStep("branch");},900);});
+ document.querySelectorAll("[data-branch]").forEach(b=>b.onclick=()=>{st.selBranch=b.dataset.branch;setStep(selectedRepo().Big?"fetch-big":"fetch");});
+ document.querySelectorAll("[data-act=fetch]").forEach(b=>b.onclick=()=>{setStep("fetching");setTimeout(()=>{if(st.step==="fetching")setStep("fetched");},1500);});
+ const bnr=document.querySelector("#bannerSlot [data-banner][role=alert]");if(bnr)bnr.focus();
+}
+function syncBar(){
+ const map={screen:st.screen,width:String(st.width),source:st.source,step:st.step,ssh:st.ssh,banner:st.banner};
+ document.querySelectorAll(".proto-bar .grp[data-g]").forEach(g=>g.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===map[g.dataset.g]))));
+}
+document.querySelectorAll(".proto-bar .grp[data-g]").forEach(g=>g.querySelectorAll("button").forEach(b=>b.onclick=()=>{
+ const k=g.dataset.g,v=b.dataset.v;
+ if(k==="width")st.width=+v;else st[k]=v;
+ if(k==="step"){st.screen="extract";if(!isRemoteToken())st.source="github";st.q=v==="repo-sel"?"":"";st.vis=v==="repo-sel"?2:0;st.sort=v==="repo-sel"?1:0;if(v==="repo-nomatch")st.q="quantum";
+  st.selRepo=v==="fetch-big"?1:STEP_INDEX[v]>=2?0:-1;st.selBranch=STEP_INDEX[v]>=3?selectedRepo().Branch:"";}
+ if(k==="ssh"){st.screen="extract";st.source="ssh";}
+ if(k==="source"){st.screen="extract";st.step="connect";st.ssh="form";st.selRepo=-1;st.selBranch="";}
+ if(k==="banner"){st.screen="extract";if(st.source!=="ssh"&&!isRemoteToken())st.source="github";if(isRemoteToken())st.step=v==="none"?st.step:"connect";}
+ syncBar();render();
+}));
+document.getElementById("hcToggle").onclick=e=>{const on=document.body.classList.toggle("hc");e.target.setAttribute("aria-pressed",String(on));};
+document.getElementById("boundsToggle").onclick=e=>{const on=document.body.classList.toggle("show-bounds");e.target.setAttribute("aria-pressed",String(on));};
+
+/* ======================= Annotations ======================= */
+function annotations(){
+ const cw=contentWidth();
+ const lines=[`Window ${st.width} px: rail ${st.width<1040?"compact 72":"expanded 248"}, body ${cw} px. Inside the connection card: ${cw-50} px. Columns: source cards ${cols(176,16,5)}, Connect sections ${cols(320,16,2,CARD_INSET)}, SSH sections ${cols(320,16,3,CARD_INSET)}, repository cards ${cols(280,12,6,CARD_INSET)}.`];
+ const per={
+  "connect":"Connect: both fields empty. Button is always enabled; validation runs on click, like the web. First invalid field gets focus.",
+  "connect-err":"Errors: inline FieldState.Error under each field, red border, aria-invalid. Messages are the web's exact text. Focus moves to the first invalid field.",
+  "connecting":"Connecting: fields and button disabled, status badge 'Connecting…' (Info). Source cards disabled. Loader caption matches the web.",
+  "repo":"Repository: status badge shows Connected to {org}. Search matches name or description. Arrow keys move focus between cards; Enter, Space or click selects and advances to Branch.",
+  "repo-sel":"Filtered: Visibility = Private, Sort = Recently updated. Repositories with no UpdatedAt sort last.",
+  "repo-nomatch":"No match: count reads Showing 0 of N. Clear search returns focus to the search box.",
+  "repo-empty":"Empty: web's copy. Connect again disconnects (token cleared) and returns to Connect.",
+  "branch-loading":"Branch loading: thin indeterminate bar plus caption. Prompt text says Loading the branches of {repo}.",
+  "branch":"Branch: default first, then A to Z. Default = accent badge, Protected = info badge, short SHA = 7 chars, mono. Azure DevOps never shows Protected.",
+  "fetch":"Fetch: selection line plus the existing Fetch files row. Prompt offers Change branch and Change repository.",
+  "fetch-big":"Over limit: existing danger tag and inline helper. Fetch stays disabled (US134 rule, kept).",
+  "fetching":"Fetching: existing run card and Cancel (Esc). Source cards are disabled while a fetch runs.",
+  "fetched":"Fetched: existing summary card. Stepper Fetch detail shows the file count."
+ };
+ if(st.screen==="extract"){
+  if(isRemoteToken()) lines.push(per[st.step]||"");
+  if(st.source==="ssh") lines.push({form:"SSH form: web defaults (port 22, folder /). No fingerprint field.","form-err":"SSH errors: web rules and text. Port 1 to 65535; folder must start with / or ~.","key-set":"Key chosen: read-only path plus Browse. Passphrase masked with show/hide.",running:"Connect starts the walk and fetch at once (existing behavior). Fields disabled.",done:"Done: existing summary card."}[st.ssh]);
+  if(st.banner!=="none") lines.push("Banner: error severity takes focus and is Assertive. Bad token offers Edit token (focuses the token field with its text selected). Settings links are gone.");
+ }
+ document.getElementById("annot").innerHTML=`<b>This state</b><ul>${lines.filter(Boolean).map(l=>`<li>${esc(l)}</li>`).join("")}</ul>`;
+}
+
+/* ======================= Contrast (computed, Light theme) ======================= */
+function lum(hex){const c=hex.replace("#","").match(/../g).map(h=>{const v=parseInt(h,16)/255;return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4);});return 0.2126*c[0]+0.7152*c[1]+0.0722*c[2];}
+function ratio(a,b){const x=lum(a),y=lum(b);return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05);}
+const PAIRS=[
+ ["Badge Private (Tag.Surface.Warning)","#B54708","#FFFAEB",4.5],
+ ["Badge Public / Not connected (Tag.Surface)","#475467","#F2F4F8",4.5],
+ ["Badge Connected (Tag.Surface.Success)","#067647","#ECFDF3",4.5],
+ ["Badge Connecting / Protected (Tag.Surface.Info)","#3538CD","#EEF4FF",4.5],
+ ["Badge Default (new Tag.Surface.Accent)","#4338CA","#EEF0FF",4.5],
+ ["Badge Over 500 MB, Tag.Surface.Danger today (Danger fg)","#D92D20","#FEF3F2",4.5],
+ ["Badge Over 500 MB, proposed fix (new Danger.Text fg)","#B42318","#FEF3F2",4.5],
+ ["Step done number (OnAccent on Accent)","#FFFFFF","#4F46E5",4.5],
+ ["Step current number (Text.Link on Card)","#4338CA","#FFFFFF",4.5],
+ ["Step upcoming number/label (Text.Muted on Card)","#5D6679","#FFFFFF",4.5],
+ ["Step detail (Text.Muted on Sunken bar)","#5D6679","#F2F4F8",4.5],
+ ["Step upcoming ring (Border.Control on Card), non-text","#858DA2","#FFFFFF",3],
+ ["Prompt overline (Text.Link on Info.Surface)","#4338CA","#EEF4FF",4.5],
+ ["Prompt message (Text.Body on Info.Surface)","#475467","#EEF4FF",4.5],
+ ["Section number (Text.Link on Accent.Subtle)","#4338CA","#EEF0FF",4.5],
+ ["Segment unselected (Text.Muted on Sunken)","#5D6679","#F2F4F8",4.5],
+ ["Segment selected (Text.Primary on Card)","#101828","#FFFFFF",4.5],
+ ["Selected border (Accent on Card), non-text","#4F46E5","#FFFFFF",3],
+ ["Card edge at rest (Border.Subtle on Page), non-text, decorative (see note)","#E4E7EE","#F4F6FA",3],
+ ["Source description (Text.Muted on Card)","#5D6679","#FFFFFF",4.5],
+ ["Selected branch row text (Text.Primary on Info.Surface)","#101828","#EEF4FF",4.5],
+ ["Field error (Danger on Card)","#D92D20","#FFFFFF",4.5],
+ ["Token link (Text.Link on Card)","#4338CA","#FFFFFF",4.5]
+];
+function contrastTable(){return `<table><tr><th>Pair</th><th>Fg / Bg</th><th>Ratio</th><th>Need</th><th>Result</th></tr>${PAIRS.map(([n,f,b,need])=>{const r=ratio(f,b);
+ return `<tr><td>${n}</td><td><code>${f} / ${b}</code></td><td>${r.toFixed(2)}:1</td><td>${need}:1</td><td class="${r>=need?"pass":"fail"}">${r>=need?"Pass":"Fail"}</td></tr>`;}).join("")}</table>`;}
+
+/* ======================= Handoff spec ======================= */
+document.getElementById("spec").innerHTML=`
+<h2 id="specH">Handoff spec: US138 source collectors match the web scan flow</h2>
+<p>Extract gets the web's source cards. GitHub and Azure DevOps get a connection card with a 4-step stepper. SSH gets the web's three numbered sections. Every signed-in body goes full width. The prototype is the reference for layout and copy; this section is the contract.</p>
+
+<h2>1. Screen inventory</h2>
+<table><tr><th>Screen / state</th><th>Shows</th><th>Binds to</th></tr>
+<tr><td>Extract: source cards</td><td>5 cards, one selected (2px accent border + check). Disabled while connecting or fetching.</td><td>Remote.Sources (SourceChipViewModel + new Description, Glyph)</td></tr>
+<tr><td>GitHub / ADO: Connect</td><td>Connection card header + status badge, stepper, prompt, two numbered sections, Connect and find repositories</td><td>OrgUrl, Token (in memory), OrgUrlError, TokenError, ConnectionStatus</td></tr>
+<tr><td>Connecting</td><td>Badge Connecting…, fields disabled, loader</td><td>ConnectionStatus.Connecting</td></tr>
+<tr><td>Repository</td><td>Search, Visibility, Sort, Showing X of Y, card grid; no-match and no-repositories states</td><td>RemoteRepository: Name, Project (ADO), IsPrivate, DefaultBranch, SizeBytes, <span class="add">Description?</span>, <span class="add">UpdatedAt?</span></td></tr>
+<tr><td>Branch</td><td>Loading, search, list (default first), no-match</td><td>RemoteBranch: Name, CommitSha, <span class="add">IsProtected</span>; DefaultBranch from the repository</td></tr>
+<tr><td>Fetch</td><td>Selection line, Fetch files row (over-limit gating kept), run card, summary card</td><td>Existing fetch state</td></tr>
+<tr><td>SSH</td><td>Card with 1 Server, 2 Authentication, 3 Folder; Connect and browse files; run card; summary</td><td>SshHost, SshPort, SshUsername, SshKeyFilePath, <span class="add">SshPassphrase</span> (memory), <span class="add">SshStartFolder</span>; <span class="del">SshFingerprint</span></td></tr>
+<tr><td>Local files, Cortexa saved</td><td>Unchanged flows, full width</td><td>Existing</td></tr>
+<tr><td>Review, History, Settings</td><td>Full width. Settings loses the Repository access card.</td><td>Existing</td></tr>
+<tr><td>Sign in</td><td>Unchanged, centered</td><td>Existing</td></tr>
+<tr><td>Banners</td><td>Bad token, org not found, rate limit, connection failed; SSH auth, folder not found, connection failed; existing fetch banners</td><td>RemoteBannerFactory</td></tr></table>
+<p><b>Required domain fields (not in the code today).</b> <code>RemoteRepository.Description</code> (string?) and <code>UpdatedAt</code> (DateTimeOffset?): GitHub fills both from <code>description</code> and <code>updated_at</code>. Azure DevOps list has neither, so it passes null. <code>RemoteBranch.IsProtected</code> (bool): GitHub fills from <code>protected</code>; Azure DevOps is always false. Fallbacks: null description shows "No description"; null UpdatedAt hides the Updated line and sorts last under Recently updated; Protected badge only when true. Azure DevOps cards also show "Project {name}" so two repos with the same name in different projects can be told apart.</p>
+
+<h2>2. Layout and the retired width tokens</h2>
+<table><tr><th>Location</th><th>Today</th><th>Change</th></tr>
+<tr><td>ExtractionView.xaml:170</td><td><code>StackPanel MaxWidth=Size.WorkspaceMaxWidth</code></td><td class="del">Remove MaxWidth</td></tr>
+<tr><td>ExtractionView.xaml:202</td><td><code>RemoteSourceView MinWidth=Size.ContentMaxWidth</code></td><td class="del">Remove MinWidth. At 880 px the body is 744 px (880 − 72 rail − 64 padding), less than 760, so it overflows today.</td></tr>
+<tr><td>ReviewView.xaml:111</td><td><code>Grid MaxWidth=Size.WorkspaceMaxWidth</code></td><td class="del">Remove MaxWidth</td></tr>
+<tr><td>HistoryView.xaml:184</td><td><code>ColumnDefinition MaxWidth=Size.WorkspaceMaxWidth</code></td><td class="del">Remove MaxWidth</td></tr>
+<tr><td>SettingsView.xaml:29</td><td><code>StackPanel MaxWidth=Size.ContentMaxWidth</code></td><td class="del">Remove MaxWidth. Lay Connections and AI provider keys out as two columns at body width ≥ 1100, stacked below that.</td></tr>
+<tr><td>RemoteSourceView.xaml:205, 321, 358</td><td>Helper TextBlock MaxWidth</td><td>Keep. They limit line length for reading, not the body.</td></tr>
+<tr><td><code>Size.WorkspaceMaxWidth</code></td><td>Token</td><td class="del">Delete. No uses remain (checked across .xaml, .cs and tests).</td></tr>
+<tr><td><code>Size.ContentMaxWidth</code></td><td>Token</td><td>Keep, as a text measure only.</td></tr></table>
+<p><b>Column rule.</b> WPF has no CSS auto-fit. Add one converter, <code>ColumnsForWidth</code> (Behaviors, IValueConverter): columns = floor((ActualWidth + gap) / (min + gap)), clamped to 1..max. Use it on a <code>UniformGrid</code> ItemsPanel bound to the ItemsControl's own ActualWidth. The existing <code>ViewportFit</code> is height-only, so it cannot be reused. Source cards sit on the body. The section and repository grids sit inside the connection Card, which is 50 px narrower (padding 24 + border 1 on each side).</p>
+<table><tr><th>Grid</th><th>Measured width at 880 / 1280 / 1920</th><th>Min item</th><th>Gap</th><th>Max</th><th>880</th><th>1280</th><th>1920</th></tr>
+<tr><td>Source cards</td><td>744 / 968 / 1608 (body)</td><td>176</td><td>16</td><td>5</td><td>3 (3 + 2)</td><td>5</td><td>5</td></tr>
+<tr><td>Connect sections</td><td>694 / 918 / 1558 (in card)</td><td>320</td><td>16</td><td>2</td><td>2</td><td>2</td><td>2</td></tr>
+<tr><td>SSH sections</td><td>694 / 918 / 1558 (in card)</td><td>320</td><td>16</td><td>3</td><td>2 (2 + 1)</td><td>2 (2 + 1)</td><td>3</td></tr>
+<tr><td>Repository cards</td><td>694 / 918 / 1558 (in card)</td><td>280</td><td>12</td><td>6</td><td>2</td><td>3</td><td>5</td></tr></table>
+<p>Section min is 320, not the web's 340. With 340, two sections need 696 px and the Connect step would stack at 880 (694 px available), which breaks "side by side". The SSH sections go 3-up once the card is 992 px wide, which is a window of 1354 px or more with the rail expanded. Below that, Folder wraps under Server. Cards in a row are the same height.</p>
+
+<h2>3. Style keys (new or changed)</h2>
+<table><tr><th>Key</th><th>Target</th><th>Spec</th></tr>
+<tr><td class="add"><code>SourceCard</code></td><td>RadioButton</td><td>Card surface, Radius.Card, padding 16, MinHeight 120, Effect.Elevation.Low. Content: 36 px tile (Accent.Subtle bg, Text.Link glyph, Radius.Tile), title Text.Label with AccessText, description Text.Caption muted, wraps. Hover: Surface.Hover + Border.Control. Checked: BorderThickness 2 Accent (padding 15 so content does not shift) + 20 px Accent circle with CheckMark (Text.OnAccent) top-right. Focus: FocusVisual.Default (offset ring), separate from the checked border. Disabled: title and description Text.Disabled.</td></tr>
+<tr><td class="add"><code>Stepper.Item</code></td><td>Button</td><td>Badge 30 px circle + title (13 SemiBold) + detail (Caption, trimmed, MaxWidth 160). DataTriggers on <code>vm:StepStatus</code>: <b>Done</b> = Accent fill, CheckMark, Text.OnAccent, enabled (click goes back); <b>Current</b> = Card fill, 2px Accent ring, number in Text.Link, IsEnabled false; <b>Pending</b> (upcoming) = Card fill, 1px Border.Control ring, number and title in Text.Muted, IsEnabled false. MinHeight 40. Reuses the existing StepStatus enum.</td></tr>
+<tr><td class="add"><code>Stepper.Connector</code></td><td>Border</td><td>BasedOn Step.Connector, Height 2. Default Border.Subtle; Accent when the step after it is Done or Current. (Step.Connector keeps Success for History.)</td></tr>
+<tr><td class="add"><code>Stepper.Bar</code></td><td>Border</td><td>Surface.Sunken, Border.Subtle, Radius.Control, padding 18,14.</td></tr>
+<tr><td class="add"><code>StepPrompt</code></td><td>Border</td><td>Info.Surface, Info.Border, left edge 4 px Accent (reuse Size.BannerBar), Radius.Control, padding 14,14,18,14. Overline (Text.Overline, Text.Link), title 15 SemiBold, message Text.Body. Actions right, Button.Secondary.</td></tr>
+<tr><td class="add"><code>NumberedSectionCard</code></td><td>HeaderedContentControl</td><td>Card surface, padding 20, Radius.Card. Header: <code>Badge.Number</code> + title (15 SemiBold) + hint (13 muted). Header is a Tag-like object {Number, Title, Hint}; content is the fields.</td></tr>
+<tr><td class="add"><code>Badge.Number</code></td><td>Border</td><td>26 px circle, Accent.Subtle fill, Accent.SubtleBorder, number 12 SemiBold Text.Link. Decorative.</td></tr>
+<tr><td class="add"><code>SegmentedToggle.Track</code> / <code>SegmentedToggle</code></td><td>Border / RadioButton</td><td>Track: Surface.Sunken, Border.Subtle, Radius.Control, padding 3. Segment: MinHeight 32 inside a 40 px track, padding 12,0, 13 SemiBold. Unchecked Text.Muted, transparent. Checked Card fill + Border.Button + Text.Primary. Focus ring offset 1.</td></tr>
+<tr><td class="add"><code>RepoCard</code></td><td>Button</td><td>Card surface, Radius.Control, padding 16. Rows: [lock glyph if private] name (SemiBold, trimmed) + Private/Public badge + chevron (or check when selected); description 2 lines, trimmed, MinHeight 38; meta caption row: branch glyph + default branch · Project (ADO) · Updated {relative} · size · Over 500 MB danger tag. Selected: 2px Accent border + check. Focus: offset ring.</td></tr>
+<tr><td class="add"><code>BranchRow</code></td><td>Button</td><td>Same edges as RepoCard, MinHeight 48, padding 14,10. Branch glyph (Text.Link), mono name, badges, mono short SHA (muted), chevron. Selected: 2px Accent border + Info.Surface fill.</td></tr>
+<tr><td class="add"><code>Tag.Surface.Accent</code></td><td>Border</td><td>BasedOn Tag.Surface: Accent.Subtle, Accent.SubtleBorder, Text.Link. Used for Default.</td></tr>
+<tr><td><code>Tag.Surface.Danger</code> (changed)</td><td>Border</td><td>Foreground Brush.Danger → new <code>Brush.Danger.Text</code>, for contrast (see section 6).</td></tr>
+<tr><td class="add"><code>Button.Reveal</code></td><td>ToggleButton</td><td>BasedOn Button.Icon, 40×40, overlays the field's right edge. Glyph View when unchecked, Hide when checked. Checked foreground Text.Link.</td></tr>
+<tr><td><code>PasswordBox.Field</code>, <code>TextBox.Field</code></td><td>-</td><td>Add right padding 48 when hosted with Button.Reveal (new Thickness.FieldTrail 12,8,48,8 and Focused 11,7,47,7).</td></tr></table>
+<p><b>Badge mapping (reuse).</b> Private = Tag.Surface.Warning. Public = Tag.Surface. Default = Tag.Surface.Accent (new). Protected = Tag.Surface.Info. Not connected = Tag.Surface. Connecting… = Tag.Surface.Info. Connected to {org} = Tag.Surface.Success + CheckMark. Over 500 MB = Tag.Surface.Danger (existing).</p>
+<p><b>New tokens (minimum).</b> <code>Size.SourceCardMin</code> 176, <code>Size.SectionCardMin</code> 320, <code>Size.RepoCardMin</code> 280, <code>Size.StepBadge</code> 30, <code>Size.NumberBadge</code> 26, <code>Size.SegmentHeight</code> 32, <code>Size.SourceCardMinHeight</code> 120, <code>Thickness.FieldTrail</code> / <code>FieldTrailFocused</code>, <code>Thickness.SectionCardPadding</code> 20, <code>Thickness.StepPromptPadding</code> 14,14,18,14. One new brush: <code>Brush.Danger.Text</code>. Light = <code>{StaticResource Color.Danger.Hover}</code> (#B42318); HighContrast = <code>SystemColors.WindowTextColorKey</code>. Do not point the tag at Brush.Danger.Hover directly. In HC that brush maps to Highlight, which would make danger tags look selected. Every other brush used already has a Light and HighContrast entry.</p>
+<p><b>New glyphs</b> (Segoe Fluent Icons, code points checked against Microsoft's list): <code>View</code> E890, <code>Hide</code> ED1A, <code>Cloud</code> E753 (Azure DevOps), <code>CommandPrompt</code> E756 (SSH). Reused: Code E943 (GitHub), Document (Local files), Repository E8F1 (Cortexa saved), Lock, Branch, Search, CheckMark, ChevronRight, FolderOpen.</p>
+
+<h2>4. Strings (RemoteSourceStrings)</h2>
+<table><tr><th>Key</th><th>Text</th><th>Note</th></tr>
+<tr><td class="add">LocalDescription / GitHubDescription / AzureDevOpsDescription / SshDescription / CortexaDescription</td><td>See source cards in the prototype</td><td>One line each, about 55 characters max</td></tr>
+<tr><td class="add">NotConnected / Connecting / ConnectedTo(org) / Disconnect / DisconnectName(provider)</td><td>Not connected · Connecting… · Connected to {org} · Disconnect · Disconnect from {provider}</td><td>AC wording, not the web's "Connected · org"</td></tr>
+<tr><td class="add">StepConnect / StepRepository / StepBranch / StepFetch, StepLabel(n)</td><td>Connect · Repository · Branch · Fetch · "Step {n} of 4 - What's next"</td><td></td></tr>
+<tr><td class="add">Prompt titles and messages</td><td>Connect to {provider} / Choose a repository / Choose a branch / Fetch files, with messages as in the prototype</td><td>Fetch copy is desktop-only (web says "Save repository")</td></tr>
+<tr><td class="add">OrgTitle, OrgHint(provider), OrgUrlLabel "Organization _URL", OrgUrlHelp(provider), OrgUrlError(placeholder)</td><td>Enter a URL like https://github.com/your-organization · Enter a URL like https://dev.azure.com/your-organization</td><td>Web rules: GitHub <code>^https://(www\\.)?github\\.com/(orgs/)?[A-Za-z0-9][A-Za-z0-9-]{0,38}/?$</code>; ADO <code>^https://dev\\.azure\\.com/[A-Za-z0-9][A-Za-z0-9-]{0,48}[A-Za-z0-9]?/?$</code></td></tr>
+<tr><td class="add">TokenTitle, TokenHint, TokenLabel "Personal access _token", TokenError, ShowToken, HideToken, TokenNeverStored, GitHubTokenLink, AzureTokenLink</td><td>Enter a personal access token · Used only while the app is open. Never saved.</td><td><code>GitHubTokensUrl</code> changes to https://github.com/settings/personal-access-tokens; add <code>AzureDevOpsTokensUrl</code> (Microsoft Learn PAT page)</td></tr>
+<tr><td class="add">ConnectAndFind "Connect and find _repositories", ConnectingTo(provider), ConnectingMessage</td><td></td><td>Alt+R</td></tr>
+<tr><td class="add">SearchPlaceholder → "Search by name or description", Visibility, SortBy, All, Public, Private, SortName, SortUpdated, NoDescription, Updated(relative), PublicTag, DefaultTag, ProtectedTag, SearchBranches, NoBranchMatch, LoadingBranchesOf(repo), ChangeBranch, ConnectAgain</td><td></td><td></td></tr>
+<tr><td class="add">SSH: ServerTitle/Hint, AuthTitle/Hint, FolderTitle/Hint, SshHostLabel "IP address or _hostname", SshPassphraseLabel/Name/Placeholder, ShowPassphrase, HidePassphrase, SshPathLabel "Folder _path", SshPathHelp, SshConnect "Connect and browse _files", errors (host, port, username, key, path)</td><td>Web text, see prototype</td><td>Port error drops the trailing period to match the web</td></tr>
+<tr><td class="add">SshNotFoundTitle, SshNotFoundMessage(path)</td><td>Folder not found. · {path} doesn't exist on the server, or you can't open it. Check the path, then try again.</td><td>New banner for the start folder. Error, Try again + Dismiss.</td></tr>
+<tr><td>AuthMessage</td><td>It may have expired or been revoked, or it can't read this organization. Check the token and connect again.</td><td>Changed: no Settings reference</td></tr>
+<tr><td class="add">EditToken / EditTokenName, EditUrl, OrganizationNotFoundTitle</td><td>Edit token · Edit the personal access token · Edit URL · Organization not found.</td><td>Banner actions</td></tr>
+<tr><td>EmptyGitHub, EmptyAzureDevOps</td><td>This token can't see any repositories here. Check that it has access to the organization, then connect again.</td><td>Changed: one string for both</td></tr>
+<tr><td class="del">OrganizationLabel/Helper/Empty, LoadRepositories*, MissingTitle, MissingMessage, OpenSettings, OpenSettingsAddName, OpenSettingsReplaceName, SshFingerprint*, SshFingerprintMismatchTitle/Message, SshConnectHelp</td><td></td><td>Removed. The form makes MissingToken unreachable.</td></tr>
+<tr><td class="del">SettingsStrings: RepositoryTitle, RepositoryIntro, GitHub*/AzureDevOps* rows, AddToken, SaveToken, ClearToken, KeepToken, TokenEditorHelper, PasteTokenFirst, TokenTooLong, TokenSaveFailed, TokenClearFailed, TokenStatusUnknownHelper</td><td></td><td>Removed with the Settings rows</td></tr></table>
+
+<h2>5. Interaction notes</h2>
+<ul>
+<li><b>Source cards</b> stay a RadioButton group, not tabs: TabNavigation Once, arrows move and select, access keys L, G, D, S, V unchanged. Changing source cancels any in-flight list load, clears the token and passphrase, and resets the stepper to Connect. Rejected: the web's tablist. It would change keyboard behavior users already know from US134/US136, for no gain.</li>
+<li><b>Validation</b> runs on Connect click, not as a disabled button. The button is always enabled, as on the web, so the user always learns what is missing. Focus moves to the first invalid field. Errors clear as the field is edited.</li>
+<li><b>Step changes move focus:</b> Repository → repo search box; Branch → branch search box (after loading, otherwise the prompt); Fetch → Fetch files. Change repository / Change branch (prompt) and Done stepper items go back and focus the same targets. Going back keeps the later picks until a new pick replaces them.</li>
+<li><b>Arrow keys in the repo grid and branch list move focus only</b> (DirectionalNavigation Contained, roving tab stop). Enter, Space or click picks and advances. Rejected: ListBox selection on arrow, which would load branches and jump steps while a keyboard user is browsing.</li>
+<li><b>Prompt</b> is LiveSetting Polite and announces once per step change ("Step 2 of 4 - What's next. Choose a repository. We found 7 …"). Not on filter changes.</li>
+<li><b>Show/hide (token and passphrase).</b> One Grid cell holds a PasswordBox and a TextBox; Button.Reveal (ToggleButton) swaps Visibility. A small behavior keeps the two values in sync (PasswordChanged ↔ TextChanged), moves focus to the visible control after the swap with the caret at the end, and sets <code>IsUndoEnabled=False</code> on the TextBox. The value lives only in the view model's in-memory session store. Both controls are cleared on Disconnect, source change, sign-out and app close. The toggle always resets to hidden on those events.</li>
+<li><b>Disconnect</b> clears the token, repository list, picks and banner, then returns to Connect with focus on Organization URL. The org URL text stays filled.</li>
+<li><b>Bad token banner:</b> Edit token returns to Connect (if not there), focuses the token field and selects its text so a paste replaces it. Org not found: Edit URL focuses the URL with text selected. Rate limit: warning, dismissible, no action. Connection failed: Try again re-runs the failed step. Fetch-time banners (not found, too large, rate limit during fetch, truncated) are unchanged.</li>
+<li><b>SSH</b> keeps today's behavior that Connect starts the walk and fetch at once, now from the start folder. Defaults are the web's: port 22, folder /. Username has no default (the web's "root" default is not copied). Host, port, username and folder may still be saved as a profile; the passphrase never is. No fingerprint field, no mismatch banner.</li>
+<li><b>Status badge</b> sits in the connection card header, next to Disconnect (Button.Ghost), and wraps under the title at narrow widths.</li>
+</ul>
+
+<h2>6. Accessibility (WCAG 2.1 AA)</h2>
+<table><tr><th>Element</th><th>AutomationProperties / keyboard</th></tr>
+<tr><td>Source card</td><td>Name = provider name, HelpText = description. Checked state = border + check glyph, not color alone.</td></tr>
+<tr><td>Connection status</td><td>Container LiveSetting Polite; Name "Connected to contoso-research". Disconnect Name "Disconnect from GitHub".</td></tr>
+<tr><td>Stepper</td><td>Container Name "Fetch progress steps". Item Name "{Title}, {detail}, {Done | Current step | Not available yet}". Current and upcoming items are disabled; done items are buttons. Badge is decorative.</td></tr>
+<tr><td>Section cards</td><td>GroupBox semantics: AutomationProperties.Name = section title, so each field reads in context ("Access token, Personal access token, password").</td></tr>
+<tr><td>Org URL / token</td><td>Names "Organization URL", "Personal access token" (access keys U, T). HelpText = helper or error. Error sets FieldState.HasError (red border) plus glyph and text.</td></tr>
+<tr><td>Reveal toggle</td><td>Name "Show token" / "Hide token" ("Show passphrase" / "Hide passphrase"), Toggle pattern. 40×40 hit target. Tab order: field → toggle → token link.</td></tr>
+<tr><td>Token link</td><td>Hyperlink, Name "Create a token on GitHub", opens the system browser.</td></tr>
+<tr><td>Segmented controls</td><td>Each group is a radio group named "Visibility" / "Sort by". Segment 32 px visual inside a 40 px track. The whole track row is clickable, so the hit area stays at 40.</td></tr>
+<tr><td>Repo card</td><td>Name "pricing-engine, private, default branch main, updated 2 hours ago, 48.2 MB[, over the 500 MB fetch limit]"; HelpText = description. Count line LiveSetting Polite.</td></tr>
+<tr><td>Branch row</td><td>Name "main, default, protected, commit 9f3c2a1". Min height 48.</td></tr>
+<tr><td>Banners</td><td>Error takes focus (FocusRouter "Banner") and is Assertive; warning is Polite. All actions 40 px tall.</td></tr>
+<tr><td>Focus</td><td>FocusVisual.Default (2px Border.Focus ring, offset −3) on every new control. Selection uses a 2px inner Accent border plus a check glyph, so a focused card and a selected card look different even though Accent and Border.Focus are the same color.</td></tr>
+<tr><td>Tab order (GitHub/ADO)</td><td>Source cards → banner actions → Disconnect → done stepper items → prompt actions → step body (Connect: URL, token, reveal, link, Connect · Repository: search, Visibility, Sort, grid · Branch: search, list · Fetch: Fetch files / Cancel).</td></tr>
+<tr><td>Tab order (SSH)</td><td>Source cards → banner → host → port → username → key path (read-only, tab stop for screen readers) → Browse → passphrase → reveal → folder → Connect and browse files.</td></tr>
+<tr><td>High contrast</td><td>All new styles use only existing DynamicResource brushes, so HC maps automatically. Selected = Highlight border + check glyph; badges become white text with a white border.</td></tr></table>
+<p><b>Contrast, computed from the Light tokens:</b></p>
+${contrastTable()}
+<p><b>Two fails, both handled.</b> (1) The existing <code>Tag.Surface.Danger</code> is 4.44:1 at 12 px SemiBold, which is not large text. Fix it in this story by setting its foreground to the new <code>Brush.Danger.Text</code> (#B42318, 6.05:1; WindowText in HC). The same change also fixes History's Failed tag. (2) Resting card edges are decorative. Their text labels identify the cards, so WCAG 1.4.11 does not require a 3:1 boundary. The states that carry meaning, selected (Accent 6.29:1) and focused (Border.Focus ring), both pass.</p>
+
+<h2>7. Artifact</h2>
+<p><code>Cortexa-dev/desktop/collector/docs/design/US138_SourceCollectors.html</code>. Open it from disk. Use the Window toggle (880 / 1280 / 1920) to check the full-width layout and the column rule.</p>`;
+
+/* Review hook: #screen=extract&width=880&source=github&step=repo&ssh=form&banner=auth&hc=1 */
+(function(){const h=new URLSearchParams(location.hash.slice(1));
+ ["screen","source","step","ssh","banner"].forEach(k=>{if(h.get(k))st[k]=h.get(k);});
+ if(h.get("width"))st.width=+h.get("width");
+ if(h.get("hc")==="1")document.body.classList.add("hc");
+ if(st.step==="repo-sel"){st.vis=2;st.sort=1;} if(st.step==="repo-nomatch")st.q="quantum";
+ if(STEP_INDEX[st.step]>=2)st.selRepo=st.step==="fetch-big"?1:0;
+ if(STEP_INDEX[st.step]>=3&&isRemoteToken())st.selBranch=selectedRepo().Branch;})();
+syncBar();render();
+</script>
+</body>
+</html>

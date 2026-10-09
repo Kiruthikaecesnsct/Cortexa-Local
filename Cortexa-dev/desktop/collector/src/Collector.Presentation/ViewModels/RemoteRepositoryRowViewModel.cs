@@ -10,13 +10,14 @@ public sealed class RemoteRepositoryRowViewModel
     private const string GitHubUpstream = "github";
     private const string AzureUpstream = "azure-devops";
 
-    public RemoteRepositoryRowViewModel(RemoteRepository repository, long limitBytes)
+    public RemoteRepositoryRowViewModel(RemoteRepository repository, long limitBytes, TimeProvider? time = null)
     {
         Repository = repository;
         IsTooBig = repository.SizeBytes > limitBytes;
         SizeText = RemoteSizeFormatter.Format(repository.SizeBytes);
         LimitText = RemoteSizeFormatter.Format(limitBytes);
         UpstreamTag = ResolveUpstreamTag(repository);
+        UpdatedText = RelativeTimeFormatter.Format(repository.UpdatedAt, (time ?? TimeProvider.System).GetUtcNow());
         AutomationName = repository.Provider == SourceType.CortexaRepo
             ? CortexaAutomationName()
             : RemoteSourceStrings.RepositoryAutomationName(
@@ -36,6 +37,16 @@ public sealed class RemoteRepositoryRowViewModel
     public string DefaultBranch => Repository.DefaultBranch;
 
     public bool IsPrivate => Repository.IsPrivate;
+
+    public string VisibilityText => IsPrivate ? RemoteSourceStrings.PrivateTag : RemoteSourceStrings.PublicTag;
+
+    public string? Description => Repository.Description;
+
+    public bool HasDescription => !string.IsNullOrWhiteSpace(Repository.Description);
+
+    public string UpdatedText { get; }
+
+    public bool HasUpdatedText => UpdatedText.Length > 0;
 
     public string? UpstreamTag { get; }
 
@@ -67,17 +78,21 @@ public sealed class RemoteRepositoryRowViewModel
         new CortexaRowDescription(FullName, DefaultBranch, UpstreamTag, SizeText, IsTooBig ? LimitText : null));
 }
 
-public sealed class BranchOptionViewModel(string name, string? commitSha, bool isDefault)
+public sealed class BranchOptionViewModel(string name, string? commitSha, bool isDefault, bool isProtected = false)
 {
-    private const int ShortShaLength = 7;
-
     public string Name { get; } = name;
 
     public string DisplayName { get; } = isDefault ? name + RemoteSourceStrings.DefaultSuffix : name;
 
     public string? CommitSha { get; } = commitSha;
 
-    public string? ShortSha => CommitSha is { Length: > 0 } sha ? sha[..Math.Min(ShortShaLength, sha.Length)] : null;
+    public bool IsDefault { get; } = isDefault;
+
+    public bool IsProtected { get; } = isProtected;
+
+    public string? ShortSha => BranchOrdering.ShortSha(CommitSha);
+
+    public string AutomationName => RemoteSourceStrings.BranchAutomationName(Name, IsDefault, IsProtected, ShortSha);
 }
 
 public sealed class SourceChipViewModel : ObservableObject

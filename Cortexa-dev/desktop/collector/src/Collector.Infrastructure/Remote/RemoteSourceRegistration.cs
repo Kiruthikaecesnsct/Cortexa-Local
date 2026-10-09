@@ -1,6 +1,5 @@
 using Collector.Application.Ports;
 using Collector.Application.Remote;
-using Collector.Application.Secrets;
 using Collector.Domain.Enums;
 using Collector.Infrastructure.Auth;
 using Collector.Infrastructure.Cache;
@@ -11,6 +10,7 @@ using Collector.Infrastructure.Remote.Cortexa;
 using Collector.Infrastructure.Remote.GitHub;
 using Collector.Infrastructure.Remote.RateLimit;
 using Collector.Infrastructure.Remote.Ssh;
+using Collector.Infrastructure.Secrets;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
@@ -32,6 +32,7 @@ internal static class RemoteSourceRegistration
         services.AddOptions<RemoteFetchOptions>().Bind(configuration.GetSection(RemoteFetchOptions.SectionName));
         services.AddSingleton<IRemoteFileStore, SqliteRemoteFileStore>();
         services.AddSingleton<IRemoteFileCache, DiskRemoteFileCache>();
+        services.AddSingleton<ISessionCredentials, InMemorySessionCredentials>();
         services.AddSingleton<RateLimitGates>();
         services.AddSingleton<IRateLimitMonitor>(sp => sp.GetRequiredService<RateLimitGates>());
         services.AddSingleton<GitHubRateHeaders>();
@@ -61,7 +62,9 @@ internal static class RemoteSourceRegistration
     private static void AddCollectorSshRemoteSource(this IServiceCollection services)
     {
         services.AddSingleton<SftpConnectionFactory>();
-        services.AddSingleton<IRemoteRepositoryClient, SftpRepositoryClient>();
+        services.AddSingleton<SftpRepositoryClient>();
+        services.AddSingleton<IRemoteRepositoryClient>(sp => sp.GetRequiredService<SftpRepositoryClient>());
+        services.AddSingleton<ISshConnectionCloser>(sp => sp.GetRequiredService<SftpRepositoryClient>());
     }
 
     private static void AddCollectorCortexaRemoteSource(this IServiceCollection services)
@@ -99,10 +102,8 @@ internal static class RemoteSourceRegistration
     private static PatAuthHandler CreatePatHandler(IServiceProvider sp, RemoteClientSpec spec)
     {
         var options = sp.GetRequiredService<IOptions<RemoteSourceOptions>>().Value;
-        var slot = RemoteSourceSlots.For(spec.Provider)
-            ?? throw new InvalidOperationException($"Source {spec.Provider} has no token slot.");
         var target = new PatTarget(spec.Provider, RemoteUrl.BaseAddress(spec.Select(options).BaseUrl));
-        return new PatAuthHandler(sp.GetRequiredService<ISecretStore>(), slot, spec.Scheme, target);
+        return new PatAuthHandler(sp.GetRequiredService<ISessionCredentials>(), spec.Scheme, target);
     }
 
     private static RateLimitHandler CreateRateLimitHandler(IServiceProvider sp, RemoteClientSpec spec)

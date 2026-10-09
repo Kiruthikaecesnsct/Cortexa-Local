@@ -82,19 +82,6 @@ public static class SettingsStrings
     public const string KeyClearFailed = "Couldn't remove the key from Windows Credential Manager. Try again.";
     public const string Cancel = "Cancel";
 
-    public const string RepositoryTitle = "Repository access";
-
-    public const string RepositoryIntro =
-        "Personal access tokens for fetching code from GitHub and Azure DevOps. They are stored in Windows Credential Manager on this computer and are never shown again after you save them.";
-
-    public const string GitHubName = "GitHub";
-    public const string GitHubDescription = "Lists and fetches your GitHub repositories.";
-    public const string GitHubHint = "Classic token: repo scope. Fine-grained token: Contents (Read) and Metadata (Read).";
-    public const string AzureDevOpsName = "Azure DevOps";
-    public const string AzureDevOpsDescription = "Lists and fetches repositories in Azure Repos.";
-
-    public const string AzureDevOpsHint =
-        "Scope: Code (Read). Create it in the organization you fetch from, or for all accessible organizations.";
 
     public const string AddToken = "Add token";
     public const string SaveToken = "Save token";

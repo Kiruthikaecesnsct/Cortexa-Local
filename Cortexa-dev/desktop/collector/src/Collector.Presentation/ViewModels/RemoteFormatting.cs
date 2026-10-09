@@ -1,4 +1,5 @@
 using System.Globalization;
+using Collector.Presentation.Resources;
 
 namespace Collector.Presentation.ViewModels;
 
@@ -32,38 +33,52 @@ public static class RemoteSizeFormatter
     private static double Round(double value) => Math.Round(value, MidpointRounding.AwayFromZero);
 }
 
-public static class AzureOrganizationParser
+public static class RelativeTimeFormatter
 {
-    private const string AzureHost = "dev.azure.com";
-    private const string LegacyHostSuffix = ".visualstudio.com";
+    private const int MinutesPerHour = 60;
+    private const int HoursPerDay = 24;
+    private const int DaysPerMonth = 30;
+    private const int DaysPerYear = 365;
 
-    public static string Parse(string? raw)
+    public static string Format(DateTimeOffset? updated, DateTimeOffset now)
     {
-        var text = raw?.Trim() ?? string.Empty;
-        if (text.Length == 0)
+        if (updated is not { } value)
         {
             return string.Empty;
         }
 
-        var candidate = text.Contains("://", StringComparison.Ordinal) ? text : $"https://{text}";
-        return Uri.TryCreate(candidate, UriKind.Absolute, out var uri) ? FromUri(uri, text) : text;
+        return RemoteSourceStrings.UpdatedText(Describe(now - value));
     }
 
-    private static string FromUri(Uri uri, string original)
+    private static string Describe(TimeSpan age)
     {
-        if (uri.Host.Equals(AzureHost, StringComparison.OrdinalIgnoreCase))
+        if (age.TotalMinutes < 1)
         {
-            return FirstSegment(uri) ?? string.Empty;
+            return "just now";
         }
 
-        if (uri.Host.EndsWith(LegacyHostSuffix, StringComparison.OrdinalIgnoreCase))
+        if (age.TotalMinutes < MinutesPerHour)
         {
-            return uri.Host[..^LegacyHostSuffix.Length];
+            return Unit((int)age.TotalMinutes, "minute");
         }
 
-        return original;
+        if (age.TotalHours < HoursPerDay)
+        {
+            return Unit((int)age.TotalHours, "hour");
+        }
+
+        return DescribeDays((int)age.TotalDays);
     }
 
-    private static string? FirstSegment(Uri uri) =>
-        uri.AbsolutePath.Split('/', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+    private static string DescribeDays(int days)
+    {
+        if (days < DaysPerMonth)
+        {
+            return Unit(days, "day");
+        }
+
+        return days < DaysPerYear ? Unit(days / DaysPerMonth, "month") : Unit(days / DaysPerYear, "year");
+    }
+
+    private static string Unit(int count, string name) => $"{count} {name}{(count == 1 ? string.Empty : "s")} ago";
 }

@@ -1,9 +1,7 @@
 using Collector.Application.Remote;
-using Collector.Application.Secrets;
 using Collector.Application.Settings;
 using Collector.Domain.Enums;
 using Collector.Domain.Remote;
-using Collector.Presentation.Navigation;
 using Collector.Presentation.Resources;
 using Collector.Presentation.ViewModels;
 
@@ -26,118 +24,134 @@ public sealed class RemoteSourceViewModelTests
         return (harness, viewModel);
     }
 
-    [Fact]
-    public async Task SelectingGitHub_WithToken_LoadsRepositoriesAndShowsCount()
+    private static void Pick(RemoteSourceViewModel viewModel)
     {
-        var (_, viewModel) = await ReadyAsync(RemoteSourceHarness.GitHubRepo("alpha"), RemoteSourceHarness.GitHubRepo("beta"));
+        viewModel.SelectedRepository = viewModel.Repositories[0];
+        viewModel.SelectedBranch ??= viewModel.Branches[0];
+    }
+
+    [Fact]
+    public async Task ConnectingGitHub_LoadsRepositoriesWithTheOrganizationScopeAndShowsCount()
+    {
+        var (harness, viewModel) = await ReadyAsync(RemoteSourceHarness.GitHubRepo("alpha"), RemoteSourceHarness.GitHubRepo("beta"));
 
         Assert.Equal(RemoteListState.Ready, viewModel.ListState);
         Assert.Equal(2, viewModel.Repositories.Count);
         Assert.Equal(RemoteSourceStrings.Showing(2, 2), viewModel.ShowingText);
         Assert.True(viewModel.ShowRepositoryList);
         Assert.Null(viewModel.Banner);
+        Assert.Equal("octo", harness.GitHub.LastScope);
     }
 
     [Fact]
-    public void SelectingGitHub_WithoutToken_ShowsMissingTokenBannerAndSkipsTheApiCall()
+    public async Task Connect_WithoutAToken_ShowsTheFieldErrorAndSkipsTheApiCall()
     {
         var harness = new RemoteSourceHarness();
-
         harness.ViewModel.SelectedSource = SourceType.Github;
+        harness.ViewModel.OrgUrl = RemoteSourceHarness.GitHubUrl;
 
+        await harness.ViewModel.ConnectCommand.ExecuteAsync(null);
+
+        Assert.Equal(RemoteConnectRules.TokenRequired, harness.ViewModel.TokenError);
+        Assert.Null(harness.ViewModel.OrgUrlError);
         Assert.Equal(0, harness.GitHub.ListCalls);
-        Assert.Equal(BannerSeverity.Warning, harness.ViewModel.Banner!.Severity);
-        Assert.Equal(RemoteSourceStrings.MissingTitle("GitHub"), harness.ViewModel.Banner.Title);
-        Assert.Equal(RemoteSourceStrings.OpenSettings, harness.ViewModel.Banner.ActionText);
-        Assert.Equal(RemoteListState.Idle, harness.ViewModel.ListState);
+        Assert.Equal(RemoteFocusKeys.Token, harness.ViewModel.PendingFocus);
     }
 
     [Fact]
-    public void MissingTokenBanner_OpenSettings_NavigatesAndRemembersTheTokenRow()
+    public async Task MissingTokenFailure_ShowsTheBannerWhoseActionReturnsToTheConnectStep()
     {
         var harness = new RemoteSourceHarness();
-        harness.ViewModel.SelectedSource = SourceType.Github;
+        harness.GitHub.ListError = new RemoteSourceException(RemoteFailureKind.MissingToken, SourceType.Github);
 
-        harness.ViewModel.Banner!.ActionCommand!.Execute(null);
+        await harness.ConnectAsync(SourceType.Github, RemoteSourceHarness.GitHubUrl);
 
-        Assert.Equal([ScreenKeys.Settings], harness.Navigation.Visited);
+        Assert.Equal(RemoteSourceStrings.MissingTitle("GitHub"), harness.ViewModel.Banner!.Title);
+        Assert.Equal(RemoteSourceStrings.ChangeToken, harness.ViewModel.Banner.ActionText);
+        Assert.Equal(RemoteListState.Idle, harness.ViewModel.ListState);
+
+        harness.ViewModel.Banner.ActionCommand!.Execute(null);
+
+        Assert.Equal(RemoteWizardStep.Connect, harness.ViewModel.Step);
+        Assert.Equal(ConnectionStatus.NotConnected, harness.ViewModel.Status);
+        Assert.Equal(RemoteFocusKeys.Token, harness.ViewModel.PendingFocus);
     }
 
     [Fact]
-    public async Task SwitchingBackToGitHub_ReusesTheLoadedList()
+    public async Task SwitchingAwayFromGitHub_ClearsTheTokenAndTheLoadedList()
     {
         var (harness, viewModel) = await ReadyAsync();
 
         viewModel.SelectedSource = SourceType.Local;
         viewModel.SelectedSource = SourceType.Github;
 
+        Assert.Null(harness.Credentials.GetToken(SourceType.Github));
+        Assert.Equal(ConnectionStatus.NotConnected, viewModel.Status);
+        Assert.Equal(RemoteWizardStep.Connect, viewModel.Step);
+        Assert.Empty(viewModel.Repositories);
         Assert.Equal(1, harness.GitHub.ListCalls);
-        Assert.Single(viewModel.Repositories);
     }
 
     [Fact]
-    public void AzureDevOps_PastedUrl_IsReducedToTheOrganizationSavedAndUsedAsScope()
+    public async Task AzureDevOps_UrlIsParsedIntoTheOrganizationSavedAndUsedAsScope()
     {
         var harness = new RemoteSourceHarness();
-        harness.AddToken(SecretSlot.AzureDevOpsPat);
         harness.AzureDevOps.Repositories = [RemoteSourceHarness.AzureRepo("core")];
-        var viewModel = harness.ViewModel;
-        viewModel.SelectedSource = SourceType.AzureDevops;
-        viewModel.OrganizationText = "https://dev.azure.com/contoso";
 
-        viewModel.LoadRepositoriesCommand.Execute(null);
+        var viewModel = await harness.ConnectAsync(SourceType.AzureDevops, RemoteSourceHarness.AzureUrl + "/");
 
-        Assert.Equal("contoso", viewModel.OrganizationText);
         Assert.Equal("contoso", harness.AzureDevOps.LastScope);
         Assert.Equal("contoso", harness.Store.Remote.AzureDevOpsOrganization);
         Assert.Single(viewModel.Repositories);
-        Assert.Null(viewModel.OrganizationError);
+        Assert.Null(viewModel.OrgUrlError);
+        Assert.Equal(RemoteSourceStrings.ConnectedTo("contoso"), viewModel.StatusText);
     }
 
     [Theory]
-    [InlineData("", "Enter the organization name.")]
-    [InlineData("bad org!", RemoteSourceRules.OrganizationInvalidReason)]
-    public void AzureDevOps_InvalidOrganization_ShowsFieldErrorWithoutCallingTheApi(string text, string expected)
+    [InlineData("", "Enter a URL like https://dev.azure.com/your-organization")]
+    [InlineData("contoso", "Enter a URL like https://dev.azure.com/your-organization")]
+    [InlineData("https://github.com/contoso", "Enter a URL like https://dev.azure.com/your-organization")]
+    public async Task AzureDevOps_InvalidUrl_ShowsFieldErrorWithoutCallingTheApi(string url, string expected)
     {
         var harness = new RemoteSourceHarness();
-        harness.AddToken(SecretSlot.AzureDevOpsPat);
-        var viewModel = harness.ViewModel;
-        viewModel.SelectedSource = SourceType.AzureDevops;
-        viewModel.OrganizationText = text;
 
-        viewModel.LoadRepositoriesCommand.Execute(null);
+        await harness.ConnectAsync(SourceType.AzureDevops, url);
 
-        Assert.Equal(expected, viewModel.OrganizationError);
+        Assert.Equal(expected, harness.ViewModel.OrgUrlError);
         Assert.Equal(0, harness.AzureDevOps.ListCalls);
+        Assert.Equal(RemoteWizardStep.Connect, harness.ViewModel.Step);
     }
 
     [Fact]
-    public void AzureDevOps_OrganizationNotFound_IsAFieldErrorNotABanner()
+    public async Task OrganizationNotFound_IsAFieldErrorNotABanner()
     {
         var harness = new RemoteSourceHarness();
-        harness.AddToken(SecretSlot.AzureDevOpsPat);
         harness.AzureDevOps.ListError = new RemoteSourceException(RemoteFailureKind.NotFound, SourceType.AzureDevops);
-        var viewModel = harness.ViewModel;
-        viewModel.SelectedSource = SourceType.AzureDevops;
-        viewModel.OrganizationText = "contosso";
 
-        viewModel.LoadRepositoriesCommand.Execute(null);
+        await harness.ConnectAsync(SourceType.AzureDevops, "https://dev.azure.com/contosso");
 
-        Assert.Equal(RemoteSourceStrings.OrganizationNotFound("contosso"), viewModel.OrganizationError);
-        Assert.Null(viewModel.Banner);
+        Assert.Equal(RemoteSourceStrings.OrganizationNotFound("contosso"), harness.ViewModel.OrgUrlError);
+        Assert.Null(harness.ViewModel.Banner);
+        Assert.Equal(ConnectionStatus.NotConnected, harness.ViewModel.Status);
     }
 
     [Fact]
-    public async Task SelectingRepository_LoadsBranchesWithTheDefaultFirstAndSelected()
+    public async Task SelectingRepository_LoadsBranchesWithTheDefaultFirstAndWaitsForAPick()
     {
         var (_, viewModel) = await ReadyAsync();
 
         viewModel.SelectedRepository = viewModel.Repositories[0];
 
         Assert.Equal(["main", "develop"], viewModel.Branches.Select(branch => branch.Name));
-        Assert.Equal("main", viewModel.SelectedBranch!.Name);
+        Assert.Null(viewModel.SelectedBranch);
+        Assert.Equal(RemoteWizardStep.Branch, viewModel.Step);
+        Assert.False(viewModel.FetchCommand.CanExecute(null));
+
+        viewModel.SelectedBranch = viewModel.Branches[0];
+
         Assert.Equal("main (default)", viewModel.SelectedBranch.DisplayName);
         Assert.Equal(RemoteSourceStrings.Commit("3f2a9c1"), viewModel.CommitText);
+        Assert.Equal(RemoteWizardStep.Fetch, viewModel.Step);
         Assert.True(viewModel.FetchCommand.CanExecute(null));
     }
 
@@ -158,7 +172,7 @@ public sealed class RemoteSourceViewModelTests
     {
         var (_, viewModel) = await ReadyAsync(RemoteSourceHarness.GitHubRepo("huge", 600L * 1024 * 1024));
 
-        viewModel.SelectedRepository = viewModel.Repositories[0];
+        Pick(viewModel);
 
         Assert.False(viewModel.FetchCommand.CanExecute(null));
         Assert.True(viewModel.FetchHelpIsError);
@@ -170,7 +184,7 @@ public sealed class RemoteSourceViewModelTests
     public async Task Search_FiltersByNameAndDropsASelectionThatNoLongerMatches()
     {
         var (_, viewModel) = await ReadyAsync(RemoteSourceHarness.GitHubRepo("alpha"), RemoteSourceHarness.GitHubRepo("beta"));
-        viewModel.SelectedRepository = viewModel.Repositories[0];
+        Pick(viewModel);
 
         viewModel.SearchText = "BET";
 
@@ -186,12 +200,11 @@ public sealed class RemoteSourceViewModelTests
     }
 
     [Fact]
-    public void EmptyRepositoryList_ShowsTheEmptyState()
+    public async Task EmptyRepositoryList_ShowsTheEmptyState()
     {
         var harness = new RemoteSourceHarness();
-        harness.AddToken(SecretSlot.GitHubPat);
 
-        harness.ViewModel.SelectedSource = SourceType.Github;
+        await harness.OpenGitHubAsync();
 
         Assert.True(harness.ViewModel.ShowEmptyList);
         Assert.False(harness.ViewModel.HasRepositories);
@@ -202,7 +215,7 @@ public sealed class RemoteSourceViewModelTests
     public async Task Fetch_Success_ShowsSummaryRaisesFilesFetchedAndAppendsOrigin()
     {
         var (harness, viewModel) = await ReadyAsync();
-        viewModel.SelectedRepository = viewModel.Repositories[0];
+        Pick(viewModel);
         RemoteFilesFetchedEventArgs? raised = null;
         viewModel.FilesFetched += (_, args) => raised = args;
 
@@ -225,7 +238,7 @@ public sealed class RemoteSourceViewModelTests
     {
         var (harness, viewModel) = await ReadyAsync();
         harness.Fetcher.Result = harness.Fetcher.Result with { Truncated = true };
-        viewModel.SelectedRepository = viewModel.Repositories[0];
+        Pick(viewModel);
 
         await viewModel.FetchCommand.ExecuteAsync(null);
 
@@ -239,7 +252,7 @@ public sealed class RemoteSourceViewModelTests
     {
         var (harness, viewModel) = await ReadyAsync();
         harness.Fetcher.Result = harness.Fetcher.Result with { LocalPaths = [] };
-        viewModel.SelectedRepository = viewModel.Repositories[0];
+        Pick(viewModel);
         var raised = false;
         viewModel.FilesFetched += (_, _) => raised = true;
 
@@ -255,7 +268,7 @@ public sealed class RemoteSourceViewModelTests
     {
         var (harness, viewModel) = await ReadyAsync();
         harness.Fetcher.Error = new RemoteSourceException(RemoteFailureKind.AccessDenied, SourceType.Github);
-        viewModel.SelectedRepository = viewModel.Repositories[0];
+        Pick(viewModel);
 
         await viewModel.FetchCommand.ExecuteAsync(null);
 
@@ -270,7 +283,7 @@ public sealed class RemoteSourceViewModelTests
     {
         var (harness, viewModel) = await ReadyAsync();
         harness.Fetcher.Error = new RemoteSourceException(RemoteFailureKind.Auth, SourceType.Github);
-        viewModel.SelectedRepository = viewModel.Repositories[0];
+        Pick(viewModel);
         await viewModel.FetchCommand.ExecuteAsync(null);
         harness.Fetcher.Error = null;
 
@@ -285,7 +298,7 @@ public sealed class RemoteSourceViewModelTests
     {
         var (harness, viewModel) = await ReadyAsync();
         harness.Fetcher.Gate = new TaskCompletionSource();
-        viewModel.SelectedRepository = viewModel.Repositories[0];
+        Pick(viewModel);
 
         var running = viewModel.FetchCommand.ExecuteAsync(null);
         Assert.True(viewModel.IsFetching);
@@ -305,7 +318,7 @@ public sealed class RemoteSourceViewModelTests
     {
         var (harness, viewModel) = await ReadyAsync();
         harness.Fetcher.Gate = new TaskCompletionSource();
-        viewModel.SelectedRepository = viewModel.Repositories[0];
+        Pick(viewModel);
 
         var running = viewModel.FetchCommand.ExecuteAsync(null);
 
@@ -319,7 +332,7 @@ public sealed class RemoteSourceViewModelTests
     {
         var (harness, viewModel) = await ReadyAsync();
         harness.Fetcher.Gate = new TaskCompletionSource();
-        viewModel.SelectedRepository = viewModel.Repositories[0];
+        Pick(viewModel);
         var running = viewModel.FetchCommand.ExecuteAsync(null);
 
         harness.RateLimits.Raise(new RateLimitStatus(SourceType.Github, true, DateTimeOffset.UtcNow.AddMinutes(4), 0));
@@ -343,7 +356,7 @@ public sealed class RemoteSourceViewModelTests
     {
         var (harness, viewModel) = await ReadyAsync();
         harness.Fetcher.Gate = new TaskCompletionSource();
-        viewModel.SelectedRepository = viewModel.Repositories[0];
+        Pick(viewModel);
         var running = viewModel.FetchCommand.ExecuteAsync(null);
 
         harness.RateLimits.Raise(new RateLimitStatus(SourceType.AzureDevops, true, DateTimeOffset.UtcNow.AddMinutes(1), 0));
@@ -357,7 +370,7 @@ public sealed class RemoteSourceViewModelTests
     public async Task Locked_BlocksFetchAndSourceChanges()
     {
         var (_, viewModel) = await ReadyAsync();
-        viewModel.SelectedRepository = viewModel.Repositories[0];
+        Pick(viewModel);
 
         viewModel.SetLocked(true);
         viewModel.Sources.First(chip => chip.Source == SourceType.Local).IsSelected = true;
@@ -368,17 +381,20 @@ public sealed class RemoteSourceViewModelTests
     }
 
     [Fact]
-    public async Task ChangeRepository_ReturnsToTheFormKeepingTheLoadedList()
+    public async Task ChangeRepository_ReturnsToTheRepositoryStepKeepingTheLoadedList()
     {
         var (_, viewModel) = await ReadyAsync();
-        viewModel.SelectedRepository = viewModel.Repositories[0];
+        Pick(viewModel);
         await viewModel.FetchCommand.ExecuteAsync(null);
 
         viewModel.ChangeRepositoryCommand.Execute(null);
 
         Assert.True(viewModel.ShowForm);
+        Assert.Equal(RemoteWizardStep.Repository, viewModel.Step);
+        Assert.Null(viewModel.SelectedRepository);
         Assert.Equal(RemoteFocusKeys.Repositories, viewModel.PendingFocus);
         Assert.Single(viewModel.Repositories);
+        Assert.True(viewModel.IsConnected);
     }
 
     [Fact]
@@ -386,7 +402,7 @@ public sealed class RemoteSourceViewModelTests
     {
         var (harness, viewModel) = await ReadyAsync();
         harness.Fetcher.Error = new RemoteSourceException(RemoteFailureKind.RepositoryTooLarge, SourceType.Github);
-        viewModel.SelectedRepository = viewModel.Repositories[0];
+        Pick(viewModel);
         await viewModel.FetchCommand.ExecuteAsync(null);
 
         viewModel.Banner!.ActionCommand!.Execute(null);
@@ -399,7 +415,7 @@ public sealed class RemoteSourceViewModelTests
     {
         var (harness, viewModel) = await ReadyAsync();
         harness.Fetcher.Error = new RemoteSourceException(RemoteFailureKind.SsoRequired, SourceType.Github);
-        viewModel.SelectedRepository = viewModel.Repositories[0];
+        Pick(viewModel);
         await viewModel.FetchCommand.ExecuteAsync(null);
 
         viewModel.Banner!.ActionCommand!.Execute(null);
@@ -532,7 +548,7 @@ public sealed class RemoteSourceViewModelTests
         harness.Cortexa.BranchError = new RemoteSourceException(RemoteFailureKind.Upstream, SourceType.CortexaRepo);
         var viewModel = await harness.OpenCortexaAsync(RemoteSourceHarness.CortexaRepo("alpha", branch: "release"));
 
-        viewModel.SelectedRepository = viewModel.Repositories[0];
+        Pick(viewModel);
 
         Assert.Equal(["release"], viewModel.Branches.Select(branch => branch.Name));
         Assert.Equal("release", viewModel.SelectedBranch!.Name);
@@ -548,7 +564,7 @@ public sealed class RemoteSourceViewModelTests
         var harness = new RemoteSourceHarness();
         harness.Fetcher.Result = new RemoteFetchResult(SourceType.CortexaRepo, "3f2a9c1e55", ["a.md"], 1, 0, 0, 0, false);
         var viewModel = await harness.OpenCortexaAsync(RemoteSourceHarness.CortexaRepo("alpha", branch: "release"));
-        viewModel.SelectedRepository = viewModel.Repositories[0];
+        Pick(viewModel);
         RemoteFilesFetchedEventArgs? raised = null;
         viewModel.FilesFetched += (_, args) => raised = args;
 
@@ -568,7 +584,7 @@ public sealed class RemoteSourceViewModelTests
         var harness = new RemoteSourceHarness();
         harness.Fetcher.Error = new RemoteSourceException(RemoteFailureKind.NotFound, SourceType.CortexaRepo);
         var viewModel = await harness.OpenCortexaAsync(RemoteSourceHarness.CortexaRepo("alpha"));
-        viewModel.SelectedRepository = viewModel.Repositories[0];
+        Pick(viewModel);
 
         await viewModel.FetchCommand.ExecuteAsync(null);
 
@@ -583,7 +599,7 @@ public sealed class RemoteSourceViewModelTests
         var harness = new RemoteSourceHarness();
         harness.Fetcher.Error = new RemoteSourceException(RemoteFailureKind.Auth, SourceType.CortexaRepo);
         var viewModel = await harness.OpenCortexaAsync(RemoteSourceHarness.CortexaRepo("alpha"));
-        viewModel.SelectedRepository = viewModel.Repositories[0];
+        Pick(viewModel);
 
         await viewModel.FetchCommand.ExecuteAsync(null);
 

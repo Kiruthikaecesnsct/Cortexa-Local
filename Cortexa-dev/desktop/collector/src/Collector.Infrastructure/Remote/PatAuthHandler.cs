@@ -1,23 +1,21 @@
 using Collector.Application.Ports;
 using Collector.Application.Remote;
-using Collector.Application.Secrets;
 using Collector.Domain.Enums;
 
 namespace Collector.Infrastructure.Remote;
 
 public sealed class PatAuthHandler(
-    ISecretStore secrets,
-    SecretSlot slot,
+    ISessionCredentials credentials,
     PatScheme scheme,
     PatTarget target) : DelegatingHandler
 {
-    protected override async Task<HttpResponseMessage> SendAsync(
+    protected override Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
         if (IsConfiguredOrigin(request.RequestUri))
         {
-            var pat = await secrets.ReadAsync(slot, cancellationToken);
+            var pat = credentials.GetToken(target.Provider);
             if (string.IsNullOrWhiteSpace(pat))
             {
                 throw new RemoteSourceException(RemoteFailureKind.MissingToken, target.Provider);
@@ -26,7 +24,7 @@ public sealed class PatAuthHandler(
             request.Headers.Authorization = PatSchemes.CreateHeader(scheme, pat);
         }
 
-        return await base.SendAsync(request, cancellationToken);
+        return base.SendAsync(request, cancellationToken);
     }
 
     private bool IsConfiguredOrigin(Uri? uri) =>

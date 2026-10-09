@@ -17,7 +17,6 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
     private readonly SettingsService _settings;
     private readonly ISessionState _session;
     private readonly ISignInService _signIn;
-    private readonly SettingsShortcut _shortcut;
     private readonly ILogger<SettingsViewModel> _logger;
     private EndpointSettings _saved;
     private bool _gatewayLive;
@@ -28,19 +27,16 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
         ISessionState session,
         ISignInService signIn,
         IBedrockSsoCredentials bedrockSso,
-        SettingsShortcut shortcut,
         ILogger<SettingsViewModel> logger)
     {
         _settings = settings;
         _session = session;
         _signIn = signIn;
-        _shortcut = shortcut;
         _logger = logger;
         _saved = settings.GetEndpoints();
         GatewayUrl = _saved.GatewayUrl;
         CollectorServerUrl = _saved.CollectorServerUrl;
         Rows = CreateRows();
-        RepositoryRows = CreateRepositoryRows();
         foreach (var row in AllRows)
         {
             row.EditorStateChanged += OnEditorStateChanged;
@@ -51,8 +47,6 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
     }
 
     public IReadOnlyList<AiKeyRowViewModel> Rows { get; }
-
-    public IReadOnlyList<AiKeyRowViewModel> RepositoryRows { get; }
 
     public BedrockSsoRowViewModel BedrockRow { get; }
 
@@ -291,26 +285,12 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
         }
     }
 
-    private IEnumerable<AiKeyRowViewModel> AllRows => Rows.Concat(RepositoryRows);
+    private IEnumerable<AiKeyRowViewModel> AllRows => Rows;
 
     private void FocusInitial()
     {
-        var row = RowFor(_shortcut.TakeFocusKey());
-        if (row is null)
-        {
-            RequestFocus(SettingsFocusKeys.Gateway);
-            return;
-        }
-
-        row.FocusPrimary();
+        RequestFocus(SettingsFocusKeys.Gateway);
     }
-
-    private AiKeyRowViewModel? RowFor(string? focusKey) => focusKey switch
-    {
-        SettingsFocusKeys.GitHubToken => RepositoryRows[0],
-        SettingsFocusKeys.AzureDevOpsToken => RepositoryRows[1],
-        _ => null,
-    };
 
     private AiKeyRowViewModel[] CreateRows() =>
     [
@@ -338,36 +318,6 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
             _logger),
     ];
 
-    private AiKeyRowViewModel[] CreateRepositoryRows() =>
-    [
-        new(
-            new AiKeyRowDescriptor
-            {
-                Slot = SecretSlot.GitHubPat,
-                Name = SettingsStrings.GitHubName,
-                Description = SettingsStrings.GitHubDescription,
-                Hint = SettingsStrings.GitHubHint,
-                ShortName = SettingsStrings.GitHubName,
-                RunsName = "GitHub fetches",
-                Words = CredentialWords.AccessToken,
-            },
-            _settings,
-            _logger),
-        new(
-            new AiKeyRowDescriptor
-            {
-                Slot = SecretSlot.AzureDevOpsPat,
-                Name = SettingsStrings.AzureDevOpsName,
-                Description = SettingsStrings.AzureDevOpsDescription,
-                Hint = SettingsStrings.AzureDevOpsHint,
-                ShortName = SettingsStrings.AzureDevOpsName,
-                RunsName = "Azure DevOps fetches",
-                Words = CredentialWords.AccessToken,
-            },
-            _settings,
-            _logger),
-    ];
-
     private static string Normalize(string? value) => value?.Trim() ?? string.Empty;
 }
 
@@ -375,6 +325,4 @@ public static class SettingsFocusKeys
 {
     public const string Gateway = "GatewayUrl";
     public const string Collector = "CollectorUrl";
-    public const string GitHubToken = "GitHubToken";
-    public const string AzureDevOpsToken = "AzureDevOpsToken";
 }

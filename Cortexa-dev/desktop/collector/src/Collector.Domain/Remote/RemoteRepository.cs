@@ -11,7 +11,9 @@ public sealed record RemoteRepository(
     string DefaultBranch,
     string WebUrl,
     long SizeBytes,
-    bool IsPrivate)
+    bool IsPrivate,
+    string? Description = null,
+    DateTimeOffset? UpdatedAt = null)
 {
     public string RepoKey => Project is null ? $"{Owner}/{Name}" : $"{Owner}/{Project}/{Name}";
 }

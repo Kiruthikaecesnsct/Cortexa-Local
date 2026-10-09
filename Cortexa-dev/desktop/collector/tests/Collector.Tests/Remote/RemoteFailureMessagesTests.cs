@@ -52,12 +52,12 @@ public class RemoteFailureMessagesTests
     }
 
     [Fact]
-    public void For_FingerprintMismatch_NamesSshAndRefuses()
+    public void For_MissingToken_AsksForTheTokenWithoutPointingAtSettings()
     {
-        var message = RemoteFailureMessages.For(RemoteFailureKind.FingerprintMismatch, SourceType.Ssh);
+        var message = RemoteFailureMessages.For(RemoteFailureKind.MissingToken, SourceType.Github);
 
-        Assert.Contains("SSH", message, StringComparison.Ordinal);
-        Assert.Contains("fingerprint", message, StringComparison.Ordinal);
+        Assert.Contains("GitHub", message, StringComparison.Ordinal);
+        Assert.DoesNotContain("Settings", message, StringComparison.Ordinal);
     }
 
     [Fact]

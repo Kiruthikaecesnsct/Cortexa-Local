@@ -108,7 +108,7 @@
 
     </UserControl.Resources>
 
-    <Grid MaxWidth="{StaticResource Size.WorkspaceMaxWidth}" HorizontalAlignment="Left">
+    <Grid>
 
         <Border VerticalAlignment="Top" Style="{StaticResource Card}" Visibility="{Binding ShowEmptyCard, Converter={StaticResource BoolToVisibility}}">
             <StackPanel HorizontalAlignment="Center">

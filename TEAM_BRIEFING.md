@@ -47,3 +47,4 @@ None live. The collector batch results contract (GET /collector/batches and GET 
 - **Live sign-in needed.** The full upload-to-candidates path cannot be verified until a local Cortexa account is set up.
 - **Cosmos queries untested locally.** The batch and results queries have only run live in Azure, not in the emulator.
 - **DOCX heading parity gap.** The desktop collector does not parse DOCX heading styles as section breaks. The backend does.
+- **US140 live checks still open (from US140, 2026-10-10).** The 5,000-file performance run and the full GitHub Files to Proceed flow were not exercised live. US142's end-to-end test should cover both.

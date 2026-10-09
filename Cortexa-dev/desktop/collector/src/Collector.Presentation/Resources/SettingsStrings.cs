@@ -40,12 +40,12 @@ public static class SettingsStrings
     public const string KeysIntro =
         "Keys are stored in Windows Credential Manager on this computer. They are never shown again after you save them.";
 
-    public const string ClaudeName = "Claude (Anthropic API)";
-    public const string ClaudeDescription = "Used for \"Claude direct\" runs.";
-    public const string GeminiName = "Google Gemini";
-    public const string GeminiDescription = "Used for \"Gemini direct\" runs.";
-    public const string BedrockName = "Claude on AWS Bedrock";
-    public const string BedrockDescription = "Uses AWS SSO, no key.";
+    public const string ClaudeName = "Claude";
+    public const string ClaudeDescription = "Anthropic API key. Used when Claude is the AI model.";
+    public const string GeminiName = "Gemini";
+    public const string GeminiDescription = "Google AI API key. Used when Gemini is the AI model.";
+    public const string BedrockName = "Amazon Bedrock";
+    public const string BedrockDescription = "Signs in with AWS SSO. No key needed.";
     public const string BedrockConnectedChip = "Connected";
     public const string BedrockNotConnectedChip = "Not connected";
     public const string BedrockConnect = "Connect via SSO";
@@ -54,8 +54,8 @@ public static class SettingsStrings
     public const string BedrockDisconnect = "Disconnect";
     public const string BedrockDisconnecting = "Disconnecting…";
     public const string BedrockDisconnectName = "Disconnect Bedrock AWS SSO session";
-    public const string BedrockConnectedMessage = "Connected to AWS. \"Bedrock\" runs are ready to use.";
-    public const string BedrockDisconnectedMessage = "Disconnected. Sign in again to use Bedrock runs.";
+    public const string BedrockConnectedMessage = "Connected to AWS. Amazon Bedrock is ready to use.";
+    public const string BedrockDisconnectedMessage = "Disconnected. Connect again to use Amazon Bedrock.";
     public const string BedrockConnectFailed = "Couldn't connect to AWS SSO. Try again.";
     public const string BedrockDisconnectFailed = "Couldn't disconnect the AWS SSO session. Try again.";
     public const string BedrockChipAutomationName = "Bedrock AWS SSO status";
@@ -81,6 +81,53 @@ public static class SettingsStrings
     public const string Clearing = "Clearing…";
     public const string KeyClearFailed = "Couldn't remove the key from Windows Credential Manager. Try again.";
     public const string Cancel = "Cancel";
+
+    public const string ClaudeRunsName = "Extract knowledge with Claude";
+    public const string GeminiRunsName = "Extract knowledge with Gemini";
+    public const string SectionListName = "Settings sections";
+    public const string AiModelTitle = "AI model";
+
+    public const string AiModelIntro =
+        "Choose the provider and model that Extract knowledge uses. Your choice is saved on this computer.";
+
+    public const string ProviderOverline = "PROVIDER";
+    public const string ProviderGroupName = "AI provider";
+    public const string ProviderClaudeTitle = "Claude";
+    public const string ProviderClaudeDescription = "Anthropic API, using your own key.";
+    public const string ProviderGeminiTitle = "Gemini";
+    public const string ProviderGeminiDescription = "Google AI API, using your own key.";
+    public const string ProviderBedrockTitle = "Amazon Bedrock";
+    public const string ProviderBedrockDescription = "Claude on AWS, signed in with AWS SSO.";
+    public const string ChipKeySet = "Key set";
+    public const string ChipKeyNotSet = "Key not set";
+
+    public const string ModelLabel = "_Model";
+    public const string ModelName = "Model";
+    public const string ChoiceSaveFailedTitle = "Couldn't save your model choice.";
+    public const string ModelNotListedTitle = "That model isn't available for this provider.";
+    public const string ModelNotListedMessage = "Your previous choice is still in use.";
+    public const string KeyWarningMessage = "Extract knowledge stays off until you add the key.";
+    public const string BedrockWarningTitle = "Not connected to AWS SSO.";
+    public const string BedrockWarningMessage = "Extract knowledge stays off until you connect Amazon Bedrock.";
+    public const string ReadinessUnknownMessage = "Reopen Settings to try again.";
+    public const string GoToKeys = "Go to AI provider keys";
+    public const string GoToKeysName = "Open the AI provider keys section";
+
+
+    public static string ProviderCardName(string provider, string status) => $"{provider}, {status}";
+
+    public static string ModelHelper(string provider) =>
+        $"Models available for {provider}. Changes apply to the next extraction.";
+
+    public static string ModelsEmpty(string provider) =>
+        $"No models are set up for {provider}. Check Ai:ModelCatalog in appsettings.json.";
+
+    public static string ChoiceSaved(string provider, string model) =>
+        $"Saved. Extract knowledge uses {provider} · {model}.";
+
+    public static string KeyWarningTitle(string provider) => $"{provider} key not set.";
+
+    public static string ReadinessUnknownTitle(string provider) => $"Couldn't check {provider} access.";
 
 
     public const string AddToken = "Add token";

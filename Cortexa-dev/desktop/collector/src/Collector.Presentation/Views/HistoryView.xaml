@@ -30,6 +30,7 @@
                     <TextBlock Style="{StaticResource Row.Title}" Text="{Binding Name}" />
                     <TextBlock Style="{StaticResource Row.Caption}" Text="{Binding CreatedText}" />
                     <TextBlock FontFamily="{StaticResource Font.Mono}"
+                    FontSize="{StaticResource FontSize.MonoSmall}"
                                Style="{StaticResource Row.Caption}"
                                Text="{Binding BatchId}"
                                ToolTip="{Binding BatchId}" />

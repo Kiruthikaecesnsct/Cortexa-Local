@@ -1,5 +1,6 @@
 using Collector.Application.Auth;
 using Collector.Application.Knowledge;
+using Collector.Domain.Enums;
 using Collector.Presentation.Navigation;
 using Collector.Presentation.Resources;
 using Collector.Presentation.Services;
@@ -139,7 +140,7 @@ public sealed class KnowledgeRunViewModelTests
     }
 
     [Fact]
-    public async Task KeyMissingBannerAction_Executed_NavigatesToSettings()
+    public async Task KeyMissingBannerAction_Executed_OpensTheProviderKeysSection()
     {
         var harness = Ready();
         harness.Runner.Outcome = new KnowledgeRunOutcome(KnowledgeRunStatus.KeyMissing);
@@ -148,6 +149,78 @@ public sealed class KnowledgeRunViewModelTests
         harness.ViewModel.Banner!.ActionCommand!.Execute(null);
 
         Assert.Equal([ScreenKeys.Settings], harness.Navigation.Visited);
+        Assert.Equal(SettingsSection.ProviderKeys, harness.Navigator.Selected);
+    }
+
+    [Fact]
+    public async Task ExtractKnowledgeCommand_BedrockKeyMissing_BannerUsesTheBedrockCopy()
+    {
+        var harness = Ready();
+        harness.Runner.Outcome = new KnowledgeRunOutcome(KnowledgeRunStatus.KeyMissing, Provider: CollectorProvider.Bedrock);
+
+        await harness.ViewModel.ExtractKnowledgeCommand.ExecuteAsync(null);
+
+        Assert.Equal(ExtractionStrings.BedrockMissingTitle, harness.ViewModel.Banner!.Title);
+        Assert.Equal(ExtractionStrings.BedrockMissingMessage, harness.ViewModel.Banner.Message);
+    }
+
+    [Fact]
+    public void CanExtract_ProviderKeyMissing_IsBlockedWithTheKeyHelp()
+    {
+        var harness = Ready();
+        harness.ViewModel.Provider = CollectorProvider.Gemini;
+
+        harness.ViewModel.Readiness = ProviderReadinessState.Missing;
+
+        Assert.False(harness.ViewModel.CanExtract);
+        Assert.False(harness.ViewModel.ExtractKnowledgeCommand.CanExecute(null));
+        Assert.Equal(ExtractionStrings.KeyMissingTitle("Gemini"), harness.ViewModel.ExtractHelp);
+    }
+
+    [Fact]
+    public void CanExtract_ProviderKeyPresent_IsAllowed()
+    {
+        var harness = Ready();
+        harness.ViewModel.Readiness = ProviderReadinessState.Missing;
+
+        harness.ViewModel.Readiness = ProviderReadinessState.Ready;
+
+        Assert.True(harness.ViewModel.CanExtract);
+        Assert.Null(harness.ViewModel.ExtractHelp);
+        Assert.True(harness.ViewModel.ExtractKnowledgeCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public void CanExtract_BedrockNotConnected_IsBlockedWithTheBedrockHelp()
+    {
+        var harness = Ready();
+        harness.ViewModel.Provider = CollectorProvider.Bedrock;
+
+        harness.ViewModel.Readiness = ProviderReadinessState.Missing;
+
+        Assert.False(harness.ViewModel.CanExtract);
+        Assert.Equal(ExtractionStrings.BedrockMissingHelp, harness.ViewModel.ExtractHelp);
+    }
+
+    [Fact]
+    public void CanExtract_ReadinessChecking_IsBlockedWithoutHelp()
+    {
+        var harness = Ready();
+
+        harness.ViewModel.Readiness = ProviderReadinessState.Checking;
+
+        Assert.False(harness.ViewModel.CanExtract);
+        Assert.Null(harness.ViewModel.ExtractHelp);
+    }
+
+    [Fact]
+    public void ExtractHelp_NoDocumentsAndKeyMissing_ReportsTheKeyFirst()
+    {
+        var harness = new KnowledgeHarness();
+
+        harness.ViewModel.Readiness = ProviderReadinessState.Missing;
+
+        Assert.Equal(ExtractionStrings.KeyMissingTitle("Claude"), harness.ViewModel.ExtractHelp);
     }
 
     [Fact]

@@ -99,6 +99,8 @@
     <SolidColorBrush x:Key="Brush.Rail.Hover" Color="{StaticResource Color.Rail.Hover}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Rail.Selected" Color="{StaticResource Color.Rail.Selected}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Rail.Indicator" Color="{StaticResource Color.Rail.Indicator}" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.SectionNav.Glyph.Selected" Color="{StaticResource Color.Accent}" po:Freeze="True" />
+    <SolidColorBrush x:Key="Brush.SectionNav.Indicator" Color="{StaticResource Color.Accent}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Rail.Divider" Color="{StaticResource Color.Rail.Divider}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Tooltip.Surface" Color="{StaticResource Color.Tooltip.Surface}" po:Freeze="True" />
     <SolidColorBrush x:Key="Brush.Tooltip.Text" Color="{StaticResource Color.Tooltip.Text}" po:Freeze="True" />

@@ -1,7 +1,9 @@
 using Collector.Application.Extraction;
 using Collector.Application.Knowledge;
+using Collector.Application.Settings;
 using Collector.Domain.Enums;
 using Collector.Infrastructure.Options;
+using Collector.Presentation.Navigation;
 using Collector.Presentation.Services;
 using Collector.Presentation.ViewModels;
 using Collector.Tests.Extraction;
@@ -18,6 +20,7 @@ public sealed class ExtractionViewModelTests : IDisposable
     private readonly ExtractionService _extractionService;
     private readonly KnowledgeHarness _knowledge = new();
     private readonly RemoteSourceHarness _remote = new();
+    private readonly ModelChoiceHarness _model = new();
 
     public ExtractionViewModelTests()
     {
@@ -52,7 +55,14 @@ public sealed class ExtractionViewModelTests : IDisposable
         return path;
     }
 
-    private ExtractionViewModel CreateViewModel(params string[] paths) =>
+    private ExtractionViewModel CreateViewModel(params string[] paths)
+    {
+        var viewModel = Build(paths);
+        viewModel.OnNavigatedTo();
+        return viewModel;
+    }
+
+    private ExtractionViewModel Build(params string[] paths) =>
         new(
             new ExtractionDependencies(
                 _extractionService,
@@ -67,7 +77,7 @@ public sealed class ExtractionViewModelTests : IDisposable
                     Options.Create(new AiProviderOptions()),
                     Options.Create(new GeminiProviderOptions()),
                     Options.Create(new BedrockProviderOptions()))),
-            Options.Create(new ProviderModelCatalog()));
+            _model.CreateActiveModel());
 
     [Fact]
     public async Task Picking_files_extracts_each_one_and_populates_the_documents_list()
@@ -243,6 +253,49 @@ public sealed class ExtractionViewModelTests : IDisposable
         Assert.Equal(KnowledgeFocusKeys.Cancel, viewModel.PendingFocus);
         _knowledge.Runner.Gate.SetResult(new KnowledgeRunOutcome(KnowledgeRunStatus.Failed));
         await run;
+    }
+
+    [Fact]
+    public async Task ExtractKnowledge_ProviderKeyMissing_IsBlockedUntilTheKeyIsAdded()
+    {
+        var ok = WriteFile("notes.txt", System.Text.Encoding.UTF8.GetBytes("some readable content"));
+        _model.Readiness.States[CollectorProvider.Claude] = ProviderReadinessState.Missing;
+        var viewModel = CreateViewModel(ok);
+        await viewModel.PickFilesCommand.ExecuteAsync(null);
+
+        Assert.False(viewModel.Knowledge.CanExtract);
+
+        _model.Readiness.States[CollectorProvider.Claude] = ProviderReadinessState.Ready;
+        _model.Readiness.NotifyChanged();
+
+        Assert.True(viewModel.Knowledge.CanExtract);
+    }
+
+    [Fact]
+    public async Task ActiveModel_ChoiceChanged_PushesProviderAndModelIntoTheRun()
+    {
+        var ok = WriteFile("notes.txt", System.Text.Encoding.UTF8.GetBytes("some readable content"));
+        var viewModel = CreateViewModel(ok);
+        await viewModel.PickFilesCommand.ExecuteAsync(null);
+
+        await _model.Choices.SaveAsync(new AiModelChoice(CollectorProvider.Gemini, "gemini-b"), TestContext.Current.CancellationToken);
+        await viewModel.Knowledge.ExtractKnowledgeCommand.ExecuteAsync(null);
+
+        Assert.Equal(CollectorProvider.Gemini, _knowledge.Runner.LastRequest!.Provider);
+        Assert.Equal("gemini-b", _knowledge.Runner.LastRequest.Model);
+    }
+
+    [Fact]
+    public void OnNavigatedTo_RefreshesReadinessSoAKeyAddedInSettingsUnblocksExtract()
+    {
+        _model.Readiness.States[CollectorProvider.Claude] = ProviderReadinessState.Missing;
+        var viewModel = CreateViewModel();
+        Assert.Equal(ProviderReadinessState.Missing, viewModel.Knowledge.Readiness);
+
+        _model.Readiness.States[CollectorProvider.Claude] = ProviderReadinessState.Ready;
+        viewModel.OnNavigatedTo();
+
+        Assert.Equal(ProviderReadinessState.Ready, viewModel.Knowledge.Readiness);
     }
 
     [Fact]

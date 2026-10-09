@@ -30,6 +30,8 @@ public sealed partial class BedrockSsoRowViewModel : FocusableViewModel
         _logger = logger;
     }
 
+    public event EventHandler? StatusChanged;
+
     public string Name => SettingsStrings.BedrockName;
 
     public string Description => SettingsStrings.BedrockDescription;
@@ -121,6 +123,7 @@ public sealed partial class BedrockSsoRowViewModel : FocusableViewModel
             await _credentials.ConnectAsync(cancellationToken);
             ChipKind = BedrockSsoChipKind.Connected;
             Message = SettingsStrings.BedrockConnectedMessage;
+            StatusChanged?.Invoke(this, EventArgs.Empty);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -145,6 +148,7 @@ public sealed partial class BedrockSsoRowViewModel : FocusableViewModel
             await _credentials.DisconnectAsync(cancellationToken);
             ChipKind = BedrockSsoChipKind.NotConnected;
             Message = SettingsStrings.BedrockDisconnectedMessage;
+            StatusChanged?.Invoke(this, EventArgs.Empty);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

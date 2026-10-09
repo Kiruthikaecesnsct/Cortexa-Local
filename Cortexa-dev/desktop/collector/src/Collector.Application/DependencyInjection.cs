@@ -20,6 +20,7 @@ public static class DependencyInjection
         services.AddSingleton<IAccessTokenProvider>(sp => sp.GetRequiredService<SessionService>());
         services.AddSingleton<ISessionState>(sp => sp.GetRequiredService<SessionService>());
         services.AddSingleton<SettingsService>();
+        services.AddSingleton<AiModelChoiceService>();
         services.AddSingleton<StaleRemoteSecretPurge>();
         services.AddSingleton<LocalSourceResolver>();
         services.AddCollectorExtraction();

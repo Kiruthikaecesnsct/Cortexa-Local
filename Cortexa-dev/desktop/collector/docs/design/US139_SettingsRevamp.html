@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>US139 Settings revamp, saved model choice, Cambria font - design prototype</title>
+<style>
+/* Tokens mirror Themes/Colors.Light.xaml and Themes/Styles.xaml after US139.
+   "High contrast" approximates Colors.HighContrast.xaml (SystemColors, HC Black). Prototype only. */
+:root{
+  --surface-page:#F4F6FA;--surface-card:#FFFFFF;--surface-rail:#0F172A;--surface-sunken:#F2F4F8;--surface-hover:#F5F6FA;--surface-selected:#EEF0FF;
+  --border-subtle:#E4E7EE;--border-button:#D0D5DD;--border-control:#858DA2;--border-focus:#4F46E5;--button-edge:transparent;
+  --text-primary:#101828;--text-body:#475467;--text-muted:#5D6679;--text-disabled:#98A2B3;--text-on-accent:#FFFFFF;--text-link:#4338CA;--text-on-selected:#101828;
+  --accent:#4F46E5;--accent-hover:#4338CA;--accent-subtle:#EEF0FF;--accent-subtle-border:#C7CBFD;
+  --danger:#D92D20;--danger-text:#B42318;--danger-surface:#FEF3F2;--danger-border:#FECDCA;
+  --success:#067647;--success-surface:#ECFDF3;--success-border:#ABEFC6;
+  --warning:#B54708;--warning-surface:#FFFAEB;--warning-border:#FEDF89;
+  --info:#3538CD;--info-surface:#EEF4FF;--info-border:#C7D7FE;
+  --rail-text:#CBD5E1;--rail-text-selected:#FFFFFF;--rail-selected:#242F52;--rail-indicator:#818CF8;--rail-divider:#1F2A40;
+  /* US139 type ramp (Cambria) */
+  --font-body:Cambria,Georgia,"Times New Roman",serif;
+  --font-display:Cambria,Georgia,"Times New Roman",serif;
+  --font-icon:"Segoe Fluent Icons","Segoe MDL2 Assets";
+  --font-mono:"Cascadia Mono",Consolas,monospace;
+  --fs-overline:12px;--fs-caption:13px;--fs-page-subtitle:14px;--fs-body:15px;--fs-subtitle:17px;--fs-title:22px;--fs-kpi:24px;
+  --fs-mono:13px;--fs-mono-small:12px;--lh-body:21px;--lh-caption:18px;
+  --r-control:8px;--r-card:12px;--r-tile:10px;--r-tag:6px;--r-chip:999px;--r-focus:10px;
+  --rail-expanded:248px;--rail-compact:72px;
+  /* US139 additions */
+  --section-nav:232px;--provider-card-min:200px;--model-combo-max:480px;--about-label:168px;--content-max:760px;
+  --shadow-low:0 2px 12px rgba(16,24,40,.06);
+}
+body.before{
+  --font-body:"Segoe UI Variable Text","Segoe UI",sans-serif;--font-display:"Segoe UI Variable Display","Segoe UI",sans-serif;
+  --fs-overline:11px;--fs-caption:12px;--fs-page-subtitle:13px;--fs-body:14px;--fs-subtitle:16px;--fs-title:20px;--lh-body:20px;--lh-caption:17px;
+}
+body.hc{
+  --surface-page:#000;--surface-card:#000;--surface-rail:#000;--surface-sunken:#000;--surface-hover:#000;--surface-selected:#1AEBFF;
+  --border-subtle:#FFF;--border-button:#FFF;--border-control:#FFF;--border-focus:#1AEBFF;--button-edge:#FFF;
+  --text-primary:#FFF;--text-body:#FFF;--text-muted:#FFF;--text-disabled:#3FF23F;--text-on-accent:#000;--text-link:#FFFF00;--text-on-selected:#000;
+  --accent:#1AEBFF;--accent-hover:#1AEBFF;--accent-subtle:#000;--accent-subtle-border:#1AEBFF;
+  --danger:#FFF;--danger-text:#FFF;--danger-surface:#000;--danger-border:#FFF;--success:#FFF;--success-surface:#000;--success-border:#FFF;
+  --warning:#FFF;--warning-surface:#000;--warning-border:#FFF;--info:#FFF;--info-surface:#000;--info-border:#FFF;
+  --rail-text:#FFF;--rail-text-selected:#FFF;--rail-selected:#000;--rail-indicator:#1AEBFF;--rail-divider:#FFF;
+  --shadow-low:none;
+}
+*{box-sizing:border-box}
+body{margin:0;font:var(--fs-body)/var(--lh-body) var(--font-body);color:var(--text-body);background:#d9dde6}
+body.hc{background:#222}
+.g{font-family:var(--font-icon);font-style:normal;font-weight:normal;line-height:1}
+.mono{font-family:var(--font-mono);font-size:var(--fs-mono)}
+/* Prototype bar */
+.proto-bar{position:sticky;top:0;z-index:5;background:#101828;color:#fff;padding:6px 12px;display:flex;gap:4px 12px;flex-wrap:wrap;align-items:center;font:12px/1.4 "Segoe UI",sans-serif}
+.proto-bar .grp{display:flex;gap:3px;flex-wrap:wrap;align-items:center}
+.proto-bar .grp>span{color:#98A2B3;margin-right:2px}
+.proto-bar button{font:inherit;padding:2px 7px;border-radius:6px;border:1px solid #475467;background:#1d2539;color:#fff;cursor:pointer}
+.proto-bar button[aria-pressed=true]{background:#4F46E5;border-color:#4F46E5}
+.stage{padding:16px;overflow-x:auto}
+/* Window shell */
+.window{display:grid;grid-template-columns:var(--rail-expanded) 1fr;grid-template-rows:68px 1fr;min-height:720px;width:1280px;background:var(--surface-page);margin:0 auto;box-shadow:0 8px 32px rgba(16,24,40,.18);border-radius:8px;overflow:hidden}
+.window.narrow{width:880px;grid-template-columns:var(--rail-compact) 1fr}
+.rail{grid-row:1 / span 2;background:var(--surface-rail);padding:16px 0;border-right:1px solid var(--rail-divider);color:var(--rail-text)}
+.brand{display:flex;align-items:center;gap:10px;padding:0 16px 16px 20px;font:700 16px var(--font-display);color:#fff;height:52px}
+.brand .mark{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,#6366F1,#8B5CF6);display:grid;place-items:center;flex:none}
+body.hc .brand .mark{background:#000;border:1px solid #fff}
+.rail .nav{height:40px;margin:2px 12px;display:flex;align-items:center;gap:12px;padding:0 12px;border-radius:8px;position:relative;color:var(--rail-text);border:0;background:transparent;font:inherit;width:calc(100% - 24px);text-align:left;cursor:pointer}
+.rail .nav .g{width:20px;text-align:center;font-size:16px}
+.rail .nav.sel{background:var(--rail-selected);color:var(--rail-text-selected);font-weight:700}
+.rail .nav.sel::before{content:"";position:absolute;left:-12px;top:11px;height:18px;width:3px;border-radius:2px;background:var(--rail-indicator)}
+.window.narrow .rail .nav .lbl,.window.narrow .brand .name{display:none}
+.window.narrow .brand{padding:0 19px 16px}
+.topbar{display:flex;align-items:center;padding:0 24px 0 32px;border-bottom:1px solid var(--border-subtle);background:var(--surface-card)}
+.topbar h1{font:700 var(--fs-title) var(--font-display);color:var(--text-primary);margin:0}
+.topbar .sub{font-size:var(--fs-page-subtitle);color:var(--text-muted);margin-left:12px}
+.content{padding:28px 32px 32px;min-width:0}
+.window.narrow .content{padding:20px 20px 24px}
+h2{font:700 var(--fs-subtitle)/1.25 var(--font-display);color:var(--text-primary);margin:0}
+.overline{font-size:var(--fs-overline);font-weight:700;color:var(--text-muted);margin:0 0 8px}
+.helper{font-size:var(--fs-caption);line-height:var(--lh-caption);color:var(--text-muted)}
+.label{font-weight:700;color:var(--text-primary)}
+.card{background:var(--surface-card);border:1px solid var(--border-subtle);border-radius:var(--r-card);padding:24px;box-shadow:var(--shadow-low)}
+.tile{width:36px;height:36px;border-radius:var(--r-tile);background:var(--accent-subtle);color:var(--text-link);display:grid;place-items:center;flex:none;border:1px solid var(--accent-subtle-border);font-size:16px}
+.tile.mono-gram{font:700 17px var(--font-display);font-family:var(--font-display)}
+:focus-visible{outline:2px solid var(--border-focus);outline-offset:3px;border-radius:var(--r-focus)}
+.btn{font:inherit;font-weight:700;border-radius:8px;padding:8px 16px;min-height:40px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:8px}
+.btn-primary{border:1px solid var(--button-edge);background:var(--accent);color:var(--text-on-accent)}
+.btn-primary:hover{background:var(--accent-hover)}
+.btn-secondary{border:1px solid var(--border-button);background:var(--surface-card);color:var(--text-primary);min-width:104px;justify-content:center}
+.btn-secondary:hover{background:var(--surface-hover);border-color:var(--border-control)}
+.btn:disabled{background:var(--surface-sunken);color:var(--text-disabled);border-color:var(--border-subtle);cursor:default}
+.link-btn{border:0;background:transparent;color:var(--text-link);font:inherit;font-weight:700;padding:8px 10px;min-height:40px;cursor:pointer;white-space:nowrap}
+.link-btn:hover{text-decoration:underline}
+/* Tag / chip */
+.tag{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:var(--r-tag);font-size:var(--fs-caption);font-weight:700;background:var(--surface-sunken);border:1px solid var(--border-subtle);color:var(--text-body);white-space:nowrap;line-height:1.3}
+.tag .g{font-size:12px}
+.tag.warning{background:var(--warning-surface);border-color:var(--warning-border);color:var(--warning)}
+.tag.success{background:var(--success-surface);border-color:var(--success-border);color:var(--success)}
+.tag.info{background:var(--info-surface);border-color:var(--info-border);color:var(--text-primary)}
+/* Banner (BannerView, reused) */
+.banner{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--info-border);background:var(--info-surface);border-radius:8px;padding:12px 12px 12px 0;position:relative}
+.banner::before{content:"";width:4px;align-self:stretch;border-radius:2px;background:var(--info);margin-right:4px}
+.banner.warning{border-color:var(--warning-border);background:var(--warning-surface)}.banner.warning::before{background:var(--warning)}
+.banner.error{border-color:var(--danger-border);background:var(--danger-surface)}.banner.error::before{background:var(--danger)}
+.banner .bg{width:20px;text-align:center;color:var(--info);padding-top:3px;font-size:16px}
+.banner.warning .bg{color:var(--warning)}.banner.error .bg{color:var(--danger)}
+.banner .msg{flex:1;color:var(--text-body)}
+.banner .msg b{display:block;color:var(--text-primary)}
+/* Fields */
+.field{margin-bottom:18px;max-width:var(--content-max)}
+.field label{display:block;font-weight:700;color:var(--text-primary);padding-bottom:6px}
+.input{font:inherit;color:var(--text-primary);background:var(--surface-card);border:1px solid var(--border-control);border-radius:8px;padding:8px 12px;min-height:40px;width:100%}
+.input.url{font-family:var(--font-mono);font-size:var(--fs-mono)}
+.input:focus{outline:none;border:2px solid var(--border-focus);padding:7px 11px}
+select.input{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--text-muted) 50%),linear-gradient(135deg,var(--text-muted) 50%,transparent 50%);background-position:calc(100% - 18px) 17px,calc(100% - 13px) 17px;background-size:5px 5px;background-repeat:no-repeat;padding-right:36px;cursor:pointer}
+select.input.mono{font-family:var(--font-mono);font-size:var(--fs-mono)}
+select.input:disabled{background-color:var(--surface-sunken);color:var(--text-disabled);cursor:default}
+.divider{height:1px;background:var(--border-subtle);margin:0 0 20px}
+
+/* ===== US139: Settings two-pane ===== */
+.settings{display:grid;grid-template-columns:var(--section-nav) minmax(0,1fr);gap:16px;align-items:start}
+.snav{padding:8px;border-radius:var(--r-card)}
+.snav ul{list-style:none;margin:0;padding:0}
+.snav [role=option]{position:relative;display:flex;align-items:center;gap:12px;height:40px;margin:2px 0;padding:0 12px;border-radius:8px;cursor:pointer;color:var(--text-body);outline:none}
+.snav [role=option] .g{width:20px;text-align:center;font-size:16px;color:var(--text-muted)}
+.snav [role=option]:hover{background:var(--surface-hover);color:var(--text-primary)}
+.snav [role=option][aria-selected=true]{background:var(--surface-selected);color:var(--text-on-selected);font-weight:700}
+.snav [role=option][aria-selected=true] .g{color:var(--accent)}
+body.hc .snav [role=option][aria-selected=true] .g{color:var(--text-on-selected)}
+.snav [role=option][aria-selected=true]::before{content:"";position:absolute;left:0;top:11px;height:18px;width:3px;border-radius:2px;background:var(--accent)}
+body.hc .snav [role=option][aria-selected=true]::before{background:var(--text-on-selected)}
+.snav ul:focus-visible{outline:none}
+.snav ul:focus-visible [role=option][aria-current=true]{box-shadow:inset 0 0 0 2px var(--border-focus)}
+.pane-h{display:flex;gap:12px;align-items:flex-start;margin-bottom:20px}
+.pane-h .titles{flex:1;min-width:0}
+.pane-h .helper{margin-top:2px}
+.progress{height:4px;background:var(--surface-sunken);position:relative;overflow:hidden;margin:-12px 0 8px;border-radius:2px}
+.progress span{position:absolute;left:0;top:0;bottom:0;width:120px;background:var(--accent);animation:ind 1.4s linear infinite}
+@keyframes ind{from{left:-120px}to{left:100%}}
+/* Provider cards (ProviderCard: RadioButton, based on SourceCard chrome) */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--provider-card-min),1fr));gap:12px;margin-bottom:20px}
+.pcard{position:relative;display:flex;flex-direction:column;gap:8px;align-items:flex-start;text-align:left;padding:16px;min-height:148px;border-radius:var(--r-card);border:1px solid var(--border-subtle);background:var(--surface-card);box-shadow:var(--shadow-low);cursor:pointer;font:inherit;color:var(--text-primary)}
+.pcard:hover{border-color:var(--border-control);background:var(--surface-hover)}
+.pcard[aria-checked=true]{border:2px solid var(--accent);padding:15px}
+.pcard .t{font-weight:700}
+.pcard .d{font-size:var(--fs-caption);line-height:var(--lh-caption);color:var(--text-muted);flex:1}
+.pcard .check{position:absolute;top:12px;right:12px;width:20px;height:20px;border-radius:50%;background:var(--accent);color:var(--text-on-accent);display:none;place-items:center;font-size:11px}
+.pcard[aria-checked=true] .check{display:grid}
+.model-row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+.model-row .field{flex:1 1 280px;max-width:var(--model-combo-max);margin-bottom:0}
+.saved{display:flex;gap:6px;align-items:center;color:var(--success);font-size:var(--fs-caption);min-height:40px}
+.stack{display:grid;gap:16px}
+/* Key rows (AiKeyRowView / BedrockSsoRowView, reused) */
+.krow{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;min-height:60px;padding:12px 0;border-top:1px solid var(--border-subtle)}
+.krow:first-of-type{border-top:0}
+.krow .acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+/* About */
+.about{display:grid;grid-template-columns:var(--about-label) minmax(0,1fr) auto;column-gap:16px;max-width:none}
+.about>div{padding:14px 0;border-top:1px solid var(--border-subtle);min-height:60px;display:flex;flex-direction:column;justify-content:center}
+.about>div:nth-child(-n+3){border-top:0}
+.about .val{word-break:break-all}
+.about .val .mono{color:var(--text-body)}
+.window.narrow .about{grid-template-columns:minmax(0,1fr)}
+.window.narrow .about>div{border-top:0;padding:4px 0;min-height:0}
+.window.narrow .about>div:nth-child(3n+1){border-top:1px solid var(--border-subtle);padding-top:14px}
+.window.narrow .about>div:nth-child(1){border-top:0}
+.window.narrow .about>div:nth-child(3n){padding-bottom:14px}
+.ro{border:0;background:transparent;padding:0;font:var(--fs-mono)/1.5 var(--font-mono);color:var(--text-body);width:100%;resize:none}
+/* ===== US139: Extract model line ===== */
+.mline{display:flex;align-items:center;gap:8px 12px;flex-wrap:wrap;padding:4px 4px 4px 16px;min-height:48px;border-radius:var(--r-control);background:var(--surface-sunken);border:1px solid var(--border-subtle);margin-bottom:16px}
+.mline .lead{color:var(--text-muted);font-size:16px}
+.mline .k{font-size:var(--fs-overline);font-weight:700;color:var(--text-muted)}
+.mline .v{display:flex;gap:8px;align-items:baseline;min-width:0;flex:1 1 260px}
+.mline .v .mono{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:420px}
+.mline .sp{display:flex;gap:2px;align-items:center;flex-wrap:wrap}
+.toolbar{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.toolbar .r{display:flex;gap:12px;align-items:center}
+.srcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:16px;margin-bottom:20px}
+.src{padding:16px;min-height:120px;border-radius:var(--r-card);border:1px solid var(--border-subtle);background:var(--surface-card);display:flex;flex-direction:column;gap:8px}
+.src.on{border:2px solid var(--accent);padding:15px}
+.kpis{display:flex;gap:12px;flex-wrap:wrap}
+.kpi{min-width:150px;padding:14px 16px;border-radius:var(--r-control);background:var(--surface-card);border:1px solid var(--border-subtle)}
+.kpi b{display:block;font:700 var(--fs-kpi) var(--font-display);color:var(--text-primary);font-variant-numeric:tabular-nums}
+.tip{position:relative}
+.tip[data-tip]:hover::after{content:attr(data-tip);position:absolute;right:0;top:calc(100% + 6px);background:#101828;color:#F8FAFC;font:var(--fs-caption)/1.4 var(--font-body);padding:6px 10px;border-radius:6px;white-space:nowrap;z-index:3}
+/* Annotations */
+.notes{max-width:1280px;margin:20px auto 40px;background:#fff;border-radius:8px;padding:20px 24px;font:13px/1.5 "Segoe UI",sans-serif;color:#344054}
+.notes h3{font-size:14px;margin:16px 0 6px;color:#101828}.notes h3:first-child{margin-top:0}
+.notes ul{margin:0;padding-left:18px}.notes code{font-family:Consolas,monospace;font-size:12px;background:#F2F4F8;padding:0 4px;border-radius:4px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+<div class="proto-bar" role="toolbar" aria-label="Prototype controls">
+  <div class="grp"><span>Screen</span><button data-k="screen" data-v="settings">Settings</button><button data-k="screen" data-v="extract">Extract</button></div>
+  <div class="grp"><span>Theme</span><button data-k="theme" data-v="light">Light</button><button data-k="theme" data-v="hc">High contrast</button></div>
+  <div class="grp"><span>Width</span><button data-k="width" data-v="wide">1280</button><button data-k="width" data-v="narrow">880 (compact rail)</button></div>
+  <div class="grp"><span>Font</span><button data-k="font" data-v="cambria">Cambria (US139)</button><button data-k="font" data-v="before">Segoe (before)</button></div>
+  <div class="grp"><span>Claude key</span><button data-k="claude" data-v="ready">Set</button><button data-k="claude" data-v="missing">Not set</button></div>
+  <div class="grp"><span>Gemini key</span><button data-k="gemini" data-v="ready">Set</button><button data-k="gemini" data-v="missing">Not set</button></div>
+  <div class="grp"><span>Bedrock SSO</span><button data-k="bedrock" data-v="ready">Connected</button><button data-k="bedrock" data-v="missing">Not connected</button></div>
+  <div class="grp"><span>Readiness</span><button data-k="checking" data-v="no">Known</button><button data-k="checking" data-v="yes">Checking…</button></div>
+  <div class="grp"><span>Model list</span><button data-k="models" data-v="ok">Catalog OK</button><button data-k="models" data-v="empty">Empty</button><button data-k="models" data-v="stale">Saved model gone</button></div>
+  <div class="grp"><span>Save</span><button data-k="save" data-v="ok">Succeeds</button><button data-k="save" data-v="fail">Fails</button></div>
+  <div class="grp"><span>Extract docs</span><button data-k="docs" data-v="yes">Parsed</button><button data-k="docs" data-v="no">None</button></div>
+</div>
+
+<div class="stage"><div id="app"></div></div>
+
+<section class="notes" aria-label="Design annotations">
+  <h3>What this shows</h3>
+  <ul>
+    <li>Settings is one page with a section list (ListBox, one tab stop, Up/Down/Home/End) and a content pane that uses the rest of the body width. The selected section is kept in the navigator singleton for the app session; Ctrl+, opens Settings on it.</li>
+    <li>AI model: three ProviderCard radio buttons + Model combo filtered by provider. Changes save at once (no Save button). The missing-key warning is the existing BannerView, Warning severity, with "Go to AI provider keys".</li>
+    <li>Extract: the Provider and model card is gone. The read-only model line sits directly above the action row. If the key is missing, Extract knowledge is disabled and its tooltip/HelpText uses the existing KeyMissingTitle copy.</li>
+    <li>Text is Cambria. Icons keep Segoe Fluent Icons. URLs, paths and model IDs keep Cascadia Mono at their old sizes. Cambria has no SemiBold face, so every SemiBold setter draws Bold (shown here as 700).</li>
+    <li>A failed save reverts the cards and the drop-down to the last saved choice and shows the error banner. Extract always reads the saved value.</li>
+    <li>At 880 px with the compact rail, About rows stack: label, value, then action.</li>
+    <li>Overline text (SOURCE, PROVIDER, AI MODEL) is stored uppercase. WPF has no text-transform or letter-spacing.</li>
+    <li>Provider tiles use a letter (C, G, B) instead of a brand logo or a guessed glyph. No logo assets ship, and the tile reads the same in high contrast.</li>
+  </ul>
+</section>
+
+<script>
+const G={settings:"\uE713",info:"\uE946",globe:"\uE774",key:"\uE8D7",folder:"\uE838",warning:"\uE7BA",success:"\uE930",check:"\uE73E",bulb:"\uEA80",doc:"\uE8A5",history:"\uE81C",upload:"\uE898",signin:"\uE77B",code:"\uE943",cloud:"\uE753",term:"\uE756",error:"\uEA39"};
+const S={screen:"settings",theme:"light",width:"wide",font:"cambria",claude:"ready",gemini:"missing",bedrock:"missing",checking:"no",models:"ok",save:"ok",docs:"yes",section:"model",provider:"Claude",model:"claude-sonnet-5-5",savedProvider:"Claude",savedModel:"claude-sonnet-5-5",saved:null,saveErr:false};
+const CATALOG={Claude:{def:"claude-sonnet-5-5",models:["claude-sonnet-5-5","claude-opus-5","claude-haiku-5"]},Gemini:{def:"gemini-3.8-flash",models:["gemini-3.8-flash","gemini-3.8-pro"]},Bedrock:{def:"us.anthropic.claude-sonnet-4-5-20250929-v1:0",models:["us.anthropic.claude-sonnet-4-5-20250929-v1:0","us.anthropic.claude-opus-4-1-20250805-v1:0","us.anthropic.claude-haiku-4-5-20251001-v1:0"]}};
+const PROV=[
+  {id:"Claude",title:"Claude",mono:"C",desc:"Anthropic API, using your own key.",kind:"key"},
+  {id:"Gemini",title:"Gemini",mono:"G",desc:"Google AI API, using your own key.",kind:"key"},
+  {id:"Bedrock",title:"Amazon Bedrock",mono:"B",desc:"Claude on AWS, signed in with AWS SSO.",kind:"sso"}];
+const SECTIONS=[
+  {id:"model",title:"AI model",g:G.bulb,intro:"Choose the provider and model that Extract knowledge uses. Your choice is saved on this computer."},
+  {id:"keys",title:"AI provider keys",g:G.key,intro:"Keys are stored in Windows Credential Manager on this computer. They are never shown again after you save them."},
+  {id:"conn",title:"Connections",g:G.globe,intro:"Where the app sends sign-in and uploads."},
+  {id:"about",title:"About",g:G.info,intro:"Version and file locations for this app. Include them when you report a problem."}];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const prov=id=>PROV.find(p=>p.id===id);
+const ready=id=>S[id.toLowerCase()]==="ready";
+function chip(p){
+  if(S.checking==="yes") return `<span class="tag" role="status">Checking…</span>`;
+  if(p.kind==="sso") return ready(p.id)?`<span class="tag success"><i class="g" aria-hidden="true">${G.success}</i>Connected</span>`:`<span class="tag warning"><i class="g" aria-hidden="true">${G.warning}</i>Not connected</span>`;
+  return ready(p.id)?`<span class="tag success"><i class="g" aria-hidden="true">${G.success}</i>Key set</span>`:`<span class="tag warning"><i class="g" aria-hidden="true">${G.warning}</i>Key not set</span>`;
+}
+function chipText(p){ if(S.checking==="yes")return "Checking"; if(p.kind==="sso")return ready(p.id)?"Connected":"Not connected"; return ready(p.id)?"Key set":"Key not set"; }
+function banner(kind,title,msg,act){
+  return `<div class="banner ${kind}" role="status" aria-live="polite"><i class="g bg" aria-hidden="true">${kind==="warning"?G.warning:kind==="error"?G.error:G.info}</i><div class="msg"><b>${esc(title)}</b>${esc(msg)}</div>${act||""}</div>`;
+}
+/* ---------- Shell ---------- */
+function rail(){
+  const items=[["Extract",G.doc,"extract"],["Review",G.upload,""],["History",G.history,""],["Settings",G.settings,"settings"]];
+  return `<nav class="rail" aria-label="Main"><div class="brand"><span class="mark" aria-hidden="true">C</span><span class="name">Cortexa Collector</span></div>
+  ${items.map(([t,g,k])=>`<button class="nav ${S.screen===k?"sel":""}" ${k?`data-go="${k}"`:""} aria-current="${S.screen===k?"page":"false"}"><i class="g" aria-hidden="true">${g}</i><span class="lbl">${t}</span></button>`).join("")}</nav>`;
+}
+function topbar(title,sub){return `<header class="topbar"><h1>${title}</h1><span class="sub">${sub}</span></header>`;}
+/* ---------- Settings ---------- */
+function sectionNav(){
+  return `<div class="card snav"><ul role="listbox" id="snav" tabindex="0" aria-label="Settings sections" aria-activedescendant="sn-${S.section}">
+  ${SECTIONS.map(s=>`<li role="option" id="sn-${s.id}" data-sec="${s.id}" aria-selected="${S.section===s.id}" aria-current="${S.section===s.id}"><i class="g" aria-hidden="true">${s.g}</i>${s.title}</li>`).join("")}</ul></div>`;
+}
+function paneHeader(s,extra){
+  return `<div class="pane-h"><span class="tile" aria-hidden="true"><i class="g">${s.g}</i></span><div class="titles"><h2 id="pane-title">${s.title}</h2><div class="helper">${esc(s.intro)}</div></div>${extra||""}</div>`;
+}
+function modelSection(s){
+  const p=prov(S.provider);let list=CATALOG[S.provider].models;
+  if(S.models==="empty") list=[];
+  const cards=PROV.map(x=>`<button class="pcard" role="radio" aria-checked="${S.provider===x.id}" data-prov="${x.id}" tabindex="${S.provider===x.id?0:-1}" aria-label="${x.title}, ${chipText(x)}" aria-describedby="pd-${x.id}">
+     <span class="tile mono-gram" aria-hidden="true">${x.mono}</span><span class="t">${x.title}</span><span class="d" id="pd-${x.id}">${x.desc}</span>${chip(x)}<span class="check g" aria-hidden="true">${G.check}</span></button>`).join("");
+  let warn="";
+  if(S.checking!=="yes" && !ready(p.id)){
+    warn = p.kind==="sso"
+      ? banner("warning","Not connected to AWS SSO.","Extract knowledge stays off until you connect Amazon Bedrock.",`<button class="link-btn" data-sec-go="keys" aria-label="Open the AI provider keys section">Go to AI provider keys</button>`)
+      : banner("warning",`${p.title} key not set.`,"Extract knowledge stays off until you add the key.",`<button class="link-btn" data-sec-go="keys" aria-label="Open the AI provider keys section">Go to AI provider keys</button>`);
+  }
+  let modelHelp=`<div class="helper" style="padding-top:4px">Models available for ${esc(p.title)}. Changes apply to the next extraction.</div>`;
+  if(S.models==="empty") modelHelp=`<div class="helper" style="padding-top:4px;color:var(--danger)"><i class="g" aria-hidden="true">${G.error}</i> No models are set up for ${esc(p.title)}. Check Ai:ModelCatalog in appsettings.json.</div>`;
+  let stale=S.models==="stale"?`<div class="stack" style="margin-top:16px">${banner("info","Your saved model isn't available anymore.",`Using ${CATALOG[S.provider].def}, the default for ${p.title}.`)}</div>`:"";
+  let feedback="";
+  if(S.saveErr) feedback=banner("error","Couldn't save your model choice.","The settings file could not be written. Check that you have write access to %LOCALAPPDATA%\\Cortexa\\Collector, then try again.");
+  const savedLine=S.saved&&!S.saveErr?`<span class="saved" role="status" aria-live="polite"><i class="g" aria-hidden="true">${G.success}</i>${esc(S.saved)}</span>`:`<span class="saved" role="status" aria-live="polite"></span>`;
+  return `<section class="card" aria-labelledby="pane-title">${paneHeader(s)}<div class="divider"></div>
+    <div class="overline" id="pg-l">PROVIDER</div>
+    <div class="pgrid" role="radiogroup" aria-labelledby="pg-l">${cards}</div>
+    <div class="model-row"><div class="field"><label for="model"><u>M</u>odel</label>
+      <select class="input mono" id="model" aria-label="Model" ${list.length?"":"disabled"}>${list.map(m=>`<option ${m===S.model?"selected":""}>${m}</option>`).join("")}</select>${modelHelp}</div>${savedLine}</div>
+    ${warn||feedback?`<div class="stack" style="margin-top:16px">${warn}${feedback}</div>`:""}${stale}</section>`;
+}
+function keysSection(s){
+  const rows=PROV.filter(p=>p.kind==="key").map(p=>{
+    const r=ready(p.id);
+    return `<div class="krow"><div><div class="label">${p.title}</div><div class="helper">${p.id==="Claude"?"Anthropic API key. Used when Claude is the AI model.":"Google AI API key. Used when Gemini is the AI model."}</div></div>
+    <div class="acts">${chip(p)}<button class="btn btn-secondary" aria-label="${r?"Replace":"Add"} ${p.title} key">${r?"Replace":"Add key"}</button>${r?`<button class="link-btn" aria-label="Clear ${p.title} key">Clear</button>`:""}</div></div>`;}).join("");
+  const b=prov("Bedrock"),br=ready("Bedrock");
+  const bed=`<div class="krow"><div><div class="label">${b.title}</div><div class="helper">Signs in with AWS SSO. No key needed.</div></div>
+    <div class="acts">${chip(b)}${br?`<button class="link-btn" aria-label="Disconnect Bedrock AWS SSO session">Disconnect</button>`:`<button class="btn btn-secondary" aria-label="Connect Bedrock via AWS SSO">Connect via SSO</button>`}</div></div>`;
+  return `<section class="card" aria-labelledby="pane-title">${paneHeader(s)}<div class="divider"></div>${rows}${bed}
+   <p class="helper" style="margin:12px 0 0">Add, Replace, Clear, the key editor and the clear confirmation are the existing AiKeyRowView and BedrockSsoRowView, unchanged.</p></section>`;
+}
+function connSection(s){
+  return `<section class="card" aria-labelledby="pane-title">${paneHeader(s)}<div class="divider"></div>
+   <div class="field"><label for="gw"><u>G</u>ateway URL</label><input class="input url" id="gw" value="https://gateway.cortexa.example.com"><div class="helper" style="padding-top:4px">Cortexa API gateway. Used for sign-in.</div></div>
+   <div class="field"><label for="cs">C<u>o</u>llector server URL</label><input class="input url" id="cs" value="https://collector.cortexa.example.co"><div class="helper" style="padding-top:4px">Receives the knowledge you upload.</div></div>
+   <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><button class="btn btn-primary">Sa<u>v</u>e endpoints</button><button class="btn btn-secondary">Discard changes</button><span class="tag warning">Unsaved changes</span></div>
+   <p class="helper" style="margin:12px 0 0">Unchanged from today: validation on lost focus, gateway sign-out hint, progress bar, save banner. Inputs cap at Size.ContentMaxWidth (760); the card itself is full width.</p></section>`;
+}
+function aboutSection(s){
+  const row=(lbl,help,val,act)=>`<div><span class="label">${lbl}</span>${help?`<span class="helper">${help}</span>`:""}</div><div class="val">${val}</div><div>${act||""}</div>`;
+  return `<section class="card" aria-labelledby="pane-title">${paneHeader(s)}<div class="divider"></div>
+  <div class="about">
+   ${row("Version","",`<span style="color:var(--text-primary)">1.6.0</span>`)}
+   ${row("Log folder","Daily log files.",`<textarea class="ro" rows="1" readonly aria-label="Log folder path">C:\\Users\\Alpha\\AppData\\Local\\Cortexa\\Collector\\logs</textarea>`,`<button class="btn btn-secondary" aria-label="Open the log folder in File Explorer"><i class="g" aria-hidden="true">${G.folder}</i>Open folder</button>`)}
+   ${row("Local cache","Parsed documents and extraction results.",`<textarea class="ro" rows="1" readonly aria-label="Local cache path">C:\\Users\\Alpha\\AppData\\Local\\Cortexa\\Collector\\cache.db</textarea>`)}
+   ${row("Remote source cache","Repositories and files fetched from remote sources.",`<textarea class="ro" rows="1" readonly aria-label="Remote source cache path">C:\\Users\\Alpha\\AppData\\Local\\Cortexa\\Collector\\remote</textarea>`)}
+  </div></section>`;
+}
+function settingsScreen(){
+  const s=SECTIONS.find(x=>x.id===S.section);
+  const pane={model:modelSection,keys:keysSection,conn:connSection,about:aboutSection}[s.id](s);
+  return `${topbar("Settings","AI model, provider keys, connections and app details.")}<main class="content"><div class="settings">${sectionNav()}<div id="pane">${pane}</div></div></main>`;
+}
+/* ---------- Extract ---------- */
+function extractScreen(){
+  const p=prov(S.provider),r=ready(p.id)&&S.checking!=="yes";
+  let help=null;
+  if(S.checking!=="yes" && !ready(p.id)) help=p.kind==="sso"?"Connect Amazon Bedrock with AWS SSO in Settings.":`Add your ${p.title} key in Settings.`;
+  else if(S.docs==="no") help="Parse at least one document first.";
+  const canRun=!help&&S.checking!=="yes";
+  const fix=(!r&&S.checking!=="yes")?`<button class="link-btn" data-open-sec="keys" aria-label="${p.kind==="sso"?"Connect Amazon Bedrock in Settings":`Add the ${p.title} key in Settings`}">${p.kind==="sso"?"Connect in Settings":"Add key in Settings"}</button>`:"";
+  const mline=`<div class="mline" role="group" aria-label="AI model: ${p.title}, ${S.model}">
+     <i class="g lead" aria-hidden="true">${G.bulb}</i><span class="k">AI MODEL</span>
+     <span class="v"><span class="label">${p.title}</span><span aria-hidden="true">·</span><span class="mono tip" title="${S.model}">${S.model}</span>${(!r)?chip(p):""}</span>
+     <span class="sp">${fix}<button class="link-btn" data-open-sec="model" aria-label="Change the AI model in Settings">Change in Settings</button></span></div>`;
+  return `${topbar("Extract","Turn documents and code into knowledge")}<main class="content">
+   <div class="overline">SOURCE</div>
+   <div class="srcs"><div class="src on"><span class="tile" aria-hidden="true"><i class="g">${G.doc}</i></span><b class="label">Local files</b><span class="helper">Pick documents and code from this computer.</span></div>
+     <div class="src"><span class="tile" aria-hidden="true"><i class="g">${G.code}</i></span><b class="label">GitHub</b><span class="helper">Fetch repositories from a GitHub organization.</span></div>
+     <div class="src"><span class="tile" aria-hidden="true"><i class="g">${G.term}</i></span><b class="label">SSH</b><span class="helper">Browse files on a server over SSH.</span></div></div>
+   ${mline}
+   <div class="toolbar"><div style="display:flex;gap:8px"><button class="btn btn-secondary">Choose files…</button><button class="link-btn">Clear all</button></div>
+     <div class="r"><span class="helper">${S.docs==="yes"?"3 files parsed.":""}</span><span class="tip" ${help?`data-tip="${esc(help)}"`:""}><button class="btn btn-primary" ${canRun?"":"disabled"} aria-label="Extract knowledge from parsed documents" ${help?`aria-description="${esc(help)}"`:""}>Extract knowledge</button></span></div></div>
+   ${help&&help!=="Parse at least one document first."?`<p class="helper" style="margin:-8px 0 16px;text-align:right">Tooltip and HelpText on the disabled button: <b style="color:var(--text-primary)">${esc(help)}</b></p>`:""}
+   <div class="kpis"><div class="kpi"><span class="helper">Files</span><b>${S.docs==="yes"?3:0}</b></div><div class="kpi"><span class="helper">Units</span><b>${S.docs==="yes"?42:0}</b></div><div class="kpi"><span class="helper">Tokens</span><b>${S.docs==="yes"?"18,406":0}</b></div></div>
+   <div class="card" style="margin-top:20px"><div class="pane-h" style="margin-bottom:12px"><span class="tile" aria-hidden="true"><i class="g">${G.info}</i></span><div class="titles"><h2>Estimated tokens</h2><div class="helper">Uses the model from the AI model line above. Recomputed when the saved choice changes.</div></div></div>
+   <div class="kpis"><div class="kpi"><span class="helper">Prompt</span><b>21,950</b></div><div class="kpi"><span class="helper">Expected output</span><b>6,300</b></div><div class="kpi"><span class="helper">Total</span><b>28,250</b></div></div></div>
+   <p class="helper" style="margin-top:12px">The Provider and model card that sat below the estimate is removed.</p>
+  </main>`;
+}
+/* ---------- Render + behavior ---------- */
+function render(focusSel){
+  document.body.className=[S.theme==="hc"?"hc":"",S.font==="before"?"before":""].join(" ");
+  document.querySelectorAll(".proto-bar button").forEach(b=>b.setAttribute("aria-pressed",S[b.dataset.k]===b.dataset.v));
+  document.getElementById("app").innerHTML=`<div class="window ${S.width==="narrow"?"narrow":""}">${rail()}${S.screen==="settings"?settingsScreen():extractScreen()}</div>`;
+  if(focusSel){const el=document.querySelector(focusSel); if(el) el.focus();}
+}
+function selectSection(id,focus){S.section=id;S.saved=null;S.saveErr=false;render(focus);}
+function chooseProvider(id){
+  S.provider=id;S.model=CATALOG[id].def;persist(`Saved. Extract knowledge uses ${prov(id).title} · ${S.model}.`);
+  render(`.pcard[data-prov="${id}"]`);
+}
+function persist(msg){ if(S.save==="fail"){S.saveErr=true;S.saved=null;S.provider=S.savedProvider;S.model=S.savedModel;} else {S.saveErr=false;S.saved=msg;S.savedProvider=S.provider;S.savedModel=S.model;} }
+document.addEventListener("click",e=>{
+  const pb=e.target.closest(".proto-bar button"); if(pb){S[pb.dataset.k]=pb.dataset.v; if(pb.dataset.k==="models"&&pb.dataset.v!=="empty") S.model=CATALOG[S.provider].def; render(); return;}
+  const go=e.target.closest("[data-go]"); if(go){S.screen=go.dataset.go;render();return;}
+  const sec=e.target.closest("[data-sec]"); if(sec){selectSection(sec.dataset.sec,"#snav");return;}
+  const sg=e.target.closest("[data-sec-go]"); if(sg){selectSection(sg.dataset.secGo,".krow button");return;}
+  const os=e.target.closest("[data-open-sec]"); if(os){S.screen="settings";selectSection(os.dataset.openSec,os.dataset.openSec==="model"?`.pcard[aria-checked=true]`:".krow button");return;}
+  const pc=e.target.closest(".pcard"); if(pc){chooseProvider(pc.dataset.prov);return;}
+});
+document.addEventListener("change",e=>{ if(e.target.id==="model"){S.model=e.target.value;persist(`Saved. Extract knowledge uses ${prov(S.provider).title} · ${S.model}.`);render("#model");} });
+document.addEventListener("keydown",e=>{
+  if(e.ctrlKey&&e.key===","){e.preventDefault();S.screen="settings";render("#snav");return;}
+  if(e.target.id==="snav"){
+    const ids=SECTIONS.map(s=>s.id);let i=ids.indexOf(S.section);
+    const map={ArrowDown:(i+1)%ids.length,ArrowUp:(i-1+ids.length)%ids.length,Home:0,End:ids.length-1};
+    if(e.key in map){e.preventDefault();selectSection(ids[map[e.key]],"#snav");}
+    return;
+  }
+  const pc=e.target.closest&&e.target.closest(".pcard");
+  if(pc&&["ArrowRight","ArrowDown","ArrowLeft","ArrowUp"].includes(e.key)){
+    e.preventDefault();const ids=PROV.map(p=>p.id);let i=ids.indexOf(pc.dataset.prov);
+    i=(e.key==="ArrowRight"||e.key==="ArrowDown")?(i+1)%ids.length:(i-1+ids.length)%ids.length;
+    document.querySelector(`.pcard[data-prov="${ids[i]}"]`).focus();
+  }
+});
+render();
+</script>
+</body>
+</html>

@@ -11,4 +11,8 @@ public interface IUserSettingsStore
     RemoteSourceSettings GetRemoteSources();
 
     Task SaveRemoteSourcesAsync(RemoteSourceSettings settings, CancellationToken cancellationToken);
+
+    AiModelChoice? GetAiModelChoice();
+
+    Task SaveAiModelChoiceAsync(AiModelChoice choice, CancellationToken cancellationToken);
 }

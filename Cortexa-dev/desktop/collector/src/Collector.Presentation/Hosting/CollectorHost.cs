@@ -82,7 +82,19 @@ public static class CollectorHost
         services.AddSingleton<ExtractionDependencies>();
         services.AddSingleton<ProviderOutputLimits>();
         services.AddSingleton<TokenEstimationDependencies>();
+        services.AddSingleton<KnowledgeRunNavigation>();
         services.AddSingleton<KnowledgeRunViewModel>();
+        return services;
+    }
+
+    private static IServiceCollection AddSettingsServices(this IServiceCollection services)
+    {
+        services.AddSingleton<SettingsNavigator>();
+        services.AddSingleton<IProviderReadiness, ProviderReadiness>();
+        services.AddSingleton<AiModelSectionViewModel>();
+        services.AddSingleton<ActiveModelViewModel>();
+        services.AddSingleton<SettingsServices>();
+        services.AddSingleton<SettingsSections>();
         return services;
     }
 
@@ -99,6 +111,7 @@ public static class CollectorHost
     {
         services.AddSingleton<IFilePicker, WpfFilePicker>();
         services.AddRemoteSourceServices();
+        services.AddSettingsServices();
         services.AddKnowledgeServices();
         services.AddScreens();
         services.AddSingleton<ShellViewModel>();

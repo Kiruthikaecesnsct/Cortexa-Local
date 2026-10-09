@@ -3,7 +3,8 @@
                     xmlns:b="clr-namespace:Collector.Presentation.Behaviors"
                     xmlns:res="clr-namespace:Collector.Presentation.Resources"
                     xmlns:vm="clr-namespace:Collector.Presentation.ViewModels"
-                    xmlns:views="clr-namespace:Collector.Presentation.Views">
+                    xmlns:views="clr-namespace:Collector.Presentation.Views"
+                    xmlns:sections="clr-namespace:Collector.Presentation.Views.SettingsSections">
 
     <DataTemplate DataType="{x:Type vm:SignInViewModel}">
         <views:SignInView />
@@ -11,6 +12,18 @@
 
     <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
         <views:SettingsView />
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:AiModelSectionViewModel}">
+        <sections:AiModelSectionView />
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:ProviderKeysSection}">
+        <sections:ProviderKeysSectionView DataContext="{Binding Owner}" />
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:ConnectionsSection}">
+        <sections:ConnectionsSectionView DataContext="{Binding Owner}" />
     </DataTemplate>
 
     <DataTemplate DataType="{x:Type vm:ExtractionViewModel}">

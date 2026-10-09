@@ -71,7 +71,11 @@ public sealed partial class ShellViewModel : ObservableObject
     private void Navigate(string key) => _navigation.NavigateTo(key);
 
     [RelayCommand]
-    private void OpenSettings() => _navigation.NavigateTo(ScreenKeys.Settings);
+    private void OpenSettings()
+    {
+        _navigation.NavigateTo(ScreenKeys.Settings);
+        (_navigation.CurrentViewModel as SettingsViewModel)?.FocusSections();
+    }
 
     [RelayCommand]
     private void OpenSignIn() => _navigation.NavigateTo(ScreenKeys.SignIn);

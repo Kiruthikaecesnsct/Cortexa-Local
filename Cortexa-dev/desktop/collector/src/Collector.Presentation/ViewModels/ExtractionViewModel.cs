@@ -5,13 +5,12 @@ using Collector.Application.Knowledge;
 using Collector.Application.Ports;
 using Collector.Domain.Enums;
 using Collector.Domain.Extraction;
-using Collector.Infrastructure.Options;
+using Collector.Presentation.Navigation;
 using Collector.Presentation.Resources;
 using Collector.Presentation.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Collector.Presentation.ViewModels;
 
@@ -31,7 +30,7 @@ public static class ExtractionFocusKeys
 
 public sealed record TokenEstimationDependencies(TokenEstimator Estimator, ProviderOutputLimits OutputLimits);
 
-public sealed partial class ExtractionViewModel : FocusableViewModel
+public sealed partial class ExtractionViewModel : FocusableViewModel, INavigationAware
 {
     private readonly ExtractionService _extractionService;
     private readonly IUnitStore _unitStore;
@@ -39,14 +38,13 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
     private readonly ILogger<ExtractionViewModel> _logger;
     private readonly TokenEstimator _tokenEstimator;
     private readonly ProviderOutputLimits _outputLimits;
-    private readonly ProviderModelCatalog _modelCatalog;
     private int _estimateGeneration;
 
     public ExtractionViewModel(
         ExtractionDependencies dependencies,
         KnowledgeRunViewModel knowledge,
         TokenEstimationDependencies tokenEstimation,
-        IOptions<ProviderModelCatalog> modelCatalog)
+        ActiveModelViewModel activeModel)
     {
         _extractionService = dependencies.ExtractionService;
         _unitStore = dependencies.UnitStore;
@@ -55,11 +53,10 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
         Remote = dependencies.Remote;
         _tokenEstimator = tokenEstimation.Estimator;
         _outputLimits = tokenEstimation.OutputLimits;
-        _modelCatalog = modelCatalog.Value;
+        ActiveModel = activeModel;
         Knowledge = knowledge;
         Documents = [];
         PreviewUnits = [];
-        AvailableModels = [];
         knowledge.FocusRequested += (_, key) => RequestFocus(key);
         knowledge.PropertyChanged += OnKnowledgeChanged;
         Remote.FocusRequested += (_, key) => RequestFocus(key);
@@ -67,11 +64,13 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
         SourceCards = CreateSourceCards();
         SyncSourceCards();
         Remote.FilesFetched += OnFilesFetched;
-        Knowledge.Provider = SelectedProvider;
-        UpdateAvailableModels(SelectedProvider);
+        activeModel.Updated += (_, _) => OnActiveModelUpdated();
+        PushActiveModel();
     }
 
     public KnowledgeRunViewModel Knowledge { get; }
+
+    public ActiveModelViewModel ActiveModel { get; }
 
     public RemoteSourceViewModel Remote { get; }
 
@@ -80,10 +79,6 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
     public ObservableCollection<DocumentRowViewModel> Documents { get; }
 
     public ObservableCollection<UnitPreviewItemViewModel> PreviewUnits { get; }
-
-    public IReadOnlyList<CollectorProvider> AvailableProviders { get; } = Enum.GetValues<CollectorProvider>();
-
-    public ObservableCollection<string> AvailableModels { get; }
 
     public IEnumerable<DocumentRowViewModel> SkipRows => Documents.Where(row => row.IsSkipped);
 
@@ -142,12 +137,6 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
     public partial BannerViewModel? SkipBanner { get; set; }
 
     [ObservableProperty]
-    public partial CollectorProvider SelectedProvider { get; set; } = CollectorProvider.Claude;
-
-    [ObservableProperty]
-    public partial string? SelectedModel { get; set; }
-
-    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(TotalEstimatedTokens))]
     public partial int PromptTokens { get; set; }
 
@@ -165,33 +154,23 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
 
     partial void OnSelectedDocumentChanged(DocumentRowViewModel? value) => _ = LoadPreviewAsync(value, CancellationToken.None);
 
-    partial void OnSelectedProviderChanged(CollectorProvider value)
+    public void OnNavigatedTo() => _ = ActiveModel.RefreshAsync(CancellationToken.None);
+
+    public void OnNavigatedFrom()
     {
-        Knowledge.Provider = value;
-        UpdateAvailableModels(value);
+    }
+
+    private void OnActiveModelUpdated()
+    {
+        PushActiveModel();
         _ = RecomputeTokenEstimateAsync();
     }
 
-    partial void OnSelectedModelChanged(string? value)
+    private void PushActiveModel()
     {
-        Knowledge.Model = value;
-        _ = RecomputeTokenEstimateAsync();
-    }
-
-    private void UpdateAvailableModels(CollectorProvider provider)
-    {
-        AvailableModels.Clear();
-        if (!_modelCatalog.Providers.TryGetValue(provider, out var entry))
-        {
-            return;
-        }
-
-        foreach (var model in entry.Models)
-        {
-            AvailableModels.Add(model);
-        }
-
-        SelectedModel = entry.DefaultModel;
+        Knowledge.Provider = ActiveModel.Provider;
+        Knowledge.Model = ActiveModel.Model;
+        Knowledge.Readiness = ActiveModel.Readiness;
     }
 
     [RelayCommand(CanExecute = nameof(CanPickFiles))]
@@ -450,7 +429,7 @@ public sealed partial class ExtractionViewModel : FocusableViewModel
 
     private void ApplyEstimate(List<ExtractionUnit> units)
     {
-        var maxOutputTokens = _outputLimits.MaxOutputTokensFor(SelectedProvider);
+        var maxOutputTokens = _outputLimits.MaxOutputTokensFor(ActiveModel.Provider);
         var estimate = _tokenEstimator.Estimate(units, maxOutputTokens);
         PromptTokens = estimate.PromptTokens;
         EstimatedOutputTokens = estimate.EstimatedOutputTokens;

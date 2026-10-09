@@ -12,43 +12,69 @@ using Microsoft.Extensions.Logging;
 
 namespace Collector.Presentation.ViewModels;
 
+public sealed record SettingsServices(
+    SettingsService Settings,
+    ISessionState Session,
+    ISignInService SignIn,
+    IBedrockSsoCredentials BedrockSso);
+
+public sealed record SettingsSections(
+    SettingsNavigator Navigator,
+    IProviderReadiness Readiness,
+    AiModelSectionViewModel AiModel);
+
 public sealed partial class SettingsViewModel : FocusableViewModel, INavigationAware
 {
     private readonly SettingsService _settings;
     private readonly ISessionState _session;
     private readonly ISignInService _signIn;
+    private readonly SettingsSections _sections;
     private readonly ILogger<SettingsViewModel> _logger;
     private EndpointSettings _saved;
     private bool _gatewayLive;
     private bool _collectorLive;
+    private bool _constructed;
 
     public SettingsViewModel(
-        SettingsService settings,
-        ISessionState session,
-        ISignInService signIn,
-        IBedrockSsoCredentials bedrockSso,
+        SettingsServices services,
+        SettingsSections sections,
         ILogger<SettingsViewModel> logger)
     {
-        _settings = settings;
-        _session = session;
-        _signIn = signIn;
+        _settings = services.Settings;
+        _session = services.Session;
+        _signIn = services.SignIn;
+        _sections = sections;
         _logger = logger;
-        _saved = settings.GetEndpoints();
+        _saved = _settings.GetEndpoints();
         GatewayUrl = _saved.GatewayUrl;
         CollectorServerUrl = _saved.CollectorServerUrl;
         Rows = CreateRows();
         foreach (var row in AllRows)
         {
             row.EditorStateChanged += OnEditorStateChanged;
+            row.StatusChanged += OnCredentialStatusChanged;
         }
 
-        BedrockRow = new BedrockSsoRowViewModel(bedrockSso, logger);
-        session.Changed += (_, _) => UiThread.Post(() => OnPropertyChanged(nameof(ShowGatewayHint)));
+        BedrockRow = new BedrockSsoRowViewModel(services.BedrockSso, logger);
+        BedrockRow.StatusChanged += OnCredentialStatusChanged;
+        _session.Changed += (_, _) => UiThread.Post(() => OnPropertyChanged(nameof(ShowGatewayHint)));
+        Sections = CreateSections();
+        SelectedSection = Sections.First(item => item.Section == sections.Navigator.Selected);
+        sections.Navigator.Changed += (_, _) => SyncSelectedSection();
+        sections.Navigator.Opened += (_, section) => FocusSection(section);
+        _constructed = true;
     }
 
     public IReadOnlyList<AiKeyRowViewModel> Rows { get; }
 
     public BedrockSsoRowViewModel BedrockRow { get; }
+
+    public IReadOnlyList<SettingsSectionItemViewModel> Sections { get; }
+
+    public AiModelSectionViewModel AiModel => _sections.AiModel;
+
+    [ObservableProperty]
+    public partial SettingsSectionItemViewModel? SelectedSection { get; set; }
 
     public bool IsDirty => Normalize(GatewayUrl) != _saved.GatewayUrl || Normalize(CollectorServerUrl) != _saved.CollectorServerUrl;
 
@@ -104,15 +130,31 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
         }
 
         _ = BedrockRow.LoadStatusAsync(CancellationToken.None);
-
-        FocusInitial();
+        AiModel.OnNavigatedTo();
+        FocusSections();
     }
+
+    public void FocusSections() => RequestFocus(SettingsFocusKeys.Sections);
 
     public void OnNavigatedFrom()
     {
         foreach (var row in AllRows)
         {
             row.CloseEditor(returnFocus: false);
+        }
+    }
+
+    partial void OnSelectedSectionChanged(SettingsSectionItemViewModel? value)
+    {
+        if (value is null)
+        {
+            return;
+        }
+
+        _sections.Navigator.Selected = value.Section;
+        if (_constructed && value.Section == SettingsSection.AiModel)
+        {
+            AiModel.OnNavigatedTo();
         }
     }
 
@@ -287,10 +329,39 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
 
     private IEnumerable<AiKeyRowViewModel> AllRows => Rows;
 
-    private void FocusInitial()
+    private void SyncSelectedSection()
     {
-        RequestFocus(SettingsFocusKeys.Gateway);
+        var selected = _sections.Navigator.Selected;
+        if (SelectedSection?.Section != selected)
+        {
+            SelectedSection = Sections.First(item => item.Section == selected);
+        }
     }
+
+    private void OnCredentialStatusChanged(object? sender, EventArgs e) => _sections.Readiness.NotifyChanged();
+
+    private void FocusSection(SettingsSection section)
+    {
+        switch (section)
+        {
+            case SettingsSection.AiModel:
+                AiModel.FocusCheckedCard();
+                break;
+            case SettingsSection.ProviderKeys:
+                Rows[0].FocusPrimary();
+                break;
+            default:
+                RequestFocus(SettingsFocusKeys.Gateway);
+                break;
+        }
+    }
+
+    private SettingsSectionItemViewModel[] CreateSections() =>
+    [
+        new(SettingsSection.AiModel, SettingsStrings.AiModelTitle, Glyphs.Lightbulb, AiModel),
+        new(SettingsSection.ProviderKeys, SettingsStrings.KeysTitle, Glyphs.Key, new ProviderKeysSection(this)),
+        new(SettingsSection.Connections, SettingsStrings.ConnectionsTitle, Glyphs.Globe, new ConnectionsSection(this)),
+    ];
 
     private AiKeyRowViewModel[] CreateRows() =>
     [
@@ -301,7 +372,7 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
                 Name = SettingsStrings.ClaudeName,
                 Description = SettingsStrings.ClaudeDescription,
                 ShortName = "Claude",
-                RunsName = "Claude direct runs",
+                RunsName = SettingsStrings.ClaudeRunsName,
             },
             _settings,
             _logger),
@@ -312,7 +383,7 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
                 Name = SettingsStrings.GeminiName,
                 Description = SettingsStrings.GeminiDescription,
                 ShortName = "Gemini",
-                RunsName = "Gemini direct runs",
+                RunsName = SettingsStrings.GeminiRunsName,
             },
             _settings,
             _logger),
@@ -325,4 +396,5 @@ public static class SettingsFocusKeys
 {
     public const string Gateway = "GatewayUrl";
     public const string Collector = "CollectorUrl";
+    public const string Sections = "SectionList";
 }

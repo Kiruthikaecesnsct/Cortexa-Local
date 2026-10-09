@@ -230,6 +230,62 @@
 
             <ContentControl Content="{Binding Knowledge.Banner}" Style="{StaticResource Banner.Slot}" />
 
+            <Border AutomationProperties.Name="{Binding GroupName}"
+                    DataContext="{Binding ActiveModel}"
+                    Style="{StaticResource ModelLine}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <WrapPanel VerticalAlignment="Center">
+                        <TextBlock Margin="{StaticResource Thickness.InlineGap}"
+                                   Style="{StaticResource Text.Glyph}"
+                                   Text="{x:Static res:Glyphs.Lightbulb}" />
+                        <TextBlock Margin="{StaticResource Thickness.InlineGap}"
+                                   VerticalAlignment="Center"
+                                   Style="{StaticResource Text.Overline}"
+                                   Text="{x:Static res:ExtractionStrings.ModelLineLabel}" />
+                        <TextBlock VerticalAlignment="Center"
+                                   Style="{StaticResource Text.Label}"
+                                   Text="{Binding ProviderName}" />
+                        <TextBlock VerticalAlignment="Center"
+                                   Foreground="{DynamicResource Brush.Text.Muted}"
+                                   Style="{StaticResource Text.Body}"
+                                   Text="{x:Static res:ExtractionStrings.ModelLineSeparator}" />
+                        <TextBlock MaxWidth="{StaticResource Size.ModelIdMax}"
+                                   VerticalAlignment="Center"
+                                   FontFamily="{StaticResource Font.Mono}"
+                                   FontSize="{StaticResource FontSize.Mono}"
+                                   Foreground="{DynamicResource Brush.Text.Body}"
+                                   Text="{Binding Model}"
+                                   TextTrimming="CharacterEllipsis"
+                                   TextWrapping="NoWrap"
+                                   ToolTip="{Binding Model}" />
+                        <Border Style="{StaticResource ReadinessChip}"
+                                Visibility="{Binding ShowChip, Converter={StaticResource BoolToVisibility}}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Style="{StaticResource ReadinessChip.Glyph}" />
+                                <TextBlock Style="{StaticResource Tag.Label}" Text="{Binding ChipText}" />
+                            </StackPanel>
+                        </Border>
+                    </WrapPanel>
+                    <StackPanel Grid.Column="1"
+                                VerticalAlignment="Center"
+                                Orientation="Horizontal">
+                        <Button AutomationProperties.Name="{Binding AddKeyName}"
+                                Command="{Binding AddKeyCommand}"
+                                Content="{Binding AddKeyText}"
+                                Style="{StaticResource Button.Link}"
+                                Visibility="{Binding ShowAddKey, Converter={StaticResource BoolToVisibility}}" />
+                        <Button AutomationProperties.Name="{x:Static res:ExtractionStrings.ChangeInSettingsName}"
+                                Command="{Binding ChangeCommand}"
+                                Content="{x:Static res:ExtractionStrings.ChangeInSettings}"
+                                Style="{StaticResource Button.Link}" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
             <Grid Margin="{StaticResource Thickness.StackGap}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -369,33 +425,6 @@
             <Border Margin="{StaticResource Thickness.SectionTop}" Style="{StaticResource Card}">
                 <StackPanel>
                     <StackPanel Margin="{StaticResource Thickness.StackGapMedium}" Orientation="Horizontal">
-                        <ContentControl Margin="{StaticResource Thickness.InlineGapLarge}" Content="{x:Static res:Glyphs.Settings}" Style="{StaticResource IconTile}" />
-                        <TextBlock AutomationProperties.HeadingLevel="Level2"
-                                   Style="{StaticResource Text.Subtitle}"
-                                   Text="{x:Static res:ExtractionStrings.ProviderModelTitle}" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal">
-                        <HeaderedContentControl Margin="{StaticResource Thickness.InlineGapXL}" Header="{x:Static res:ExtractionStrings.ProviderLabel}" Style="{StaticResource FormField}">
-                            <ComboBox MinWidth="{StaticResource Size.ComboMin}"
-                                      AutomationProperties.Name="{x:Static res:ExtractionStrings.ProviderName}"
-                                      IsEnabled="{Binding CanEditDocuments}"
-                                      ItemsSource="{Binding AvailableProviders}"
-                                      SelectedItem="{Binding SelectedProvider}" />
-                        </HeaderedContentControl>
-                        <HeaderedContentControl Header="{x:Static res:ExtractionStrings.ModelLabel}" Style="{StaticResource FormField}">
-                            <ComboBox MinWidth="{StaticResource Size.ComboMin}"
-                                      AutomationProperties.Name="{x:Static res:ExtractionStrings.ModelName}"
-                                      IsEnabled="{Binding CanEditDocuments}"
-                                      ItemsSource="{Binding AvailableModels}"
-                                      SelectedItem="{Binding SelectedModel}" />
-                        </HeaderedContentControl>
-                    </StackPanel>
-                </StackPanel>
-            </Border>
-
-            <Border Margin="{StaticResource Thickness.SectionTop}" Style="{StaticResource Card}">
-                <StackPanel>
-                    <StackPanel Margin="{StaticResource Thickness.StackGapMedium}" Orientation="Horizontal">
                         <ContentControl Margin="{StaticResource Thickness.InlineGapLarge}" Content="{x:Static res:Glyphs.Document}" Style="{StaticResource IconTile}" />
                         <StackPanel VerticalAlignment="Center">
                             <TextBlock AutomationProperties.HeadingLevel="Level2"
@@ -465,7 +494,7 @@
                                                    Margin="{StaticResource Thickness.InlineGapLarge}"
                                                    VerticalAlignment="Top"
                                                    FontFamily="{StaticResource Font.Mono}"
-                                                   FontSize="{StaticResource FontSize.Caption}"
+                                                   FontSize="{StaticResource FontSize.MonoSmall}"
                                                    Foreground="{DynamicResource Brush.Text.Muted}"
                                                    Text="{Binding Ordinal}" />
                                         <StackPanel Grid.Column="1" Margin="{StaticResource Thickness.InlineGapLarge}">
@@ -491,7 +520,7 @@
                                                     CornerRadius="{StaticResource Radius.Control}"
                                                     Padding="{StaticResource Thickness.ControlPadding}">
                                                 <TextBlock FontFamily="{StaticResource Font.Mono}"
-                                                           FontSize="{StaticResource FontSize.Caption}"
+                                                           FontSize="{StaticResource FontSize.MonoSmall}"
                                                            Foreground="{DynamicResource Brush.Text.Body}"
                                                            MaxHeight="{StaticResource Size.SnippetMaxHeight}"
                                                            Text="{Binding Snippet}"
@@ -502,6 +531,7 @@
                                         <StackPanel Grid.Column="2" VerticalAlignment="Top" HorizontalAlignment="Right">
                                             <TextBlock HorizontalAlignment="Right"
                                                        FontFamily="{StaticResource Font.Mono}"
+                                                       FontSize="{StaticResource FontSize.MonoBody}"
                                                        Style="{StaticResource Text.Label}"
                                                        Text="{Binding TokenCount}" />
                                             <TextBlock HorizontalAlignment="Right" Style="{StaticResource Text.Caption}" Text="{x:Static res:ExtractionStrings.TokensSuffix}" />

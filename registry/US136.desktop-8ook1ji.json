@@ -4,27 +4,27 @@
   "machine": "desktop-8ook1ji",
   "env": "windows",
   "branch": "develop/US136",
-  "status": "implementing",
+  "status": "review",
   "files": [
-    "desktop/collector/src/Collector.Application/Remote/RemoteFailureMessages.cs",
-    "desktop/collector/src/Collector.Application/Remote/RemoteFetchService.cs",
-    "desktop/collector/src/Collector.Application/Ports/IRemoteFetchCompletion.cs",
-    "desktop/collector/src/Collector.Infrastructure/Http/HttpClientNames.cs",
-    "desktop/collector/src/Collector.Infrastructure/Options/OptionsValidators.cs",
-    "desktop/collector/src/Collector.Infrastructure/Options/RemoteSourceOptions.cs",
-    "desktop/collector/src/Collector.Infrastructure/Remote/RemoteSourceRegistration.cs",
-    "desktop/collector/src/Collector.Infrastructure/Remote/Cortexa/",
-    "desktop/collector/src/Collector.Presentation/Resources/RemoteSourceStrings.cs",
-    "desktop/collector/src/Collector.Presentation/ViewModels/RemoteBannerFactory.cs",
-    "desktop/collector/src/Collector.Presentation/ViewModels/RemoteRepositoryRowViewModel.cs",
-    "desktop/collector/src/Collector.Presentation/ViewModels/RemoteSourceViewModel.Repositories.cs",
-    "desktop/collector/src/Collector.Presentation/ViewModels/RemoteSourceViewModel.cs",
-    "desktop/collector/src/Collector.Presentation/Views/RemoteSourceView.xaml",
-    "desktop/collector/src/Collector.Presentation/appsettings.json",
-    "desktop/collector/docs/design/US136_CortexaRepos.html",
+    "desktop/collector/src/Collector.Application/Remote/RemoteFailureMessages.cs",
+    "desktop/collector/src/Collector.Application/Remote/RemoteFetchService.cs",
+    "desktop/collector/src/Collector.Application/Ports/IRemoteFetchCompletion.cs",
+    "desktop/collector/src/Collector.Infrastructure/Http/HttpClientNames.cs",
+    "desktop/collector/src/Collector.Infrastructure/Options/OptionsValidators.cs",
+    "desktop/collector/src/Collector.Infrastructure/Options/RemoteSourceOptions.cs",
+    "desktop/collector/src/Collector.Infrastructure/Remote/RemoteSourceRegistration.cs",
+    "desktop/collector/src/Collector.Infrastructure/Remote/Cortexa/",
+    "desktop/collector/src/Collector.Presentation/Resources/RemoteSourceStrings.cs",
+    "desktop/collector/src/Collector.Presentation/ViewModels/RemoteBannerFactory.cs",
+    "desktop/collector/src/Collector.Presentation/ViewModels/RemoteRepositoryRowViewModel.cs",
+    "desktop/collector/src/Collector.Presentation/ViewModels/RemoteSourceViewModel.Repositories.cs",
+    "desktop/collector/src/Collector.Presentation/ViewModels/RemoteSourceViewModel.cs",
+    "desktop/collector/src/Collector.Presentation/Views/RemoteSourceView.xaml",
+    "desktop/collector/src/Collector.Presentation/appsettings.json",
+    "desktop/collector/docs/design/US136_CortexaRepos.html",
     "desktop/collector/tests/Collector.Tests/"
   ],
   "started": "2026-10-09T03:15:18Z",
-  "heartbeat": "2026-10-09T03:53:31Z",
+  "heartbeat": "2026-10-09T04:03:01Z",
   "schema": 2
 }

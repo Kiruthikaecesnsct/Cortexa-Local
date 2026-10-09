@@ -12,7 +12,8 @@ public sealed class JsonUserSettingsStore(
     IOptionsMonitor<GatewayOptions> gateway,
     IOptionsMonitor<CollectorServerOptions> collectorServer,
     IOptionsMonitor<RemoteSourceOptions> remoteSources,
-    IOptionsMonitor<AiModelChoiceOptions> aiModelChoice) : IUserSettingsStore
+    IOptionsMonitor<AiModelChoiceOptions> aiModelChoice,
+    IOptionsMonitor<GeminiRotationOptions> geminiRotation) : IUserSettingsStore
 {
     private const string AzureDevOpsSection = "AzureDevOps";
     private const string OrganizationKey = "Organization";
@@ -46,6 +47,16 @@ public sealed class JsonUserSettingsStore(
             {
                 [nameof(AiModelChoiceOptions.Provider)] = choice.Provider.ToString(),
                 [nameof(AiModelChoiceOptions.Model)] = choice.Model,
+            },
+            cancellationToken);
+
+    public string? GetGeminiActiveKeyId() => geminiRotation.CurrentValue.ActiveKeyId;
+
+    public Task SaveGeminiActiveKeyIdAsync(string? keyId, CancellationToken cancellationToken) =>
+        UpdateAsync(
+            root => root[GeminiRotationOptions.SectionName] = new JsonObject
+            {
+                [nameof(GeminiRotationOptions.ActiveKeyId)] = keyId,
             },
             cancellationToken);
 

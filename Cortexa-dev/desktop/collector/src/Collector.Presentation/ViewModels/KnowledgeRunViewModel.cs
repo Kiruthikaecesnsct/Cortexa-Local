@@ -152,15 +152,26 @@ public sealed partial class KnowledgeRunViewModel : FocusableViewModel
         }
     }
 
-    private BannerViewModel BannerFor(KnowledgeRunOutcome outcome) => outcome.Status switch
+    private BannerViewModel BannerFor(KnowledgeRunOutcome outcome)
     {
-        KnowledgeRunStatus.Canceled => Dismissible(BannerSeverity.Info, ExtractionStrings.CanceledTitle, ExtractionStrings.CanceledMessage),
-        KnowledgeRunStatus.KeyMissing => KeyMissingBanner(outcome.Provider),
-        KnowledgeRunStatus.KeyRejected => Dismissible(BannerSeverity.Error, ExtractionStrings.KeyRejectedTitle, ExtractionStrings.KeyRejectedMessage),
-        KnowledgeRunStatus.QuotaExceeded => Dismissible(BannerSeverity.Warning, ExtractionStrings.QuotaExceededTitle, ExtractionStrings.QuotaExceededMessage),
-        KnowledgeRunStatus.NetworkFailed => Dismissible(BannerSeverity.Error, ExtractionStrings.NetworkFailedTitle, ExtractionStrings.NetworkFailedMessage),
-        _ => Dismissible(BannerSeverity.Error, ExtractionStrings.RunFailedTitle, ExtractionStrings.RunFailedMessage),
-    };
+        if (outcome.ConfiguredKeyCount > 1 && outcome.Status is KnowledgeRunStatus.KeyRejected or KnowledgeRunStatus.QuotaExceeded)
+        {
+            return Dismissible(
+                BannerSeverity.Error,
+                ExtractionStrings.AllKeysFailedTitle,
+                ExtractionStrings.AllKeysFailedMessage(outcome.ConfiguredKeyCount));
+        }
+
+        return outcome.Status switch
+        {
+            KnowledgeRunStatus.Canceled => Dismissible(BannerSeverity.Info, ExtractionStrings.CanceledTitle, ExtractionStrings.CanceledMessage),
+            KnowledgeRunStatus.KeyMissing => KeyMissingBanner(outcome.Provider),
+            KnowledgeRunStatus.KeyRejected => Dismissible(BannerSeverity.Error, ExtractionStrings.KeyRejectedTitle, ExtractionStrings.KeyRejectedMessage),
+            KnowledgeRunStatus.QuotaExceeded => Dismissible(BannerSeverity.Warning, ExtractionStrings.QuotaExceededTitle, ExtractionStrings.QuotaExceededMessage),
+            KnowledgeRunStatus.NetworkFailed => Dismissible(BannerSeverity.Error, ExtractionStrings.NetworkFailedTitle, ExtractionStrings.NetworkFailedMessage),
+            _ => Dismissible(BannerSeverity.Error, ExtractionStrings.RunFailedTitle, ExtractionStrings.RunFailedMessage),
+        };
+    }
 
     private string? ResolveHelp()
     {

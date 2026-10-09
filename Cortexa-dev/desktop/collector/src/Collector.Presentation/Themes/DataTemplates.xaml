@@ -50,6 +50,10 @@
         <views:BedrockSsoRowView />
     </DataTemplate>
 
+    <DataTemplate DataType="{x:Type vm:GeminiKeysGroupViewModel}">
+        <sections:GeminiKeysGroupView />
+    </DataTemplate>
+
     <DataTemplate DataType="{x:Type vm:KeyEditorViewModel}">
         <StackPanel Margin="{StaticResource Thickness.SectionTop}">
             <StackPanel.InputBindings>

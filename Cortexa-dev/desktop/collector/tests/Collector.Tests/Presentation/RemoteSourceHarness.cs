@@ -121,7 +121,7 @@ internal sealed class RemoteSourceHarness
 
     public RemoteSourceHarness()
     {
-        Settings = new SettingsService(Store, Secrets);
+        Settings = new SettingsService(Store, Secrets, new FakeGeminiKeyStore());
         var clients = new FakeRemoteClients(GitHub, AzureDevOps, Cortexa);
         var dependencies = new RemoteSourceDependencies(
             clients,

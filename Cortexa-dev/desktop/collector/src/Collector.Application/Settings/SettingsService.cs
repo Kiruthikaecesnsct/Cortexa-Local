@@ -4,7 +4,7 @@ using Collector.Domain.Enums;
 
 namespace Collector.Application.Settings;
 
-public sealed class SettingsService(IUserSettingsStore store, ISecretStore secrets)
+public sealed class SettingsService(IUserSettingsStore store, ISecretStore secrets, IGeminiKeyStore geminiKeys)
 {
     public EndpointSettings GetEndpoints() => store.GetEndpoints();
 
@@ -69,4 +69,27 @@ public sealed class SettingsService(IUserSettingsStore store, ISecretStore secre
     private static SecretSlot RequireSlot(CollectorProvider provider) =>
         AiKeySlots.For(provider)
         ?? throw new InvalidOperationException($"Provider {provider} does not use a stored key.");
+
+    public string? GetGeminiActiveKeyId() => store.GetGeminiActiveKeyId();
+
+    public Task SetGeminiActiveKeyIdAsync(string? keyId, CancellationToken cancellationToken) =>
+        store.SaveGeminiActiveKeyIdAsync(keyId, cancellationToken);
+
+    public async Task<IReadOnlyList<GeminiKeySummary>> GetGeminiKeySummariesAsync(CancellationToken cancellationToken)
+    {
+        var list = await geminiKeys.GetKeysAsync(cancellationToken);
+        return list.ToSummaries();
+    }
+
+    public async Task<GeminiKeySummary> AddGeminiKeyAsync(string rawKey, CancellationToken cancellationToken)
+    {
+        var created = await geminiKeys.AddKeyAsync(rawKey, cancellationToken);
+        return new GeminiKeySummary(created.Id, created.Last4);
+    }
+
+    public Task RemoveGeminiKeyAsync(string id, CancellationToken cancellationToken) =>
+        geminiKeys.RemoveKeyAsync(id, cancellationToken);
+
+    public Task ReorderGeminiKeysAsync(IReadOnlyList<string> orderedIds, CancellationToken cancellationToken) =>
+        geminiKeys.ReorderAsync(orderedIds, cancellationToken);
 }

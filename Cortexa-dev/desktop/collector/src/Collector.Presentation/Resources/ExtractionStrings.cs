@@ -101,6 +101,10 @@ public static class ExtractionStrings
     public const string KeyRejectedMessage = "Check your key in Settings, then try again.";
     public const string QuotaExceededTitle = "Rate limit or quota exceeded.";
     public const string QuotaExceededMessage = "Try again later, or switch to a different provider.";
+    public const string AllKeysFailedTitle = "All of your configured keys failed.";
+
+    public static string AllKeysFailedMessage(int keyCount) =>
+        $"All {keyCount} configured keys were tried and rejected or rate-limited. Check your keys in Settings, then try again.";
     public const string NetworkFailedTitle = "Knowledge extraction couldn't reach the provider.";
     public const string NetworkFailedMessage = "Check your connection, then try again.";
     public const string ReadySignInTitle = "Knowledge is ready to review.";

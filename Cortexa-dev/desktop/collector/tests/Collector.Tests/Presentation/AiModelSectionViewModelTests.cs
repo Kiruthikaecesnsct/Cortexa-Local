@@ -274,5 +274,5 @@ public sealed class AiModelSectionViewModelTests
     }
 
     private static ProviderReadiness CreateReadiness(StubBedrockSso sso, InMemorySecretStore secrets) =>
-        new(new SettingsService(new FakeUserSettingsStore(), secrets), sso, NullLogger<ProviderReadiness>.Instance);
+        new(new SettingsService(new FakeUserSettingsStore(), secrets, new FakeGeminiKeyStore()), sso, NullLogger<ProviderReadiness>.Instance);
 }

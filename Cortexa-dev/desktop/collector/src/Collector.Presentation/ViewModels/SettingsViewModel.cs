@@ -16,7 +16,8 @@ public sealed record SettingsServices(
     SettingsService Settings,
     ISessionState Session,
     ISignInService SignIn,
-    IBedrockSsoCredentials BedrockSso);
+    IBedrockSsoCredentials BedrockSso,
+    IGeminiKeyStatusStore GeminiKeyStatus);
 
 public sealed record SettingsSections(
     SettingsNavigator Navigator,
@@ -57,6 +58,8 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
 
         BedrockRow = new BedrockSsoRowViewModel(services.BedrockSso, logger);
         BedrockRow.StatusChanged += OnCredentialStatusChanged;
+        GeminiKeys = new GeminiKeysGroupViewModel(services.Settings, services.GeminiKeyStatus, logger);
+        GeminiKeys.EditorStateChanged += OnEditorStateChanged;
         _session.Changed += (_, _) => UiThread.Post(() => OnPropertyChanged(nameof(ShowGatewayHint)));
         Sections = CreateSections();
         SelectedSection = Sections.First(item => item.Section == sections.Navigator.Selected);
@@ -68,6 +71,8 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
     public IReadOnlyList<AiKeyRowViewModel> Rows { get; }
 
     public BedrockSsoRowViewModel BedrockRow { get; }
+
+    public GeminiKeysGroupViewModel GeminiKeys { get; }
 
     public IReadOnlyList<SettingsSectionItemViewModel> Sections { get; }
 
@@ -85,7 +90,7 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
 
     public string SaveLabel => IsSaving ? SettingsStrings.Saving : SettingsStrings.Save;
 
-    public bool IsSaveDefault => !AllRows.Any(row => row.HasEditor);
+    public bool IsSaveDefault => !AllRows.Any(row => row.HasEditor) && !GeminiKeys.HasEditor;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsDirty), nameof(ShowGatewayHint))]
@@ -130,6 +135,7 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
         }
 
         _ = BedrockRow.LoadStatusAsync(CancellationToken.None);
+        _ = GeminiKeys.LoadAsync(CancellationToken.None);
         AiModel.OnNavigatedTo();
         FocusSections();
     }
@@ -142,6 +148,8 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
         {
             row.CloseEditor(returnFocus: false);
         }
+
+        GeminiKeys.CloseEditor(returnFocus: false);
     }
 
     partial void OnSelectedSectionChanged(SettingsSectionItemViewModel? value)
@@ -316,15 +324,29 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
     private void OnEditorStateChanged(object? sender, EventArgs e)
     {
         OnPropertyChanged(nameof(IsSaveDefault));
-        if (sender is not AiKeyRowViewModel { HasEditor: true } opened)
+        switch (sender)
         {
-            return;
-        }
+            case AiKeyRowViewModel { HasEditor: true } opened:
+                CloseOtherEditors(opened);
+                break;
+            case GeminiKeysGroupViewModel { HasEditor: true }:
+                foreach (var row in AllRows)
+                {
+                    row.CloseEditor(returnFocus: false);
+                }
 
+                break;
+        }
+    }
+
+    private void CloseOtherEditors(AiKeyRowViewModel opened)
+    {
         foreach (var other in AllRows.Where(row => row != opened))
         {
             other.CloseEditor(returnFocus: false);
         }
+
+        GeminiKeys.CloseEditor(returnFocus: false);
     }
 
     private IEnumerable<AiKeyRowViewModel> AllRows => Rows;
@@ -373,17 +395,6 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
                 Description = SettingsStrings.ClaudeDescription,
                 ShortName = "Claude",
                 RunsName = SettingsStrings.ClaudeRunsName,
-            },
-            _settings,
-            _logger),
-        new(
-            new AiKeyRowDescriptor
-            {
-                Slot = SecretSlot.GeminiApiKey,
-                Name = SettingsStrings.GeminiName,
-                Description = SettingsStrings.GeminiDescription,
-                ShortName = "Gemini",
-                RunsName = SettingsStrings.GeminiRunsName,
             },
             _settings,
             _logger),

@@ -14,6 +14,8 @@
                           Focusable="False"
                           IsTabStop="False"
                           ItemsSource="{Binding Rows}" />
+            <ContentControl Content="{Binding GeminiKeys}" Focusable="False" IsTabStop="False" />
+            <Border Style="{StaticResource Divider}" />
             <ContentControl Content="{Binding BedrockRow}" Focusable="False" IsTabStop="False" />
         </StackPanel>
     </Border>

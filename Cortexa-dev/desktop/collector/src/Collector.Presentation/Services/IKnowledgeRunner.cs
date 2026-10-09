@@ -17,7 +17,8 @@ public enum KnowledgeRunStatus
 public sealed record KnowledgeRunOutcome(
     KnowledgeRunStatus Status,
     ExtractionRunResult? Result = null,
-    CollectorProvider Provider = CollectorProvider.Claude);
+    CollectorProvider Provider = CollectorProvider.Claude,
+    int ConfiguredKeyCount = 0);
 
 public sealed record KnowledgeRunRequest(
     IReadOnlyList<string> DocumentIds,

@@ -14,7 +14,7 @@ public sealed class AiKeyRowViewModelTests
 
     public AiKeyRowViewModelTests()
     {
-        _settings = new SettingsService(new FakeUserSettingsStore(), _secrets);
+        _settings = new SettingsService(new FakeUserSettingsStore(), _secrets, new FakeGeminiKeyStore());
     }
 
     private sealed class StubPassword(string value) : IPasswordSource

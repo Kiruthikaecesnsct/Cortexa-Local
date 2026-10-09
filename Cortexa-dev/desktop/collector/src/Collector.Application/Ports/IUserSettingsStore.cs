@@ -15,4 +15,8 @@ public interface IUserSettingsStore
     AiModelChoice? GetAiModelChoice();
 
     Task SaveAiModelChoiceAsync(AiModelChoice choice, CancellationToken cancellationToken);
+
+    string? GetGeminiActiveKeyId();
+
+    Task SaveGeminiActiveKeyIdAsync(string? keyId, CancellationToken cancellationToken);
 }

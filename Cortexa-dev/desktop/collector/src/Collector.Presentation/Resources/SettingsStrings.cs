@@ -168,4 +168,42 @@ public static class SettingsStrings
     public static string ConfirmClearName(string provider, string noun) => $"Confirm clear {provider} {noun}";
 
     public static string KeepName(string provider, string noun) => $"Keep {provider} {noun}";
+
+    public const string GeminiKeysDescription =
+        "Google AI API keys. The app rotates to the next key when one is rejected or hits its quota.";
+
+    public const string AddGeminiKey = "Add Gemini key";
+    public const string AddGeminiKeyEditorLabel = "New Gemini key";
+    public const string SaveGeminiKeyName = "Save Gemini key";
+    public const string CancelGeminiKeyName = "Cancel Gemini key entry";
+    public const string Remove = "Remove";
+    public const string Removing = "Removing…";
+    public const string DuplicateKey = "This key is already in the list.";
+    public const string NoGeminiKeysTitle = "No Gemini keys configured";
+
+    public const string NoGeminiKeysHelper =
+        "Add one or more keys to use Gemini. The app rotates between them on quota failure.";
+
+    public const string StatusOk = "OK";
+    public const string StatusRateLimited = "Rate-limited";
+    public const string StatusRejected = "Rejected";
+    public const string StatusUntested = "Untested";
+
+    public static string GeminiKeyPreviewName(int position, string last4) => $"Gemini key {position}, ending {last4}";
+
+    public static string GeminiStatusName(int position, string statusLabel) => $"Gemini key {position}, status {statusLabel}";
+
+    public static string GeminiMoveUpName(int position) => $"Move Gemini key {position} up";
+
+    public static string GeminiMoveDownName(int position) => $"Move Gemini key {position} down";
+
+    public static string GeminiRemoveName(int position) => $"Remove Gemini key {position}";
+
+    public static string GeminiRemoveConfirm(int position) =>
+        $"Remove Gemini key {position}? The app will no longer use it.";
+
+    public static string GeminiKeyMovedAnnouncement(int position) => $"Gemini key moved to position {position}";
+
+    public static string GeminiKeyStatusAnnouncement(int position, string statusLabel) =>
+        $"Gemini key {position} {statusLabel.ToLowerInvariant()}";
 }

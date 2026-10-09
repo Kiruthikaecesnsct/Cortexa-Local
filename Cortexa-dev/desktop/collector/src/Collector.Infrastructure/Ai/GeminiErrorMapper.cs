@@ -16,15 +16,13 @@ public static class GeminiErrorMapper
         HttpStatusCode.UnprocessableEntity,
     ];
 
-    public static AiProviderException Map(ApiException exception)
-    {
-        var status = (HttpStatusCode)exception.StatusCode;
-        var kind = PermanentStatuses.Contains(status) ? AiFailureKind.Permanent : AiFailureKind.Transient;
-        return new AiProviderException(kind, Describe(status), exception);
-    }
+    public static AiProviderException Map(ApiException exception) =>
+        MapStatus((HttpStatusCode)exception.StatusCode, exception);
 
-    public static AiProviderException MapUnreachable(Exception exception) =>
-        new(AiFailureKind.Transient, "The Gemini service could not be reached.", exception);
+    public static AiProviderException MapUnreachable(HttpRequestException exception) =>
+        exception.StatusCode is { } status
+            ? MapStatus(status, exception)
+            : new AiProviderException(AiFailureKind.Transient, "The Gemini service could not be reached.", exception);
 
     public static AiProviderException MapTimeout(Exception exception) =>
         new(AiFailureKind.Transient, "The Gemini request timed out.", exception);
@@ -32,12 +30,25 @@ public static class GeminiErrorMapper
     public static AiProviderException MapMalformed(Exception exception) =>
         new(AiFailureKind.Transient, "Gemini returned a response that could not be read.", exception);
 
+    private static AiProviderException MapStatus(HttpStatusCode status, Exception exception) =>
+        new(KindFor(status), Describe(status), exception);
+
+    private static AiFailureKind KindFor(HttpStatusCode status)
+    {
+        if (PermanentStatuses.Contains(status))
+        {
+            return AiFailureKind.Permanent;
+        }
+
+        return status == HttpStatusCode.TooManyRequests ? AiFailureKind.QuotaExceeded : AiFailureKind.Transient;
+    }
+
     private static string Describe(HttpStatusCode status) => status switch
     {
         HttpStatusCode.BadRequest => "Gemini rejected the request.",
         HttpStatusCode.Unauthorized => "Gemini rejected the API key.",
         HttpStatusCode.Forbidden => "Gemini denied access for this API key.",
-        HttpStatusCode.TooManyRequests => "Gemini is rate limiting requests.",
+        HttpStatusCode.TooManyRequests => "Gemini's rate limit or quota was exceeded.",
         _ => $"Gemini returned status {(int)status}.",
     };
 }

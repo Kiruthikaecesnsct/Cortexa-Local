@@ -1,4 +1,7 @@
+using System.IO;
+using Collector.Application.Auth;
 using Collector.Application.Knowledge;
+using Collector.Application.Ports;
 using Collector.Application.Upload;
 using Collector.Presentation.Navigation;
 using Collector.Presentation.Resources;
@@ -24,12 +27,17 @@ public sealed partial class ReviewViewModel : FocusableViewModel, INavigationAwa
     private readonly ReviewUploader _uploader;
     private readonly INavigationService _navigation;
     private readonly IClipboard _clipboard;
+    private readonly IKnowledgePdfExporter _pdfExporter;
+    private readonly IFilePicker _filePicker;
+    private readonly ISessionState _authSession;
+    private readonly TimeProvider _time;
     private ExtractionRunResult? _run;
     private IReadOnlyList<DocumentHeaderRowViewModel> _groups = [];
     private KindFilterViewModel? _activeFilter;
     private readonly HashSet<string> _uploadedDocuments = new(StringComparer.Ordinal);
     private UploadSession? _session;
     private IReadOnlyList<string> _pendingReplacement = [];
+    private IReadOnlyList<ExtractedKnowledgeItem> _lastUploadedItems = [];
     private int _generation;
     private int _visibleItemCount;
 
@@ -37,12 +45,20 @@ public sealed partial class ReviewViewModel : FocusableViewModel, INavigationAwa
         KnowledgeRunState state,
         ReviewUploader uploader,
         INavigationService navigation,
-        IClipboard clipboard)
+        IClipboard clipboard,
+        IKnowledgePdfExporter pdfExporter,
+        IFilePicker filePicker,
+        ISessionState authSession,
+        TimeProvider time)
     {
         _state = state;
         _uploader = uploader;
         _navigation = navigation;
         _clipboard = clipboard;
+        _pdfExporter = pdfExporter;
+        _filePicker = filePicker;
+        _authSession = authSession;
+        _time = time;
         VisibleRows = [];
         Filters = [];
         Results = [];
@@ -67,6 +83,8 @@ public sealed partial class ReviewViewModel : FocusableViewModel, INavigationAwa
     public bool ShowDetailsPlaceholder => SelectedItem is null;
 
     public bool ShowResults => Results.Count > 0;
+
+    public bool ShowDownloadPdf => ShowResults && _lastUploadedItems.Count > 0;
 
     public bool ShowRetry =>
         _session is { IsComplete: false } session && Results.Count > 0 && !IsUploading && FailureCounts.From(session.Results).Retryable > 0;
@@ -118,9 +136,12 @@ public sealed partial class ReviewViewModel : FocusableViewModel, INavigationAwa
     public partial BannerViewModel? UploadBanner { get; set; }
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowResults), nameof(ShowRetry))]
-    [NotifyCanExecuteChangedFor(nameof(RetryFailedCommand))]
+    [NotifyPropertyChangedFor(nameof(ShowResults), nameof(ShowRetry), nameof(ShowDownloadPdf))]
+    [NotifyCanExecuteChangedFor(nameof(RetryFailedCommand), nameof(DownloadPdfCommand))]
     public partial IReadOnlyList<BatchResultRowViewModel> Results { get; set; }
+
+    [ObservableProperty]
+    public partial BannerViewModel? ExportBanner { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowNothingIncluded), nameof(CanBulkEdit))]
@@ -192,6 +213,58 @@ public sealed partial class ReviewViewModel : FocusableViewModel, INavigationAwa
     [RelayCommand]
     private void DismissUploadBanner() => UploadBanner = null;
 
+    [RelayCommand]
+    private void DismissExportBanner() => ExportBanner = null;
+
+    [RelayCommand(CanExecute = nameof(ShowDownloadPdf))]
+    private async Task DownloadPdfAsync(CancellationToken cancellationToken)
+    {
+        var path = await _filePicker.PickSaveFileAsync(
+            ReviewStrings.PdfSaveDialogTitle,
+            ReviewStrings.PdfSaveDialogFilter,
+            ReviewStrings.PdfDefaultFileName(_time.GetUtcNow()),
+            cancellationToken);
+        if (path is null)
+        {
+            return;
+        }
+
+        await ExportPdfAsync(path, cancellationToken);
+    }
+
+    private async Task ExportPdfAsync(string path, CancellationToken cancellationToken)
+    {
+        var report = new KnowledgePdfReport
+        {
+            GeneratedBy = _authSession.UserEmail ?? string.Empty,
+            GeneratedAt = _time.GetUtcNow(),
+            Provider = _run?.Provider.ToString() ?? string.Empty,
+            Model = _run?.Model ?? string.Empty,
+            Items = _lastUploadedItems,
+        };
+
+        try
+        {
+            await _pdfExporter.ExportAsync(report, path, cancellationToken);
+            ExportBanner = new BannerViewModel(new BannerContent
+            {
+                Severity = BannerSeverity.Success,
+                Title = ReviewStrings.PdfExportedTitle,
+                Message = ReviewStrings.PdfExportedMessage(path),
+                DismissCommand = DismissExportBannerCommand,
+            });
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            ExportBanner = new BannerViewModel(new BannerContent
+            {
+                Severity = BannerSeverity.Error,
+                Title = ReviewStrings.PdfExportFailedTitle,
+                DismissCommand = DismissExportBannerCommand,
+            });
+        }
+    }
+
     private void SetVisible(bool included, bool skipEchoes)
     {
         foreach (var group in _groups.Where(group => !group.IsLocked))
@@ -231,8 +304,10 @@ public sealed partial class ReviewViewModel : FocusableViewModel, INavigationAwa
         IsUploading = false;
         IsUploadComplete = false;
         UploadBanner = null;
+        ExportBanner = null;
         UploadProgressText = string.Empty;
         Results = [];
+        _lastUploadedItems = [];
     }
 
     private void BuildFilters(ExtractionRunResult? run)
@@ -308,7 +383,12 @@ public sealed partial class ReviewViewModel : FocusableViewModel, INavigationAwa
     {
         var generation = _generation;
         BeginUpload();
-        var session = _session ?? await _uploader.PrepareAsync(_run!, UploadItems(), cancellationToken);
+        if (_session is null)
+        {
+            _lastUploadedItems = UploadItems();
+        }
+
+        var session = _session ?? await _uploader.PrepareAsync(_run!, _lastUploadedItems, cancellationToken);
         if (session is not null)
         {
             await ReplacePendingAsync(session, generation, cancellationToken);

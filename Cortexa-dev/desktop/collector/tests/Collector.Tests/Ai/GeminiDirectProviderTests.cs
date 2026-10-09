@@ -83,7 +83,6 @@ public sealed class GeminiDirectProviderTests
     }
 
     [Theory]
-    [InlineData(HttpStatusCode.TooManyRequests)]
     [InlineData(HttpStatusCode.InternalServerError)]
     [InlineData(HttpStatusCode.ServiceUnavailable)]
     [InlineData(HttpStatusCode.GatewayTimeout)]
@@ -92,6 +91,14 @@ public sealed class GeminiDirectProviderTests
         var exception = await ThrowsForStatusAsync(status);
 
         Assert.Equal(AiFailureKind.Transient, exception.Kind);
+    }
+
+    [Fact]
+    public async Task CompleteAsync_TooManyRequests_ThrowsQuotaExceeded()
+    {
+        var exception = await ThrowsForStatusAsync(HttpStatusCode.TooManyRequests);
+
+        Assert.Equal(AiFailureKind.QuotaExceeded, exception.Kind);
     }
 
     [Fact]
@@ -111,6 +118,28 @@ public sealed class GeminiDirectProviderTests
         var exception = await Assert.ThrowsAsync<AiProviderException>(() => CompleteAsync(handler));
 
         Assert.Equal(AiFailureKind.Transient, exception.Kind);
+    }
+
+    [Fact]
+    public async Task CompleteAsync_HttpRequestExceptionCarriesForbiddenStatus_ThrowsPermanent()
+    {
+        var handler = new StubHttpHandler(
+            (_, _) => throw new HttpRequestException("key rejected", null, HttpStatusCode.Forbidden));
+
+        var exception = await Assert.ThrowsAsync<AiProviderException>(() => CompleteAsync(handler));
+
+        Assert.Equal(AiFailureKind.Permanent, exception.Kind);
+    }
+
+    [Fact]
+    public async Task CompleteAsync_HttpRequestExceptionCarriesTooManyRequestsStatus_ThrowsQuotaExceeded()
+    {
+        var handler = new StubHttpHandler(
+            (_, _) => throw new HttpRequestException("rate limited", null, HttpStatusCode.TooManyRequests));
+
+        var exception = await Assert.ThrowsAsync<AiProviderException>(() => CompleteAsync(handler));
+
+        Assert.Equal(AiFailureKind.QuotaExceeded, exception.Kind);
     }
 
     [Fact]

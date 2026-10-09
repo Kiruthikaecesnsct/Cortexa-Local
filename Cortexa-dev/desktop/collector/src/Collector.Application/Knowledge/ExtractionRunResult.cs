@@ -1,3 +1,4 @@
+using Collector.Application.Ports;
 using Collector.Domain.Enums;
 
 namespace Collector.Application.Knowledge;
@@ -21,6 +22,8 @@ public sealed record ExtractionRunResult
     public required string Model { get; init; }
 
     public required string PromptVersion { get; init; }
+
+    public AiFailureKind? FailureKind { get; init; }
 
     public bool IsFailed => TotalUnits > 0 && FailedUnits == TotalUnits;
 }

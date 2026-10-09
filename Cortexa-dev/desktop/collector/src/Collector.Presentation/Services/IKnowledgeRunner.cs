@@ -9,6 +9,9 @@ public enum KnowledgeRunStatus
     Canceled,
     KeyMissing,
     Failed,
+    KeyRejected,
+    QuotaExceeded,
+    NetworkFailed,
 }
 
 public sealed record KnowledgeRunOutcome(

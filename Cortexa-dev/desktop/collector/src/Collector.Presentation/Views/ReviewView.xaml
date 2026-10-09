@@ -158,12 +158,26 @@
                     Style="{StaticResource Card}"
                     Visibility="{Binding ShowResults, Converter={StaticResource BoolToVisibility}}">
                 <StackPanel>
-                    <StackPanel Margin="{StaticResource Thickness.StackGapMedium}" Orientation="Horizontal">
-                        <ContentControl Margin="{StaticResource Thickness.InlineGapLarge}" Content="{x:Static res:Glyphs.Upload}" Style="{StaticResource IconTile}" />
-                        <TextBlock AutomationProperties.HeadingLevel="Level2"
-                                   Style="{StaticResource Text.Subtitle}"
-                                   Text="{x:Static res:ReviewStrings.ResultsTitle}" />
-                    </StackPanel>
+                    <Grid Margin="{StaticResource Thickness.StackGapMedium}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Orientation="Horizontal">
+                            <ContentControl Margin="{StaticResource Thickness.InlineGapLarge}" Content="{x:Static res:Glyphs.Upload}" Style="{StaticResource IconTile}" />
+                            <TextBlock AutomationProperties.HeadingLevel="Level2"
+                                       Style="{StaticResource Text.Subtitle}"
+                                       Text="{x:Static res:ReviewStrings.ResultsTitle}" />
+                        </StackPanel>
+                        <Button Grid.Column="1"
+                                VerticalAlignment="Center"
+                                AutomationProperties.Name="{x:Static res:ReviewStrings.DownloadPdfName}"
+                                Command="{Binding DownloadPdfCommand}"
+                                Content="{x:Static res:ReviewStrings.DownloadPdf}"
+                                Style="{StaticResource Button.Secondary}"
+                                Visibility="{Binding ShowDownloadPdf, Converter={StaticResource BoolToVisibility}}" />
+                    </Grid>
+                    <ContentControl Margin="{StaticResource Thickness.StackGapMedium}" Content="{Binding ExportBanner}" Style="{StaticResource Banner.Slot}" />
                     <ItemsControl Focusable="False" IsTabStop="False" ItemsSource="{Binding Results}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type vm:BatchResultRowViewModel}">

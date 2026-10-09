@@ -164,6 +164,48 @@ public sealed class KnowledgeRunViewModelTests
     }
 
     [Fact]
+    public async Task ExtractKnowledgeCommand_KeyRejected_ShowsErrorBannerWithKeyRejectedCopy()
+    {
+        var harness = Ready();
+        harness.Runner.Outcome = new KnowledgeRunOutcome(KnowledgeRunStatus.KeyRejected);
+
+        await harness.ViewModel.ExtractKnowledgeCommand.ExecuteAsync(null);
+
+        var banner = harness.ViewModel.Banner!;
+        Assert.Equal(BannerSeverity.Error, banner.Severity);
+        Assert.Equal(ExtractionStrings.KeyRejectedTitle, banner.Title);
+        Assert.Equal(ExtractionStrings.KeyRejectedMessage, banner.Message);
+    }
+
+    [Fact]
+    public async Task ExtractKnowledgeCommand_QuotaExceeded_ShowsWarningBannerWithQuotaCopy()
+    {
+        var harness = Ready();
+        harness.Runner.Outcome = new KnowledgeRunOutcome(KnowledgeRunStatus.QuotaExceeded);
+
+        await harness.ViewModel.ExtractKnowledgeCommand.ExecuteAsync(null);
+
+        var banner = harness.ViewModel.Banner!;
+        Assert.Equal(BannerSeverity.Warning, banner.Severity);
+        Assert.Equal(ExtractionStrings.QuotaExceededTitle, banner.Title);
+        Assert.Equal(ExtractionStrings.QuotaExceededMessage, banner.Message);
+    }
+
+    [Fact]
+    public async Task ExtractKnowledgeCommand_NetworkFailed_ShowsErrorBannerWithNetworkCopy()
+    {
+        var harness = Ready();
+        harness.Runner.Outcome = new KnowledgeRunOutcome(KnowledgeRunStatus.NetworkFailed);
+
+        await harness.ViewModel.ExtractKnowledgeCommand.ExecuteAsync(null);
+
+        var banner = harness.ViewModel.Banner!;
+        Assert.Equal(BannerSeverity.Error, banner.Severity);
+        Assert.Equal(ExtractionStrings.NetworkFailedTitle, banner.Title);
+        Assert.Equal(ExtractionStrings.NetworkFailedMessage, banner.Message);
+    }
+
+    [Fact]
     public async Task ExtractKnowledgeCommand_Canceled_ShowsInfoBannerAndKeepsPreviousState()
     {
         var harness = Ready();

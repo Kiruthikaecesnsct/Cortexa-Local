@@ -37,6 +37,7 @@ public enum AiFailureKind
     Transient,
     Permanent,
     MissingApiKey,
+    QuotaExceeded,
 }
 
 public sealed class AiProviderException : Exception

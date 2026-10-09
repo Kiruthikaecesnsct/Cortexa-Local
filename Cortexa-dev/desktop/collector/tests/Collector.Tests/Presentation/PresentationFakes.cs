@@ -1,3 +1,4 @@
+using System.IO;
 using Collector.Application.Auth;
 using Collector.Application.Knowledge;
 using Collector.Application.Ports;
@@ -14,10 +15,39 @@ internal sealed class FakeFilePicker(IReadOnlyList<string> paths) : IFilePicker
 {
     public string? SingleFilePath { get; set; }
 
+    public string? SaveFilePath { get; set; }
+
     public Task<IReadOnlyList<string>> PickFilesAsync(CancellationToken cancellationToken) => Task.FromResult(paths);
 
     public Task<string?> PickSingleFileAsync(string dialogTitle, string filter, CancellationToken cancellationToken) =>
         Task.FromResult(SingleFilePath);
+
+    public Task<string?> PickSaveFileAsync(string dialogTitle, string filter, string defaultFileName, CancellationToken cancellationToken) =>
+        Task.FromResult(SaveFilePath);
+}
+
+internal sealed class FakeKnowledgePdfExporter : IKnowledgePdfExporter
+{
+    public int ExportCalls { get; private set; }
+
+    public KnowledgePdfReport? LastReport { get; private set; }
+
+    public string? LastPath { get; private set; }
+
+    public bool ThrowOnExport { get; set; }
+
+    public Task ExportAsync(KnowledgePdfReport report, string outputPath, CancellationToken cancellationToken)
+    {
+        if (ThrowOnExport)
+        {
+            throw new IOException("Simulated export failure.");
+        }
+
+        ExportCalls++;
+        LastReport = report;
+        LastPath = outputPath;
+        return Task.CompletedTask;
+    }
 }
 
 internal sealed class FakeKnowledgeRunner : IKnowledgeRunner

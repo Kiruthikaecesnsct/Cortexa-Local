@@ -57,7 +57,15 @@ internal sealed class ReviewHarness
             new UploadBatchPlanner(),
             new FakeTimeProvider(DateTimeOffset.Parse("2026-10-07T09:30:00Z")));
         var uploader = new ReviewUploader(handler, Batches, new FixedAppVersion(), NullLogger<ReviewUploader>.Instance);
-        ViewModel = new ReviewViewModel(State, uploader, Navigation, new FakeClipboard());
+        ViewModel = new ReviewViewModel(
+            State,
+            uploader,
+            Navigation,
+            new FakeClipboard(),
+            PdfExporter,
+            FilePicker,
+            Session,
+            new FakeTimeProvider(DateTimeOffset.Parse("2026-10-07T09:30:00Z")));
     }
 
     public KnowledgeRunState State { get; } = new();
@@ -69,6 +77,12 @@ internal sealed class ReviewHarness
     public FakeUploadClient Client { get; } = new();
 
     public FakeNavigationService Navigation { get; } = new();
+
+    public FakeKnowledgePdfExporter PdfExporter { get; } = new();
+
+    public FakeFilePicker FilePicker { get; } = new([]);
+
+    public FakeSession Session { get; } = new();
 
     public ReviewViewModel ViewModel { get; }
 

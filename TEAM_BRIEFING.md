@@ -38,7 +38,6 @@ None live in `contracts/`. The collector batch results contract (GET /collector/
 
 ## Standing blockers and open follow-ups
 
-- **US141 to US143 test steps need a recheck.** US142 says to select the provider on Extract. That choice moved to Settings in US139, and Extract is blocked until a key or Bedrock sign-in exists. Fix the steps before either story starts.
 - **US140 live checks still open.** The 5,000-file performance run and the full GitHub Files to Proceed flow were not exercised live. US142's end-to-end test should cover both.
 - **Organization URL on the connect form (from US134, not yet built).** Ask for the organization URL next to the token for both GitHub and Azure DevOps. The Azure DevOps organization still sits on the Extract screen, apart from the token.
 - **Not verified live.** The Azure DevOps UI, the rate-limit banner, and Esc cancel (US134). The SSH and saved repository collectors have not been run end to end. The US138 session-only tokens, the GitHub /users fallback, and the US139 Settings flow are not recorded as run live.

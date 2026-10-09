@@ -1,4 +1,5 @@
 using Collector.Application.Auth;
+using Collector.Application.Extraction;
 using Collector.Application.Knowledge;
 using Collector.Application.Ports;
 using Collector.Infrastructure.Ai;
@@ -83,6 +84,7 @@ public static class DependencyInjection
         services.AddOptions<GeminiRotationOptions>().Bind(configuration.GetSection(GeminiRotationOptions.SectionName));
         services.AddSingleton<IProviderModelCatalog, ProviderModelCatalogAdapter>();
         services.AddOptions<ProviderModelCatalog>().Bind(configuration.GetSection(ProviderModelCatalog.SectionName));
+        services.AddOptions<ExtractionOptions>().Bind(configuration.GetSection(ExtractionOptions.SectionName));
         services.AddOptions<KnowledgeExtractionOptions>()
             .Configure<IOptions<AiOptions>>((extraction, ai) => AiProviderSelection.Apply(extraction, ai.Value));
     }

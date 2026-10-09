@@ -25,13 +25,27 @@ public sealed partial class RemoteSourceViewModel
     [RelayCommand(CanExecute = nameof(CanFetch), IncludeCancelCommand = true)]
     private async Task FetchAsync(CancellationToken cancellationToken)
     {
-        var request = new RemoteFetchRequest(SelectedRepository!.Repository, SelectedBranch!.Name);
+        var selection = FileTree.IsLoaded ? FileTree.BuildSelection() : null;
+        var request = new RemoteFetchRequest(SelectedRepository!.Repository, SelectedBranch!.Name, selection);
+        var result = await ExecuteFetchAsync(request, () => FetchCommand.ExecuteAsync(null), cancellationToken);
+        if (result is not null)
+        {
+            CompleteFetch(request, result);
+        }
+    }
+
+    private async Task<RemoteFetchResult?> ExecuteFetchAsync(
+        RemoteFetchRequest request,
+        Func<Task> retry,
+        CancellationToken commandToken)
+    {
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(_deps.Intake.Begin(), commandToken);
         BeginFetch(request.Repository.Provider);
         RemoteFetchResult? result = null;
         try
         {
             var progress = new SyncProgress<RemoteFetchProgress>(OnProgress);
-            result = await _deps.Fetcher.FetchAsync(request, progress, cancellationToken);
+            result = await _deps.Fetcher.FetchAsync(request, progress, linked.Token);
         }
         catch (OperationCanceledException)
         {
@@ -39,22 +53,24 @@ public sealed partial class RemoteSourceViewModel
         }
         catch (RemoteSourceException ex)
         {
-            ShowFailure(ex.Kind, RetryDelay(ex.ResetAt), () => FetchCommand.ExecuteAsync(null));
+            ShowFailure(ex.Kind, RetryDelay(ex.ResetAt), retry);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Unexpected failure fetching {Repository}.", request.Repository.FullName);
-            ShowFailure(RemoteFailureKind.Upstream, null, () => FetchCommand.ExecuteAsync(null));
+            ShowFailure(RemoteFailureKind.Upstream, null, retry);
         }
         finally
         {
             EndFetch();
         }
 
-        if (result is not null)
+        if (result is null)
         {
-            CompleteFetch(request, result);
+            _deps.Intake.End();
         }
+
+        return result;
     }
 
     [RelayCommand(CanExecute = nameof(CanFetch))]
@@ -86,7 +102,7 @@ public sealed partial class RemoteSourceViewModel
         Banner = null;
         Summary = null;
         _lastProgress = null;
-        RequestFocus(RemoteFocusKeys.Cancel);
+        RequestFocus(RemoteFocusKeys.IntakeCancel);
         IsFetching = true;
         RefreshProgress();
         ApplyRateStatus(_deps.RateLimits.GetStatus(provider));
@@ -112,8 +128,15 @@ public sealed partial class RemoteSourceViewModel
         RefreshProgress();
     }
 
+    private void ReportIntake()
+    {
+        var progress = _lastProgress;
+        _deps.Intake.ReportFetch(progress?.Processed ?? 0, progress?.Total ?? 0, progress?.CurrentPath, _isPaused);
+    }
+
     private void RefreshProgress()
     {
+        ReportIntake();
         if (_lastProgress is not { Phase: not RemoteFetchPhase.ReadingTree } progress)
         {
             IsProgressIndeterminate = true;
@@ -172,6 +195,7 @@ public sealed partial class RemoteSourceViewModel
         if (result.LocalPaths.Count == 0)
         {
             ShowOutcome(_banners.NoFiles(repository.FullName, request.Branch));
+            _deps.Intake.End();
             return;
         }
 
@@ -180,7 +204,7 @@ public sealed partial class RemoteSourceViewModel
             ? new BannerViewModel(_banners.Truncated(result.Source, result.Downloaded + result.CacheHits))
             : null;
         var origin = $"{repository.FullName} @ {request.Branch}";
-        FilesFetched?.Invoke(this, new RemoteFilesFetchedEventArgs(result.LocalPaths, result.Source, origin));
+        FilesFetched?.Invoke(this, new RemoteFilesFetchedEventArgs(result.Files, result.Source, origin));
     }
 
     private RemoteFetchSummary BuildSummary(RemoteFetchRequest request, RemoteFetchResult result) =>

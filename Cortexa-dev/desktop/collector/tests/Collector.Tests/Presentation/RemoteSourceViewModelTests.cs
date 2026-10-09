@@ -151,7 +151,7 @@ public sealed class RemoteSourceViewModelTests
 
         Assert.Equal("main (default)", viewModel.SelectedBranch.DisplayName);
         Assert.Equal(RemoteSourceStrings.Commit("3f2a9c1"), viewModel.CommitText);
-        Assert.Equal(RemoteWizardStep.Fetch, viewModel.Step);
+        Assert.Equal(RemoteWizardStep.Files, viewModel.Step);
         Assert.True(viewModel.FetchCommand.CanExecute(null));
     }
 
@@ -251,7 +251,7 @@ public sealed class RemoteSourceViewModelTests
     public async Task Fetch_NoFiles_ShowsAWarningAndRaisesNothing()
     {
         var (harness, viewModel) = await ReadyAsync();
-        harness.Fetcher.Result = harness.Fetcher.Result with { LocalPaths = [] };
+        harness.Fetcher.Result = harness.Fetcher.Result with { Files = [] };
         Pick(viewModel);
         var raised = false;
         viewModel.FilesFetched += (_, _) => raised = true;
@@ -322,7 +322,7 @@ public sealed class RemoteSourceViewModelTests
 
         var running = viewModel.FetchCommand.ExecuteAsync(null);
 
-        Assert.Equal(RemoteFocusKeys.Cancel, viewModel.PendingFocus);
+        Assert.Equal(RemoteFocusKeys.IntakeCancel, viewModel.PendingFocus);
         viewModel.FetchCancelCommand.Execute(null);
         await running;
     }
@@ -562,7 +562,7 @@ public sealed class RemoteSourceViewModelTests
     public async Task CortexaFetch_Success_RaisesFilesFetchedWithTheCortexaSource()
     {
         var harness = new RemoteSourceHarness();
-        harness.Fetcher.Result = new RemoteFetchResult(SourceType.CortexaRepo, "3f2a9c1e55", ["a.md"], 1, 0, 0, 0, false);
+        harness.Fetcher.Result = new RemoteFetchResult(SourceType.CortexaRepo, "3f2a9c1e55", [new FetchedFile("a.md", "docs/a.md")], 1, 0, 0, 0, false);
         var viewModel = await harness.OpenCortexaAsync(RemoteSourceHarness.CortexaRepo("alpha", branch: "release"));
         Pick(viewModel);
         RemoteFilesFetchedEventArgs? raised = null;

@@ -27,21 +27,23 @@ public static class ExtractionStrings
     public const string EmptyBody =
         "Choose PDFs, DOCX files, text, or source code. Cortexa splits each file into extraction units with token counts.";
 
-    public const string PreviewEmptyTitle = "No units to preview";
-    public const string PreviewEmptyBody = "This document hasn't been extracted. Pick a document that finished extracting.";
+    public const string PreviewEmptyTitle = "No sections to preview";
+    public const string PreviewEmptyBody = "This document hasn't been analyzed. Pick a document that finished analyzing.";
 
     public const string DocumentsTitle = "Documents";
     public const string UnitPreviewTitle = "Unit preview";
 
     public const string StatFiles = "Files";
-    public const string StatExtracted = "Extracted";
+    public const string StatAnalyzed = "Analyzed";
+    public const string StatExtracted = StatAnalyzed;
     public const string StatUnits = "Units";
     public const string StatTokens = "Tokens";
     public const string StatSkipped = "Skipped";
 
     public const string StatusPending = "Pending";
     public const string StatusExtracting = "Extracting";
-    public const string StatusExtracted = "Extracted";
+    public const string StatusAnalyzed = "Analyzed";
+    public const string StatusExtracted = StatusAnalyzed;
     public const string StatusFailed = "Failed";
     public const string StatusExcluded = "Excluded";
 
@@ -119,13 +121,54 @@ public static class ExtractionStrings
 
     public static string ParsingProgress(int current, int total) => $"Parsing {current} of {total} files…";
 
+    public const string IntakeReadingTree = "Reading file tree…";
+
+    public static string IntakeFetched(int done, int total) => $"Fetched {done}/{total}";
+
+    public static string IntakePaused(int done, int total) => $"Fetched {done}/{total} · paused for rate limit";
+
+    public static string IntakeSplit(int done, int total) => $"Split {done}/{total}";
+
+    public static string IntakeCurrent(string file) => $"Current: {file}";
+
     public static string ReadyStatus(int files) => files == 1 ? "1 file parsed." : $"{files} files parsed.";
 
-    public static string DocumentAutomationName(string filename, string status, int units) =>
-        $"{filename}, {status}, {units} units";
+    public const string FolderRoot = "(root)";
+    public const string FilterAll = "All";
+    public const string FilterAnalyzed = "Analyzed";
+    public const string FilterFailed = "Failed";
+    public const string FilterSkipped = "Skipped";
+    public const string FilterGroupName = "Filter documents by status";
+    public const string SearchPlaceholder = "Search by name or folder";
+    public const string SearchName = "Search documents by name or folder";
+    public const string DocumentsGridName = "Documents";
+    public const string ColumnName = "Name";
+    public const string ColumnFolder = "Folder";
+    public const string ColumnUnits = "Units";
+    public const string ColumnTokens = "Tokens";
+    public const string ColumnStatus = "Status";
+    public const string NoDocumentMatch = "No documents match these filters.";
+    public const string ClearFilters = "Clear filters";
+    public const string SelectSectionHint = "Select a section to read its full text.";
+    public const string SkipListName = "Skipped and failed files";
+    public const string IntakeCardTitle = "Fetching and splitting files";
+    public const string IntakeProgressName = "Fetch and split progress";
+    public const string IntakeCancelName = "Cancel fetch and split";
+
+    public static string DocumentsShowing(int shown, int total) => $"Showing {shown:N0} of {total:N0}";
+
+    public static string SectionListName(string filename) => $"Sections in {filename}";
+
+    public static string SectionDetailName(string title) => $"Full text of section {title}";
+
+    public static string SectionAutomationName(int ordinal, string kind, string title, int tokens) =>
+        $"Section {ordinal}, {kind}, {title}, {tokens:N0} tokens";
+
+    public static string DocumentAutomationName(string filename, string folder, int units, int tokens, string status) =>
+        $"{filename}, folder {folder}, {units:N0} units, {tokens:N0} tokens, {status}";
 
     public static string SkipAutomationName(string filename, string reason) => $"{filename}, excluded, {reason}";
 
     public static string UnitPreviewHeader(string filename, int units, int tokens) =>
-        $"{filename} · {units} units · {tokens} tokens";
+        $"{filename} · {units:N0} sections · {tokens:N0} tokens";
 }

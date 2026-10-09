@@ -148,6 +148,128 @@ public class RemoteFetchServiceTests
         Assert.True(result.Truncated);
     }
 
+    private const string SelectionCommit = "commit-selected";
+    private const int LargeSelectionSize = 5000;
+    private const int SelectionCap = 3;
+    private const int OversizedSelection = 5;
+
+    private Task<RemoteFetchResult> FetchSelectionAsync(RemoteSelection selection)
+    {
+        foreach (var entry in selection.Entries)
+        {
+            _client.AddBlob(entry.BlobSha, $"content of {entry.Path}");
+        }
+
+        var request = new RemoteFetchRequest(_repository, Branch, selection);
+        return CreateService().FetchAsync(request, null, TestSupport.Ct);
+    }
+
+    private static RemoteSelection SelectionOf(params RemoteTreeEntry[] entries) =>
+        new(SelectionCommit, entries, false);
+
+    [Fact]
+    public async Task FetchAsync_WithSelection_DoesNotReadTheTree()
+    {
+        SetTree(false, RemoteData.Entry("a.md", "s1"));
+
+        await FetchSelectionAsync(SelectionOf(RemoteData.Entry("a.md", "s1")));
+
+        Assert.Equal(0, _client.TreeCalls);
+    }
+
+    [Fact]
+    public async Task FetchAsync_WithSelection_DownloadsOnlyTheSuppliedEntries()
+    {
+        SetTree(false, RemoteData.Entry("a.md", "s1"), RemoteData.Entry("b.md", "s2"), RemoteData.Entry("c.md", "s3"));
+
+        var result = await FetchSelectionAsync(SelectionOf(RemoteData.Entry("b.md", "s2")));
+
+        Assert.Equal(["s2"], _client.OpenedBlobs);
+        Assert.Equal(1, result.Downloaded);
+    }
+
+    [Fact]
+    public async Task FetchAsync_WithSelection_UsesTheSelectionCommit()
+    {
+        var result = await FetchSelectionAsync(SelectionOf(RemoteData.Entry("a.md", "s1")));
+
+        Assert.Equal(SelectionCommit, result.CommitSha);
+        Assert.Equal(SelectionCommit, Assert.Single(_store.All).CommitSha);
+    }
+
+    [Fact]
+    public async Task FetchAsync_WithSelection_ReportsRepoPathNextToTheLocalPath()
+    {
+        var result = await FetchSelectionAsync(SelectionOf(RemoteData.Entry("docs/guide.md", "s1")));
+
+        var file = Assert.Single(result.Files);
+        Assert.Equal("docs/guide.md", file.RepoPath);
+        Assert.Equal($"cache/Github/{_repository.RepoKey}/{Branch}/docs/guide.md", file.LocalPath);
+    }
+
+    [Fact]
+    public async Task FetchAsync_WithSelectionLargerThanMaxFilesPerFetch_IsNotCapped()
+    {
+        var entries = Enumerable.Range(0, LargeSelectionSize)
+            .Select(index => RemoteData.Entry($"docs/file{index}.md", $"sha{index}"))
+            .ToArray();
+
+        var result = await FetchSelectionAsync(SelectionOf(entries));
+
+        Assert.True(LargeSelectionSize > _options.MaxFilesPerFetch);
+        Assert.Equal(LargeSelectionSize, result.Downloaded);
+        Assert.Equal(LargeSelectionSize, result.Files.Count);
+        Assert.False(result.Truncated);
+    }
+
+    [Fact]
+    public async Task FetchAsync_WithSelectionOverMaxSelectedFiles_CapsAndFlagsTruncated()
+    {
+        _options.MaxSelectedFiles = SelectionCap;
+        var entries = Enumerable.Range(0, OversizedSelection)
+            .Select(index => RemoteData.Entry($"file{index}.md", $"sha{index}"))
+            .ToArray();
+
+        var result = await FetchSelectionAsync(SelectionOf(entries));
+
+        Assert.Equal(SelectionCap, result.Downloaded);
+        Assert.True(result.Truncated);
+    }
+
+    [Fact]
+    public async Task FetchAsync_WithSelectionContainingUnsupportedEntry_SkipsItAndCountsIt()
+    {
+        var result = await FetchSelectionAsync(SelectionOf(RemoteData.Entry("a.md", "s1"), RemoteData.Entry("logo.png", "s2")));
+
+        Assert.Equal(1, result.SkippedByFilter);
+        Assert.Equal(["s1"], _client.OpenedBlobs);
+    }
+
+    [Fact]
+    public async Task FetchAsync_WithTruncatedSelection_FlagsTruncated()
+    {
+        var selection = new RemoteSelection(SelectionCommit, [RemoteData.Entry("a.md", "s1")], true);
+
+        var result = await FetchSelectionAsync(selection);
+
+        Assert.True(result.Truncated);
+    }
+
+    [Fact]
+    public async Task FetchAsync_WithSelection_ReportsProgressAgainstTheSelectionSize()
+    {
+        var progress = new ListProgress<RemoteFetchProgress>();
+        var selection = SelectionOf(RemoteData.Entry("a.md", "s1"), RemoteData.Entry("b.md", "s2"));
+        foreach (var entry in selection.Entries)
+        {
+            _client.AddBlob(entry.BlobSha, "content");
+        }
+
+        await CreateService().FetchAsync(new RemoteFetchRequest(_repository, Branch, selection), progress, TestSupport.Ct);
+
+        Assert.Equal(new RemoteFetchProgress(RemoteFetchPhase.Completed, 2, 2), progress.Items[^1]);
+    }
+
     [Fact]
     public async Task FetchAsync_FilesWithinCap_IsNotTruncated()
     {

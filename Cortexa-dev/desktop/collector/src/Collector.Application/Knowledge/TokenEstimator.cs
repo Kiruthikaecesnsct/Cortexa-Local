@@ -14,23 +14,27 @@ public sealed class TokenEstimator(KnowledgePromptBuilder promptBuilder, ITokenC
 
     public TokenEstimate Estimate(IReadOnlyList<ExtractionUnit> units, int maxOutputTokens)
     {
-        var promptTokens = SumPromptTokens(units);
+        return FromPromptTokens(CountPromptTokens(units), maxOutputTokens);
+    }
+
+    public TokenEstimate FromPromptTokens(int promptTokens, int maxOutputTokens)
+    {
         var estimatedOutputTokens = Math.Min(maxOutputTokens, ScaleToExpectedOutput(promptTokens));
         return new TokenEstimate(promptTokens, estimatedOutputTokens);
     }
 
-    private int SumPromptTokens(IReadOnlyList<ExtractionUnit> units)
+    public int CountPromptTokens(IReadOnlyList<ExtractionUnit> units)
     {
         var total = 0;
         foreach (var unit in units)
         {
-            total += CountPromptTokens(unit);
+            total += CountUnitPromptTokens(unit);
         }
 
         return total;
     }
 
-    private int CountPromptTokens(ExtractionUnit unit)
+    private int CountUnitPromptTokens(ExtractionUnit unit)
     {
         var request = promptBuilder.Build(unit);
         return tokenCounter.Count(request.SystemText)

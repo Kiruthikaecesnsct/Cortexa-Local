@@ -73,6 +73,35 @@ public sealed class TokenEstimatorTests
         Assert.Equal(10, estimate.EstimatedOutputTokens);
     }
 
+    [Theory]
+    [InlineData(0, 8192)]
+    [InlineData(1, 8192)]
+    [InlineData(1000, 8192)]
+    [InlineData(1000, 10)]
+    public void FromPromptTokens_AnyCountAndCap_MatchesEstimateOverTheSameUnits(int wordCount, int maxOutputTokens)
+    {
+        ExtractionUnit[] units = wordCount == 0
+            ? []
+            : [TestData.FileUnit(string.Join(' ', Enumerable.Repeat("word", wordCount)))];
+        var promptTokens = _estimator.CountPromptTokens(units);
+
+        var fromTotals = _estimator.FromPromptTokens(promptTokens, maxOutputTokens);
+
+        Assert.Equal(_estimator.Estimate(units, maxOutputTokens), fromTotals);
+    }
+
+    [Fact]
+    public void FromPromptTokens_SumOfPerUnitCounts_EqualsEstimateOverAllUnits()
+    {
+        var first = TestData.FileUnit("first unit body text here", id: "unit-1");
+        var second = TestData.FileUnit("second unit body text here as well", id: "unit-2");
+        var summed = _estimator.CountPromptTokens([first]) + _estimator.CountPromptTokens([second]);
+
+        var incremental = _estimator.FromPromptTokens(summed, maxOutputTokens: 8192);
+
+        Assert.Equal(_estimator.Estimate([first, second], maxOutputTokens: 8192), incremental);
+    }
+
     [Fact]
     public void Estimate_Total_IsPromptPlusEstimatedOutput()
     {

@@ -7,4 +7,4 @@ public enum RemoteFetchPhase
     Completed,
 }
 
-public sealed record RemoteFetchProgress(RemoteFetchPhase Phase, int Processed, int Total);
+public sealed record RemoteFetchProgress(RemoteFetchPhase Phase, int Processed, int Total, string? CurrentPath = null);

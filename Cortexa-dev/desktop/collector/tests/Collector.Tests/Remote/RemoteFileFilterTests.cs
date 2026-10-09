@@ -76,4 +76,53 @@ public class RemoteFileFilterTests
         Assert.False(filter.Keep(RemoteData.Entry("a/readme.md", "sha")));
         Assert.False(filter.Keep(RemoteData.Entry("secret/run.log", "sha")));
     }
+
+    [Theory]
+    [InlineData("README.md")]
+    [InlineData("src/Program.cs")]
+    [InlineData("paper.pdf")]
+    public void Classify_SupportedFile_IsSupported(string path)
+    {
+        Assert.Equal(RemoteEntryVerdict.Supported, _filter.Classify(RemoteData.Entry(path, "sha")));
+    }
+
+    [Theory]
+    [InlineData("logo.png")]
+    [InlineData("data.csv")]
+    [InlineData("LICENSE")]
+    public void Classify_UnsupportedType_IsUnsupported(string path)
+    {
+        Assert.Equal(RemoteEntryVerdict.Unsupported, _filter.Classify(RemoteData.Entry(path, "sha")));
+    }
+
+    [Fact]
+    public void Classify_FileOverSizeLimit_IsTooLarge()
+    {
+        var entry = RemoteData.Entry("big.md", "sha", FileContentGuard.MaxFileBytes + 1);
+
+        Assert.Equal(RemoteEntryVerdict.TooLarge, _filter.Classify(entry));
+    }
+
+    [Theory]
+    [InlineData("node_modules/pkg/readme.md")]
+    [InlineData("a\\bin\\notes.md")]
+    [InlineData(".git/config.md")]
+    public void Classify_FileInsideExcludedDirectory_IsExcludedFolder(string path)
+    {
+        Assert.Equal(RemoteEntryVerdict.ExcludedFolder, _filter.Classify(RemoteData.Entry(path, "sha")));
+    }
+
+    [Fact]
+    public void Classify_OversizedFileInsideExcludedDirectory_IsExcludedFolderBeforeTooLarge()
+    {
+        var entry = RemoteData.Entry("node_modules/big.md", "sha", FileContentGuard.MaxFileBytes + 1);
+
+        Assert.Equal(RemoteEntryVerdict.ExcludedFolder, _filter.Classify(entry));
+    }
+
+    [Fact]
+    public void Classify_FileNamedLikeAnExcludedDirectory_IsNotExcluded()
+    {
+        Assert.Equal(RemoteEntryVerdict.Supported, _filter.Classify(RemoteData.Entry("docs/bin.md", "sha")));
+    }
 }

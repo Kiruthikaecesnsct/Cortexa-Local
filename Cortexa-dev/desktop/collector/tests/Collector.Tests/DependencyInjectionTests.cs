@@ -1,8 +1,10 @@
 using Collector.Application;
 using Collector.Application.Auth;
+using Collector.Application.Extraction;
 using Collector.Application.Knowledge;
 using Collector.Application.Ports;
 using Collector.Application.Remote;
+using Collector.Application.Remote.Selection;
 using Collector.Application.Settings;
 using Collector.Application.Upload;
 using Collector.Domain.Enums;
@@ -17,6 +19,7 @@ using Collector.Infrastructure.Remote.Cortexa;
 using Collector.Infrastructure.Remote.GitHub;
 using Collector.Infrastructure.Remote.RateLimit;
 using Collector.Infrastructure.Remote.Ssh;
+using Collector.Presentation.ViewModels;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
@@ -27,7 +30,9 @@ namespace Collector.Tests;
 
 public class DependencyInjectionTests
 {
-    private static ServiceProvider Build(IReadOnlyDictionary<string, string?>? extraSettings = null)
+    private static ServiceProvider Build(
+        IReadOnlyDictionary<string, string?>? extraSettings = null,
+        Action<IServiceCollection>? configure = null)
     {
         var settings = new Dictionary<string, string?>
         {
@@ -44,6 +49,7 @@ public class DependencyInjectionTests
         services.AddLogging();
         services.AddCollectorApplication();
         services.AddCollectorInfrastructure(configuration);
+        configure?.Invoke(services);
         return services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
     }
 
@@ -297,6 +303,53 @@ public class DependencyInjectionTests
         using var provider = Build(new Dictionary<string, string?> { ["Ai:Gemini:Thinking"] = "minimal" });
 
         Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<IOptions<GeminiProviderOptions>>().Value);
+    }
+
+    [Fact]
+    public void ExtractionOptions_NoSetting_DefaultsToFourParallelSplits()
+    {
+        using var provider = Build();
+
+        Assert.Equal(4, provider.GetRequiredService<IOptions<ExtractionOptions>>().Value.MaxParallelSplits);
+    }
+
+    [Fact]
+    public void ExtractionOptions_ConfiguredSection_BindsMaxParallelSplits()
+    {
+        const int Configured = 7;
+        using var provider = Build(new Dictionary<string, string?> { ["Extraction:MaxParallelSplits"] = Configured.ToString() });
+
+        Assert.Equal(Configured, provider.GetRequiredService<IOptions<ExtractionOptions>>().Value.MaxParallelSplits);
+    }
+
+    [Fact]
+    public void ParallelSplitter_Always_ResolvesAsASingleton()
+    {
+        using var provider = Build();
+
+        var splitter = provider.GetRequiredService<ParallelSplitter>();
+
+        Assert.Same(splitter, provider.GetRequiredService<ParallelSplitter>());
+    }
+
+    [Fact]
+    public void FileTreeBuilder_Always_ResolvesAsASingleton()
+    {
+        using var provider = Build();
+
+        var builder = provider.GetRequiredService<FileTreeBuilder>();
+
+        Assert.Same(builder, provider.GetRequiredService<FileTreeBuilder>());
+    }
+
+    [Fact]
+    public void IntakeProgressViewModel_RegisteredAsASingleton_ResolvesFromTheSharedGraph()
+    {
+        using var provider = Build(configure: services => services.AddSingleton<IntakeProgressViewModel>());
+
+        var intake = provider.GetRequiredService<IntakeProgressViewModel>();
+
+        Assert.Same(intake, provider.GetRequiredService<IntakeProgressViewModel>());
     }
 
     [Fact]

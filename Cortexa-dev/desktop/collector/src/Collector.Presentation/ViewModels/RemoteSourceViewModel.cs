@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using Collector.Application.Ports;
 using Collector.Application.Remote;
+using Collector.Application.Remote.Selection;
 using Collector.Application.Settings;
 using Collector.Domain.Enums;
 using Collector.Domain.Remote;
@@ -22,9 +23,14 @@ public sealed record RemoteSourceDependencies(
     ISshConnectionCloser SshConnection,
     IExternalLinkLauncher Links,
     IFilePicker Picker,
-    IOptions<RemoteFetchOptions> FetchOptions);
+    IOptions<RemoteFetchOptions> FetchOptions,
+    IntakeProgressViewModel Intake,
+    FileTreeBuilder TreeBuilder);
 
-public sealed record RemoteFilesFetchedEventArgs(IReadOnlyList<string> Paths, SourceType Source, string Origin);
+public sealed record RemoteFilesFetchedEventArgs(IReadOnlyList<FetchedFile> Files, SourceType Source, string Origin)
+{
+    public IReadOnlyList<string> Paths => [.. Files.Select(file => file.LocalPath)];
+}
 
 public sealed record RemoteFetchSummary(string Repository, string Detail, bool IsPrivate)
 {
@@ -40,11 +46,16 @@ public enum RemoteListState
 
 public static class RemoteFocusKeys
 {
-    public const string Cancel = "RemoteCancel";
+    public const string IntakeCancel = "IntakeCancel";
     public const string Organization = "RemoteOrganization";
     public const string Token = "RemoteToken";
     public const string Search = "RemoteSearch";
     public const string Repositories = "RemoteRepositories";
+    public const string FileSearch = "FileSearch";
+    public const string FileTree = "FileTree";
+    public const string Proceed = "Proceed";
+    public const string ChangeFiles = "ChangeFiles";
+    public const string FetchAgain = "FetchAgain";
 }
 
 public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposable
@@ -78,6 +89,8 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
         _limitText = RemoteSizeFormatter.Format(_limitBytes);
         _countdown = new RateLimitCountdown(time);
         _banners = new RemoteBannerFactory(CreateActions());
+        FileTree = new RemoteFileTreeViewModel(dependencies.TreeBuilder, dependencies.FetchOptions.Value.MaxSelectedFiles, time);
+        FileTree.PropertyChanged += OnFileTreeChanged;
         Sources = CreateSources();
         Repositories = [];
         Branches = [];
@@ -154,12 +167,6 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
 
     public bool ShowBranchField => SelectedRepository is not null;
 
-    public string FetchTitle => SelectedSource == SourceType.Ssh
-        ? SshFetchTitle
-        : SelectedRepository is { } row && SelectedBranch is { } branch
-            ? RemoteSourceStrings.FetchingTitle(row.FullName, branch.Name)
-            : string.Empty;
-
     [ObservableProperty]
     public partial SourceType SelectedSource { get; set; }
 
@@ -211,6 +218,9 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
         _countdown.Dispose();
         _listCts?.Cancel();
         _branchCts?.Cancel();
+        _treeCts?.Cancel();
+        FileTree.PropertyChanged -= OnFileTreeChanged;
+        FileTree.Dispose();
     }
 
     partial void OnSelectedSourceChanging(SourceType oldValue, SourceType newValue)
@@ -265,6 +275,12 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
 
     partial void OnIsLoadingBranchesChanged(bool value) => NotifyFetchState();
 
+    partial void OnIsLoadingTreeChanged(bool value)
+    {
+        OnPropertyChanged(nameof(AreFileControlsEnabled));
+        NotifyFetchState();
+    }
+
     partial void OnSummaryChanged(RemoteFetchSummary? value) => NotifyFetchState();
 
     partial void OnSelectedBranchChanged(BranchOptionViewModel? value)
@@ -279,9 +295,14 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
             Banner = null;
         }
 
-        if (value is not null && IsTokenSource && Step == RemoteWizardStep.Branch)
+        if (value is null)
         {
-            Step = RemoteWizardStep.Fetch;
+            ReleaseTree();
+        }
+        else if (IsTokenSource && Step == RemoteWizardStep.Branch)
+        {
+            Step = RemoteWizardStep.Files;
+            _ = LoadTreeAsync(value);
         }
 
         NotifyFetchState();
@@ -333,7 +354,6 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
         OnPropertyChanged(nameof(CommitText));
         OnPropertyChanged(nameof(HasCommit));
         OnPropertyChanged(nameof(ShowBranchField));
-        OnPropertyChanged(nameof(FetchTitle));
         NotifyListState();
         FetchCommand.NotifyCanExecuteChanged();
         FetchAgainCommand.NotifyCanExecuteChanged();

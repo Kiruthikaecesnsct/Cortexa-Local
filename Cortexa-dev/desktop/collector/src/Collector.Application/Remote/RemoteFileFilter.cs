@@ -8,14 +8,21 @@ public sealed class RemoteFileFilter(IOptions<RemoteFetchOptions> options)
 {
     private static readonly char[] Separators = ['/', '\\'];
 
-    public bool Keep(RemoteTreeEntry entry)
+    public bool Keep(RemoteTreeEntry entry) => Classify(entry) == RemoteEntryVerdict.Supported;
+
+    public RemoteEntryVerdict Classify(RemoteTreeEntry entry)
     {
-        if (HasExcludedSegment(entry.Path) || IsOversized(entry))
+        if (HasExcludedSegment(entry.Path))
         {
-            return false;
+            return RemoteEntryVerdict.ExcludedFolder;
         }
 
-        return IsSupportedType(entry.Path);
+        if (IsOversized(entry))
+        {
+            return RemoteEntryVerdict.TooLarge;
+        }
+
+        return IsSupportedType(entry.Path) ? RemoteEntryVerdict.Supported : RemoteEntryVerdict.Unsupported;
     }
 
     private static bool IsOversized(RemoteTreeEntry entry) =>

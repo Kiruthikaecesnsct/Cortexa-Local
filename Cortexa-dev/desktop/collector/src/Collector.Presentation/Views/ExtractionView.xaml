@@ -11,10 +11,10 @@
              Focusable="False"
              IsTabStop="False">
     <UserControl.InputBindings>
-        <KeyBinding Key="Escape" Command="{Binding Knowledge.ExtractKnowledgeCancelCommand}" />
-        <KeyBinding Key="Escape" Command="{Binding Remote.FetchCancelCommand}" />
+        <KeyBinding Key="Escape" Command="{Binding CancelActiveWorkCommand}" />
     </UserControl.InputBindings>
     <UserControl.Resources>
+        <views:EnumMatchConverter x:Key="EnumMatch" />
 
         <Style x:Key="StatusBadge.Surface" TargetType="Border">
             <Setter Property="Background" Value="{DynamicResource Brush.Surface.Sunken}" />
@@ -33,7 +33,7 @@
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Status}" Value="{x:Static enums:DocumentStatus.Failed}">
                     <Setter Property="Background" Value="{DynamicResource Brush.Danger.Surface}" />
-                    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Danger}" />
+                    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Danger.Text}" />
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Status}" Value="{x:Static enums:DocumentStatus.Excluded}">
                     <Setter Property="Background" Value="{DynamicResource Brush.Warning.Surface}" />
@@ -77,94 +77,6 @@
             </Style.Triggers>
         </Style>
 
-        <Style x:Key="Document.Row" TargetType="ListBoxItem">
-            <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Default}" />
-            <Setter Property="AutomationProperties.Name" Value="{Binding AutomationName}" />
-            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-            <Setter Property="Padding" Value="{StaticResource Thickness.None}" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ListBoxItem">
-                        <Border x:Name="Highlight" Padding="{StaticResource Thickness.HeaderPadding}" CornerRadius="{StaticResource Radius.Control}" SnapsToDevicePixels="True">
-                            <StackPanel>
-                                <Grid MinHeight="{StaticResource Size.RowMin}">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                    </Grid.ColumnDefinitions>
-                                    <ContentControl Grid.Column="0"
-                                                    Margin="{StaticResource Thickness.InlineGapLarge}"
-                                                    Content="{x:Static res:Glyphs.Document}"
-                                                    Style="{StaticResource IconTile}" />
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                        <TextBlock Style="{StaticResource Text.Label}"
-                                                   Text="{Binding Filename}"
-                                                   TextTrimming="CharacterEllipsis"
-                                                   TextWrapping="NoWrap" />
-                                        <TextBlock Style="{StaticResource Text.Caption}"
-                                                   Text="{Binding SourceCaption}"
-                                                   TextTrimming="CharacterEllipsis"
-                                                   TextWrapping="NoWrap" />
-                                    </StackPanel>
-                                    <TextBlock Grid.Column="2"
-                                               Margin="{StaticResource Thickness.InlineGapLarge}"
-                                               VerticalAlignment="Center"
-                                               Style="{StaticResource Text.Caption}">
-                                        <TextBlock.Text>
-                                            <MultiBinding StringFormat="{}{0} units · {1} tokens">
-                                                <Binding Path="UnitCount" />
-                                                <Binding Path="TokenCount" />
-                                            </MultiBinding>
-                                        </TextBlock.Text>
-                                    </TextBlock>
-                                    <Border Grid.Column="3" AutomationProperties.Name="{Binding StatusLabel}" Style="{StaticResource StatusBadge.Surface}">
-                                        <StackPanel Orientation="Horizontal">
-                                            <TextBlock Style="{StaticResource StatusBadge.Glyph}" />
-                                            <TextBlock VerticalAlignment="Center"
-                                                       FontFamily="{StaticResource Font.Body}"
-                                                       FontSize="{StaticResource FontSize.Caption}"
-                                                       Text="{Binding StatusLabel}" />
-                                        </StackPanel>
-                                    </Border>
-                                </Grid>
-                                <ProgressBar>
-                                    <ProgressBar.Style>
-                                        <Style TargetType="ProgressBar" BasedOn="{StaticResource Progress.Thin}">
-                                            <Setter Property="Visibility" Value="Collapsed" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Status}" Value="{x:Static enums:DocumentStatus.Extracting}">
-                                                    <Setter Property="Visibility" Value="Visible" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </ProgressBar.Style>
-                                </ProgressBar>
-                            </StackPanel>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Highlight" Property="Background" Value="{DynamicResource Brush.Surface.Hover}" />
-                            </Trigger>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Highlight" Property="Background" Value="{DynamicResource Brush.Surface.Selected}" />
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="Documents.List" TargetType="ListBox">
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="BorderThickness" Value="{StaticResource Thickness.None}" />
-            <Setter Property="SelectionMode" Value="Single" />
-            <Setter Property="ItemContainerStyle" Value="{StaticResource Document.Row}" />
-            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
-            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Disabled" />
-            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-        </Style>
     </UserControl.Resources>
 
     <StackPanel>
@@ -224,6 +136,60 @@
                         Content="{x:Static res:ExtractionStrings.PickFiles}"
                         Style="{StaticResource Button.Primary}" />
             </StackPanel>
+        </Border>
+
+        <Border Margin="{StaticResource Thickness.StackGapMedium}"
+                AutomationProperties.Name="{x:Static res:ExtractionStrings.IntakeProgressName}"
+                BorderBrush="{DynamicResource Brush.Accent.SubtleBorder}"
+                DataContext="{Binding Intake}"
+                Style="{StaticResource Card}"
+                Visibility="{Binding IsActive, Converter={StaticResource BoolToVisibility}}">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock Margin="{StaticResource Thickness.StackGap}"
+                               Style="{StaticResource Text.Label}"
+                               Text="{x:Static res:ExtractionStrings.IntakeCardTitle}" />
+                    <ProgressBar Margin="{StaticResource Thickness.StackGap}"
+                                 AutomationProperties.Name="{x:Static res:ExtractionStrings.IntakeProgressName}"
+                                 IsIndeterminate="False"
+                                 Maximum="{Binding ProgressMaximum, Mode=OneWay}"
+                                 Style="{StaticResource Progress.Thin}"
+                                 Value="{Binding ProgressValue, Mode=OneWay}" />
+                    <WrapPanel>
+                        <TextBlock Margin="{StaticResource Thickness.InlineGapXL}"
+                                   AutomationProperties.LiveSetting="Polite"
+                                   Style="{StaticResource Text.Body}"
+                                   Text="{Binding FetchedText}"
+                                   Visibility="{Binding HasFetchedText, Converter={StaticResource BoolToVisibility}}" />
+                        <TextBlock Margin="{StaticResource Thickness.InlineGapXL}"
+                                   AutomationProperties.LiveSetting="Polite"
+                                   Style="{StaticResource Text.Body}"
+                                   Text="{Binding SplitText}"
+                                   Visibility="{Binding HasSplitText, Converter={StaticResource BoolToVisibility}}" />
+                    </WrapPanel>
+                    <TextBlock AutomationProperties.LiveSetting="Off"
+                               FontFamily="{StaticResource Font.Mono}"
+                               FontSize="{StaticResource FontSize.MonoSmall}"
+                               Foreground="{DynamicResource Brush.Text.Muted}"
+                               Text="{Binding CurrentFile}"
+                               TextTrimming="CharacterEllipsis"
+                               TextWrapping="NoWrap"
+                               ToolTip="{Binding CurrentFile}"
+                               Visibility="{Binding HasCurrentFile, Converter={StaticResource BoolToVisibility}}" />
+                </StackPanel>
+                <Button Grid.Column="1"
+                        Margin="{StaticResource Thickness.LeadingGap}"
+                        VerticalAlignment="Center"
+                        AutomationProperties.Name="{x:Static res:ExtractionStrings.IntakeCancelName}"
+                        Command="{Binding CancelCommand}"
+                        Content="{x:Static res:ExtractionStrings.Cancel}"
+                        Style="{StaticResource Button.Secondary}"
+                        b:FocusRouter.Key="IntakeCancel" />
+            </Grid>
         </Border>
 
         <StackPanel Visibility="{Binding HasDocuments, Converter={StaticResource BoolToVisibility}}">
@@ -360,8 +326,8 @@
                 </Border>
                 <Border Style="{StaticResource Kpi.Tile}">
                     <StackPanel>
-                        <TextBlock Style="{StaticResource Text.Caption}" Text="{x:Static res:ExtractionStrings.StatExtracted}" />
-                        <TextBlock Style="{StaticResource Text.Kpi}" Text="{Binding ExtractedCount}" />
+                        <TextBlock Style="{StaticResource Text.Caption}" Text="{x:Static res:ExtractionStrings.StatAnalyzed}" />
+                        <TextBlock Style="{StaticResource Text.Kpi}" Text="{Binding AnalyzedCount}" />
                     </StackPanel>
                 </Border>
                 <Border Style="{StaticResource Kpi.Tile}">
@@ -433,11 +399,179 @@
                             <TextBlock Style="{StaticResource Text.Caption}" Text="{x:Static res:ExtractionStrings.DocumentsCaption}" />
                         </StackPanel>
                     </StackPanel>
-                    <ListBox AutomationProperties.Name="{x:Static res:ExtractionStrings.DocumentsTitle}"
-                             ItemsSource="{Binding Documents}"
-                             SelectedItem="{Binding SelectedDocument}"
-                             Style="{StaticResource Documents.List}"
-                             b:FocusRouter.Key="Documents" />
+                    <Grid Margin="{StaticResource Thickness.StackGapMedium}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Border Grid.Column="0"
+                                AutomationProperties.Name="{x:Static res:ExtractionStrings.FilterGroupName}"
+                                Style="{StaticResource SegmentedToggle.Track}">
+                            <StackPanel KeyboardNavigation.DirectionalNavigation="Cycle"
+                                        KeyboardNavigation.TabNavigation="Once"
+                                        Orientation="Horizontal">
+                                <RadioButton Content="{x:Static res:ExtractionStrings.FilterAll}"
+                                             GroupName="DocumentStatusFilter"
+                                             IsChecked="{Binding StatusFilter, Mode=TwoWay, Converter={StaticResource EnumMatch}, ConverterParameter={x:Static vm:DocumentStatusFilter.All}}"
+                                             Style="{StaticResource SegmentedToggle}" />
+                                <RadioButton Content="{x:Static res:ExtractionStrings.FilterAnalyzed}"
+                                             GroupName="DocumentStatusFilter"
+                                             IsChecked="{Binding StatusFilter, Mode=TwoWay, Converter={StaticResource EnumMatch}, ConverterParameter={x:Static vm:DocumentStatusFilter.Analyzed}}"
+                                             Style="{StaticResource SegmentedToggle}" />
+                                <RadioButton Content="{x:Static res:ExtractionStrings.FilterFailed}"
+                                             GroupName="DocumentStatusFilter"
+                                             IsChecked="{Binding StatusFilter, Mode=TwoWay, Converter={StaticResource EnumMatch}, ConverterParameter={x:Static vm:DocumentStatusFilter.Failed}}"
+                                             Style="{StaticResource SegmentedToggle}" />
+                                <RadioButton Content="{x:Static res:ExtractionStrings.FilterSkipped}"
+                                             GroupName="DocumentStatusFilter"
+                                             IsChecked="{Binding StatusFilter, Mode=TwoWay, Converter={StaticResource EnumMatch}, ConverterParameter={x:Static vm:DocumentStatusFilter.Skipped}}"
+                                             Style="{StaticResource SegmentedToggle}" />
+                            </StackPanel>
+                        </Border>
+                        <TextBlock Grid.Column="1"
+                                   Margin="{StaticResource Thickness.LeadingGap}"
+                                   VerticalAlignment="Center"
+                                   AutomationProperties.LiveSetting="Polite"
+                                   Style="{StaticResource Text.Caption}"
+                                   Text="{Binding DocumentsShowingText}" />
+                        <Grid Grid.Column="2" Width="{StaticResource Size.ToolbarSearchWidth}">
+                            <TextBox Padding="{StaticResource Thickness.SearchPadding}"
+                                     AutomationProperties.Name="{x:Static res:ExtractionStrings.SearchName}"
+                                     Style="{StaticResource TextBox.Field}"
+                                     Text="{Binding DocumentSearch, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="{x:Static res:ExtractionStrings.SearchPlaceholder}"
+                                     b:FocusRouter.Key="DocumentSearch" />
+                            <TextBlock Margin="{StaticResource Thickness.SearchGlyph}"
+                                       HorizontalAlignment="Right"
+                                       IsHitTestVisible="False"
+                                       Style="{StaticResource Text.Glyph}"
+                                       Text="{x:Static res:Glyphs.Search}" />
+                        </Grid>
+                    </Grid>
+                    <Grid>
+                        <DataGrid AutomationProperties.Name="{x:Static res:ExtractionStrings.DocumentsGridName}"
+                                  AutoGenerateColumns="False"
+                                  CanUserReorderColumns="False"
+                                  CanUserResizeColumns="True"
+                                  CellStyle="{StaticResource DataGridCell.Default}"
+                                  ColumnHeaderStyle="{StaticResource DataGridColumnHeader.Sortable}"
+                                  EnableColumnVirtualization="True"
+                                  EnableRowVirtualization="True"
+                                  GridLinesVisibility="None"
+                                  HeadersVisibility="Column"
+                                  Height="{StaticResource Size.DocumentsTableHeight}"
+                                  IsReadOnly="True"
+                                  ItemsSource="{Binding DocumentsView}"
+                                  KeyboardNavigation.TabNavigation="Once"
+                                  RowStyle="{StaticResource DataGridRow.Default}"
+                                  SelectedItem="{Binding SelectedDocument, Mode=TwoWay}"
+                                  SelectionMode="Single"
+                                  SelectionUnit="FullRow"
+                                  Sorting="OnDocumentsSorting"
+                                  Style="{StaticResource DataGrid.Documents}"
+                                  VirtualizingPanel.IsVirtualizing="True"
+                                  VirtualizingPanel.ScrollUnit="Item"
+                                  VirtualizingPanel.VirtualizationMode="Recycling"
+                                  b:FocusRouter.Key="Documents">
+                            <DataGrid.Columns>
+                                <DataGridTemplateColumn Width="2*"
+                                                        MinWidth="160"
+                                                        Header="{x:Static res:ExtractionStrings.ColumnName}"
+                                                        SortMemberPath="Name">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate DataType="{x:Type vm:DocumentRowViewModel}">
+                                            <StackPanel Orientation="Horizontal" ToolTip="{Binding Filename}">
+                                                <TextBlock Margin="{StaticResource Thickness.InlineGapLarge}"
+                                                           Style="{StaticResource Text.Glyph}"
+                                                           Text="{x:Static res:Glyphs.Document}" />
+                                                <TextBlock VerticalAlignment="Center"
+                                                           FontSize="{StaticResource FontSize.PageSubtitle}"
+                                                           Style="{StaticResource Text.Label}"
+                                                           Text="{Binding Filename}"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           TextWrapping="NoWrap" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Width="2*"
+                                                        Header="{x:Static res:ExtractionStrings.ColumnFolder}"
+                                                        SortMemberPath="Folder">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate DataType="{x:Type vm:DocumentRowViewModel}">
+                                            <TextBlock VerticalAlignment="Center"
+                                                       FontFamily="{StaticResource Font.Mono}"
+                                                       FontSize="{StaticResource FontSize.MonoSmall}"
+                                                       Foreground="{DynamicResource Brush.Text.Muted}"
+                                                       Text="{Binding Folder}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       TextWrapping="NoWrap"
+                                                       ToolTip="{Binding Folder}" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Width="{StaticResource Size.TableNumericColumn}"
+                                                        Header="{x:Static res:ExtractionStrings.ColumnUnits}"
+                                                        SortMemberPath="Units">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate DataType="{x:Type vm:DocumentRowViewModel}">
+                                            <TextBlock HorizontalAlignment="Right"
+                                                       VerticalAlignment="Center"
+                                                       FontFamily="{StaticResource Font.Mono}"
+                                                       FontSize="{StaticResource FontSize.Mono}"
+                                                       Foreground="{DynamicResource Brush.Text.Body}"
+                                                       Text="{Binding UnitCount, StringFormat={}{0:N0}}" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Width="{StaticResource Size.TableNumericColumn}"
+                                                        Header="{x:Static res:ExtractionStrings.ColumnTokens}"
+                                                        SortMemberPath="Tokens">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate DataType="{x:Type vm:DocumentRowViewModel}">
+                                            <TextBlock HorizontalAlignment="Right"
+                                                       VerticalAlignment="Center"
+                                                       FontFamily="{StaticResource Font.Mono}"
+                                                       FontSize="{StaticResource FontSize.Mono}"
+                                                       Foreground="{DynamicResource Brush.Text.Body}"
+                                                       Text="{Binding TokenCount, StringFormat={}{0:N0}}" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Width="{StaticResource Size.TableStatusColumn}"
+                                                        Header="{x:Static res:ExtractionStrings.ColumnStatus}"
+                                                        SortMemberPath="Status">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate DataType="{x:Type vm:DocumentRowViewModel}">
+                                            <Border HorizontalAlignment="Left"
+                                                    AutomationProperties.Name="{Binding StatusLabel}"
+                                                    Style="{StaticResource StatusBadge.Surface}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Style="{StaticResource StatusBadge.Glyph}" />
+                                                    <TextBlock VerticalAlignment="Center"
+                                                               FontFamily="{StaticResource Font.Body}"
+                                                               FontSize="{StaticResource FontSize.Caption}"
+                                                               Text="{Binding StatusLabel}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        <StackPanel HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Visibility="{Binding ShowNoDocumentMatch, Converter={StaticResource BoolToVisibility}}">
+                            <TextBlock HorizontalAlignment="Center"
+                                       Style="{StaticResource Text.Helper}"
+                                       Text="{x:Static res:ExtractionStrings.NoDocumentMatch}" />
+                            <Button HorizontalAlignment="Center"
+                                    Command="{Binding ClearDocumentFiltersCommand}"
+                                    Content="{x:Static res:ExtractionStrings.ClearFilters}"
+                                    Style="{StaticResource Button.Link}" />
+                        </StackPanel>
+                    </Grid>
                 </StackPanel>
             </Border>
 
@@ -469,78 +603,135 @@
                         <TextBlock HorizontalAlignment="Center" Style="{StaticResource Text.Helper}" Text="{x:Static res:ExtractionStrings.PreviewEmptyBody}" />
                     </StackPanel>
 
-                    <ItemsControl AlternationCount="100"
-                                  Focusable="False"
-                                  IsTabStop="False"
-                                  ItemsSource="{Binding PreviewUnits}"
-                                  Visibility="{Binding ShowPreviewUnits, Converter={StaticResource BoolToVisibility}}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <VirtualizingStackPanel />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate DataType="{x:Type vm:UnitPreviewItemViewModel}">
-                                <StackPanel>
-                                    <Border Style="{StaticResource Divider}"
-                                            Visibility="{Binding (ItemsControl.AlternationIndex), RelativeSource={RelativeSource AncestorType=ContentPresenter}, Converter={StaticResource NotZeroToVisibility}}" />
-                                    <Grid Margin="{StaticResource Thickness.RowPadding}">
+                    <ProgressBar Margin="{StaticResource Thickness.StackGap}"
+                                 IsIndeterminate="True"
+                                 Style="{StaticResource Progress.Thin}"
+                                 Visibility="{Binding IsPreviewLoading, Converter={StaticResource BoolToVisibility}}" />
+
+                    <Grid Visibility="{Binding ShowPreviewUnits, Converter={StaticResource BoolToVisibility}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="2*" />
+                            <ColumnDefinition Width="3*" />
+                        </Grid.ColumnDefinitions>
+                        <ListBox Grid.Column="0"
+                                 Margin="{StaticResource Thickness.InlineGapXL}"
+                                 AutomationProperties.Name="{Binding SectionListName}"
+                                 Height="{StaticResource Size.UnitListHeight}"
+                                 ItemsSource="{Binding PreviewUnits}"
+                                 SelectedItem="{Binding SelectedUnit, Mode=TwoWay}"
+                                 Style="{StaticResource UnitPreview.List}"
+                                 b:FocusRouter.Key="UnitList">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:UnitPreviewItemViewModel}">
+                                    <Grid MinHeight="{StaticResource Size.RowAction}" Margin="{StaticResource Thickness.ListItemPadding}">
                                         <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="40" />
                                             <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="*" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="0"
-                                                   Margin="{StaticResource Thickness.InlineGapLarge}"
-                                                   VerticalAlignment="Top"
+                                                   VerticalAlignment="Center"
                                                    FontFamily="{StaticResource Font.Mono}"
                                                    FontSize="{StaticResource FontSize.MonoSmall}"
                                                    Foreground="{DynamicResource Brush.Text.Muted}"
                                                    Text="{Binding Ordinal}" />
-                                        <StackPanel Grid.Column="1" Margin="{StaticResource Thickness.InlineGapLarge}">
+                                        <Border Grid.Column="1"
+                                                Margin="{StaticResource Thickness.InlineGapLarge}"
+                                                Style="{StaticResource KindChip.Surface}">
                                             <StackPanel Orientation="Horizontal">
-                                                <Border Style="{StaticResource KindChip.Surface}">
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <TextBlock Style="{StaticResource KindChip.Glyph}" />
-                                                        <TextBlock VerticalAlignment="Center"
-                                                                   FontFamily="{StaticResource Font.Body}"
-                                                                   FontSize="{StaticResource FontSize.Caption}"
-                                                                   Text="{Binding KindLabel}" />
-                                                    </StackPanel>
-                                                </Border>
-                                                <TextBlock Margin="{StaticResource Thickness.InlineGapLarge}"
-                                                           VerticalAlignment="Center"
-                                                           Style="{StaticResource Text.Label}"
-                                                           Text="{Binding BoundaryLabel}"
-                                                           TextTrimming="CharacterEllipsis"
-                                                           TextWrapping="NoWrap" />
+                                                <TextBlock Style="{StaticResource KindChip.Glyph}" />
+                                                <TextBlock VerticalAlignment="Center"
+                                                           FontFamily="{StaticResource Font.Body}"
+                                                           FontSize="{StaticResource FontSize.Caption}"
+                                                           Text="{Binding KindLabel}" />
                                             </StackPanel>
-                                            <Border Margin="{StaticResource Thickness.HelperGap}"
-                                                    Background="{DynamicResource Brush.Surface.Sunken}"
-                                                    CornerRadius="{StaticResource Radius.Control}"
-                                                    Padding="{StaticResource Thickness.ControlPadding}">
-                                                <TextBlock FontFamily="{StaticResource Font.Mono}"
-                                                           FontSize="{StaticResource FontSize.MonoSmall}"
-                                                           Foreground="{DynamicResource Brush.Text.Body}"
-                                                           MaxHeight="{StaticResource Size.SnippetMaxHeight}"
-                                                           Text="{Binding Snippet}"
-                                                           TextTrimming="CharacterEllipsis"
-                                                           TextWrapping="Wrap" />
-                                            </Border>
-                                        </StackPanel>
-                                        <StackPanel Grid.Column="2" VerticalAlignment="Top" HorizontalAlignment="Right">
-                                            <TextBlock HorizontalAlignment="Right"
-                                                       FontFamily="{StaticResource Font.Mono}"
-                                                       FontSize="{StaticResource FontSize.MonoBody}"
-                                                       Style="{StaticResource Text.Label}"
-                                                       Text="{Binding TokenCount}" />
-                                            <TextBlock HorizontalAlignment="Right" Style="{StaticResource Text.Caption}" Text="{x:Static res:ExtractionStrings.TokensSuffix}" />
-                                        </StackPanel>
+                                        </Border>
+                                        <TextBlock Grid.Column="2"
+                                                   VerticalAlignment="Center"
+                                                   Style="{StaticResource Text.Label}"
+                                                   Text="{Binding Title}"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   TextWrapping="NoWrap"
+                                                   ToolTip="{Binding Title}" />
+                                        <TextBlock Grid.Column="3"
+                                                   Margin="{StaticResource Thickness.LeadingGap}"
+                                                   HorizontalAlignment="Right"
+                                                   VerticalAlignment="Center"
+                                                   FontFamily="{StaticResource Font.Mono}"
+                                                   FontSize="{StaticResource FontSize.MonoSmall}"
+                                                   Foreground="{DynamicResource Brush.Text.Muted}"
+                                                   Text="{Binding TokenCount, StringFormat={}{0:N0}}" />
                                     </Grid>
-                                </StackPanel>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                        <Border Grid.Column="1"
+                                Height="{StaticResource Size.UnitListHeight}"
+                                Background="{DynamicResource Brush.Surface.Sunken}"
+                                BorderBrush="{DynamicResource Brush.Border.Subtle}"
+                                BorderThickness="{StaticResource Thickness.Border}"
+                                CornerRadius="{StaticResource Radius.Control}">
+                            <Grid>
+                                <DockPanel Visibility="{Binding SelectedUnit, Converter={StaticResource NotNullToVisibility}}">
+                                    <Border Padding="{StaticResource Thickness.HeaderPadding}"
+                                            BorderBrush="{DynamicResource Brush.Border.Subtle}"
+                                            BorderThickness="{StaticResource Thickness.BottomBorder}"
+                                            DataContext="{Binding SelectedUnit}"
+                                            DockPanel.Dock="Top">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Grid.Column="0"
+                                                    Margin="{StaticResource Thickness.InlineGapLarge}"
+                                                    Style="{StaticResource KindChip.Surface}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Style="{StaticResource KindChip.Glyph}" />
+                                                    <TextBlock VerticalAlignment="Center"
+                                                               FontFamily="{StaticResource Font.Body}"
+                                                               FontSize="{StaticResource FontSize.Caption}"
+                                                               Text="{Binding KindLabel}" />
+                                                </StackPanel>
+                                            </Border>
+                                            <TextBlock Grid.Column="1"
+                                                       VerticalAlignment="Center"
+                                                       Style="{StaticResource Text.Label}"
+                                                       Text="{Binding Title}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       TextWrapping="NoWrap"
+                                                       ToolTip="{Binding Title}" />
+                                            <TextBlock Grid.Column="2"
+                                                       Margin="{StaticResource Thickness.LeadingGap}"
+                                                       VerticalAlignment="Center"
+                                                       Style="{StaticResource Text.Caption}">
+                                                <TextBlock.Text>
+                                                    <MultiBinding StringFormat="{}{0:N0} {1}">
+                                                        <Binding Path="TokenCount" />
+                                                        <Binding Source="{x:Static res:ExtractionStrings.TokensSuffix}" />
+                                                    </MultiBinding>
+                                                </TextBlock.Text>
+                                            </TextBlock>
+                                        </Grid>
+                                    </Border>
+                                    <TextBox AutomationProperties.Name="{Binding SectionDetailName}"
+                                             IsReadOnly="True"
+                                             IsReadOnlyCaretVisible="True"
+                                             Style="{StaticResource TextBox.Code}"
+                                             Text="{Binding SelectedUnitText, Mode=OneWay}"
+                                             TextWrapping="Wrap"
+                                             VerticalScrollBarVisibility="Auto" />
+                                </DockPanel>
+                                <TextBlock HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"
+                                           Style="{StaticResource Text.Helper}"
+                                           Text="{x:Static res:ExtractionStrings.SelectSectionHint}"
+                                           Visibility="{Binding ShowSectionHint, Converter={StaticResource BoolToVisibility}}" />
+                            </Grid>
+                        </Border>
+                    </Grid>
                 </StackPanel>
             </Border>
 
@@ -549,15 +740,17 @@
                     Visibility="{Binding HasSkipped, Converter={StaticResource BoolToVisibility}}">
                 <StackPanel>
                     <ContentControl Content="{Binding SkipBanner}" Focusable="False" IsTabStop="False" />
-                    <ItemsControl AlternationCount="100"
-                                  Focusable="False"
-                                  IsTabStop="False"
-                                  ItemsSource="{Binding SkipRows}">
-                        <ItemsControl.ItemTemplate>
+                    <ListBox AutomationProperties.Name="{x:Static res:ExtractionStrings.SkipListName}"
+                             ItemsSource="{Binding SkipRowsView}"
+                             MaxHeight="{StaticResource Size.SkipListMaxHeight}"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             Style="{StaticResource SkipList}"
+                             VirtualizingPanel.IsVirtualizing="True"
+                             VirtualizingPanel.ScrollUnit="Item"
+                             VirtualizingPanel.VirtualizationMode="Recycling">
+                        <ListBox.ItemTemplate>
                             <DataTemplate DataType="{x:Type vm:DocumentRowViewModel}">
                                 <StackPanel>
-                                    <Border Style="{StaticResource Divider}"
-                                            Visibility="{Binding (ItemsControl.AlternationIndex), RelativeSource={RelativeSource AncestorType=ContentPresenter}, Converter={StaticResource NotZeroToVisibility}}" />
                                     <Grid MinHeight="{StaticResource Size.RowMin}" Margin="{StaticResource Thickness.RowPadding}">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="Auto" />
@@ -591,8 +784,8 @@
                                     </Grid>
                                 </StackPanel>
                             </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
                 </StackPanel>
             </Border>
 

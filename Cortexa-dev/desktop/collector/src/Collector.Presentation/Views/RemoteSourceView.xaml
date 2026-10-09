@@ -149,6 +149,13 @@
                 <MultiDataTrigger>
                     <MultiDataTrigger.Conditions>
                         <Condition Binding="{Binding IsDone}" Value="True" />
+                        <Condition Binding="{Binding Number}" Value="4" />
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="Command" Value="{Binding DataContext.ChangeFilesCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                </MultiDataTrigger>
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding IsDone}" Value="True" />
                         <Condition Binding="{Binding Number}" Value="1" />
                     </MultiDataTrigger.Conditions>
                     <Setter Property="IsEnabled" Value="False" />
@@ -158,7 +165,7 @@
 
         <Style x:Key="Stepper.ConnectorLink" TargetType="Border" BasedOn="{StaticResource Stepper.Connector}">
             <Style.Triggers>
-                <DataTrigger Binding="{Binding Number}" Value="4">
+                <DataTrigger Binding="{Binding Number}" Value="5">
                     <Setter Property="Visibility" Value="Collapsed" />
                 </DataTrigger>
             </Style.Triggers>
@@ -473,6 +480,13 @@
                                         Content="{x:Static res:RemoteSourceStrings.ChangeBranch}"
                                         Style="{StaticResource Button.Secondary}"
                                         Visibility="{Binding ShowChangeBranch, Converter={StaticResource BoolToVisibility}}" />
+                                <Button Margin="{StaticResource Thickness.LeadingGap}"
+                                        AutomationProperties.Name="{x:Static res:RemoteSourceStrings.ChangeFilesName}"
+                                        Command="{Binding ChangeFilesCommand}"
+                                        Content="{x:Static res:RemoteSourceStrings.ChangeFiles}"
+                                        Style="{StaticResource Button.Secondary}"
+                                        Visibility="{Binding ShowChangeFiles, Converter={StaticResource BoolToVisibility}}"
+                                        b:FocusRouter.Key="ChangeFiles" />
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -584,10 +598,13 @@
                                 Visibility="{Binding ShowRepositoryStep, Converter={StaticResource BoolToVisibility}}">
                         <Grid Visibility="{Binding HasRepositories, Converter={StaticResource BoolToVisibility}}">
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" MinWidth="{StaticResource Size.ComboMin}" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <HeaderedContentControl Grid.Column="0"
+                                                    VerticalAlignment="Bottom"
                                                     Header="{x:Static res:RemoteSourceStrings.SearchLabel}"
                                                     Style="{StaticResource FormField}">
                                 <Grid>
@@ -605,21 +622,11 @@
                                                Text="{x:Static res:Glyphs.Search}" />
                                 </Grid>
                             </HeaderedContentControl>
-                            <Button Grid.Column="1"
-                                    Margin="{StaticResource Thickness.FieldAdjacent}"
-                                    VerticalAlignment="Bottom"
-                                    AutomationProperties.Name="{x:Static res:RemoteSourceStrings.Reload}"
-                                    Command="{Binding LoadRepositoriesCommand}"
-                                    Content="{x:Static res:Glyphs.Refresh}"
-                                    Style="{StaticResource Button.Icon}"
-                                    ToolTip="{x:Static res:RemoteSourceStrings.Reload}" />
-                        </Grid>
-
-                        <WrapPanel Margin="{StaticResource Thickness.StackGapMedium}" Visibility="{Binding HasRepositories, Converter={StaticResource BoolToVisibility}}">
-                            <StackPanel Margin="{StaticResource Thickness.InlineGapXL}" Orientation="Horizontal">
-                                <TextBlock Margin="{StaticResource Thickness.InlineGapLarge}"
-                                           VerticalAlignment="Center"
-                                           Style="{StaticResource Text.Caption}"
+                            <StackPanel Grid.Column="1"
+                                        Margin="{StaticResource Thickness.FieldAdjacent}"
+                                        VerticalAlignment="Bottom">
+                                <TextBlock Margin="{StaticResource Thickness.LabelPadding}"
+                                           Style="{StaticResource Text.Label}"
                                            Text="{x:Static res:RemoteSourceStrings.VisibilityLabel}" />
                                 <Border Style="{StaticResource SegmentedToggle.Track}">
                                     <ItemsControl AutomationProperties.Name="{x:Static res:RemoteSourceStrings.VisibilityLabel}"
@@ -637,10 +644,11 @@
                                     </ItemsControl>
                                 </Border>
                             </StackPanel>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Margin="{StaticResource Thickness.InlineGapLarge}"
-                                           VerticalAlignment="Center"
-                                           Style="{StaticResource Text.Caption}"
+                            <StackPanel Grid.Column="2"
+                                        Margin="{StaticResource Thickness.FieldAdjacent}"
+                                        VerticalAlignment="Bottom">
+                                <TextBlock Margin="{StaticResource Thickness.LabelPadding}"
+                                           Style="{StaticResource Text.Label}"
                                            Text="{x:Static res:RemoteSourceStrings.SortLabel}" />
                                 <Border Style="{StaticResource SegmentedToggle.Track}">
                                     <ItemsControl AutomationProperties.Name="{x:Static res:RemoteSourceStrings.SortLabel}"
@@ -658,7 +666,15 @@
                                     </ItemsControl>
                                 </Border>
                             </StackPanel>
-                        </WrapPanel>
+                            <Button Grid.Column="3"
+                                    Margin="{StaticResource Thickness.FieldAdjacent}"
+                                    VerticalAlignment="Bottom"
+                                    AutomationProperties.Name="{x:Static res:RemoteSourceStrings.Reload}"
+                                    Command="{Binding LoadRepositoriesCommand}"
+                                    Content="{x:Static res:Glyphs.Refresh}"
+                                    Style="{StaticResource Button.Icon}"
+                                    ToolTip="{x:Static res:RemoteSourceStrings.Reload}" />
+                        </Grid>
 
                         <TextBlock Margin="{StaticResource Thickness.StackGap}"
                                    AutomationProperties.LiveSetting="Polite"
@@ -759,9 +775,180 @@
                         </ScrollViewer>
                     </StackPanel>
 
-                    <StackPanel x:Name="FetchStep"
-                                IsVisibleChanged="OnFetchStepVisibleChanged"
-                                Visibility="{Binding ShowFetchStep, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel x:Name="FilesStep"
+                                IsVisibleChanged="OnFilesStepVisibleChanged"
+                                PreviewKeyDown="OnFilesStepPreviewKeyDown"
+                                Visibility="{Binding ShowFilesStep, Converter={StaticResource BoolToVisibility}}">
+                        <TextBlock Margin="{StaticResource Thickness.StackGap}"
+                                   AutomationProperties.HeadingLevel="Level2"
+                                   Style="{StaticResource Text.Subtitle}"
+                                   Text="{x:Static res:RemoteSourceStrings.ChooseFiles}" />
+                        <Grid Margin="{StaticResource Thickness.StackGap}" IsEnabled="{Binding AreFileControlsEnabled}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid Grid.Column="0">
+                                <TextBox x:Name="FileSearch"
+                                         Padding="{StaticResource Thickness.SearchPadding}"
+                                         AutomationProperties.Name="{x:Static res:RemoteSourceStrings.FileSearchName}"
+                                         KeyDown="OnFileSearchKeyDown"
+                                         Style="{StaticResource TextBox.Field}"
+                                         Text="{Binding FileTree.SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="{x:Static res:RemoteSourceStrings.FileSearchPlaceholder}"
+                                         b:FocusRouter.Key="FileSearch" />
+                                <TextBlock Margin="{StaticResource Thickness.SearchGlyph}"
+                                           HorizontalAlignment="Right"
+                                           IsHitTestVisible="False"
+                                           Style="{StaticResource Text.Glyph}"
+                                           Text="{x:Static res:Glyphs.Search}" />
+                            </Grid>
+                            <Button Grid.Column="1"
+                                    Margin="{StaticResource Thickness.LeadingGapSmall}"
+                                    AutomationProperties.Name="{Binding FileTree.SelectAllName}"
+                                    Command="{Binding FileTree.SelectAllCommand}"
+                                    Content="{Binding FileTree.SelectAllLabel}"
+                                    Style="{StaticResource Button.Ghost}" />
+                            <Button Grid.Column="2"
+                                    Margin="{StaticResource Thickness.LeadingGapSmall}"
+                                    AutomationProperties.Name="{Binding FileTree.ClearName}"
+                                    Command="{Binding FileTree.ClearCommand}"
+                                    Content="{Binding FileTree.ClearLabel}"
+                                    Style="{StaticResource Button.Ghost}" />
+                            <Button Grid.Column="3"
+                                    Margin="{StaticResource Thickness.LeadingGapSmall}"
+                                    AutomationProperties.Name="{x:Static res:RemoteSourceStrings.OnlySupportedName}"
+                                    Command="{Binding FileTree.OnlySupportedCommand}"
+                                    Content="{x:Static res:RemoteSourceStrings.OnlySupported}"
+                                    Style="{StaticResource Button.Ghost}" />
+                        </Grid>
+
+                        <Border Margin="{StaticResource Thickness.StackGap}"
+                                AutomationProperties.LiveSetting="Polite"
+                                AutomationProperties.Name="{Binding FileTree.TruncatedNotice}"
+                                Style="{StaticResource InlineNotice.Warning}"
+                                Visibility="{Binding FileTree.TruncatedNotice, Converter={StaticResource NotEmptyToVisibility}}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           VerticalAlignment="Top"
+                                           Style="{StaticResource Tag.Glyph}"
+                                           Text="{x:Static res:Glyphs.Warning}" />
+                                <TextBlock Grid.Column="1"
+                                           FontFamily="{StaticResource Font.Body}"
+                                           FontSize="{StaticResource FontSize.Caption}"
+                                           Text="{Binding FileTree.TruncatedNotice}"
+                                           TextWrapping="Wrap" />
+                            </Grid>
+                        </Border>
+
+                        <Grid Margin="{StaticResource Thickness.StackGap}"
+                              Visibility="{Binding FileTree.HiddenExcludedNotice, Converter={StaticResource NotEmptyToVisibility}}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0"
+                                       Margin="{StaticResource Thickness.InlineGap}"
+                                       VerticalAlignment="Top"
+                                       Style="{StaticResource Text.Glyph}"
+                                       Text="{x:Static res:Glyphs.Info}" />
+                            <TextBlock Grid.Column="1"
+                                       Style="{StaticResource Text.Caption}"
+                                       Text="{Binding FileTree.HiddenExcludedNotice}"
+                                       TextWrapping="Wrap" />
+                        </Grid>
+
+                        <Grid>
+                            <ListBox x:Name="FileTreeList"
+                                     AutomationProperties.Name="{x:Static res:RemoteSourceStrings.FileTreeName}"
+                                     ItemsSource="{Binding FileTree.VisibleRows}"
+                                     PreviewKeyDown="OnFileTreePreviewKeyDown"
+                                     SelectedItem="{Binding FileTree.SelectedRow, Mode=TwoWay}"
+                                     Style="{StaticResource FileTree.List}"
+                                     b:FocusRouter.Key="FileTree" />
+                            <StackPanel MaxWidth="{StaticResource Size.ComboPopupMax}"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Visibility="{Binding IsLoadingTree, Converter={StaticResource BoolToVisibility}}">
+                                <ProgressBar Margin="{StaticResource Thickness.StackGap}"
+                                             AutomationProperties.Name="{Binding LoadingTreeText}"
+                                             Style="{StaticResource Progress.Thin}" />
+                                <TextBlock HorizontalAlignment="Center"
+                                           Style="{StaticResource Text.Caption}"
+                                           Text="{Binding LoadingTreeText}" />
+                            </StackPanel>
+                            <StackPanel HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Visibility="{Binding FileTree.ShowEmpty, Converter={StaticResource BoolToVisibility}}">
+                                <ContentControl Content="{x:Static res:Glyphs.Document}" Style="{StaticResource EmptyIcon.Small}" />
+                                <TextBlock HorizontalAlignment="Center"
+                                           Style="{StaticResource Text.Helper}"
+                                           Text="{x:Static res:RemoteSourceStrings.EmptyTree}"
+                                           TextAlignment="Center" />
+                            </StackPanel>
+                            <StackPanel HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Visibility="{Binding FileTree.ShowNoMatch, Converter={StaticResource BoolToVisibility}}">
+                                <TextBlock HorizontalAlignment="Center"
+                                           Style="{StaticResource Text.Helper}"
+                                           Text="{Binding FileTree.NoMatchText}"
+                                           TextAlignment="Center" />
+                                <Button HorizontalAlignment="Center"
+                                        AutomationProperties.Name="{x:Static res:RemoteSourceStrings.ClearSearch}"
+                                        Command="{Binding FileTree.ClearSearchCommand}"
+                                        Content="{x:Static res:RemoteSourceStrings.ClearSearch}"
+                                        Style="{StaticResource Button.Link}" />
+                            </StackPanel>
+                        </Grid>
+
+                        <Border Style="{StaticResource FilesFooter}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                    <TextBlock AutomationProperties.LiveSetting="Polite"
+                                               Style="{StaticResource Text.Label}"
+                                               Text="{Binding FileTree.SummaryText}"
+                                               TextWrapping="Wrap" />
+                                    <TextBlock Margin="{StaticResource Thickness.HelperGap}"
+                                               Text="{Binding FileTree.ProceedHint}"
+                                               Visibility="{Binding FileTree.ProceedHint, Converter={StaticResource NotEmptyToVisibility}}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock" BasedOn="{StaticResource Text.Helper}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding FileTree.IsOverLimit}" Value="True">
+                                                        <Setter Property="Foreground" Value="{DynamicResource Brush.Danger.Text}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                                <Button Grid.Column="1"
+                                        MinWidth="{StaticResource Size.ActionMinWidth}"
+                                        Margin="{StaticResource Thickness.LeadingGap}"
+                                        VerticalAlignment="Center"
+                                        AutomationProperties.HelpText="{Binding FileTree.ProceedHint}"
+                                        AutomationProperties.Name="{x:Static res:RemoteSourceStrings.ProceedName}"
+                                        Command="{Binding ProceedCommand}"
+                                        Content="{x:Static res:RemoteSourceStrings.ProceedLabel}"
+                                        Style="{StaticResource Button.Primary}"
+                                        ToolTip="{Binding FileTree.ProceedHint}"
+                                        ToolTipService.ShowOnDisabled="True"
+                                        b:FocusRouter.Key="Proceed" />
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+
+                    <StackPanel x:Name="ProceedStep" Visibility="{Binding ShowProceedStep, Converter={StaticResource BoolToVisibility}}">
                         <TextBlock Margin="{StaticResource Thickness.StackGap}"
                                    FontFamily="{StaticResource Font.Mono}"
                                    FontSize="{StaticResource FontSize.MonoSmall}"
@@ -770,36 +957,24 @@
                                    Visibility="{Binding HasCommit, Converter={StaticResource BoolToVisibility}}" />
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
                                 <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <Button Grid.Column="0"
-                                    x:Name="FetchButton"
-                                    MinHeight="{StaticResource Size.RowAction}"
-                                    Margin="{StaticResource Thickness.InlineGapLarge}"
+                            <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                                <TextBlock Style="{StaticResource Text.Label}" Text="{Binding ProceedSelectionText}" />
+                                <TextBlock Style="{StaticResource Text.Caption}"
+                                           Text="{Binding ProceedSkippedText}"
+                                           TextWrapping="Wrap"
+                                           Visibility="{Binding HasProceedSkipped, Converter={StaticResource BoolToVisibility}}" />
+                            </StackPanel>
+                            <Button Grid.Column="1"
+                                    Margin="{StaticResource Thickness.LeadingGap}"
                                     VerticalAlignment="Center"
-                                    AutomationProperties.HelpText="{Binding FetchHelp}"
-                                    AutomationProperties.Name="{x:Static res:RemoteSourceStrings.FetchName}"
-                                    Command="{Binding FetchCommand}"
-                                    Content="{x:Static res:RemoteSourceStrings.Fetch}"
-                                    Style="{StaticResource Button.Primary}"
-                                    ToolTip="{Binding FetchHelp}"
-                                    ToolTipService.ShowOnDisabled="True" />
-                            <TextBlock Grid.Column="1"
-                                       MaxWidth="{StaticResource Size.ContentMaxWidth}"
-                                       HorizontalAlignment="Left"
-                                       VerticalAlignment="Center"
-                                       Text="{Binding FetchHelp}">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock" BasedOn="{StaticResource Text.Helper}">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding FetchHelpIsError}" Value="True">
-                                                <Setter Property="Foreground" Value="{DynamicResource Brush.Danger.Text}" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
+                                    AutomationProperties.Name="{x:Static res:RemoteSourceStrings.FetchAgain}"
+                                    Command="{Binding FetchAgainCommand}"
+                                    Content="{x:Static res:RemoteSourceStrings.FetchAgain}"
+                                    Style="{StaticResource Button.Secondary}"
+                                    b:FocusRouter.Key="FetchAgain" />
                         </Grid>
                     </StackPanel>
                 </StackPanel>
@@ -1120,37 +1295,6 @@
                             Content="{x:Static res:RemoteSourceStrings.ChangeRepository}"
                             Style="{StaticResource Button.Link}" />
                 </StackPanel>
-            </Grid>
-        </Border>
-
-        <Border Margin="{StaticResource Thickness.StackGap}"
-                Style="{StaticResource Card}"
-                Visibility="{Binding IsFetching, Converter={StaticResource BoolToVisibility}}">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                    <TextBlock Margin="{StaticResource Thickness.StackGap}"
-                               Style="{StaticResource Text.Label}"
-                               Text="{Binding FetchTitle}" />
-                    <ProgressBar Margin="{StaticResource Thickness.StackGap}"
-                                 AutomationProperties.Name="{x:Static res:RemoteSourceStrings.ProgressName}"
-                                 IsIndeterminate="{Binding IsProgressIndeterminate}"
-                                 Maximum="{Binding ProgressMaximum, Mode=OneWay}"
-                                 Style="{StaticResource Progress.Thin}"
-                                 Value="{Binding ProgressValue, Mode=OneWay}" />
-                    <TextBlock Style="{StaticResource Text.Caption}" Text="{Binding ProgressText}" />
-                </StackPanel>
-                <Button Grid.Column="1"
-                        Margin="{StaticResource Thickness.LeadingGap}"
-                        VerticalAlignment="Center"
-                        AutomationProperties.Name="{x:Static res:RemoteSourceStrings.CancelName}"
-                        Command="{Binding FetchCancelCommand}"
-                        Content="{x:Static res:RemoteSourceStrings.Cancel}"
-                        Style="{StaticResource Button.Secondary}"
-                        b:FocusRouter.Key="RemoteCancel" />
             </Grid>
         </Border>
     </StackPanel>

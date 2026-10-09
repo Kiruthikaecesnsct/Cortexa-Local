@@ -1,5 +1,6 @@
 using Collector.Application.Ports;
 using Collector.Application.Remote;
+using Collector.Application.Remote.Selection;
 using Collector.Application.Settings;
 using Collector.Domain.Enums;
 using Collector.Domain.Remote;
@@ -45,8 +46,29 @@ internal sealed class ScriptedRemoteClient(SourceType provider) : IRemoteReposit
     public Task<IReadOnlyList<RemoteBranch>> ListBranchesAsync(RemoteRepository repository, CancellationToken cancellationToken) =>
         BranchError is null ? Task.FromResult(Branches) : Task.FromException<IReadOnlyList<RemoteBranch>>(BranchError);
 
-    public Task<RemoteTree> GetTreeAsync(RemoteRepository repository, string branch, CancellationToken cancellationToken) =>
-        throw new NotSupportedException();
+    public RemoteTree Tree { get; set; } = new("3f2a9c1e55", [], false);
+
+    public int TreeCalls { get; private set; }
+
+    public Exception? TreeError { get; set; }
+
+    public TaskCompletionSource? TreeGate { get; set; }
+
+    public async Task<RemoteTree> GetTreeAsync(RemoteRepository repository, string branch, CancellationToken cancellationToken)
+    {
+        TreeCalls++;
+        if (TreeError is not null)
+        {
+            throw TreeError;
+        }
+
+        if (TreeGate is not null)
+        {
+            await TreeGate.Task.WaitAsync(cancellationToken);
+        }
+
+        return Tree;
+    }
 
     public Task<RemoteBlob> OpenBlobAsync(RemoteRepository repository, string blobSha, CancellationToken cancellationToken) =>
         throw new NotSupportedException();
@@ -54,7 +76,7 @@ internal sealed class ScriptedRemoteClient(SourceType provider) : IRemoteReposit
 
 internal sealed class FakeRemoteFetcher : IRemoteFetcher
 {
-    public RemoteFetchResult Result { get; set; } = new(SourceType.Github, "3f2a9c1e55", ["a.md", "b.md"], 2, 0, 1, 0, false);
+    public RemoteFetchResult Result { get; set; } = new(SourceType.Github, "3f2a9c1e55", [new FetchedFile("a.md", "docs/a.md"), new FetchedFile("b.md", "docs/b.md")], 2, 0, 1, 0, false);
 
     public Exception? Error { get; set; }
 
@@ -119,8 +141,9 @@ internal sealed class RemoteSourceHarness
     public const string GitHubUrl = "https://github.com/octo";
     public const string AzureUrl = "https://dev.azure.com/contoso";
 
-    public RemoteSourceHarness()
+    public RemoteSourceHarness(Action<RemoteFetchOptions>? configureOptions = null)
     {
+        configureOptions?.Invoke(FetchOptions.Value);
         Settings = new SettingsService(Store, Secrets, new FakeGeminiKeyStore());
         var clients = new FakeRemoteClients(GitHub, AzureDevOps, Cortexa);
         var dependencies = new RemoteSourceDependencies(
@@ -132,12 +155,18 @@ internal sealed class RemoteSourceHarness
             SshCloser,
             Links,
             Picker,
-            Options.Create(new RemoteFetchOptions()));
+            FetchOptions,
+            Intake,
+            new FileTreeBuilder(new RemoteFileFilter(FetchOptions)));
         ViewModel = new RemoteSourceViewModel(
             dependencies,
             TimeProvider.System,
             NullLogger<RemoteSourceViewModel>.Instance);
     }
+
+    public IOptions<RemoteFetchOptions> FetchOptions { get; } = Options.Create(new RemoteFetchOptions());
+
+    public IntakeProgressViewModel Intake { get; } = new(TimeProvider.System);
 
     public FakeUserSettingsStore Store { get; } = new();
 

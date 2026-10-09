@@ -191,6 +191,7 @@
                                    Text="{x:Static res:Glyphs.Globe}" />
                         <TextBlock VerticalAlignment="Center"
                                    FontFamily="{StaticResource Font.Mono}"
+                                   FontSize="{StaticResource FontSize.MonoSmall}"
                                    Style="{StaticResource Text.Caption}"
                                    Text="{Binding GatewayLine}" />
                         <Button AutomationProperties.Name="{x:Static res:SignInStrings.ChangeName}"

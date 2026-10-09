@@ -33,7 +33,8 @@ public sealed class JsonUserSettingsStoreRemoteTests : IDisposable
             MsOptions.Create(new UserSettingsOptions { Path = SettingsPath }),
             new StaticMonitor<GatewayOptions>(new GatewayOptions { BaseUrl = CurrentGateway }),
             new StaticMonitor<CollectorServerOptions>(new CollectorServerOptions { BaseUrl = "https://current-srv.example" }),
-            new StaticMonitor<RemoteSourceOptions>(remote));
+            new StaticMonitor<RemoteSourceOptions>(remote),
+        new StaticMonitor<AiModelChoiceOptions>(new AiModelChoiceOptions()));
     }
 
     private JsonElement ReadRoot() => JsonDocument.Parse(File.ReadAllText(SettingsPath)).RootElement;
@@ -157,7 +158,8 @@ public sealed class JsonUserSettingsStoreRemoteTests : IDisposable
             MsOptions.Create(new UserSettingsOptions { Path = SettingsPath }),
             new StaticMonitor<GatewayOptions>(new GatewayOptions()),
             new StaticMonitor<CollectorServerOptions>(new CollectorServerOptions()),
-            new StaticMonitor<RemoteSourceOptions>(remote));
+            new StaticMonitor<RemoteSourceOptions>(remote),
+        new StaticMonitor<AiModelChoiceOptions>(new AiModelChoiceOptions()));
 
         var profile = Assert.Single(store.GetRemoteSources().SshProfiles);
 

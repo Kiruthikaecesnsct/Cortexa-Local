@@ -25,7 +25,7 @@ public static class ShellStrings
     public const string ExtractSubtitle = "Pick a source and pull knowledge out of your files.";
     public const string ReviewSubtitle = "Choose which knowledge items to upload.";
     public const string HistorySubtitle = "Track uploaded batches and the candidates they produce.";
-    public const string SettingsSubtitle = "Connections, AI keys and repository access.";
+    public const string SettingsSubtitle = "AI model, provider keys and connections.";
 
     public const string UnhandledError =
         "Something went wrong and the app could not finish that action. Details were saved to the log file. If the app keeps misbehaving, restart it.";

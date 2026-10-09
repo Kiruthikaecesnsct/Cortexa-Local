@@ -15,18 +15,20 @@ public static class KnowledgeFocusKeys
     public const string Banner = "Banner";
 }
 
+public sealed record KnowledgeRunNavigation(INavigationService Navigation, SettingsNavigator Settings);
+
 public sealed partial class KnowledgeRunViewModel : FocusableViewModel
 {
     private readonly IKnowledgeRunner _runner;
     private readonly KnowledgeRunState _state;
-    private readonly INavigationService _navigation;
+    private readonly KnowledgeRunNavigation _navigation;
     private readonly ISessionState _session;
     private IReadOnlyList<string> _documentIds = [];
 
     public KnowledgeRunViewModel(
         IKnowledgeRunner runner,
         KnowledgeRunState state,
-        INavigationService navigation,
+        KnowledgeRunNavigation navigation,
         ISessionState session)
     {
         _runner = runner;
@@ -35,13 +37,22 @@ public sealed partial class KnowledgeRunViewModel : FocusableViewModel
         _session = session;
     }
 
-    public CollectorProvider Provider { get; set; } = CollectorProvider.Claude;
-
     public string? Model { get; set; }
 
-    public bool CanExtract => _documentIds.Count > 0 && !IsParsing && !IsRunning;
+    public bool HasProviderKey => Readiness == ProviderReadinessState.Ready;
 
-    public string? ExtractHelp => CanExtract || IsRunning ? null : ExtractionStrings.ExtractDisabledHelp;
+    public bool CanExtract => _documentIds.Count > 0 && HasProviderKey && !IsParsing && !IsRunning;
+
+    public string? ExtractHelp => IsRunning || CanExtract ? null : ResolveHelp();
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ExtractHelp))]
+    public partial CollectorProvider Provider { get; set; } = CollectorProvider.Claude;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasProviderKey), nameof(CanExtract), nameof(ExtractHelp))]
+    [NotifyCanExecuteChangedFor(nameof(ExtractKnowledgeCommand))]
+    public partial ProviderReadinessState Readiness { get; set; } = ProviderReadinessState.Checking;
 
     public string ProgressText => ExtractionStrings.RunProgress(CompletedUnits, TotalUnits);
 
@@ -135,31 +146,52 @@ public sealed partial class KnowledgeRunViewModel : FocusableViewModel
             return;
         }
 
-        if (_navigation.CurrentScreen?.Key == ScreenKeys.Extract)
+        if (_navigation.Navigation.CurrentScreen?.Key == ScreenKeys.Extract)
         {
-            _navigation.NavigateTo(ScreenKeys.Review);
+            _navigation.Navigation.NavigateTo(ScreenKeys.Review);
         }
     }
 
     private BannerViewModel BannerFor(KnowledgeRunOutcome outcome) => outcome.Status switch
     {
         KnowledgeRunStatus.Canceled => Dismissible(BannerSeverity.Info, ExtractionStrings.CanceledTitle, ExtractionStrings.CanceledMessage),
-        KnowledgeRunStatus.KeyMissing => KeyMissingBanner(outcome.Provider.ToString()),
+        KnowledgeRunStatus.KeyMissing => KeyMissingBanner(outcome.Provider),
         KnowledgeRunStatus.KeyRejected => Dismissible(BannerSeverity.Error, ExtractionStrings.KeyRejectedTitle, ExtractionStrings.KeyRejectedMessage),
         KnowledgeRunStatus.QuotaExceeded => Dismissible(BannerSeverity.Warning, ExtractionStrings.QuotaExceededTitle, ExtractionStrings.QuotaExceededMessage),
         KnowledgeRunStatus.NetworkFailed => Dismissible(BannerSeverity.Error, ExtractionStrings.NetworkFailedTitle, ExtractionStrings.NetworkFailedMessage),
         _ => Dismissible(BannerSeverity.Error, ExtractionStrings.RunFailedTitle, ExtractionStrings.RunFailedMessage),
     };
 
-    private BannerViewModel KeyMissingBanner(string provider) => new(new BannerContent
+    private string? ResolveHelp()
     {
-        Severity = BannerSeverity.Warning,
-        Title = ExtractionStrings.KeyMissingTitle(provider),
-        Message = ExtractionStrings.KeyMissingMessage(provider),
-        ActionText = ExtractionStrings.OpenSettings,
-        ActionCommand = new RelayCommand(() => _navigation.NavigateTo(ScreenKeys.Settings)),
-        DismissCommand = DismissCommand,
-    });
+        if (Readiness == ProviderReadinessState.Checking)
+        {
+            return null;
+        }
+
+        if (!HasProviderKey)
+        {
+            return Provider == CollectorProvider.Bedrock
+                ? ExtractionStrings.BedrockMissingHelp
+                : ExtractionStrings.KeyMissingTitle(Provider.ToString());
+        }
+
+        return ExtractionStrings.ExtractDisabledHelp;
+    }
+
+    private BannerViewModel KeyMissingBanner(CollectorProvider provider)
+    {
+        var bedrock = provider == CollectorProvider.Bedrock;
+        return new BannerViewModel(new BannerContent
+        {
+            Severity = BannerSeverity.Warning,
+            Title = bedrock ? ExtractionStrings.BedrockMissingTitle : ExtractionStrings.KeyMissingTitle(provider.ToString()),
+            Message = bedrock ? ExtractionStrings.BedrockMissingMessage : ExtractionStrings.KeyMissingMessage(provider.ToString()),
+            ActionText = ExtractionStrings.OpenSettings,
+            ActionCommand = new RelayCommand(() => _navigation.Settings.Open(SettingsSection.ProviderKeys)),
+            DismissCommand = DismissCommand,
+        });
+    }
 
     private BannerViewModel SignInBanner() => new(new BannerContent
     {
@@ -167,7 +199,7 @@ public sealed partial class KnowledgeRunViewModel : FocusableViewModel
         Title = ExtractionStrings.ReadySignInTitle,
         Message = ExtractionStrings.ReadySignInMessage,
         ActionText = ExtractionStrings.SignIn,
-        ActionCommand = new RelayCommand(() => _navigation.NavigateTo(ScreenKeys.SignIn)),
+        ActionCommand = new RelayCommand(() => _navigation.Navigation.NavigateTo(ScreenKeys.SignIn)),
         DismissCommand = DismissCommand,
     });
 

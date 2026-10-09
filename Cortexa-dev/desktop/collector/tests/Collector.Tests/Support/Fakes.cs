@@ -97,7 +97,24 @@ internal sealed class FakeUserSettingsStore : IUserSettingsStore
 
     public RemoteSourceSettings Remote { get; private set; } = new(string.Empty);
 
+    public AiModelChoice? Choice { get; private set; }
+
     public EndpointSettings GetEndpoints() => Current;
+
+    public AiModelChoice? GetAiModelChoice() => Choice;
+
+    public Exception? ChoiceSaveFailure { get; set; }
+
+    public Task SaveAiModelChoiceAsync(AiModelChoice choice, CancellationToken cancellationToken)
+    {
+        if (ChoiceSaveFailure is not null)
+        {
+            return Task.FromException(ChoiceSaveFailure);
+        }
+
+        Choice = choice;
+        return Task.CompletedTask;
+    }
 
     public RemoteSourceSettings GetRemoteSources() => Remote;
 

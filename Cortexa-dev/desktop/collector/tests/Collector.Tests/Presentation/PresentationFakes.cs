@@ -2,12 +2,17 @@ using System.IO;
 using Collector.Application.Auth;
 using Collector.Application.Knowledge;
 using Collector.Application.Ports;
+using Collector.Application.Secrets;
+using Collector.Application.Settings;
 using Collector.Application.Upload;
+using Collector.Domain.Enums;
 using Collector.Domain.Upload;
 using Collector.Presentation.Navigation;
 using Collector.Presentation.Services;
 using Collector.Presentation.ViewModels;
 using Collector.Tests.Support;
+using Microsoft.Extensions.Logging.Abstractions;
+using MsOptions = Microsoft.Extensions.Options.Options;
 
 namespace Collector.Tests.Presentation;
 
@@ -144,9 +149,15 @@ internal sealed class KnowledgeHarness
     public KnowledgeHarness(SessionState session = SessionState.SignedIn)
     {
         Session = new FakeSession { Current = session };
-        ViewModel = new KnowledgeRunViewModel(Runner, State, Navigation, Session);
+        Navigator = new SettingsNavigator(Navigation);
+        ViewModel = new KnowledgeRunViewModel(Runner, State, new KnowledgeRunNavigation(Navigation, Navigator), Session)
+        {
+            Readiness = ProviderReadinessState.Ready,
+        };
         Navigation.CurrentScreen = FakeNavigationService.Screen(ScreenKeys.Extract);
     }
+
+    public SettingsNavigator Navigator { get; }
 
     public FakeKnowledgeRunner Runner { get; } = new();
 
@@ -157,4 +168,93 @@ internal sealed class KnowledgeHarness
     public KnowledgeRunState State { get; } = new();
 
     public KnowledgeRunViewModel ViewModel { get; }
+}
+
+internal sealed class FakeModelCatalog : IProviderModelCatalog
+{
+    public Dictionary<CollectorProvider, string[]> Models { get; } = new()
+    {
+        [CollectorProvider.Claude] = ["claude-a", "claude-b"],
+        [CollectorProvider.Gemini] = ["gemini-a", "gemini-b"],
+        [CollectorProvider.Bedrock] = ["bedrock-a"],
+    };
+
+    public IReadOnlyList<string> ModelsFor(CollectorProvider provider) => Models.GetValueOrDefault(provider) ?? [];
+
+    public string? DefaultModelFor(CollectorProvider provider) => ModelsFor(provider).FirstOrDefault();
+}
+
+internal sealed class FakeProviderReadiness : IProviderReadiness
+{
+    public Dictionary<CollectorProvider, ProviderReadinessState> States { get; } = new()
+    {
+        [CollectorProvider.Claude] = ProviderReadinessState.Ready,
+        [CollectorProvider.Gemini] = ProviderReadinessState.Ready,
+        [CollectorProvider.Bedrock] = ProviderReadinessState.Ready,
+    };
+
+    public TaskCompletionSource? Gate { get; set; }
+
+    public int Checks { get; private set; }
+
+    public event EventHandler? Changed;
+
+    public async Task<ProviderReadinessState> CheckAsync(CollectorProvider provider, CancellationToken cancellationToken)
+    {
+        Checks++;
+        if (Gate is not null)
+        {
+            await Gate.Task;
+        }
+
+        return States[provider];
+    }
+
+    public async Task<bool> IsReadyAsync(CollectorProvider provider, CancellationToken cancellationToken) =>
+        await CheckAsync(provider, cancellationToken) == ProviderReadinessState.Ready;
+
+    public void NotifyChanged() => Changed?.Invoke(this, EventArgs.Empty);
+}
+
+internal sealed class ModelChoiceHarness
+{
+    public ModelChoiceHarness(CollectorProvider configured = CollectorProvider.Claude)
+    {
+        Choices = new AiModelChoiceService(
+            Store,
+            Catalog,
+            MsOptions.Create(new KnowledgeExtractionOptions { Provider = configured }));
+        Navigator = new SettingsNavigator(Navigation);
+    }
+
+    public FakeUserSettingsStore Store { get; } = new();
+
+    public FakeModelCatalog Catalog { get; } = new();
+
+    public FakeProviderReadiness Readiness { get; } = new();
+
+    public FakeNavigationService Navigation { get; } = new();
+
+    public AiModelChoiceService Choices { get; }
+
+    public SettingsNavigator Navigator { get; }
+
+    public AiModelSectionViewModel CreateSection() =>
+        new(Choices, Readiness, Navigator, NullLogger<AiModelSectionViewModel>.Instance);
+
+    public ActiveModelViewModel CreateActiveModel() => new(Choices, Readiness, Navigator);
+}
+
+internal sealed class StubBedrockSso : IBedrockSsoCredentials
+{
+    public BedrockSsoStatus Status { get; set; } = BedrockSsoStatus.NotConnected;
+
+    public Exception? StatusFailure { get; set; }
+
+    public Task<BedrockSsoStatus> GetStatusAsync(CancellationToken cancellationToken) =>
+        StatusFailure is null ? Task.FromResult(Status) : Task.FromException<BedrockSsoStatus>(StatusFailure);
+
+    public Task ConnectAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public Task DisconnectAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }

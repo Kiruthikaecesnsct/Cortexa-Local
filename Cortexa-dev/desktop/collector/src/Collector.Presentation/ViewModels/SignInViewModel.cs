@@ -15,7 +15,7 @@ public sealed partial class SignInViewModel : FocusableViewModel, INavigationAwa
     private readonly ISignInService _signIn;
     private readonly ISessionState _session;
     private readonly SettingsService _settings;
-    private readonly INavigationService _navigation;
+    private readonly SettingsNavigator _settingsNavigator;
     private readonly TimeProvider _time;
     private readonly DispatcherTimer _timer;
     private DateTimeOffset _deadline;
@@ -27,13 +27,13 @@ public sealed partial class SignInViewModel : FocusableViewModel, INavigationAwa
         ISignInService signIn,
         ISessionState session,
         SettingsService settings,
-        INavigationService navigation,
+        SettingsNavigator settingsNavigator,
         TimeProvider time)
     {
         _signIn = signIn;
         _session = session;
         _settings = settings;
-        _navigation = navigation;
+        _settingsNavigator = settingsNavigator;
         _time = time;
         _timer = new DispatcherTimer { Interval = TickInterval };
         _timer.Tick += (_, _) => Tick();
@@ -140,7 +140,7 @@ public sealed partial class SignInViewModel : FocusableViewModel, INavigationAwa
     private bool CanSignIn() => HasGateway && !IsCountingDown;
 
     [RelayCommand]
-    private void OpenSettings() => _navigation.NavigateTo(ScreenKeys.Settings);
+    private void OpenSettings() => _settingsNavigator.Open(SettingsSection.Connections);
 
     [RelayCommand]
     private void DismissBanner()

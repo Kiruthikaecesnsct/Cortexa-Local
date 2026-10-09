@@ -11,7 +11,8 @@ public sealed class JsonUserSettingsStore(
     IOptions<UserSettingsOptions> settingsOptions,
     IOptionsMonitor<GatewayOptions> gateway,
     IOptionsMonitor<CollectorServerOptions> collectorServer,
-    IOptionsMonitor<RemoteSourceOptions> remoteSources) : IUserSettingsStore
+    IOptionsMonitor<RemoteSourceOptions> remoteSources,
+    IOptionsMonitor<AiModelChoiceOptions> aiModelChoice) : IUserSettingsStore
 {
     private const string AzureDevOpsSection = "AzureDevOps";
     private const string OrganizationKey = "Organization";
@@ -30,6 +31,23 @@ public sealed class JsonUserSettingsStore(
         {
             SshProfiles = ToProfiles(remoteSources.CurrentValue.Ssh.Profiles),
         };
+
+    public AiModelChoice? GetAiModelChoice()
+    {
+        var saved = aiModelChoice.CurrentValue;
+        return saved.Provider is { } provider && !string.IsNullOrWhiteSpace(saved.Model)
+            ? new AiModelChoice(provider, saved.Model)
+            : null;
+    }
+
+    public Task SaveAiModelChoiceAsync(AiModelChoice choice, CancellationToken cancellationToken) =>
+        UpdateAsync(
+            root => root[AiModelChoiceOptions.SectionName] = new JsonObject
+            {
+                [nameof(AiModelChoiceOptions.Provider)] = choice.Provider.ToString(),
+                [nameof(AiModelChoiceOptions.Model)] = choice.Model,
+            },
+            cancellationToken);
 
     public Task SaveEndpointsAsync(EndpointSettings settings, CancellationToken cancellationToken) =>
         UpdateAsync(

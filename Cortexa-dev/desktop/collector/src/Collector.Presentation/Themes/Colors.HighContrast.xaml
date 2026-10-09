@@ -45,6 +45,8 @@
     <SolidColorBrush x:Key="Brush.Rail.Hover" Color="{DynamicResource {x:Static SystemColors.WindowColorKey}}" />
     <SolidColorBrush x:Key="Brush.Rail.Selected" Color="{DynamicResource {x:Static SystemColors.WindowColorKey}}" />
     <SolidColorBrush x:Key="Brush.Rail.Indicator" Color="{DynamicResource {x:Static SystemColors.HighlightColorKey}}" />
+    <SolidColorBrush x:Key="Brush.SectionNav.Glyph.Selected" Color="{DynamicResource {x:Static SystemColors.HighlightTextColorKey}}" />
+    <SolidColorBrush x:Key="Brush.SectionNav.Indicator" Color="{DynamicResource {x:Static SystemColors.HighlightTextColorKey}}" />
     <SolidColorBrush x:Key="Brush.Rail.Divider" Color="{DynamicResource {x:Static SystemColors.WindowTextColorKey}}" />
     <SolidColorBrush x:Key="Brush.Tooltip.Surface" Color="{DynamicResource {x:Static SystemColors.InfoColorKey}}" />
     <SolidColorBrush x:Key="Brush.Tooltip.Text" Color="{DynamicResource {x:Static SystemColors.InfoTextColorKey}}" />

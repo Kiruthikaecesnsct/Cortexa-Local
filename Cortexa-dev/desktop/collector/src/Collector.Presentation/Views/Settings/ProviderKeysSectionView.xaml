@@ -1,0 +1,20 @@
+<UserControl x:Class="Collector.Presentation.Views.SettingsSections.ProviderKeysSectionView"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:res="clr-namespace:Collector.Presentation.Resources"
+                 xmlns:sections="clr-namespace:Collector.Presentation.Views.SettingsSections"
+                 Focusable="False"
+                 IsTabStop="False">
+    <Border Style="{StaticResource Card}">
+        <StackPanel>
+            <sections:SectionHeader Glyph="{x:Static res:Glyphs.Key}"
+                                    Intro="{x:Static res:SettingsStrings.KeysIntro}"
+                                    Title="{x:Static res:SettingsStrings.KeysTitle}" />
+            <ItemsControl AlternationCount="100"
+                          Focusable="False"
+                          IsTabStop="False"
+                          ItemsSource="{Binding Rows}" />
+            <ContentControl Content="{Binding BedrockRow}" Focusable="False" IsTabStop="False" />
+        </StackPanel>
+    </Border>
+</UserControl>

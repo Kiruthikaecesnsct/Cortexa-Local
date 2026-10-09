@@ -77,6 +77,8 @@ public static class DependencyInjection
             configuration,
             BedrockProviderOptions.SectionName);
         services.AddValidatedOptions<AiOptions, AiOptionsValidator>(configuration, AiOptions.SectionName);
+        services.AddOptions<AiModelChoiceOptions>().Bind(configuration.GetSection(AiModelChoiceOptions.SectionName));
+        services.AddSingleton<IProviderModelCatalog, ProviderModelCatalogAdapter>();
         services.AddOptions<ProviderModelCatalog>().Bind(configuration.GetSection(ProviderModelCatalog.SectionName));
         services.AddOptions<KnowledgeExtractionOptions>()
             .Configure<IOptions<AiOptions>>((extraction, ai) => AiProviderSelection.Apply(extraction, ai.Value));

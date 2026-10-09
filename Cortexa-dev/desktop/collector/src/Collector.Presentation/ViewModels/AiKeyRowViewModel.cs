@@ -53,6 +53,8 @@ public sealed partial class AiKeyRowViewModel : FocusableViewModel
 
     public event EventHandler? EditorStateChanged;
 
+    public event EventHandler? StatusChanged;
+
     public bool RequiresKey { get; }
 
     public string Name => _descriptor.Name;
@@ -274,6 +276,7 @@ public sealed partial class AiKeyRowViewModel : FocusableViewModel
         ChipKind = KeyChipKind.NotSet;
         Message = SettingsStrings.CredentialCleared(_descriptor.ShortName, Words.Noun);
         RequestFocus(KeyRowFocusKeys.Primary);
+        StatusChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private async Task SaveKeyAsync(KeyEditorViewModel editor, CancellationToken cancellationToken)
@@ -314,6 +317,7 @@ public sealed partial class AiKeyRowViewModel : FocusableViewModel
         ErrorMessage = null;
         Message = SettingsStrings.CredentialSaved(_descriptor.ShortName, Words.Noun);
         RequestFocus(KeyRowFocusKeys.Primary);
+        StatusChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private static string? ValidateKey(string key, CredentialWords words)

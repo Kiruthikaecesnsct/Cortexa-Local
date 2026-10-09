@@ -61,11 +61,16 @@ public static class ExtractionStrings
     public const string EstimateApproximateNote =
         "Approximate. Counted with an OpenAI tokenizer (Cl100kBase) as a cross-provider stand-in; the selected provider may count tokens differently.";
 
-    public const string ProviderModelTitle = "Provider and model";
-    public const string ProviderLabel = "_Provider";
-    public const string ProviderName = "Provider";
-    public const string ModelLabel = "_Model";
-    public const string ModelName = "Model";
+    public const string ModelLineLabel = "AI MODEL";
+    public const string ModelLineSeparator = " · ";
+    public const string ChangeInSettings = "Change in Settings";
+    public const string ChangeInSettingsName = "Change the AI model in Settings";
+    public const string AddKeyInSettings = "Add key in Settings";
+    public const string ConnectInSettings = "Connect in Settings";
+    public const string ConnectInSettingsName = "Connect Amazon Bedrock in Settings";
+    public const string BedrockMissingHelp = "Connect Amazon Bedrock with AWS SSO in Settings.";
+    public const string BedrockMissingTitle = "Connect Amazon Bedrock in Settings.";
+    public const string BedrockMissingMessage = "Knowledge extraction with Bedrock uses your AWS SSO sign-in.";
 
     public const string SkipTooLarge = "File is too large to parse.";
     public const string SkipBinaryContent = "File content could not be read as text.";
@@ -101,6 +106,10 @@ public static class ExtractionStrings
     public const string ReadySignInTitle = "Knowledge is ready to review.";
     public const string ReadySignInMessage = "Sign in to review and upload it.";
     public const string SignIn = "Sign in";
+
+    public static string ModelLineName(string provider, string model) => $"AI model: {provider}, {model}";
+
+    public static string AddKeyInSettingsName(string provider) => $"Add the {provider} key in Settings";
 
     public static string RunProgress(int done, int total) => $"{done} of {total} units";
 

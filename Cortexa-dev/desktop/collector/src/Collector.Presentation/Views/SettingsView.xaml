@@ -6,131 +6,26 @@
              b:FocusRouter.IsHost="True"
              Focusable="False"
              IsTabStop="False">
-    <UserControl.Resources>
-        <Style x:Key="Settings.Progress" TargetType="ProgressBar" BasedOn="{StaticResource Progress.Thin}">
-            <Setter Property="Visibility" Value="Hidden" />
-            <Setter Property="AutomationProperties.Name" Value="{x:Static res:SettingsStrings.SavingName}" />
-            <Style.Triggers>
-                <DataTrigger Binding="{Binding IsSaving}" Value="True">
-                    <Setter Property="Visibility" Value="Visible" />
-                </DataTrigger>
-            </Style.Triggers>
-        </Style>
-        <Style x:Key="Section.Header" TargetType="Grid">
-            <Setter Property="Margin" Value="{StaticResource Thickness.SectionHeader}" />
-        </Style>
-        <Style x:Key="Section.Footer" TargetType="Border">
-            <Setter Property="Margin" Value="{StaticResource Thickness.FieldGap}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
-            <Setter Property="BorderThickness" Value="{StaticResource Thickness.BottomBorder}" />
-        </Style>
-    </UserControl.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="{StaticResource GridLength.SectionNav}" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
 
-    <UniformGrid Margin="{StaticResource Thickness.GridBleed.Wide}"
-                 Columns="{Binding ActualWidth, RelativeSource={RelativeSource Self}, Converter={StaticResource Columns.Settings}}">
-        <Border Margin="{StaticResource Thickness.GridCell.Wide}" Style="{StaticResource Card}">
-            <StackPanel>
-                <ProgressBar Margin="{StaticResource Thickness.StackGap}" Style="{StaticResource Settings.Progress}" />
-                <Grid Style="{StaticResource Section.Header}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <ContentControl Margin="{StaticResource Thickness.InlineGapLarge}"
-                                    VerticalAlignment="Top"
-                                    Content="{x:Static res:Glyphs.Globe}"
-                                    Style="{StaticResource IconTile}" />
-                    <StackPanel Grid.Column="1">
-                        <TextBlock AutomationProperties.HeadingLevel="Level2"
-                                   Style="{StaticResource Text.Subtitle}"
-                                   Text="{x:Static res:SettingsStrings.ConnectionsTitle}" />
-                        <TextBlock Style="{StaticResource Text.Helper}" Text="{x:Static res:SettingsStrings.ConnectionsIntro}" />
-                    </StackPanel>
-                </Grid>
-                <Border Style="{StaticResource Section.Footer}" />
-
-                <HeaderedContentControl Header="{x:Static res:SettingsStrings.GatewayLabel}"
-                                        Style="{StaticResource FormField}"
-                                        b:FieldState.Error="{Binding GatewayError}"
-                                        b:FieldState.Helper="{x:Static res:SettingsStrings.GatewayHelper}">
-                    <TextBox AutomationProperties.HelpText="{Binding GatewayHelp}"
-                             AutomationProperties.Name="{x:Static res:SettingsStrings.GatewayName}"
-                             IsEnabled="{Binding AreFieldsEnabled}"
-                             Style="{StaticResource TextBox.Url}"
-                             Text="{Binding GatewayUrl, UpdateSourceTrigger=PropertyChanged}"
-                             b:CommandBehaviors.LostFocusCommand="{Binding ValidateGatewayCommand}"
-                             b:FieldState.HasError="{Binding GatewayError, Converter={StaticResource NotEmptyToBool}}"
-                             b:FocusRouter.Key="GatewayUrl" />
-                </HeaderedContentControl>
-                <TextBlock Margin="{StaticResource Thickness.HintPull}"
-                           Style="{StaticResource Text.Helper}"
-                           Text="{x:Static res:SettingsStrings.GatewayHint}"
-                           Visibility="{Binding ShowGatewayHint, Converter={StaticResource BoolToVisibility}}" />
-
-                <HeaderedContentControl Header="{x:Static res:SettingsStrings.CollectorLabel}"
-                                        Style="{StaticResource FormField}"
-                                        b:FieldState.Error="{Binding CollectorError}"
-                                        b:FieldState.Helper="{x:Static res:SettingsStrings.CollectorHelper}">
-                    <TextBox AutomationProperties.HelpText="{Binding CollectorHelp}"
-                             AutomationProperties.Name="{x:Static res:SettingsStrings.CollectorName}"
-                             IsEnabled="{Binding AreFieldsEnabled}"
-                             Style="{StaticResource TextBox.Url}"
-                             Text="{Binding CollectorServerUrl, UpdateSourceTrigger=PropertyChanged}"
-                             b:CommandBehaviors.LostFocusCommand="{Binding ValidateCollectorCommand}"
-                             b:FieldState.HasError="{Binding CollectorError, Converter={StaticResource NotEmptyToBool}}"
-                             b:FocusRouter.Key="CollectorUrl" />
-                </HeaderedContentControl>
-
-                <ContentControl Margin="{StaticResource Thickness.FieldGap}"
-                                Content="{Binding SaveBanner}"
-                                Focusable="False"
-                                IsTabStop="False" />
-
-                <StackPanel Orientation="Horizontal">
-                    <Button Margin="{StaticResource Thickness.InlineGapLarge}"
-                            AutomationProperties.Name="{x:Static res:SettingsStrings.SaveName}"
-                            Command="{Binding SaveEndpointsCommand}"
-                            Content="{Binding SaveLabel}"
-                            IsDefault="{Binding IsSaveDefault}"
-                            Style="{StaticResource Button.Primary}" />
-                    <Button Margin="{StaticResource Thickness.InlineGapLarge}"
-                            AutomationProperties.Name="{x:Static res:SettingsStrings.DiscardName}"
-                            Command="{Binding DiscardCommand}"
-                            Content="{x:Static res:SettingsStrings.Discard}"
-                            IsEnabled="{Binding AreFieldsEnabled}"
-                            Style="{StaticResource Button.Secondary}"
-                            Visibility="{Binding IsDirty, Converter={StaticResource BoolToVisibility}}" />
-                    <Border Style="{StaticResource Tag.Surface.Warning}" Visibility="{Binding IsDirty, Converter={StaticResource BoolToVisibility}}">
-                        <TextBlock Style="{StaticResource Tag.Label}" Text="{x:Static res:SettingsStrings.Unsaved}" />
-                    </Border>
-                </StackPanel>
-            </StackPanel>
+        <Border Margin="{StaticResource Thickness.InlineGapXL}"
+                Padding="{StaticResource Thickness.SectionNavPadding}"
+                VerticalAlignment="Top"
+                Style="{StaticResource Card}">
+            <ListBox AutomationProperties.Name="{x:Static res:SettingsStrings.SectionListName}"
+                     ItemsSource="{Binding Sections}"
+                     SelectedItem="{Binding SelectedSection}"
+                     Style="{StaticResource SectionNav}" />
         </Border>
 
-        <Border Margin="{StaticResource Thickness.GridCell.Wide}" Style="{StaticResource Card}">
-            <StackPanel>
-                <Grid Style="{StaticResource Section.Header}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto" />
-                        <ColumnDefinition Width="*" />
-                    </Grid.ColumnDefinitions>
-                    <ContentControl Margin="{StaticResource Thickness.InlineGapLarge}"
-                                    VerticalAlignment="Top"
-                                    Content="{x:Static res:Glyphs.Key}"
-                                    Style="{StaticResource IconTile}" />
-                    <StackPanel Grid.Column="1">
-                        <TextBlock AutomationProperties.HeadingLevel="Level2"
-                                   Style="{StaticResource Text.Subtitle}"
-                                   Text="{x:Static res:SettingsStrings.KeysTitle}" />
-                        <TextBlock Style="{StaticResource Text.Helper}" Text="{x:Static res:SettingsStrings.KeysIntro}" />
-                    </StackPanel>
-                </Grid>
-                <ItemsControl AlternationCount="100"
-                              Focusable="False"
-                              IsTabStop="False"
-                              ItemsSource="{Binding Rows}" />
-                <ContentControl Content="{Binding BedrockRow}" Focusable="False" IsTabStop="False" />
-            </StackPanel>
-        </Border>
-    </UniformGrid>
+        <ContentControl Grid.Column="1"
+                        AutomationProperties.Name="{Binding SelectedSection.Title}"
+                        Content="{Binding SelectedSection.Content}"
+                        Focusable="False"
+                        IsTabStop="False" />
+    </Grid>
 </UserControl>

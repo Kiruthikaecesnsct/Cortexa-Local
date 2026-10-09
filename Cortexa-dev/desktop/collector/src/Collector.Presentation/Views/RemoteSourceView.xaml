@@ -281,6 +281,7 @@
                                Margin="{StaticResource Thickness.InlineGapLarge}"
                                VerticalAlignment="Center"
                                FontFamily="{StaticResource Font.Mono}"
+                               FontSize="{StaticResource FontSize.MonoBody}"
                                Style="{StaticResource Text.Label}"
                                Text="{Binding Name}"
                                TextTrimming="CharacterEllipsis"
@@ -304,6 +305,7 @@
                                Margin="{StaticResource Thickness.InlineGapLarge}"
                                VerticalAlignment="Center"
                                FontFamily="{StaticResource Font.Mono}"
+                               FontSize="{StaticResource FontSize.MonoSmall}"
                                Style="{StaticResource Text.Caption}"
                                Text="{Binding ShortSha}"
                                Visibility="{Binding ShortSha, Converter={StaticResource NotEmptyToVisibility}}" />
@@ -762,6 +764,7 @@
                                 Visibility="{Binding ShowFetchStep, Converter={StaticResource BoolToVisibility}}">
                         <TextBlock Margin="{StaticResource Thickness.StackGap}"
                                    FontFamily="{StaticResource Font.Mono}"
+                                   FontSize="{StaticResource FontSize.MonoSmall}"
                                    Style="{StaticResource Text.Caption}"
                                    Text="{Binding CommitText}"
                                    Visibility="{Binding HasCommit, Converter={StaticResource BoolToVisibility}}" />
@@ -1037,6 +1040,7 @@
                                         <TextBlock AutomationProperties.HelpText="{x:Static res:RemoteSourceStrings.CortexaBranchHelper}"
                                                    AutomationProperties.Name="{Binding CortexaBranchName}"
                                                    FontFamily="{StaticResource Font.Mono}"
+                                                   FontSize="{StaticResource FontSize.MonoBody}"
                                                    Style="{StaticResource Text.Label}"
                                                    Text="{Binding CortexaBranchText}" />
                                     </StackPanel>

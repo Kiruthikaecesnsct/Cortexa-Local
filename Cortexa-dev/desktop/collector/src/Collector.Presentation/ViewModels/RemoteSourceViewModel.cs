@@ -19,6 +19,7 @@ public sealed record RemoteSourceDependencies(
     IRateLimitMonitor RateLimits,
     SettingsService Settings,
     IExternalLinkLauncher Links,
+    IFilePicker Picker,
     IOptions<RemoteFetchOptions> FetchOptions);
 
 public sealed record RemoteFilesFetchedEventArgs(IReadOnlyList<string> Paths, SourceType Source, string Origin);
@@ -97,9 +98,11 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
 
     public bool IsAzure => SelectedSource == SourceType.AzureDevops;
 
+    public bool IsSsh => SelectedSource == SourceType.Ssh;
+
     public bool AreControlsEnabled => !IsFetching && !_isLocked;
 
-    public bool ShowForm => Summary is null && (IsAzure || ListState != RemoteListState.Idle);
+    public bool ShowForm => Summary is null && (IsAzure || IsSsh || ListState != RemoteListState.Idle);
 
     public bool HasSummary => Summary is not null;
 
@@ -136,9 +139,11 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
 
     public bool ShowBranchField => SelectedRepository is not null;
 
-    public string FetchTitle => SelectedRepository is { } row && SelectedBranch is { } branch
-        ? RemoteSourceStrings.FetchingTitle(row.FullName, branch.Name)
-        : string.Empty;
+    public string FetchTitle => SelectedSource == SourceType.Ssh
+        ? SshFetchTitle
+        : SelectedRepository is { } row && SelectedBranch is { } branch
+            ? RemoteSourceStrings.FetchingTitle(row.FullName, branch.Name)
+            : string.Empty;
 
     [ObservableProperty]
     public partial SourceType SelectedSource { get; set; }
@@ -250,6 +255,7 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
         new(SourceType.Local, RemoteSourceStrings.LocalLabel, RemoteSourceStrings.LocalName, Select),
         new(SourceType.Github, RemoteSourceStrings.GitHubLabel, RemoteSourceStrings.GitHubName, Select),
         new(SourceType.AzureDevops, RemoteSourceStrings.AzureDevOpsLabel, RemoteSourceStrings.AzureDevOpsName, Select),
+        new(SourceType.Ssh, RemoteSourceStrings.SshLabel, RemoteSourceStrings.SshName, Select),
     ];
 
     private void Select(SourceType source)
@@ -268,6 +274,7 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
         OnPropertyChanged(nameof(IsLocal));
         OnPropertyChanged(nameof(IsRemote));
         OnPropertyChanged(nameof(IsAzure));
+        OnPropertyChanged(nameof(IsSsh));
         OnPropertyChanged(nameof(AreControlsEnabled));
         OnPropertyChanged(nameof(ShowForm));
         OnPropertyChanged(nameof(HasSummary));
@@ -282,6 +289,7 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
         FetchAgainCommand.NotifyCanExecuteChanged();
         ChangeRepositoryCommand.NotifyCanExecuteChanged();
         LoadRepositoriesCommand.NotifyCanExecuteChanged();
+        SshConnectCommand.NotifyCanExecuteChanged();
     }
 
     private void NotifyListState()

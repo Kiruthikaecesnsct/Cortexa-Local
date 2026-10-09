@@ -9,4 +9,5 @@ public enum SecretSlot
     BedrockSsoToken,
     GitHubPat,
     AzureDevOpsPat,
+    SshPassphrase,
 }

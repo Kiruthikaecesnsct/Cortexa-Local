@@ -104,6 +104,40 @@ public sealed class RemoteFormattingTests
     }
 
     [Fact]
+    public void FingerprintMismatch_ForSsh_ShowsDismissibleErrorWithoutRetry()
+    {
+        var banner = Factory().ForFailure(RemoteFailureKind.FingerprintMismatch, Context(SourceType.Ssh));
+
+        Assert.Equal(BannerSeverity.Error, banner.Severity);
+        Assert.Equal("The server's fingerprint doesn't match.", banner.Title);
+        Assert.Null(banner.ActionText);
+        Assert.NotNull(banner.DismissCommand);
+    }
+
+    [Theory]
+    [InlineData(RemoteFailureKind.Auth, "The server didn't accept your key.", "Try again")]
+    [InlineData(RemoteFailureKind.AccessDenied, "You don't have permission to read these files.", null)]
+    public void CredentialFailure_ForSsh_NeverMentionsTokensOrSettings(RemoteFailureKind kind, string title, string? action)
+    {
+        var banner = Factory().ForFailure(kind, Context(SourceType.Ssh));
+
+        Assert.Equal(BannerSeverity.Error, banner.Severity);
+        Assert.Equal(title, banner.Title);
+        Assert.Equal(action, banner.ActionText);
+        Assert.NotNull(banner.DismissCommand);
+        Assert.DoesNotContain("token", $"{banner.Title} {banner.Message} {banner.ActionName}", StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void UpstreamFailure_ForSsh_ShowsTheConnectionFailedBanner()
+    {
+        var banner = Factory().ForFailure(RemoteFailureKind.Upstream, Context(SourceType.Ssh));
+
+        Assert.Equal("Couldn't connect to the server.", banner.Title);
+        Assert.Equal("Try again", banner.ActionText);
+    }
+
+    [Fact]
     public void PausedBanner_AnnouncesTheApproximateWaitButShowsTheExactCountdown()
     {
         var banner = Factory().Paused(SourceType.AzureDevops, TimeSpan.FromSeconds(252));

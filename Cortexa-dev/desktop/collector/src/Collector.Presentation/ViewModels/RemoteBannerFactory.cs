@@ -26,7 +26,20 @@ public sealed record RemoteFailureContext(
 
 public sealed class RemoteBannerFactory(RemoteBannerActions actions)
 {
-    public BannerContent ForFailure(RemoteFailureKind kind, RemoteFailureContext context)
+    public BannerContent ForFailure(RemoteFailureKind kind, RemoteFailureContext context) =>
+        context.Provider == SourceType.Ssh ? ForSshFailure(kind, context) : ForTokenFailure(kind, context);
+
+    private BannerContent ForSshFailure(RemoteFailureKind kind, RemoteFailureContext context) => kind switch
+    {
+        RemoteFailureKind.Auth => SshAuth(),
+        RemoteFailureKind.AccessDenied => SshDenied(),
+        RemoteFailureKind.FingerprintMismatch => FingerprintMismatch(),
+        RemoteFailureKind.NotFound or RemoteFailureKind.EmptyRepository or RemoteFailureKind.RepositoryTooLarge =>
+            ForTokenFailure(kind, context),
+        _ => SshConnectionFailed(),
+    };
+
+    private BannerContent ForTokenFailure(RemoteFailureKind kind, RemoteFailureContext context)
     {
         var provider = RemoteFailureMessages.DisplayName(context.Provider);
         var isGitHub = context.Provider == SourceType.Github;
@@ -158,6 +171,34 @@ public sealed class RemoteBannerFactory(RemoteBannerActions actions)
         BannerSeverity.Error,
         RemoteSourceStrings.UpstreamTitle(provider),
         RemoteSourceStrings.UpstreamMessage) with
+    {
+        ActionText = RemoteSourceStrings.TryAgain,
+        ActionCommand = actions.TryAgain,
+    };
+
+    private BannerContent SshAuth() => Dismissible(
+        BannerSeverity.Error,
+        RemoteSourceStrings.SshAuthTitle,
+        RemoteSourceStrings.SshAuthMessage) with
+    {
+        ActionText = RemoteSourceStrings.TryAgain,
+        ActionCommand = actions.TryAgain,
+    };
+
+    private BannerContent SshDenied() => Dismissible(
+        BannerSeverity.Error,
+        RemoteSourceStrings.SshDeniedTitle,
+        RemoteSourceStrings.SshDeniedMessage);
+
+    private BannerContent FingerprintMismatch() => Dismissible(
+        BannerSeverity.Error,
+        RemoteSourceStrings.SshFingerprintMismatchTitle,
+        RemoteSourceStrings.SshFingerprintMismatchMessage);
+
+    private BannerContent SshConnectionFailed() => Dismissible(
+        BannerSeverity.Error,
+        RemoteSourceStrings.SshConnectionFailedTitle,
+        RemoteSourceStrings.SshConnectionFailedMessage) with
     {
         ActionText = RemoteSourceStrings.TryAgain,
         ActionCommand = actions.TryAgain,

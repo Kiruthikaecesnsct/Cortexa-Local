@@ -8,6 +8,7 @@ using Collector.Infrastructure.Options;
 using Collector.Infrastructure.Remote.AzureDevOps;
 using Collector.Infrastructure.Remote.GitHub;
 using Collector.Infrastructure.Remote.RateLimit;
+using Collector.Infrastructure.Remote.Ssh;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
@@ -37,6 +38,7 @@ internal static class RemoteSourceRegistration
         services.AddSingleton<AzureDevOpsErrorMapper>();
         services.AddSingleton<IRemoteRepositoryClient, GitHubRepositoryClient>();
         services.AddSingleton<IRemoteRepositoryClient, AzureDevOpsRepositoryClient>();
+        services.AddCollectorSshRemoteSource();
         services.AddSingleton<IRemoteRepositoryClients, RemoteRepositoryClients>();
         services.AddRemoteClient(new RemoteClientSpec(
             HttpClientNames.GitHub,
@@ -51,6 +53,12 @@ internal static class RemoteSourceRegistration
             options => options.AzureDevOps,
             sp => sp.GetRequiredService<AzureDevOpsRateHeaders>()));
         return services;
+    }
+
+    private static void AddCollectorSshRemoteSource(this IServiceCollection services)
+    {
+        services.AddSingleton<SftpConnectionFactory>();
+        services.AddSingleton<IRemoteRepositoryClient, SftpRepositoryClient>();
     }
 
     private static void AddRemoteClient(this IServiceCollection services, RemoteClientSpec spec) =>

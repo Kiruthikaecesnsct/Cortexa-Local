@@ -12,7 +12,12 @@ namespace Collector.Tests.Presentation;
 
 internal sealed class FakeFilePicker(IReadOnlyList<string> paths) : IFilePicker
 {
+    public string? SingleFilePath { get; set; }
+
     public Task<IReadOnlyList<string>> PickFilesAsync(CancellationToken cancellationToken) => Task.FromResult(paths);
+
+    public Task<string?> PickSingleFileAsync(string dialogTitle, string filter, CancellationToken cancellationToken) =>
+        Task.FromResult(SingleFilePath);
 }
 
 internal sealed class FakeKnowledgeRunner : IKnowledgeRunner

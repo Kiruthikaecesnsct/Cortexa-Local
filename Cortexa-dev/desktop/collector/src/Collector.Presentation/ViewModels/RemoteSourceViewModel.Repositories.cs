@@ -34,7 +34,7 @@ public sealed partial class RemoteSourceViewModel
         }
     }
 
-    private bool CanLoadRepositories() => IsRemote && AreControlsEnabled && !IsListLoading;
+    private bool CanLoadRepositories() => IsRemote && !IsSsh && AreControlsEnabled && !IsListLoading;
 
     [RelayCommand(CanExecute = nameof(CanLoadRepositories))]
     private async Task LoadRepositoriesAsync()

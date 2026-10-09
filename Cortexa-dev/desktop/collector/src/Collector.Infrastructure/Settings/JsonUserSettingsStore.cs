@@ -15,6 +15,8 @@ public sealed class JsonUserSettingsStore(
 {
     private const string AzureDevOpsSection = "AzureDevOps";
     private const string OrganizationKey = "Organization";
+    private const string SshSection = "Ssh";
+    private const string ProfilesKey = "Profiles";
 
     private static readonly JsonSerializerOptions WriteOptions = new() { WriteIndented = true };
 
@@ -24,7 +26,10 @@ public sealed class JsonUserSettingsStore(
         new(gateway.CurrentValue.BaseUrl, collectorServer.CurrentValue.BaseUrl);
 
     public RemoteSourceSettings GetRemoteSources() =>
-        new(remoteSources.CurrentValue.AzureDevOps.Organization);
+        new(remoteSources.CurrentValue.AzureDevOps.Organization)
+        {
+            SshProfiles = ToProfiles(remoteSources.CurrentValue.Ssh.Profiles),
+        };
 
     public Task SaveEndpointsAsync(EndpointSettings settings, CancellationToken cancellationToken) =>
         UpdateAsync(
@@ -45,9 +50,39 @@ public sealed class JsonUserSettingsStore(
                 var azure = section[AzureDevOpsSection] as JsonObject ?? [];
                 azure[OrganizationKey] = settings.AzureDevOpsOrganization;
                 section[AzureDevOpsSection] = azure;
+
+                var ssh = section[SshSection] as JsonObject ?? [];
+                ssh[ProfilesKey] = SerializeProfiles(settings.SshProfiles);
+                section[SshSection] = ssh;
+
                 root[RemoteSourceOptions.SectionName] = section;
             },
             cancellationToken);
+
+    private static IReadOnlyList<SshConnectionProfile> ToProfiles(List<SshProfileOptions> source) =>
+        source.Count == 0 ? Array.Empty<SshConnectionProfile>() : source.Select(ToProfile).ToArray();
+
+    private static SshConnectionProfile ToProfile(SshProfileOptions options) =>
+        new(options.Host, options.Port, options.Username, options.KeyFilePath, options.PinnedFingerprint, options.RemoteRoot);
+
+    private static JsonArray SerializeProfiles(IReadOnlyList<SshConnectionProfile> profiles)
+    {
+        var array = new JsonArray();
+        foreach (var profile in profiles)
+        {
+            array.Add(new JsonObject
+            {
+                [nameof(SshProfileOptions.Host)] = profile.Host,
+                [nameof(SshProfileOptions.Port)] = profile.Port,
+                [nameof(SshProfileOptions.Username)] = profile.Username,
+                [nameof(SshProfileOptions.KeyFilePath)] = profile.KeyFilePath,
+                [nameof(SshProfileOptions.PinnedFingerprint)] = profile.PinnedFingerprint,
+                [nameof(SshProfileOptions.RemoteRoot)] = profile.RemoteRoot,
+            });
+        }
+
+        return array;
+    }
 
     private static JsonObject ReadRoot(string path)
     {

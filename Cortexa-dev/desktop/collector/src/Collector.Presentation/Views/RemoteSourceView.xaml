@@ -129,6 +129,78 @@
                             Style="{StaticResource Button.Secondary}" />
                 </Grid>
 
+                <StackPanel Visibility="{Binding IsSsh, Converter={StaticResource BoolToVisibility}}">
+                    <HeaderedContentControl Header="{x:Static res:RemoteSourceStrings.SshHostLabel}" Style="{StaticResource FormField}">
+                        <TextBox AutomationProperties.Name="{x:Static res:RemoteSourceStrings.SshHostName}"
+                                 Style="{StaticResource TextBox.Field}"
+                                 Text="{Binding SshHost, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="{x:Static res:RemoteSourceStrings.SshHostPlaceholder}" />
+                    </HeaderedContentControl>
+                    <HeaderedContentControl Header="{x:Static res:RemoteSourceStrings.SshPortLabel}"
+                                            Style="{StaticResource FormField}"
+                                            b:FieldState.Error="{Binding SshPortError}">
+                        <TextBox AutomationProperties.HelpText="{Binding SshPortError}"
+                                 AutomationProperties.Name="{x:Static res:RemoteSourceStrings.SshPortName}"
+                                 MaxWidth="{StaticResource Size.ComboMin}"
+                                 Style="{StaticResource TextBox.Field}"
+                                 Text="{Binding SshPort, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="{x:Static res:RemoteSourceStrings.SshPortPlaceholder}"
+                                 b:FieldState.HasError="{Binding SshPortError, Converter={StaticResource NotEmptyToBool}}" />
+                    </HeaderedContentControl>
+                    <HeaderedContentControl Header="{x:Static res:RemoteSourceStrings.SshUsernameLabel}" Style="{StaticResource FormField}">
+                        <TextBox AutomationProperties.Name="{x:Static res:RemoteSourceStrings.SshUsernameName}"
+                                 Style="{StaticResource TextBox.Field}"
+                                 Text="{Binding SshUsername, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="{x:Static res:RemoteSourceStrings.SshUsernamePlaceholder}" />
+                    </HeaderedContentControl>
+                    <HeaderedContentControl Header="{x:Static res:RemoteSourceStrings.SshKeyFileLabel}"
+                                            Style="{StaticResource FormField}"
+                                            b:FieldState.Error="{Binding SshKeyFileError}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0"
+                                     AutomationProperties.HelpText="{Binding SshKeyFileError}"
+                                     AutomationProperties.Name="{x:Static res:RemoteSourceStrings.SshKeyFileName}"
+                                     IsReadOnly="True"
+                                     Style="{StaticResource TextBox.Field}"
+                                     Text="{Binding SshKeyFilePath, Mode=OneWay}"
+                                     ToolTip="{x:Static res:RemoteSourceStrings.SshKeyFilePlaceholder}"
+                                     b:FieldState.HasError="{Binding SshKeyFileError, Converter={StaticResource NotEmptyToBool}}" />
+                            <Button Grid.Column="1"
+                                    Margin="{StaticResource Thickness.LeadingGap}"
+                                    AutomationProperties.Name="{x:Static res:RemoteSourceStrings.SshBrowseKeyFileName}"
+                                    Command="{Binding BrowseSshKeyFileCommand}"
+                                    Content="{x:Static res:RemoteSourceStrings.SshBrowseKeyFile}"
+                                    Style="{StaticResource Button.Secondary}" />
+                        </Grid>
+                    </HeaderedContentControl>
+                    <HeaderedContentControl Header="{x:Static res:RemoteSourceStrings.SshFingerprintLabel}" Style="{StaticResource FormField}">
+                        <TextBox AutomationProperties.Name="{x:Static res:RemoteSourceStrings.SshFingerprintName}"
+                                 FontFamily="{StaticResource Font.Mono}"
+                                 Style="{StaticResource TextBox.Field}"
+                                 Text="{Binding SshFingerprint, UpdateSourceTrigger=PropertyChanged}"
+                                 ToolTip="{x:Static res:RemoteSourceStrings.SshFingerprintPlaceholder}" />
+                    </HeaderedContentControl>
+                    <StackPanel Orientation="Horizontal">
+                        <Button MinHeight="{StaticResource Size.RowAction}"
+                                Margin="{StaticResource Thickness.InlineGapLarge}"
+                                VerticalAlignment="Center"
+                                AutomationProperties.Name="{x:Static res:RemoteSourceStrings.SshConnectName}"
+                                Command="{Binding SshConnectCommand}"
+                                Content="{x:Static res:RemoteSourceStrings.SshConnect}"
+                                Style="{StaticResource Button.Primary}"
+                                ToolTip="{x:Static res:RemoteSourceStrings.SshConnectHelp}"
+                                ToolTipService.ShowOnDisabled="True" />
+                        <TextBlock MaxWidth="{StaticResource Size.ContentMaxWidth}"
+                                   VerticalAlignment="Center"
+                                   Style="{StaticResource Text.Helper}"
+                                   Text="{x:Static res:RemoteSourceStrings.SshConnectHelp}" />
+                    </StackPanel>
+                </StackPanel>
+
                 <StackPanel Visibility="{Binding IsListLoading, Converter={StaticResource BoolToVisibility}}">
                     <ProgressBar Margin="{StaticResource Thickness.StackGap}"
                                  AutomationProperties.Name="{x:Static res:RemoteSourceStrings.LoadingRepositories}"

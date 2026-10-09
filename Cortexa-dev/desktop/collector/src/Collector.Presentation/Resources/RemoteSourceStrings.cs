@@ -144,4 +144,54 @@ public static class RemoteSourceStrings
 
     public static string RepositoryAutomationName(string name, bool isPrivate, string branch, string size, string? overLimit) =>
         $"{name}, {(isPrivate ? "private, " : string.Empty)}default branch {branch}, {size}{(overLimit is null ? string.Empty : $", over the {overLimit} fetch limit")}";
+
+    public const string SshLabel = "_SSH";
+    public const string SshName = "SSH";
+
+    public const string SshHostLabel = "_Host";
+    public const string SshHostName = "Host";
+    public const string SshHostPlaceholder = "example.com or 192.0.2.1";
+
+    public const string SshPortLabel = "_Port";
+    public const string SshPortName = "Port";
+    public const string SshPortPlaceholder = "22";
+
+    public const string SshUsernameLabel = "_Username";
+    public const string SshUsernameName = "Username";
+    public const string SshUsernamePlaceholder = "Username";
+
+    public const string SshKeyFileLabel = "_Key file";
+    public const string SshKeyFileName = "Key file";
+    public const string SshKeyFilePlaceholder = "Choose a private key file";
+    public const string SshBrowseKeyFile = "_Browse…";
+    public const string SshBrowseKeyFileName = "Browse for a private key file";
+    public const string SshKeyFileDialogTitle = "Choose a private key file";
+    public const string SshKeyFileDialogFilter = "All files (*.*)|*.*";
+
+    public const string SshFingerprintLabel = "_Fingerprint";
+    public const string SshFingerprintName = "Fingerprint";
+    public const string SshFingerprintPlaceholder = "SHA256:…";
+
+    public const string SshConnect = "_Connect";
+    public const string SshConnectName = "Connect";
+    public const string SshConnectHelp = "Fill in the host, username, and key file first.";
+
+    public const string SshConnecting = "Connecting…";
+
+    public const string SshInvalidPort = "Enter a port between 1 and 65535.";
+    public const string SshKeyFileNotFound = "The key file couldn't be found. Choose it again.";
+
+    public const string SshFingerprintMismatchTitle = "The server's fingerprint doesn't match.";
+
+    public const string SshFingerprintMismatchMessage =
+        "This may mean the server changed or someone is intercepting the connection. Verify the fingerprint with the server administrator before continuing.";
+
+    public const string SshAuthTitle = "The server didn't accept your key.";
+    public const string SshAuthMessage = "Check the key file and its passphrase, then try again.";
+
+    public const string SshDeniedTitle = "You don't have permission to read these files.";
+    public const string SshDeniedMessage = "Ask the server administrator for read access, then try again.";
+
+    public const string SshConnectionFailedTitle = "Couldn't connect to the server.";
+    public const string SshConnectionFailedMessage = "Check the host, port, and your network connection, then try again.";
 }

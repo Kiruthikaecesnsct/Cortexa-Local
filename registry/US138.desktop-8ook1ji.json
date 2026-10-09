@@ -4,9 +4,19 @@
   "machine": "desktop-8ook1ji",
   "env": "windows",
   "branch": "develop/US138",
-  "status": "planning",
-  "files": [],
+  "status": "implementing",
+  "files": [
+    "Cortexa-dev/desktop/collector/src/Collector.Domain/Remote",
+    "Cortexa-dev/desktop/collector/src/Collector.Application",
+    "Cortexa-dev/desktop/collector/src/Collector.Infrastructure/Remote",
+    "Cortexa-dev/desktop/collector/src/Collector.Infrastructure/Secrets",
+    "Cortexa-dev/desktop/collector/src/Collector.Infrastructure/Settings",
+    "Cortexa-dev/desktop/collector/src/Collector.Infrastructure/Options",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation",
+    "Cortexa-dev/desktop/collector/tests/Collector.Tests",
+    "Cortexa-dev/desktop/collector/docs/design/US138_SourceCollectors.html"
+  ],
   "started": "2026-10-09T10:51:22Z",
-  "heartbeat": "2026-10-09T10:51:23Z",
+  "heartbeat": "2026-10-09T10:54:18Z",
   "schema": 2
 }

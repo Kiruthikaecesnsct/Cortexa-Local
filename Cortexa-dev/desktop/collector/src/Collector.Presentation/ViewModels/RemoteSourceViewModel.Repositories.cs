@@ -11,10 +11,33 @@ namespace Collector.Presentation.ViewModels;
 public sealed partial class RemoteSourceViewModel
 {
     private IReadOnlyList<RemoteBranch> _allBranches = [];
+    private bool _rebuildingProjects;
+    private ProjectOption _intendedProject = AllProjects;
 
     public IReadOnlyList<SegmentOptionViewModel<RepositoryVisibility>> VisibilityOptions { get; private set; } = [];
 
     public IReadOnlyList<SegmentOptionViewModel<RepositorySort>> SortOptions { get; private set; } = [];
+
+    public IReadOnlyList<ProjectOption> ProjectOptions { get; private set; } = [AllProjects];
+
+    public string? ProjectFilter => SelectedProjectOption?.Value;
+
+    public bool ShowProjectFilter => IsAzure;
+
+    public bool ShowVisibilityFilter => !IsAzure;
+
+    private static ProjectOption AllProjects { get; } = new(RemoteSourceStrings.ProjectAll, null);
+
+    private RepositoryFilterState FilterState => new(
+        SearchText,
+        IsAzure ? ProjectFilter : null,
+        !IsAzure && VisibilityFilter != RepositoryVisibility.All);
+
+    public string NoMatchText => RepositoryNoMatch.Text(FilterState);
+
+    public string ClearActionLabel => RepositoryNoMatch.ActionLabel(FilterState);
+
+    public string ClearActionName => RepositoryNoMatch.ActionName(FilterState);
 
     public bool ShowNoBranchMatch => Branches.Count == 0 && _allBranches.Count > 0 && !IsLoadingBranches;
 
@@ -25,6 +48,9 @@ public sealed partial class RemoteSourceViewModel
     public partial RepositorySort SortOrder { get; set; }
 
     [ObservableProperty]
+    public partial ProjectOption? SelectedProjectOption { get; set; } = AllProjects;
+
+    [ObservableProperty]
     public partial string BranchSearchText { get; set; } = string.Empty;
 
     partial void OnSearchTextChanged(string value) => RebuildRows();
@@ -33,6 +59,20 @@ public sealed partial class RemoteSourceViewModel
     {
         SyncOptions();
         RebuildRows();
+    }
+
+    partial void OnSelectedProjectOptionChanged(ProjectOption? value)
+    {
+        if (value is null)
+        {
+            SelectedProjectOption = _rebuildingProjects ? _intendedProject : AllProjects;
+            return;
+        }
+
+        if (!_rebuildingProjects)
+        {
+            RebuildRows();
+        }
     }
 
     partial void OnSortOrderChanged(RepositorySort value)
@@ -75,10 +115,42 @@ public sealed partial class RemoteSourceViewModel
     private Task LoadRepositoriesAsync() => RunListAsync();
 
     [RelayCommand]
-    private void ClearSearch()
+    private void ClearFilters()
     {
+        _rebuildingProjects = true;
+        SelectedProjectOption = ProjectOptions[0];
+        _rebuildingProjects = false;
+        VisibilityFilter = RepositoryVisibility.All;
         SearchText = string.Empty;
+        RebuildRows();
         RequestFocus(RemoteFocusKeys.Search);
+    }
+
+    private void RebuildProjectOptions(bool keepSelection)
+    {
+        var current = keepSelection ? ProjectFilter : null;
+        var names = IsAzure
+            ? _all.Select(repository => repository.Project).OfType<string>().Where(name => name.Length > 0)
+            : [];
+        var options = new List<ProjectOption> { AllProjects };
+        options.AddRange(names
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Order(StringComparer.OrdinalIgnoreCase)
+            .Select(name => new ProjectOption(name, name)));
+        _intendedProject = options.FirstOrDefault(option => current is not null && string.Equals(option.Value, current, StringComparison.OrdinalIgnoreCase)) ?? AllProjects;
+        _rebuildingProjects = true;
+        try
+        {
+            ProjectOptions = options;
+            SelectedProjectOption = _intendedProject;
+            OnPropertyChanged(nameof(ProjectOptions));
+            SelectedProjectOption = _intendedProject;
+            OnPropertyChanged(nameof(SelectedProjectOption));
+        }
+        finally
+        {
+            _rebuildingProjects = false;
+        }
     }
 
     private void InitializeOptions()
@@ -170,6 +242,7 @@ public sealed partial class RemoteSourceViewModel
         _all = repositories;
         ListState = RemoteListState.Ready;
         SearchText = string.Empty;
+        RebuildProjectOptions(keepSelection: true);
         RebuildRows();
         if (IsTokenSource)
         {
@@ -219,7 +292,12 @@ public sealed partial class RemoteSourceViewModel
     private void RebuildRows()
     {
         var keep = SelectedRepository;
-        var query = new RepositoryQuery(SearchText, VisibilityFilter, SortOrder, IsCortexa);
+        var query = new RepositoryQuery(
+            SearchText,
+            IsAzure ? RepositoryVisibility.All : VisibilityFilter,
+            SortOrder,
+            IsCortexa,
+            IsAzure ? ProjectFilter : null);
         _rebuilding = true;
         try
         {

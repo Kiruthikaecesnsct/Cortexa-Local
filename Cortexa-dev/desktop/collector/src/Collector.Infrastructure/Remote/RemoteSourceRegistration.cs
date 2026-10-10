@@ -96,7 +96,7 @@ internal static class RemoteSourceRegistration
     {
         var options = sp.GetRequiredService<IOptions<RemoteSourceOptions>>().Value;
         client.BaseAddress = RemoteUrl.BaseAddress(spec.Select(options).BaseUrl);
-        client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+        client.Timeout = Timeout.InfiniteTimeSpan;
     }
 
     private static PatAuthHandler CreatePatHandler(IServiceProvider sp, RemoteClientSpec spec)
@@ -110,7 +110,11 @@ internal static class RemoteSourceRegistration
     {
         var options = sp.GetRequiredService<IOptions<RemoteSourceOptions>>().Value;
         var gate = sp.GetRequiredService<RateLimitGates>().For(spec.Provider);
-        var settings = new RateLimitHandlerSettings(options.RateLimit, sp.GetRequiredService<TimeProvider>());
+        var settings = new RateLimitHandlerSettings(
+            options.RateLimit,
+            sp.GetRequiredService<TimeProvider>(),
+            TimeSpan.FromSeconds(options.TimeoutSeconds),
+            spec.Select(options).MaxRateLimitRetries ?? options.RateLimit.MaxRetries);
         return new RateLimitHandler(spec.Provider, gate, spec.Reader(sp), settings);
     }
 

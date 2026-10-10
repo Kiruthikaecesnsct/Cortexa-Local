@@ -1,4 +1,5 @@
 using System.Globalization;
+using Collector.Application.Remote.Selection;
 using Collector.Presentation.Resources;
 
 namespace Collector.Presentation.ViewModels;
@@ -33,6 +34,47 @@ public static class RemoteSizeFormatter
     private static double Round(double value) => Math.Round(value, MidpointRounding.AwayFromZero);
 }
 
+public static class RemoteSelectionText
+{
+    public static bool IsAllUnknown(FileSelectionSummary summary) =>
+        summary.SupportedSelected > 0 && summary.UnknownSizeFiles == summary.SupportedSelected;
+
+    public static bool HasUnknown(FileSelectionSummary summary) => summary.UnknownSizeFiles > 0;
+
+    public static string SizePhrase(FileSelectionSummary summary)
+    {
+        if (IsAllUnknown(summary))
+        {
+            return RemoteSourceStrings.SizeUnknown;
+        }
+
+        var size = RemoteSizeFormatter.Format(summary.SelectedBytes);
+        return HasUnknown(summary) ? RemoteSourceStrings.SizeAtLeast(size, summary.UnknownSizeFiles) : size;
+    }
+
+    public static string FooterText(FileSelectionSummary summary) => IsAllUnknown(summary)
+        ? RemoteSourceStrings.FilesSummaryUnknownSize(summary.SupportedSelected, summary.SkippedUnsupported)
+        : RemoteSourceStrings.FilesSummary(
+            summary.SupportedSelected,
+            SizePhrase(summary),
+            summary.SkippedUnsupported,
+            summary.SkippedTooLarge);
+
+    public static string ProceedText(FileSelectionSummary summary) =>
+        RemoteSourceStrings.SelectionText(summary.SupportedSelected, SizePhrase(summary));
+
+    public static string SkippedLine(FileSelectionSummary summary)
+    {
+        if (IsAllUnknown(summary))
+        {
+            return summary.SkippedUnsupported == 0 ? string.Empty : RemoteSourceStrings.SkippedUnsupportedOnly(summary.SkippedUnsupported);
+        }
+
+        var skipped = summary.SkippedUnsupported + summary.SkippedTooLarge;
+        return skipped == 0 ? string.Empty : RemoteSourceStrings.SkippedText(summary.SkippedUnsupported, summary.SkippedTooLarge);
+    }
+}
+
 public static class RelativeTimeFormatter
 {
     private const int MinutesPerHour = 60;
@@ -50,7 +92,7 @@ public static class RelativeTimeFormatter
         return RemoteSourceStrings.UpdatedText(Describe(now - value));
     }
 
-    private static string Describe(TimeSpan age)
+    public static string Describe(TimeSpan age)
     {
         if (age.TotalMinutes < 1)
         {

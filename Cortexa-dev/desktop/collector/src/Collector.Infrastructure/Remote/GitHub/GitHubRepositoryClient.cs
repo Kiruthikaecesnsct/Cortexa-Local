@@ -150,7 +150,10 @@ public sealed class GitHubRepositoryClient(
             ? LinkHeaderParser.ParseNext(values, current)
             : null;
 
-    private RemoteHttp CreateHttp() => new(factory.CreateClient(HttpClientNames.GitHub), mapper, SourceType.Github);
+    private RemoteHttp CreateHttp() =>
+        new(factory.CreateClient(HttpClientNames.GitHub), mapper, SourceType.Github, ReadIdleTimeout());
+
+    private TimeSpan ReadIdleTimeout() => TimeSpan.FromSeconds(options.CurrentValue.TimeoutSeconds);
 
     private RemotePager CreatePager() => new(options.CurrentValue.MaxPages, logger);
 
@@ -170,6 +173,7 @@ public sealed class GitHubRepositoryClient(
         CancellationToken cancellationToken)
     {
         using var request = NewRequest(uri, JsonAccept);
+        request.Options.Set(RemoteRequestOptions.BufferBody, true);
         using var response = await http.SendCheckedAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
         var items = await http.ReadJsonAsync(response, typeInfo, cancellationToken);
         return new RemotePage<T>(items, NextLink(response));

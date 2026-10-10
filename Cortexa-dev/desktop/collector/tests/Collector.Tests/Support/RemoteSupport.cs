@@ -9,7 +9,10 @@ using Collector.Infrastructure.Options;
 
 namespace Collector.Tests.Support;
 
-internal sealed record RecordedCall(Uri Uri, IReadOnlyDictionary<string, string> Headers);
+internal sealed record RecordedCall(Uri Uri, IReadOnlyDictionary<string, string> Headers)
+{
+    public bool BufferBody { get; init; }
+}
 
 internal sealed class RouteHandler(Func<RecordedCall, HttpResponseMessage> respond) : HttpMessageHandler
 {
@@ -32,7 +35,10 @@ internal sealed class RouteHandler(Func<RecordedCall, HttpResponseMessage> respo
             header => header.Key,
             header => string.Join(',', header.Value),
             StringComparer.OrdinalIgnoreCase);
-        var call = new RecordedCall(request.RequestUri!, headers);
+        var call = new RecordedCall(request.RequestUri!, headers)
+        {
+            BufferBody = request.Options.TryGetValue(Collector.Infrastructure.Remote.RemoteRequestOptions.BufferBody, out var buffer) && buffer,
+        };
         lock (_calls)
         {
             _calls.Add(call);

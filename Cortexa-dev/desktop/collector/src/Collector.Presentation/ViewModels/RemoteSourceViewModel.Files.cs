@@ -18,24 +18,9 @@ public sealed partial class RemoteSourceViewModel
 
     public string LoadingTreeText => RemoteSourceStrings.LoadingTree(SelectedBranch?.Name ?? string.Empty);
 
-    public string ProceedSelectionText
-    {
-        get
-        {
-            var summary = FileTree.SelectionSummary;
-            return RemoteSourceStrings.SelectionText(summary.SupportedSelected, RemoteSizeFormatter.Format(summary.SelectedBytes));
-        }
-    }
+    public string ProceedSelectionText => RemoteSelectionText.ProceedText(FileTree.SelectionSummary);
 
-    public string ProceedSkippedText
-    {
-        get
-        {
-            var summary = FileTree.SelectionSummary;
-            var skipped = summary.SkippedUnsupported + summary.SkippedTooLarge;
-            return skipped == 0 ? string.Empty : RemoteSourceStrings.SkippedText(summary.SkippedUnsupported, summary.SkippedTooLarge);
-        }
-    }
+    public string ProceedSkippedText => RemoteSelectionText.SkippedLine(FileTree.SelectionSummary);
 
     public bool HasProceedSkipped => ProceedSkippedText.Length > 0;
 

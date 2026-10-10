@@ -10,6 +10,7 @@ using Collector.Presentation.ViewModels;
 using Collector.Tests.Support;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Collector.Tests.Presentation;
 
@@ -141,6 +142,8 @@ internal sealed class RemoteSourceHarness
     public const string GitHubUrl = "https://github.com/octo";
     public const string AzureUrl = "https://dev.azure.com/contoso";
 
+    private IntakeProgressViewModel? _intake;
+
     public RemoteSourceHarness(Action<RemoteFetchOptions>? configureOptions = null)
     {
         configureOptions?.Invoke(FetchOptions.Value);
@@ -166,7 +169,9 @@ internal sealed class RemoteSourceHarness
 
     public IOptions<RemoteFetchOptions> FetchOptions { get; } = Options.Create(new RemoteFetchOptions());
 
-    public IntakeProgressViewModel Intake { get; } = new(TimeProvider.System);
+    public FakeTimeProvider IntakeTime { get; } = new(DateTimeOffset.Parse("2026-10-07T00:00:00Z"));
+
+    public IntakeProgressViewModel Intake => _intake ??= new IntakeProgressViewModel(IntakeTime);
 
     public FakeUserSettingsStore Store { get; } = new();
 
@@ -199,8 +204,14 @@ internal sealed class RemoteSourceHarness
     public static RemoteRepository GitHubRepo(string name, long sizeBytes = 1024, bool isPrivate = false) =>
         new(SourceType.Github, "octo", null, name, $"octo/{name}", "main", $"https://github.com/octo/{name}", sizeBytes, isPrivate);
 
-    public static RemoteRepository AzureRepo(string name) =>
-        new(SourceType.AzureDevops, "contoso", "Research", name, $"contoso/Research/{name}", "main", "https://dev.azure.com/contoso", 2048, true);
+    public static RemoteRepository AzureRepo(string name, string project = "Research", DateTimeOffset? updatedAt = null) =>
+        new(SourceType.AzureDevops, "contoso", project, name, $"contoso/{project}/{name}", "main", "https://dev.azure.com/contoso", 2048, true, null, updatedAt);
+
+    public async Task<RemoteSourceViewModel> OpenAzureAsync(params RemoteRepository[] repositories)
+    {
+        AzureDevOps.Repositories = repositories;
+        return await ConnectAsync(SourceType.AzureDevops, AzureUrl);
+    }
 
     public static RemoteRepository CortexaRepo(string name, string? tag = "github", string owner = "octo", string branch = "saved") =>
         new(SourceType.CortexaRepo, owner, tag, name, $"{owner}/{name}", branch, $"cortexa://{tag}/{owner}/{name}", 1024, false);

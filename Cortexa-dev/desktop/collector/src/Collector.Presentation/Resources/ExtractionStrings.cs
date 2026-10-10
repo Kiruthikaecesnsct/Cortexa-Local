@@ -123,11 +123,11 @@ public static class ExtractionStrings
 
     public const string IntakeReadingTree = "Reading file tree…";
 
-    public static string IntakeFetched(int done, int total) => $"Fetched {done}/{total}";
+    public static string IntakeFetched(int done, int total) => $"Fetched {done:N0}/{total:N0}";
 
-    public static string IntakePaused(int done, int total) => $"Fetched {done}/{total} · paused for rate limit";
+    public static string IntakePaused(int done, int total) => $"Fetched {done:N0}/{total:N0} · waiting for rate limit";
 
-    public static string IntakeSplit(int done, int total) => $"Split {done}/{total}";
+    public static string IntakeSplit(int done, int total) => $"Split {done:N0}/{total:N0}";
 
     public static string IntakeCurrent(string file) => $"Current: {file}";
 

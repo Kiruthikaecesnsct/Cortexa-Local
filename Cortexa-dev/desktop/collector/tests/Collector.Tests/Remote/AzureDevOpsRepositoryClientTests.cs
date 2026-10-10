@@ -27,13 +27,15 @@ public class AzureDevOpsRepositoryClientTests
             new AzureDevOpsErrorMapper(new AzureDevOpsRateHeaders(), TimeProvider.System),
             NullLogger<AzureDevOpsRepositoryClient>.Instance);
 
-    private static string RepoJson(string name, string visibility = "private", bool disabled = false, string branch = "refs/heads/dev") =>
+    private static string RepoJson(string name, string visibility = "private", bool disabled = false, string branch = "refs/heads/dev", string? lastUpdate = null) =>
         $$"""
         {"name":"{{name}}","defaultBranch":"{{branch}}","webUrl":"https://dev.azure.com/myorg/proj/_git/{{name}}",
          "size":{{RepoSize}},"isDisabled":{{(disabled ? "true" : "false")}},
-         "project":{"name":"proj","visibility":"{{visibility}}"}
+         "project":{"name":"proj","visibility":"{{visibility}}"{{LastUpdateJson(lastUpdate)}} }
         }
         """;
+
+    private static string LastUpdateJson(string? value) => value is null ? string.Empty : $",\"lastUpdateTime\":\"{value}\"";
 
     [Fact]
     public async Task ListRepositoriesAsync_ValidResponse_MapsRepositoriesAndUsesNamedClient()
@@ -234,5 +236,62 @@ public class AzureDevOpsRepositoryClientTests
             () => CreateClient(handler).OpenBlobAsync(RemoteData.AzureRepo(), "b1", TestSupport.Ct));
 
         Assert.Equal(RemoteFailureKind.Auth, exception.Kind);
+    }
+
+    [Fact]
+    public async Task ListRepositoriesAsync_LastUpdateTimePresent_SetsUpdatedAt()
+    {
+        const string Stamp = "2026-03-04T05:06:07Z";
+        var handler = new RouteHandler(_ => RemoteResponses.Json($$"""{"value":[{{RepoJson("repo", lastUpdate: Stamp)}}]}"""));
+
+        var repositories = await CreateClient(handler).ListRepositoriesAsync("myorg", TestSupport.Ct);
+
+        Assert.Equal(DateTimeOffset.Parse(Stamp), Assert.Single(repositories).UpdatedAt);
+    }
+
+    [Fact]
+    public async Task ListRepositoriesAsync_LastUpdateTimeAbsent_LeavesUpdatedAtNull()
+    {
+        var handler = new RouteHandler(_ => RemoteResponses.Json($$"""{"value":[{{RepoJson("repo")}}]}"""));
+
+        var repositories = await CreateClient(handler).ListRepositoriesAsync("myorg", TestSupport.Ct);
+
+        Assert.Null(Assert.Single(repositories).UpdatedAt);
+    }
+
+    [Fact]
+    public async Task ListRepositoriesAsync_YearOneLastUpdateTime_LeavesUpdatedAtNull()
+    {
+        const string Unset = "0001-01-01T00:00:00Z";
+        var handler = new RouteHandler(_ => RemoteResponses.Json($$"""{"value":[{{RepoJson("repo", lastUpdate: Unset)}}]}"""));
+
+        var repositories = await CreateClient(handler).ListRepositoriesAsync("myorg", TestSupport.Ct);
+
+        Assert.Null(Assert.Single(repositories).UpdatedAt);
+    }
+
+    [Fact]
+    public async Task GetTreeAsync_BlobItems_HaveNullSizeBytes()
+    {
+        const string Body = """{"value":[{"objectId":"b1","gitObjectType":"blob","commitId":"c9","path":"/a.md"}]}""";
+        var handler = new RouteHandler(_ => RemoteResponses.Json(Body));
+
+        var tree = await CreateClient(handler).GetTreeAsync(RemoteData.AzureRepo(), "main", TestSupport.Ct);
+
+        Assert.Null(Assert.Single(tree.Entries).SizeBytes);
+    }
+
+    [Fact]
+    public async Task PageRequests_Always_CarryBufferBodyOption()
+    {
+        const string TreeBody = """{"value":[{"objectId":"b1","gitObjectType":"blob","commitId":"c9","path":"/a.md"}]}""";
+        var repoHandler = new RouteHandler(_ => RemoteResponses.Json($$"""{"value":[{{RepoJson("repo")}}]}"""));
+        var treeHandler = new RouteHandler(_ => RemoteResponses.Json(TreeBody));
+
+        await CreateClient(repoHandler).ListRepositoriesAsync("myorg", TestSupport.Ct);
+        await CreateClient(treeHandler).GetTreeAsync(RemoteData.AzureRepo(), "main", TestSupport.Ct);
+
+        Assert.True(Assert.Single(repoHandler.Calls).BufferBody);
+        Assert.True(Assert.Single(treeHandler.Calls).BufferBody);
     }
 }

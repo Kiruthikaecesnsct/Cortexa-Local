@@ -10,6 +10,8 @@ public sealed class RemoteRepositoryRowViewModel
     private const string GitHubUpstream = "github";
     private const string AzureUpstream = "azure-devops";
 
+    private readonly string? _relativeUpdated;
+
     public RemoteRepositoryRowViewModel(RemoteRepository repository, long limitBytes, TimeProvider? time = null)
     {
         Repository = repository;
@@ -17,15 +19,21 @@ public sealed class RemoteRepositoryRowViewModel
         SizeText = RemoteSizeFormatter.Format(repository.SizeBytes);
         LimitText = RemoteSizeFormatter.Format(limitBytes);
         UpstreamTag = ResolveUpstreamTag(repository);
-        UpdatedText = RelativeTimeFormatter.Format(repository.UpdatedAt, (time ?? TimeProvider.System).GetUtcNow());
-        AutomationName = repository.Provider == SourceType.CortexaRepo
-            ? CortexaAutomationName()
-            : RemoteSourceStrings.RepositoryAutomationName(
+        _relativeUpdated = repository.UpdatedAt is { } updated
+            ? RelativeTimeFormatter.Describe((time ?? TimeProvider.System).GetUtcNow() - updated)
+            : null;
+        UpdatedText = FormatUpdated(_relativeUpdated, repository.Provider);
+        AutomationName = repository.Provider switch
+        {
+            SourceType.CortexaRepo => CortexaAutomationName(),
+            SourceType.AzureDevops => AzureAutomationName(),
+            _ => RemoteSourceStrings.RepositoryAutomationName(
                 repository.Name,
                 repository.IsPrivate,
                 repository.DefaultBranch,
                 SizeText,
-                IsTooBig ? LimitText : null);
+                IsTooBig ? LimitText : null),
+        };
     }
 
     public RemoteRepository Repository { get; }
@@ -40,6 +48,8 @@ public sealed class RemoteRepositoryRowViewModel
 
     public string VisibilityText => IsPrivate ? RemoteSourceStrings.PrivateTag : RemoteSourceStrings.PublicTag;
 
+    public bool IsAzure => Repository.Provider == SourceType.AzureDevops;
+
     public string? Description => Repository.Description;
 
     public bool HasDescription => !string.IsNullOrWhiteSpace(Repository.Description);
@@ -47,6 +57,10 @@ public sealed class RemoteRepositoryRowViewModel
     public string UpdatedText { get; }
 
     public bool HasUpdatedText => UpdatedText.Length > 0;
+
+    public bool ShowUpdatedBeforeSize => HasUpdatedText && !IsAzure;
+
+    public bool ShowUpdatedAfterSize => HasUpdatedText && IsAzure;
 
     public string? UpstreamTag { get; }
 
@@ -73,6 +87,27 @@ public sealed class RemoteRepositoryRowViewModel
                 AzureUpstream => RemoteSourceStrings.UpstreamAzureTag,
                 _ => null,
             };
+
+    private static string FormatUpdated(string? relative, SourceType provider)
+    {
+        if (relative is null)
+        {
+            return string.Empty;
+        }
+
+        return provider == SourceType.AzureDevops
+            ? RemoteSourceStrings.ProjectUpdatedText(relative)
+            : RemoteSourceStrings.UpdatedText(relative);
+    }
+
+    private string AzureAutomationName() => RemoteSourceStrings.AzureRepositoryAutomationName(
+        new AzureRowDescription(
+            Name,
+            Repository.Project ?? string.Empty,
+            DefaultBranch,
+            SizeText,
+            _relativeUpdated,
+            IsTooBig ? LimitText : null));
 
     private string CortexaAutomationName() => RemoteSourceStrings.CortexaRepositoryAutomationName(
         new CortexaRowDescription(FullName, DefaultBranch, UpstreamTag, SizeText, IsTooBig ? LimitText : null));

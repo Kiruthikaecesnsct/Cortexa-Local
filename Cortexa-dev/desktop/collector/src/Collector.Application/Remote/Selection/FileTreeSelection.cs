@@ -45,7 +45,8 @@ public sealed class FileTreeSelection(FileTreeNode root, int maxSelectedFiles)
             selected.Unsupported,
             selected.TooLarge,
             selected.Supported,
-            selected.Supported > maxSelectedFiles);
+            selected.Supported > maxSelectedFiles,
+            selected.UnknownSize);
     }
 
     public IReadOnlyList<RemoteTreeEntry> SelectedSupportedEntries()

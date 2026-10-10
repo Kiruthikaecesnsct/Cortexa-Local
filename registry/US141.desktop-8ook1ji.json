@@ -4,50 +4,50 @@
   "machine": "desktop-8ook1ji",
   "env": "windows",
   "branch": "develop/US141",
-  "status": "implementing",
+  "status": "review",
   "files": [
-    "desktop/collector/src/Collector.Application/Remote/Selection/FileSelectionSummary.cs",
-    "desktop/collector/src/Collector.Application/Remote/Selection/FileTreeCounts.cs",
-    "desktop/collector/src/Collector.Application/Remote/Selection/FileTreeSelection.cs",
-    "desktop/collector/src/Collector.Infrastructure/Options/OptionsValidators.cs",
-    "desktop/collector/src/Collector.Infrastructure/Options/RemoteSourceOptions.cs",
-    "desktop/collector/src/Collector.Infrastructure/Remote/AzureDevOps/AzureDevOpsRepositoryClient.cs",
-    "desktop/collector/src/Collector.Infrastructure/Remote/AzureDevOps/AzureDevOpsWire.cs",
-    "desktop/collector/src/Collector.Infrastructure/Remote/GitHub/GitHubRepositoryClient.cs",
-    "desktop/collector/src/Collector.Infrastructure/Remote/GuardedReadStream.cs",
-    "desktop/collector/src/Collector.Infrastructure/Remote/RateLimit/RateLimitHandler.cs",
-    "desktop/collector/src/Collector.Infrastructure/Remote/RemoteHttp.cs",
-    "desktop/collector/src/Collector.Infrastructure/Remote/RemoteRequestOptions.cs",
-    "desktop/collector/src/Collector.Infrastructure/Remote/RemoteSourceRegistration.cs",
-    "desktop/collector/src/Collector.Presentation/appsettings.json",
-    "desktop/collector/src/Collector.Presentation/Resources/ExtractionStrings.cs",
-    "desktop/collector/src/Collector.Presentation/Resources/RemoteSourceStrings.cs",
-    "desktop/collector/src/Collector.Presentation/Themes/Styles.xaml",
-    "desktop/collector/src/Collector.Presentation/ViewModels/FileTreeRowViewModel.cs",
-    "desktop/collector/src/Collector.Presentation/ViewModels/ProjectOption.cs",
-    "desktop/collector/src/Collector.Presentation/ViewModels/RemoteFileTreeViewModel.cs",
-    "desktop/collector/src/Collector.Presentation/ViewModels/RemoteFormatting.cs",
-    "desktop/collector/src/Collector.Presentation/ViewModels/RemoteRepositoryRowViewModel.cs",
-    "desktop/collector/src/Collector.Presentation/ViewModels/RemoteSourceViewModel.cs",
-    "desktop/collector/src/Collector.Presentation/ViewModels/RemoteSourceViewModel.Files.cs",
-    "desktop/collector/src/Collector.Presentation/ViewModels/RemoteSourceViewModel.Repositories.cs",
-    "desktop/collector/src/Collector.Presentation/ViewModels/RepositoryFilter.cs",
-    "desktop/collector/src/Collector.Presentation/ViewModels/RepositoryNoMatch.cs",
-    "desktop/collector/src/Collector.Presentation/Views/RemoteSourceView.xaml",
-    "desktop/collector/tests/Collector.Tests/DependencyInjectionTests.cs",
-    "desktop/collector/tests/Collector.Tests/Presentation/RemoteSourceHarness.cs",
-    "desktop/collector/tests/Collector.Tests/Presentation/RemoteSourceProjectFilterTests.cs",
-    "desktop/collector/tests/Collector.Tests/Presentation/RemoteUnknownSizeTests.cs",
-    "desktop/collector/tests/Collector.Tests/Presentation/RepositoryFilterTests.cs",
-    "desktop/collector/tests/Collector.Tests/Remote/AzureDevOpsRepositoryClientTests.cs",
-    "desktop/collector/tests/Collector.Tests/Remote/FileTreeSelectionTests.cs",
-    "desktop/collector/tests/Collector.Tests/Remote/GuardedReadStreamTests.cs",
-    "desktop/collector/tests/Collector.Tests/Remote/RateLimit/RateLimitHandlerTests.cs",
-    "desktop/collector/tests/Collector.Tests/Remote/RemoteFetchServiceTests.cs",
-    "desktop/collector/tests/Collector.Tests/Remote/RemoteSourceOptionsValidatorTests.cs",
+    "desktop/collector/src/Collector.Application/Remote/Selection/FileSelectionSummary.cs",
+    "desktop/collector/src/Collector.Application/Remote/Selection/FileTreeCounts.cs",
+    "desktop/collector/src/Collector.Application/Remote/Selection/FileTreeSelection.cs",
+    "desktop/collector/src/Collector.Infrastructure/Options/OptionsValidators.cs",
+    "desktop/collector/src/Collector.Infrastructure/Options/RemoteSourceOptions.cs",
+    "desktop/collector/src/Collector.Infrastructure/Remote/AzureDevOps/AzureDevOpsRepositoryClient.cs",
+    "desktop/collector/src/Collector.Infrastructure/Remote/AzureDevOps/AzureDevOpsWire.cs",
+    "desktop/collector/src/Collector.Infrastructure/Remote/GitHub/GitHubRepositoryClient.cs",
+    "desktop/collector/src/Collector.Infrastructure/Remote/GuardedReadStream.cs",
+    "desktop/collector/src/Collector.Infrastructure/Remote/RateLimit/RateLimitHandler.cs",
+    "desktop/collector/src/Collector.Infrastructure/Remote/RemoteHttp.cs",
+    "desktop/collector/src/Collector.Infrastructure/Remote/RemoteRequestOptions.cs",
+    "desktop/collector/src/Collector.Infrastructure/Remote/RemoteSourceRegistration.cs",
+    "desktop/collector/src/Collector.Presentation/appsettings.json",
+    "desktop/collector/src/Collector.Presentation/Resources/ExtractionStrings.cs",
+    "desktop/collector/src/Collector.Presentation/Resources/RemoteSourceStrings.cs",
+    "desktop/collector/src/Collector.Presentation/Themes/Styles.xaml",
+    "desktop/collector/src/Collector.Presentation/ViewModels/FileTreeRowViewModel.cs",
+    "desktop/collector/src/Collector.Presentation/ViewModels/ProjectOption.cs",
+    "desktop/collector/src/Collector.Presentation/ViewModels/RemoteFileTreeViewModel.cs",
+    "desktop/collector/src/Collector.Presentation/ViewModels/RemoteFormatting.cs",
+    "desktop/collector/src/Collector.Presentation/ViewModels/RemoteRepositoryRowViewModel.cs",
+    "desktop/collector/src/Collector.Presentation/ViewModels/RemoteSourceViewModel.cs",
+    "desktop/collector/src/Collector.Presentation/ViewModels/RemoteSourceViewModel.Files.cs",
+    "desktop/collector/src/Collector.Presentation/ViewModels/RemoteSourceViewModel.Repositories.cs",
+    "desktop/collector/src/Collector.Presentation/ViewModels/RepositoryFilter.cs",
+    "desktop/collector/src/Collector.Presentation/ViewModels/RepositoryNoMatch.cs",
+    "desktop/collector/src/Collector.Presentation/Views/RemoteSourceView.xaml",
+    "desktop/collector/tests/Collector.Tests/DependencyInjectionTests.cs",
+    "desktop/collector/tests/Collector.Tests/Presentation/RemoteSourceHarness.cs",
+    "desktop/collector/tests/Collector.Tests/Presentation/RemoteSourceProjectFilterTests.cs",
+    "desktop/collector/tests/Collector.Tests/Presentation/RemoteUnknownSizeTests.cs",
+    "desktop/collector/tests/Collector.Tests/Presentation/RepositoryFilterTests.cs",
+    "desktop/collector/tests/Collector.Tests/Remote/AzureDevOpsRepositoryClientTests.cs",
+    "desktop/collector/tests/Collector.Tests/Remote/FileTreeSelectionTests.cs",
+    "desktop/collector/tests/Collector.Tests/Remote/GuardedReadStreamTests.cs",
+    "desktop/collector/tests/Collector.Tests/Remote/RateLimit/RateLimitHandlerTests.cs",
+    "desktop/collector/tests/Collector.Tests/Remote/RemoteFetchServiceTests.cs",
+    "desktop/collector/tests/Collector.Tests/Remote/RemoteSourceOptionsValidatorTests.cs",
     "desktop/collector/tests/Collector.Tests/Support/RemoteSupport.cs"
   ],
   "started": "2026-10-10T06:40:44Z",
-  "heartbeat": "2026-10-10T08:21:33Z",
+  "heartbeat": "2026-10-10T08:24:17Z",
   "schema": 2
 }

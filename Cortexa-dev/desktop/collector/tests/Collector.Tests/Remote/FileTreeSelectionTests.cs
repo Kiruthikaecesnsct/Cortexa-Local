@@ -304,4 +304,51 @@ public sealed class FileTreeSelectionTests
 
         Assert.Equal("note.md", build.Root.Children.Single().Children.Single().Children.Single().Name);
     }
+
+    private FileTreeBuild BuildTree(params RemoteTreeEntry[] entries) => _builder.Build(new RemoteTree("commit-2", entries, false));
+
+    [Fact]
+    public void Summary_SupportedFilesWithoutSize_CountUnknownAndAddNoBytes()
+    {
+        var build = BuildTree(RemoteData.Entry("a.md", "u1"), RemoteData.Entry("docs/b.md", "u2"));
+        var selection = new FileTreeSelection(build.Root, GenerousLimit);
+
+        selection.SetChecked(build.Root, true);
+
+        var summary = selection.Summary();
+        Assert.Equal(2, summary.UnknownSizeFiles);
+        Assert.Equal(0, summary.SelectedBytes);
+        Assert.Equal(2, summary.SupportedSelected);
+    }
+
+    [Fact]
+    public void Summary_MixedKnownAndUnknownSizes_BytesCountKnownOnly()
+    {
+        var build = BuildTree(
+            RemoteData.Entry("a.md", "u1"),
+            RemoteData.Entry("b.md", "u2", ReadmeBytes),
+            RemoteData.Entry("logo.png", "u3"));
+        var selection = new FileTreeSelection(build.Root, GenerousLimit);
+
+        selection.SetChecked(build.Root, true);
+
+        var summary = selection.Summary();
+        Assert.Equal(1, summary.UnknownSizeFiles);
+        Assert.Equal(ReadmeBytes, summary.SelectedBytes);
+    }
+
+    [Fact]
+    public void SetChecked_FolderCheckedThenUnchecked_ReturnsCountsToZero()
+    {
+        var build = BuildTree(RemoteData.Entry("docs/a.md", "u1"), RemoteData.Entry("docs/b.md", "u2", ReadmeBytes));
+        var selection = new FileTreeSelection(build.Root, GenerousLimit);
+        var folder = build.Root.Children.Single(child => child.Name == "docs");
+
+        selection.SetChecked(folder, true);
+        selection.SetChecked(folder, false);
+
+        Assert.Equal(FileTreeCounts.Zero, build.Root.Selected);
+        Assert.Equal(0, selection.Summary().UnknownSizeFiles);
+        Assert.Equal(0, selection.Summary().SelectedBytes);
+    }
 }

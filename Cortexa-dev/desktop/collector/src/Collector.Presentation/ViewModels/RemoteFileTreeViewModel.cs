@@ -60,6 +60,9 @@ public sealed partial class RemoteFileTreeViewModel : ObservableObject, IDisposa
     public partial string ProceedHint { get; private set; } = string.Empty;
 
     [ObservableProperty]
+    public partial bool HasUnknownSize { get; private set; }
+
+    [ObservableProperty]
     public partial bool CanProceed { get; private set; }
 
     [ObservableProperty]
@@ -300,13 +303,8 @@ public sealed partial class RemoteFileTreeViewModel : ObservableObject, IDisposa
     private void UpdateSummary()
     {
         var summary = SelectionSummary;
-        SummaryText = summary.SelectedFiles == 0
-            ? RemoteSourceStrings.NoFilesSelected
-            : RemoteSourceStrings.FilesSummary(
-                summary.SupportedSelected,
-                RemoteSizeFormatter.Format(summary.SelectedBytes),
-                summary.SkippedUnsupported,
-                summary.SkippedTooLarge);
+        SummaryText = summary.SelectedFiles == 0 ? RemoteSourceStrings.NoFilesSelected : RemoteSelectionText.FooterText(summary);
+        HasUnknownSize = RemoteSelectionText.HasUnknown(summary);
         IsOverLimit = summary.OverLimit;
         CanProceed = summary.SupportedSelected >= 1 && !summary.OverLimit;
         ProceedHint = CanProceed ? string.Empty : HintFor(summary);

@@ -396,4 +396,16 @@ public class DependencyInjectionTests
         || type == typeof(IAiProvider)
         || type == typeof(IAiProviderFactory)
         || type.Namespace is "Collector.Application.Knowledge" or "Collector.Application.Extraction";
+
+    [Theory]
+    [InlineData(HttpClientNames.GitHub)]
+    [InlineData(HttpClientNames.AzureDevOps)]
+    public void RemoteHttpClients_Always_HaveInfiniteClientTimeout(string name)
+    {
+        using var provider = Build();
+
+        var client = provider.GetRequiredService<IHttpClientFactory>().CreateClient(name);
+
+        Assert.Equal(Timeout.InfiniteTimeSpan, client.Timeout);
+    }
 }

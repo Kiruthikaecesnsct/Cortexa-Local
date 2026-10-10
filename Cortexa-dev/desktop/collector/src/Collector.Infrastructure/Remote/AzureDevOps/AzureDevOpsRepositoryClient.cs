@@ -25,6 +25,7 @@ public sealed class AzureDevOpsRepositoryClient(
     private const string FallbackBranch = "main";
     private const string BlobType = "blob";
     private const string PublicVisibility = "public";
+    private static readonly DateTime UnsetDate = DateTime.MinValue.AddDays(1);
 
     public SourceType Provider => SourceType.AzureDevops;
 
@@ -107,8 +108,13 @@ public sealed class AzureDevOpsRepositoryClient(
             StripHeads(wire.DefaultBranch) ?? FallbackBranch,
             wire.WebUrl ?? string.Empty,
             wire.Size ?? 0,
-            !string.Equals(wire.Project.Visibility, PublicVisibility, StringComparison.OrdinalIgnoreCase));
+            !string.Equals(wire.Project.Visibility, PublicVisibility, StringComparison.OrdinalIgnoreCase),
+            null,
+            ToUpdatedAt(wire.Project.LastUpdateTime));
     }
+
+    private static DateTimeOffset? ToUpdatedAt(DateTimeOffset? value) =>
+        value is { } time && time.UtcDateTime > UnsetDate ? time : null;
 
     private static RemoteBranch? ToBranch(AzureDevOpsRefWire wire) =>
         StripHeads(wire.Name) is { Length: > 0 } name && !string.IsNullOrEmpty(wire.ObjectId)
@@ -143,6 +149,7 @@ public sealed class AzureDevOpsRepositoryClient(
         CancellationToken cancellationToken)
     {
         using var request = NewRequest(page.Uri, JsonAccept);
+        request.Options.Set(RemoteRequestOptions.BufferBody, true);
         using var response = await http.SendCheckedAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken);
         var body = await http.ReadJsonAsync(response, page.TypeInfo, cancellationToken);
         return new RemotePage<T>(body.Value ?? [], NextPage(page.Relative, response));
@@ -156,7 +163,9 @@ public sealed class AzureDevOpsRepositoryClient(
     private string ApiVersion() => $"api-version={Uri.EscapeDataString(options.CurrentValue.AzureDevOps.ApiVersion)}";
 
     private RemoteHttp CreateHttp() =>
-        new(factory.CreateClient(HttpClientNames.AzureDevOps), mapper, SourceType.AzureDevops);
+        new(factory.CreateClient(HttpClientNames.AzureDevOps), mapper, SourceType.AzureDevops, ReadIdleTimeout());
+
+    private TimeSpan ReadIdleTimeout() => TimeSpan.FromSeconds(options.CurrentValue.TimeoutSeconds);
 
     private async Task<IReadOnlyList<T>> ListAsync<T>(
         string relative,

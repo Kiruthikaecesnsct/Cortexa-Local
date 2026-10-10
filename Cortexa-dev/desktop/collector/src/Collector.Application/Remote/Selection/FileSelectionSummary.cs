@@ -6,4 +6,5 @@ public sealed record FileSelectionSummary(
     int SkippedUnsupported,
     int SkippedTooLarge,
     int SupportedSelected,
-    bool OverLimit);
+    bool OverLimit,
+    int UnknownSizeFiles = 0);

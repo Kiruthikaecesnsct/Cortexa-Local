@@ -252,8 +252,11 @@
                         </TextBlock>
                         <TextBlock Style="{StaticResource Repo.Meta}"
                                    Text="{Binding UpdatedText}"
-                                   Visibility="{Binding HasUpdatedText, Converter={StaticResource BoolToVisibility}}" />
+                                   Visibility="{Binding ShowUpdatedBeforeSize, Converter={StaticResource BoolToVisibility}}" />
                         <TextBlock Style="{StaticResource Repo.Meta}" Text="{Binding SizeText}" />
+                        <TextBlock Style="{StaticResource Repo.Meta}"
+                                   Text="{Binding UpdatedText}"
+                                   Visibility="{Binding ShowUpdatedAfterSize, Converter={StaticResource BoolToVisibility}}" />
                         <Border Style="{StaticResource Tag.Surface.Danger}"
                                 Visibility="{Binding IsTooBig, Converter={StaticResource BoolToVisibility}}">
                             <StackPanel Orientation="Horizontal">
@@ -622,9 +625,34 @@
                                                Text="{x:Static res:Glyphs.Search}" />
                                 </Grid>
                             </HeaderedContentControl>
+                            <HeaderedContentControl Grid.Column="1"
+                                                    Margin="{StaticResource Thickness.FieldAdjacent}"
+                                                    VerticalAlignment="Bottom"
+                                                    Header="{x:Static res:RemoteSourceStrings.ProjectLabel}"
+                                                    Style="{StaticResource FormField}"
+                                                    Visibility="{Binding ShowProjectFilter, Converter={StaticResource BoolToVisibility}}">
+                                <ComboBox Width="{StaticResource Size.ProjectFilter}"
+                                          AutomationProperties.Name="{x:Static res:RemoteSourceStrings.ProjectName}"
+                                          ItemsSource="{Binding ProjectOptions}"
+                                          SelectedItem="{Binding SelectedProjectOption}">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type vm:ProjectOption}">
+                                            <TextBlock Text="{Binding Label}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       ToolTip="{Binding Label}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                    <ComboBox.ItemContainerStyle>
+                                        <Style TargetType="ComboBoxItem" BasedOn="{StaticResource {x:Type ComboBoxItem}}">
+                                            <Setter Property="AutomationProperties.Name" Value="{Binding Label}" />
+                                        </Style>
+                                    </ComboBox.ItemContainerStyle>
+                                </ComboBox>
+                            </HeaderedContentControl>
                             <StackPanel Grid.Column="1"
                                         Margin="{StaticResource Thickness.FieldAdjacent}"
-                                        VerticalAlignment="Bottom">
+                                        VerticalAlignment="Bottom"
+                                        Visibility="{Binding ShowVisibilityFilter, Converter={StaticResource BoolToVisibility}}">
                                 <TextBlock Margin="{StaticResource Thickness.LabelPadding}"
                                            Style="{StaticResource Text.Label}"
                                            Text="{x:Static res:RemoteSourceStrings.VisibilityLabel}" />
@@ -707,11 +735,12 @@
                             <StackPanel Style="{StaticResource Repository.ListState}">
                                 <TextBlock HorizontalAlignment="Center"
                                            Style="{StaticResource Text.Helper}"
+                                           AutomationProperties.LiveSetting="Polite"
                                            Text="{Binding NoMatchText}" />
                                 <Button HorizontalAlignment="Center"
-                                        AutomationProperties.Name="{x:Static res:RemoteSourceStrings.ClearSearch}"
-                                        Command="{Binding ClearSearchCommand}"
-                                        Content="{x:Static res:RemoteSourceStrings.ClearSearch}"
+                                        AutomationProperties.Name="{Binding ClearActionName}"
+                                        Command="{Binding ClearFiltersCommand}"
+                                        Content="{Binding ClearActionLabel}"
                                         Style="{StaticResource Button.Link}" />
                             </StackPanel>
                         </Border>
@@ -931,6 +960,11 @@
                                             </Style>
                                         </TextBlock.Style>
                                     </TextBlock>
+                                    <TextBlock Margin="{StaticResource Thickness.HelperGap}"
+                                               Style="{StaticResource Text.Helper}"
+                                               Text="{x:Static res:RemoteSourceStrings.UnknownSizeNote}"
+                                               TextWrapping="Wrap"
+                                               Visibility="{Binding FileTree.HasUnknownSize, Converter={StaticResource BoolToVisibility}}" />
                                 </StackPanel>
                                 <Button Grid.Column="1"
                                         MinWidth="{StaticResource Size.ActionMinWidth}"
@@ -966,6 +1000,11 @@
                                            Text="{Binding ProceedSkippedText}"
                                            TextWrapping="Wrap"
                                            Visibility="{Binding HasProceedSkipped, Converter={StaticResource BoolToVisibility}}" />
+                                <TextBlock Margin="{StaticResource Thickness.HelperGap}"
+                                           Style="{StaticResource Text.Helper}"
+                                           Text="{x:Static res:RemoteSourceStrings.UnknownSizeNote}"
+                                           TextWrapping="Wrap"
+                                           Visibility="{Binding FileTree.HasUnknownSize, Converter={StaticResource BoolToVisibility}}" />
                             </StackPanel>
                             <Button Grid.Column="1"
                                     Margin="{StaticResource Thickness.LeadingGap}"
@@ -1182,9 +1221,9 @@
                                        Style="{StaticResource Text.Helper}"
                                        Text="{Binding NoMatchText}" />
                             <Button HorizontalAlignment="Center"
-                                    AutomationProperties.Name="{x:Static res:RemoteSourceStrings.ClearSearch}"
-                                    Command="{Binding ClearSearchCommand}"
-                                    Content="{x:Static res:RemoteSourceStrings.ClearSearch}"
+                                    AutomationProperties.Name="{Binding ClearActionName}"
+                                    Command="{Binding ClearFiltersCommand}"
+                                    Content="{Binding ClearActionLabel}"
                                     Style="{StaticResource Button.Link}" />
                         </StackPanel>
                     </Border>

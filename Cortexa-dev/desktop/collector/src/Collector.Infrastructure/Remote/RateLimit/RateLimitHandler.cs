@@ -10,6 +10,8 @@ public sealed class RateLimitHandler(
     IRateHeaderReader reader,
     RateLimitHandlerSettings settings) : DelegatingHandler
 {
+    private const string AttemptTimeoutMessage = "The remote request attempt timed out.";
+
     protected override async Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request,
         CancellationToken cancellationToken)
@@ -32,7 +34,7 @@ public sealed class RateLimitHandler(
 
             response.Dispose();
             var resumeAt = ResumeTime(snapshot);
-            if (attempt >= settings.Options.MaxRetries)
+            if (attempt >= settings.MaxRetries)
             {
                 throw new RemoteSourceException(RemoteFailureKind.RateLimited, provider, snapshot.ResetAt ?? resumeAt);
             }
@@ -44,7 +46,36 @@ public sealed class RateLimitHandler(
     private async Task<HttpResponseMessage> SendOnceAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         using var lease = await gate.EnterAsync(cancellationToken);
-        return await base.SendAsync(request, cancellationToken);
+        using var timeout = new CancellationTokenSource(settings.AttemptTimeout, settings.Time);
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeout.Token);
+        try
+        {
+            return await ExchangeAsync(request, linked.Token);
+        }
+        catch (OperationCanceledException exception) when (timeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+        {
+            throw new OperationCanceledException(AttemptTimeoutMessage, exception);
+        }
+    }
+
+    private async Task<HttpResponseMessage> ExchangeAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        var response = await base.SendAsync(request, cancellationToken);
+        if (!request.Options.TryGetValue(RemoteRequestOptions.BufferBody, out var buffer) || !buffer)
+        {
+            return response;
+        }
+
+        try
+        {
+            await response.Content.LoadIntoBufferAsync(cancellationToken);
+            return response;
+        }
+        catch
+        {
+            response.Dispose();
+            throw;
+        }
     }
 
     private void ThrottleIfAsked(RateSnapshot snapshot)
@@ -72,4 +103,8 @@ public sealed class RateLimitHandler(
     }
 }
 
-public sealed record RateLimitHandlerSettings(RateLimitOptions Options, TimeProvider Time);
+public sealed record RateLimitHandlerSettings(
+    RateLimitOptions Options,
+    TimeProvider Time,
+    TimeSpan AttemptTimeout,
+    int MaxRetries);

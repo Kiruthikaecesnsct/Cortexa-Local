@@ -170,6 +170,7 @@
     <sys:Double x:Key="Size.Divider">1</sys:Double>
     <sys:Double x:Key="Size.ActionMinWidth">104</sys:Double>
     <sys:Double x:Key="Size.ComboMin">240</sys:Double>
+    <sys:Double x:Key="Size.ProjectFilter">220</sys:Double>
     <sys:Double x:Key="Size.ComboPopupMax">320</sys:Double>
     <sys:Double x:Key="Breakpoint.RailCompact">1040</sys:Double>
     <sys:Double x:Key="Size.DetailsPane">340</sys:Double>

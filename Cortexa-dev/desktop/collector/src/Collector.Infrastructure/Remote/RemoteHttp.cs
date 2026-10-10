@@ -14,7 +14,11 @@ public interface IRemoteErrorMapper
     RemoteSourceException Map(HttpResponseMessage response);
 }
 
-public sealed class RemoteHttp(HttpClient client, IRemoteErrorMapper mapper, SourceType provider)
+public sealed class RemoteHttp(
+    HttpClient client,
+    IRemoteErrorMapper mapper,
+    SourceType provider,
+    TimeSpan? readIdleTimeout = null)
 {
     public Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request,
@@ -63,7 +67,7 @@ public sealed class RemoteHttp(HttpClient client, IRemoteErrorMapper mapper, Sou
         try
         {
             var stream = await GuardAsync(() => response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken);
-            return new RemoteBlob(new GuardedReadStream(stream, provider), response.Content.Headers.ContentLength, response);
+            return new RemoteBlob(new GuardedReadStream(stream, provider, readIdleTimeout), response.Content.Headers.ContentLength, response);
         }
         catch
         {

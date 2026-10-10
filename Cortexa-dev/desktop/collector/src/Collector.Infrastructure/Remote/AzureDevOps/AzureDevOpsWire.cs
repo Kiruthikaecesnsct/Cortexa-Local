@@ -4,7 +4,7 @@ namespace Collector.Infrastructure.Remote.AzureDevOps;
 
 internal sealed record AzureDevOpsListWire<T>(List<T>? Value);
 
-internal sealed record AzureDevOpsProjectWire(string? Name, string? Visibility);
+internal sealed record AzureDevOpsProjectWire(string? Name, string? Visibility, DateTimeOffset? LastUpdateTime);
 
 internal sealed record AzureDevOpsRepoWire(
     string? Name,

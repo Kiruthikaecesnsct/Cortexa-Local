@@ -3,7 +3,7 @@ using Collector.Domain.Enums;
 
 namespace Collector.Infrastructure.Remote;
 
-internal sealed class GuardedReadStream(Stream inner, SourceType provider) : Stream
+internal sealed class GuardedReadStream(Stream inner, SourceType provider, TimeSpan? idleTimeout = null) : Stream
 {
     public override bool CanRead => true;
 
@@ -21,15 +21,25 @@ internal sealed class GuardedReadStream(Stream inner, SourceType provider) : Str
 
     public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
     {
+        using var idle = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        if (idleTimeout is { } limit)
+        {
+            idle.CancelAfter(limit);
+        }
+
         try
         {
-            return await inner.ReadAsync(buffer, cancellationToken);
+            return await inner.ReadAsync(buffer, idle.Token);
         }
-        catch (Exception exception) when (exception is HttpRequestException or IOException)
+        catch (Exception exception) when (IsUpstreamFailure(exception, cancellationToken))
         {
             throw new RemoteSourceException(RemoteFailureKind.Upstream, provider, null, exception);
         }
     }
+
+    private static bool IsUpstreamFailure(Exception exception, CancellationToken cancellationToken) =>
+        exception is HttpRequestException or IOException
+        || (exception is OperationCanceledException && !cancellationToken.IsCancellationRequested);
 
     public override int Read(byte[] buffer, int offset, int count) =>
         ReadAsync(buffer.AsMemory(offset, count)).AsTask().GetAwaiter().GetResult();

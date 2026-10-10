@@ -110,4 +110,49 @@ public sealed class RepositoryFilterTests
 
         Assert.Equal(before, Names(Sample));
     }
+
+    private static RemoteRepository AzureRepo(string name, string project, DateTimeOffset? updated = null) =>
+        new(SourceType.AzureDevops, "contoso", project, name, $"contoso/{project}/{name}", "main", string.Empty, 0, true, null, updated);
+
+    private static readonly RemoteRepository[] AzureSample =
+    [
+        AzureRepo("api", "Research", Base.AddDays(-3)),
+        AzureRepo("web", "research", Base.AddDays(-1)),
+        AzureRepo("docs", "Platform", null),
+        AzureRepo("core", "Platform", Base.AddDays(-7)),
+    ];
+
+    [Fact]
+    public void Apply_NullProject_ReturnsEveryRepository()
+    {
+        var result = RepositoryFilter.Apply(AzureSample, new RepositoryQuery(string.Empty, Project: null));
+
+        Assert.Equal(["api", "core", "docs", "web"], Names(result));
+    }
+
+    [Fact]
+    public void Apply_Project_MatchesIgnoringCase()
+    {
+        var result = RepositoryFilter.Apply(AzureSample, new RepositoryQuery(string.Empty, Project: "RESEARCH"));
+
+        Assert.Equal(["api", "web"], Names(result));
+    }
+
+    [Fact]
+    public void Apply_ProjectWithSearchAndRecentlyUpdatedSort_CombinesAllThree()
+    {
+        var query = new RepositoryQuery("o", Sort: RepositorySort.RecentlyUpdated, Project: "Platform");
+
+        var result = RepositoryFilter.Apply(AzureSample, query);
+
+        Assert.Equal(["core", "docs"], Names(result));
+    }
+
+    [Fact]
+    public void Apply_RecentlyUpdated_PutsRepositoriesWithoutADateLast()
+    {
+        var result = RepositoryFilter.Apply(AzureSample, new RepositoryQuery(string.Empty, Sort: RepositorySort.RecentlyUpdated));
+
+        Assert.Equal(["web", "api", "core", "docs"], Names(result));
+    }
 }

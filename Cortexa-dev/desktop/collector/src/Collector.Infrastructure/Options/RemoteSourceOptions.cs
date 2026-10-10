@@ -7,6 +7,8 @@ public class RemoteProviderOptions
     public string ApiVersion { get; set; } = string.Empty;
 
     public int MinRemaining { get; set; }
+
+    public int? MaxRateLimitRetries { get; set; }
 }
 
 public sealed class GitHubSourceOptions : RemoteProviderOptions

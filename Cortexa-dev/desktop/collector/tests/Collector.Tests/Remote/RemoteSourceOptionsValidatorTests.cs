@@ -48,6 +48,8 @@ public class RemoteSourceOptionsValidatorTests
         { "SecondaryWaitSeconds", options => options.RateLimit.SecondaryWaitSeconds = -5 },
         { "MaxConcurrency", options => options.RateLimit.MaxConcurrency = 0 },
         { "MaxRetries", options => options.RateLimit.MaxRetries = -1 },
+        { "GitHub:MaxRateLimitRetries", options => options.GitHub.MaxRateLimitRetries = -1 },
+        { "AzureDevOps:MaxRateLimitRetries", options => options.AzureDevOps.MaxRateLimitRetries = -1 },
         { "CacheRoot", options => options.CacheRoot = " " },
         { "Cortexa:GitHubClonesPath", options => options.Cortexa.GitHubClonesPath = string.Empty },
         { "Cortexa:GitHubClonesPath", options => options.Cortexa.GitHubClonesPath = "/scan/github/clones" },

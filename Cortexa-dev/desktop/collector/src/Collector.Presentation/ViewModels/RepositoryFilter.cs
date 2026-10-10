@@ -19,14 +19,15 @@ public sealed record RepositoryQuery(
     string Search,
     RepositoryVisibility Visibility = RepositoryVisibility.All,
     RepositorySort Sort = RepositorySort.Name,
-    bool MatchFullName = false);
+    bool MatchFullName = false,
+    string? Project = null);
 
 public static class RepositoryFilter
 {
     public static IReadOnlyList<RemoteRepository> Apply(IEnumerable<RemoteRepository> repositories, RepositoryQuery query)
     {
         var needle = query.Search.Trim();
-        var visible = repositories.Where(repository => MatchesVisibility(repository, query.Visibility) && MatchesText(repository, needle, query.MatchFullName));
+        var visible = repositories.Where(repository => MatchesVisibility(repository, query.Visibility) && MatchesProject(repository, query.Project) && MatchesText(repository, needle, query.MatchFullName));
         return [.. Sort(visible, query.Sort)];
     }
 
@@ -36,6 +37,9 @@ public static class RepositoryFilter
         RepositoryVisibility.Public => !repository.IsPrivate,
         _ => true,
     };
+
+    private static bool MatchesProject(RemoteRepository repository, string? project) =>
+        project is null || string.Equals(repository.Project, project, StringComparison.OrdinalIgnoreCase);
 
     private static bool MatchesText(RemoteRepository repository, string needle, bool matchFullName) =>
         needle.Length == 0

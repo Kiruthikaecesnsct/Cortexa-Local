@@ -449,4 +449,34 @@ public class RemoteFetchServiceTests
 
         Assert.Empty(client.Completions);
     }
+
+    [Fact]
+    public async Task FetchAsync_AzureSelection_OpensOnlySelectedSupportedObjectsAndNeverReadsTree()
+    {
+        var azure = new FakeRemoteClient(SourceType.AzureDevops);
+        var selection = new RemoteSelection(
+            SelectionCommit,
+            [
+                RemoteData.Entry("b.md", "o2"),
+                RemoteData.Entry("a.md", "o1"),
+                RemoteData.Entry("logo.png", "o3"),
+            ],
+            false);
+        foreach (var entry in selection.Entries)
+        {
+            azure.AddBlob(entry.BlobSha, $"content of {entry.Path}");
+        }
+
+        var options = MsOptions.Create(_options);
+        var service = new RemoteFetchService(
+            new FakeRemoteClients(azure),
+            new RemoteFileFilter(options),
+            options,
+            new RemoteFileFetcher(_store, _cache, _time));
+
+        await service.FetchAsync(new RemoteFetchRequest(RemoteData.AzureRepo(), Branch, selection), null, TestSupport.Ct);
+
+        Assert.Equal(["o1", "o2"], azure.OpenedBlobs.Order());
+        Assert.Equal(0, azure.TreeCalls);
+    }
 }

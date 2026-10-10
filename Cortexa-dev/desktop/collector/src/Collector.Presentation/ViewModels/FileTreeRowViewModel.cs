@@ -48,7 +48,7 @@ public sealed class FileTreeRowViewModel : ObservableObject
 
     public string SizeText => Node.IsFolder
         ? RemoteSourceStrings.FolderSize(Node.Selected.Files, Node.Total.Files)
-        : RemoteSizeFormatter.Format(Node.SizeBytes ?? 0);
+        : Node.SizeBytes is { } bytes ? RemoteSizeFormatter.Format(bytes) : string.Empty;
 
     public string VerdictLabel => Node.Verdict switch
     {
@@ -79,7 +79,7 @@ public sealed class FileTreeRowViewModel : ObservableObject
 
     private string FileName() => RemoteSourceStrings.FileRowName(
         Name,
-        SizeText,
+        SizeText.Length == 0 ? RemoteSourceStrings.SizeUnknownName : SizeText,
         Depth + 1,
         IsChecked == true,
         RemoteSourceStrings.FileVerdictSuffix(Node.Verdict == RemoteEntryVerdict.Unsupported, IsTooLarge));

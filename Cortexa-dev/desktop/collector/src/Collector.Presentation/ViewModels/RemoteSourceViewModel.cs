@@ -139,8 +139,6 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
 
     public string ShowingText => RemoteSourceStrings.Showing(Repositories.Count, _all.Count);
 
-    public string NoMatchText => RemoteSourceStrings.NoMatch(SearchText);
-
     public string EmptyText => SelectedSource switch
     {
         SourceType.AzureDevops => RemoteSourceStrings.EmptyAzureDevOps(_connectedOrganization),
@@ -252,6 +250,7 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
         _all = _loaded.GetValueOrDefault(value) ?? [];
         ListState = _loaded.ContainsKey(value) ? RemoteListState.Ready : RemoteListState.Idle;
         SearchText = string.Empty;
+        RebuildProjectOptions(keepSelection: false);
         RebuildRows();
         NotifyFetchState();
         if (ListState == RemoteListState.Idle && value == SourceType.CortexaRepo)
@@ -342,6 +341,8 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
         OnPropertyChanged(nameof(IsRemote));
         OnPropertyChanged(nameof(IsAzure));
         OnPropertyChanged(nameof(IsGitHub));
+        OnPropertyChanged(nameof(ShowProjectFilter));
+        OnPropertyChanged(nameof(ShowVisibilityFilter));
         OnPropertyChanged(nameof(IsSsh));
         OnPropertyChanged(nameof(IsCortexa));
         OnPropertyChanged(nameof(CortexaBranchName));
@@ -372,6 +373,8 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
         OnPropertyChanged(nameof(ShowRepositoryList));
         OnPropertyChanged(nameof(ShowingText));
         OnPropertyChanged(nameof(NoMatchText));
+        OnPropertyChanged(nameof(ClearActionLabel));
+        OnPropertyChanged(nameof(ClearActionName));
         OnPropertyChanged(nameof(EmptyText));
     }
 

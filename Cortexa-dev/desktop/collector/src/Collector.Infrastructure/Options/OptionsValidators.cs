@@ -314,6 +314,7 @@ public sealed class RemoteSourceOptionsValidator : IValidateOptions<RemoteSource
         }
 
         CheckNotNegative(failures, $"{provider}:{nameof(options.MinRemaining)}", options.MinRemaining);
+        CheckNotNegative(failures, $"{provider}:{nameof(options.MaxRateLimitRetries)}", options.MaxRateLimitRetries ?? 0);
     }
 
     private static void CheckPositive(List<string> failures, string name, int value)

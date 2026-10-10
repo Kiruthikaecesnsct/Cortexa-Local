@@ -25,6 +25,14 @@ public static class RemoteSourceStrings
         "This token can't see any repositories here. Check that it has access to the organization, then connect again.";
 
     public const string ClearSearch = "Clear search";
+    public const string ClearFilters = "Clear filters";
+    public const string ClearFiltersName = "Clear search and filters";
+    public const string ProjectLabel = "_Project";
+    public const string ProjectName = "Filter by project";
+    public const string ProjectAll = "All projects";
+    public const string SizeUnknown = "size unknown";
+    public const string SizeUnknownName = "size unknown";
+    public const string UnknownSizeNote = "Azure DevOps doesn't report file sizes before download. Files over the size limit are skipped during download.";
     public const string PrivateTag = "Private";
     public const string BranchLabel = "_Branch";
     public const string BranchName = "Branch";
@@ -203,6 +211,22 @@ public static class RemoteSourceStrings
 
     public static string UpdatedText(string relative) => $"Updated {relative}";
 
+    public static string ProjectUpdatedText(string relative) => $"Updated {relative} (project)";
+
+    public static string NoMatchInProject(string project) => $"No repositories in {project}.";
+
+    public static string NoMatchInProjectQuery(string query, string project) => $"No repositories in {project} match \"{query}\".";
+
+    public static string NoMatchFiltered() => "No repositories match these filters.";
+
+    public static string SizeAtLeast(string size, int unknown) =>
+        $"at least {size} ({unknown:N0} {(unknown == 1 ? "size" : "sizes")} unknown)";
+
+    public static string FilesSummaryUnknownSize(int files, int unsupported) =>
+        $"{files:N0} files · {SizeUnknown} · {unsupported:N0} unsupported skipped";
+
+    public static string SkippedUnsupportedOnly(int unsupported) => $"{unsupported:N0} unsupported skipped";
+
     private static string Plural(int count, string singular, string plural) => $"{count} {(count == 1 ? singular : plural)}";
 
 
@@ -369,9 +393,16 @@ public static class RemoteSourceStrings
 
     public static string CortexaBranchName(string branch) => $"Branch, {branch}";
 
+    public static string AzureRepositoryAutomationName(AzureRowDescription row) =>
+        $"{row.Name}, project {row.Project}, default branch {row.Branch}, {row.Size}"
+        + (row.Updated is null ? string.Empty : $", project updated {row.Updated}")
+        + (row.OverLimit is null ? string.Empty : $", over the {row.OverLimit} fetch limit");
+
     public static string CortexaRepositoryAutomationName(CortexaRowDescription row) =>
         $"{row.FullName} @ {row.Branch}{(row.Upstream is null ? string.Empty : $", from {row.Upstream}")}, {row.Size}"
         + (row.OverLimit is null ? string.Empty : $", over the {row.OverLimit} fetch limit");
 }
 
 public sealed record CortexaRowDescription(string FullName, string Branch, string? Upstream, string Size, string? OverLimit);
+
+public sealed record AzureRowDescription(string Name, string Project, string Branch, string Size, string? Updated, string? OverLimit);

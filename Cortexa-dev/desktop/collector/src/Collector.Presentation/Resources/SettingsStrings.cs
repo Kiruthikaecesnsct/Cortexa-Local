@@ -44,6 +44,8 @@ public static class SettingsStrings
     public const string ClaudeDescription = "Anthropic API key. Used when Claude is the AI model.";
     public const string GeminiName = "Gemini";
     public const string GeminiDescription = "Google AI API key. Used when Gemini is the AI model.";
+    public const string GroqName = "Groq";
+    public const string GroqDescription = "Groq API key. Used when Groq is the AI model.";
     public const string BedrockName = "Amazon Bedrock";
     public const string BedrockDescription = "Signs in with AWS SSO. No key needed.";
     public const string BedrockConnectedChip = "Connected";
@@ -84,6 +86,7 @@ public static class SettingsStrings
 
     public const string ClaudeRunsName = "Extract knowledge with Claude";
     public const string GeminiRunsName = "Extract knowledge with Gemini";
+    public const string GroqRunsName = "Extract knowledge with Groq";
     public const string SectionListName = "Settings sections";
     public const string AiModelTitle = "AI model";
 
@@ -98,6 +101,8 @@ public static class SettingsStrings
     public const string ProviderGeminiDescription = "Google AI API, using your own key.";
     public const string ProviderBedrockTitle = "Amazon Bedrock";
     public const string ProviderBedrockDescription = "Claude on AWS, signed in with AWS SSO.";
+    public const string ProviderGroqTitle = "Groq";
+    public const string ProviderGroqDescription = "Groq API, using your own key.";
     public const string ChipKeySet = "Key set";
     public const string ChipKeyNotSet = "Key not set";
 

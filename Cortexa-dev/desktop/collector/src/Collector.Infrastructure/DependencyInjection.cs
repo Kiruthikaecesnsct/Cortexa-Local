@@ -79,6 +79,9 @@ public static class DependencyInjection
         services.AddValidatedOptions<BedrockProviderOptions, BedrockProviderOptionsValidator>(
             configuration,
             BedrockProviderOptions.SectionName);
+        services.AddValidatedOptions<GroqProviderOptions, GroqProviderOptionsValidator>(
+            configuration,
+            GroqProviderOptions.SectionName);
         services.AddValidatedOptions<AiOptions, AiOptionsValidator>(configuration, AiOptions.SectionName);
         services.AddOptions<AiModelChoiceOptions>().Bind(configuration.GetSection(AiModelChoiceOptions.SectionName));
         services.AddOptions<GeminiRotationOptions>().Bind(configuration.GetSection(GeminiRotationOptions.SectionName));
@@ -105,6 +108,7 @@ public static class DependencyInjection
         services.AddSingleton<IBedrockSsoCredentials>(sp => sp.GetRequiredService<BedrockSsoCredentials>());
         services.AddSingleton<BedrockClientFactory>();
         services.AddSingleton<BedrockDirectProvider>();
+        services.AddSingleton<GroqDirectProvider>();
         services.AddSingleton<IAiProviderFactory, AiProviderSelection>();
     }
 
@@ -134,6 +138,15 @@ public static class DependencyInjection
         services.AddHttpClient(HttpClientNames.Gemini)
             .ConfigureHttpClient((sp, client) =>
                 client.Timeout = TimeSpan.FromSeconds(sp.GetRequiredService<IOptions<GeminiProviderOptions>>().Value.TimeoutSeconds))
+            .ConfigurePrimaryHttpMessageHandler(CreateCookielessHandler)
+            .RedactLoggedHeaders(name => RedactedHeaders.Contains(name, StringComparer.OrdinalIgnoreCase));
+        services.AddHttpClient(HttpClientNames.Groq)
+            .ConfigureHttpClient((sp, client) =>
+            {
+                var groqOptions = sp.GetRequiredService<IOptions<GroqProviderOptions>>().Value;
+                client.BaseAddress = new Uri(groqOptions.BaseUrl.TrimEnd('/') + "/");
+                client.Timeout = TimeSpan.FromSeconds(groqOptions.TimeoutSeconds);
+            })
             .ConfigurePrimaryHttpMessageHandler(CreateCookielessHandler)
             .RedactLoggedHeaders(name => RedactedHeaders.Contains(name, StringComparer.OrdinalIgnoreCase));
     }

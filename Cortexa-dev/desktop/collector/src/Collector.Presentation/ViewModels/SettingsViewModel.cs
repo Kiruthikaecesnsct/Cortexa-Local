@@ -398,6 +398,17 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
             },
             _settings,
             _logger),
+        new(
+            new AiKeyRowDescriptor
+            {
+                Slot = SecretSlot.GroqApiKey,
+                Name = SettingsStrings.GroqName,
+                Description = SettingsStrings.GroqDescription,
+                ShortName = "Groq",
+                RunsName = SettingsStrings.GroqRunsName,
+            },
+            _settings,
+            _logger),
     ];
 
     private static string Normalize(string? value) => value?.Trim() ?? string.Empty;

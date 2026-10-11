@@ -61,6 +61,18 @@ public class SettingsServiceTests
     }
 
     [Fact]
+    public async Task Tracks_groq_key_presence_independently_of_other_providers()
+    {
+        Assert.False(await _service.HasAiKeyAsync(CollectorProvider.Groq, TestSupport.Ct));
+
+        await _service.SetAiKeyAsync(CollectorProvider.Groq, "  gq-key  ", TestSupport.Ct);
+
+        Assert.True(await _service.HasAiKeyAsync(CollectorProvider.Groq, TestSupport.Ct));
+        Assert.False(await _service.HasAiKeyAsync(CollectorProvider.Claude, TestSupport.Ct));
+        Assert.Equal("gq-key", _secrets.Values[SecretSlot.GroqApiKey]);
+    }
+
+    [Fact]
     public async Task Bedrock_has_no_key()
     {
         Assert.False(await _service.HasAiKeyAsync(CollectorProvider.Bedrock, TestSupport.Ct));

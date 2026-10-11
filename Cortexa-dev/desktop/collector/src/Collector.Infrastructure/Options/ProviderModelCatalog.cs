@@ -35,5 +35,10 @@ public sealed class ProviderModelCatalog
                 "us.anthropic.claude-haiku-4-5-20251001-v1:0",
             ],
         },
+        [CollectorProvider.Groq] = new ProviderModelCatalogEntry
+        {
+            DefaultModel = "openai/gpt-oss-120b",
+            Models = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"],
+        },
     };
 }

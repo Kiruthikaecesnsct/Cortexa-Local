@@ -45,6 +45,43 @@ public sealed class AiModelSectionViewModelTests
     }
 
     [Fact]
+    public void PickingGroq_IsSelectableWithItsOwnModelList()
+    {
+        var section = _harness.CreateSection();
+
+        Card(section, CollectorProvider.Groq).IsSelected = true;
+
+        Assert.Equal(CollectorProvider.Groq, section.SelectedProvider);
+        Assert.Equal(["groq-a", "groq-b"], section.Models);
+        Assert.Equal("groq-a", section.SelectedModel);
+        Assert.Equal(new AiModelChoice(CollectorProvider.Groq, "groq-a"), _harness.Store.Choice);
+    }
+
+    [Fact]
+    public async Task Refresh_GroqKeySet_ShowsNoBannerAndTheReadyChip()
+    {
+        var section = _harness.CreateSection();
+        Card(section, CollectorProvider.Groq).IsSelected = true;
+
+        await section.RefreshReadinessAsync();
+
+        Assert.Null(section.ReadinessBanner);
+        Assert.Equal(SettingsStrings.ChipKeySet, Card(section, CollectorProvider.Groq).ChipText);
+    }
+
+    [Fact]
+    public async Task Refresh_GroqKeyMissing_ShowsTheKeyWarning()
+    {
+        _harness.Readiness.States[CollectorProvider.Groq] = ProviderReadinessState.Missing;
+        var section = _harness.CreateSection();
+        Card(section, CollectorProvider.Groq).IsSelected = true;
+
+        await section.RefreshReadinessAsync();
+
+        Assert.Equal(SettingsStrings.KeyWarningTitle("Groq"), section.ReadinessBanner!.Title);
+    }
+
+    [Fact]
     public void PickingAProvider_SavesOnce()
     {
         var section = _harness.CreateSection();

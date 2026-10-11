@@ -208,10 +208,37 @@ public sealed class BedrockProviderOptionsValidator : IValidateOptions<BedrockPr
     }
 }
 
+public sealed class GroqProviderOptionsValidator : IValidateOptions<GroqProviderOptions>
+{
+    private const double MinTemperature = 0.0;
+    private const double MaxTemperature = 2.0;
+
+    public ValidateOptionsResult Validate(string? name, GroqProviderOptions options)
+    {
+        var failures = new List<string>();
+        AddIf(failures, string.IsNullOrWhiteSpace(options.Model), nameof(options.Model), "is required");
+        AddIf(failures, string.IsNullOrWhiteSpace(options.BaseUrl), nameof(options.BaseUrl), "is required");
+        AddIf(failures, options.MaxOutputTokens <= 0, nameof(options.MaxOutputTokens), "must be greater than zero");
+        AddIf(failures, options.Concurrency <= 0, nameof(options.Concurrency), "must be greater than zero");
+        AddIf(failures, options.MaxRetries < 0, nameof(options.MaxRetries), "must not be negative");
+        AddIf(failures, options.TimeoutSeconds <= 0, nameof(options.TimeoutSeconds), "must be greater than zero");
+        AddIf(failures, options.Temperature is < MinTemperature or > MaxTemperature, nameof(options.Temperature), "must be between 0 and 2");
+        return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
+    }
+
+    private static void AddIf(List<string> failures, bool failed, string name, string reason)
+    {
+        if (failed)
+        {
+            failures.Add($"{GroqProviderOptions.SectionName}:{name} {reason}.");
+        }
+    }
+}
+
 public sealed class AiOptionsValidator : IValidateOptions<AiOptions>
 {
     public static readonly CollectorProvider[] SupportedProviders =
-        [CollectorProvider.Claude, CollectorProvider.Gemini, CollectorProvider.Bedrock];
+        [CollectorProvider.Claude, CollectorProvider.Gemini, CollectorProvider.Bedrock, CollectorProvider.Groq];
 
     public ValidateOptionsResult Validate(string? name, AiOptions options) =>
         SupportedProviders.Contains(options.Provider)

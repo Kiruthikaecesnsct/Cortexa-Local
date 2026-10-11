@@ -8,6 +8,7 @@ public static class AiKeySlots
     {
         CollectorProvider.Claude => SecretSlot.AnthropicApiKey,
         CollectorProvider.Gemini => SecretSlot.GeminiApiKey,
+        CollectorProvider.Groq => SecretSlot.GroqApiKey,
         _ => null,
     };
 }

@@ -177,6 +177,7 @@ internal sealed class FakeModelCatalog : IProviderModelCatalog
         [CollectorProvider.Claude] = ["claude-a", "claude-b"],
         [CollectorProvider.Gemini] = ["gemini-a", "gemini-b"],
         [CollectorProvider.Bedrock] = ["bedrock-a"],
+        [CollectorProvider.Groq] = ["groq-a", "groq-b"],
     };
 
     public IReadOnlyList<string> ModelsFor(CollectorProvider provider) => Models.GetValueOrDefault(provider) ?? [];
@@ -191,6 +192,7 @@ internal sealed class FakeProviderReadiness : IProviderReadiness
         [CollectorProvider.Claude] = ProviderReadinessState.Ready,
         [CollectorProvider.Gemini] = ProviderReadinessState.Ready,
         [CollectorProvider.Bedrock] = ProviderReadinessState.Ready,
+        [CollectorProvider.Groq] = ProviderReadinessState.Ready,
     };
 
     public TaskCompletionSource? Gate { get; set; }

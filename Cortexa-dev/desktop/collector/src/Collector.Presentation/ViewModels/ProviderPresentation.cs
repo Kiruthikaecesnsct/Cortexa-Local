@@ -13,6 +13,7 @@ public static class ProviderPresentation
         new(CollectorProvider.Claude, SettingsStrings.ProviderClaudeTitle, SettingsStrings.ProviderClaudeDescription, "C"),
         new(CollectorProvider.Gemini, SettingsStrings.ProviderGeminiTitle, SettingsStrings.ProviderGeminiDescription, "G"),
         new(CollectorProvider.Bedrock, SettingsStrings.ProviderBedrockTitle, SettingsStrings.ProviderBedrockDescription, "B"),
+        new(CollectorProvider.Groq, SettingsStrings.ProviderGroqTitle, SettingsStrings.ProviderGroqDescription, "Q"),
     ];
 
     public static string Title(CollectorProvider provider) =>

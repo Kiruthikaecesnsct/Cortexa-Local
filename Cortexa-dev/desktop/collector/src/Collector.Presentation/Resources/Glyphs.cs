@@ -39,5 +39,6 @@ public static class Glyphs
     public const string Hide = "\uED1A";
     public const string Cloud = "\uE753";
     public const string CommandPrompt = "\uE756";
+    public const string GlobalNav = "\uE700";
 }
 

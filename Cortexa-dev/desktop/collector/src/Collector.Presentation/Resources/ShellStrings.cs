@@ -3,9 +3,10 @@ namespace Collector.Presentation.Resources;
 public static class ShellStrings
 {
     public const string AppName = "Cortexa Collector";
+    public const string BrandName = "Cortexa";
     public const string SignIn = "Sign in";
     public const string Settings = "Settings";
-    public const string Extract = "Extract";
+    public const string Extract = "Data Connectors";
     public const string Review = "Review";
     public const string History = "History";
     public const string SignedIn = "Signed in";
@@ -19,6 +20,8 @@ public static class ShellStrings
     public const string SessionAutomationName = "Session";
     public const string MainNavName = "Screens";
     public const string FooterNavName = "App";
+    public const string CollapseNav = "Collapse navigation";
+    public const string ExpandNav = "Expand navigation";
     public const string AppTagline = "Knowledge collector";
     public const string WorkspaceSection = "WORKSPACE";
     public const string SignInSubtitle = "Connect to your Cortexa workspace.";

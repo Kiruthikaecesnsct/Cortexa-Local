@@ -41,7 +41,49 @@
             <Setter Property="VerticalAlignment" Value="Center" />
             <Style.Triggers>
                 <DataTrigger Binding="{Binding IsRailCompact}" Value="True">
-                    <Setter Property="Margin" Value="{StaticResource Thickness.RailBrandCompact}" />
+                    <Setter Property="Visibility" Value="Collapsed" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="Rail.Toggle" TargetType="Button">
+            <Setter Property="Grid.Column" Value="1" />
+            <Setter Property="Margin" Value="{StaticResource Thickness.RailToggle}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual.Rail}" />
+            <Setter Property="Width" Value="{StaticResource Size.IconHit}" />
+            <Setter Property="Height" Value="{StaticResource Size.IconHit}" />
+            <Setter Property="FontFamily" Value="{StaticResource Font.Icon}" />
+            <Setter Property="FontSize" Value="{StaticResource FontSize.IconSmall}" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Rail.Text.Muted}" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid Background="Transparent">
+                            <Border x:Name="Visual"
+                                    Width="{StaticResource Size.IconVisual}"
+                                    Height="{StaticResource Size.IconVisual}"
+                                    Background="{TemplateBinding Background}"
+                                    CornerRadius="{StaticResource Radius.Control}">
+                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Visual" Property="Background" Value="{DynamicResource Brush.Rail.Hover}" />
+                                <Setter Property="Foreground" Value="{DynamicResource Brush.Rail.Text.Selected}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsRailCompact}" Value="True">
+                    <Setter Property="Grid.Column" Value="0" />
+                    <Setter Property="Grid.ColumnSpan" Value="2" />
+                    <Setter Property="HorizontalAlignment" Value="Center" />
+                    <Setter Property="Margin" Value="{StaticResource Thickness.None}" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -164,15 +206,22 @@
         <Border Grid.RowSpan="2" Grid.Column="0" Style="{StaticResource Rail.Surface}">
             <DockPanel>
                 <Grid DockPanel.Dock="Top" Height="{StaticResource Size.TopBar}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
                     <StackPanel Style="{StaticResource Rail.Brand}">
                         <ContentControl Style="{StaticResource BrandMark}" />
-                        <StackPanel Margin="{StaticResource Thickness.LeadingGap}"
-                                    VerticalAlignment="Center"
-                                    Style="{StaticResource Rail.ExpandedOnly}">
-                            <TextBlock Style="{StaticResource Rail.Name}" Text="{x:Static res:ShellStrings.AppName}" />
-                            <TextBlock Style="{StaticResource Rail.Caption}" Text="{x:Static res:ShellStrings.AppTagline}" />
-                        </StackPanel>
+                        <TextBlock Margin="{StaticResource Thickness.LeadingGap}"
+                                   VerticalAlignment="Center"
+                                   Style="{StaticResource Rail.Name}"
+                                   Text="{x:Static res:ShellStrings.BrandName}" />
                     </StackPanel>
+                    <Button AutomationProperties.Name="{Binding RailToggleName}"
+                            Command="{Binding ToggleRailCommand}"
+                            Content="{x:Static res:Glyphs.GlobalNav}"
+                            Style="{StaticResource Rail.Toggle}"
+                            ToolTip="{Binding RailToggleName}" />
                 </Grid>
                 <TextBlock DockPanel.Dock="Top"
                            Style="{StaticResource Rail.Section}"

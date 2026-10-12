@@ -12,9 +12,7 @@ The desktop collector is the active surface. It pulls source files from four rem
 
 Remote intake has five steps: Connect, Repository, Branch, Files, Proceed. Choosing a branch opens the Files step for GitHub and Azure DevOps. Cortexa and SSH skip Files and fetch the whole source.
 
-Sprint 5 is in progress. US149 (desktop UI pass) merged to dev via PR #25. It renamed the Extract screen to Data Connectors and made the navbar collapsible. Next are US142 (end-to-end test, GitHub full flow) and US143 (end-to-end test, Azure DevOps full flow, after US141 and US142).
-
-Recent merges: US148 (Groq added as a knowledge extraction provider), US141 (Azure DevOps file pick), US140 (GitHub file pick before splitting), US139 (Settings in two panes), US138 (desktop source collectors match the web Scan flow), and US132 to US137 (rollback and resume, upload failure handling, the four remote collectors, and the UI revamp).
+Sprint 5 is in progress. US150 merged via PR #26. It added per-row remove and multi-select to the Documents grid on Data Connectors, and renamed the Extract knowledge button to Process. The action buttons now sit above the Documents card. US149 (PR #25) renamed the Extract screen to Data Connectors. Next are US142 (end-to-end test, GitHub full flow) and US143 (end-to-end test, Azure DevOps full flow).
 
 US126 (extract knowledge and upload) remains open per its capsule. The extraction prompt must yield generalizable ideation, concepts, and key points, not literal code identifiers. Providers sit behind `Ai:Provider`: Gemini, Claude, and Groq.
 

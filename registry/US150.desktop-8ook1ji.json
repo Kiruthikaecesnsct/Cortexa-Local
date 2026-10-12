@@ -6,6 +6,7 @@
   "branch": "develop/US150",
   "status": "implementing",
   "files": [
+    "desktop/collector/src/Collector.Presentation/Behaviors/CellActionBehavior.cs",
     "desktop/collector/src/Collector.Presentation/Resources/ExtractionStrings.cs",
     "desktop/collector/src/Collector.Presentation/Resources/ReviewStrings.cs",
     "desktop/collector/src/Collector.Presentation/Resources/SettingsStrings.cs",
@@ -16,6 +17,6 @@
     "desktop/collector/tests/Collector.Tests/Presentation/ExtractionViewModelTests.cs"
   ],
   "started": "2026-10-12T07:38:21Z",
-  "heartbeat": "2026-10-12T07:52:28Z",
+  "heartbeat": "2026-10-12T08:08:01Z",
   "schema": 2
 }

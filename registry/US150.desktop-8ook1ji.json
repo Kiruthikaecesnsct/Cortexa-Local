@@ -4,9 +4,18 @@
   "machine": "desktop-8ook1ji",
   "env": "windows",
   "branch": "develop/US150",
-  "status": "planning",
-  "files": [],
+  "status": "implementing",
+  "files": [
+    "desktop/collector/src/Collector.Presentation/Resources/ExtractionStrings.cs",
+    "desktop/collector/src/Collector.Presentation/Resources/ReviewStrings.cs",
+    "desktop/collector/src/Collector.Presentation/Resources/SettingsStrings.cs",
+    "desktop/collector/src/Collector.Presentation/ViewModels/DocumentRowViewModel.cs",
+    "desktop/collector/src/Collector.Presentation/ViewModels/ExtractionViewModel.Documents.cs",
+    "desktop/collector/src/Collector.Presentation/ViewModels/ExtractionViewModel.cs",
+    "desktop/collector/src/Collector.Presentation/Views/ExtractionView.xaml",
+    "desktop/collector/tests/Collector.Tests/Presentation/ExtractionViewModelTests.cs"
+  ],
   "started": "2026-10-12T07:38:21Z",
-  "heartbeat": "2026-10-12T07:38:22Z",
+  "heartbeat": "2026-10-12T07:40:28Z",
   "schema": 2
 }

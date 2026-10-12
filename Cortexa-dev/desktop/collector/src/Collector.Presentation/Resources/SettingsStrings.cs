@@ -84,14 +84,14 @@ public static class SettingsStrings
     public const string KeyClearFailed = "Couldn't remove the key from Windows Credential Manager. Try again.";
     public const string Cancel = "Cancel";
 
-    public const string ClaudeRunsName = "Extract knowledge with Claude";
-    public const string GeminiRunsName = "Extract knowledge with Gemini";
-    public const string GroqRunsName = "Extract knowledge with Groq";
+    public const string ClaudeRunsName = "Process with Claude";
+    public const string GeminiRunsName = "Process with Gemini";
+    public const string GroqRunsName = "Process with Groq";
     public const string SectionListName = "Settings sections";
     public const string AiModelTitle = "AI model";
 
     public const string AiModelIntro =
-        "Choose the provider and model that Extract knowledge uses. Your choice is saved on this computer.";
+        "Choose the provider and model that Process uses. Your choice is saved on this computer.";
 
     public const string ProviderOverline = "PROVIDER";
     public const string ProviderGroupName = "AI provider";
@@ -111,9 +111,9 @@ public static class SettingsStrings
     public const string ChoiceSaveFailedTitle = "Couldn't save your model choice.";
     public const string ModelNotListedTitle = "That model isn't available for this provider.";
     public const string ModelNotListedMessage = "Your previous choice is still in use.";
-    public const string KeyWarningMessage = "Extract knowledge stays off until you add the key.";
+    public const string KeyWarningMessage = "Process stays off until you add the key.";
     public const string BedrockWarningTitle = "Not connected to AWS SSO.";
-    public const string BedrockWarningMessage = "Extract knowledge stays off until you connect Amazon Bedrock.";
+    public const string BedrockWarningMessage = "Process stays off until you connect Amazon Bedrock.";
     public const string ReadinessUnknownMessage = "Reopen Settings to try again.";
     public const string GoToKeys = "Go to AI provider keys";
     public const string GoToKeysName = "Open the AI provider keys section";
@@ -128,7 +128,7 @@ public static class SettingsStrings
         $"No models are set up for {provider}. Check Ai:ModelCatalog in appsettings.json.";
 
     public static string ChoiceSaved(string provider, string model) =>
-        $"Saved. Extract knowledge uses {provider} · {model}.";
+        $"Saved. Process uses {provider} · {model}.";
 
     public static string KeyWarningTitle(string provider) => $"{provider} key not set.";
 

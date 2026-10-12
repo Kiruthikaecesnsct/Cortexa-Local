@@ -468,6 +468,174 @@ public sealed class ExtractionViewModelTests : IDisposable
             Assert.Equal(Origin, row.Origin);
         });
 
+    private async Task<ExtractionViewModel> PickMixedDocumentsAsync()
+    {
+        var first = WriteFile("first.txt", System.Text.Encoding.UTF8.GetBytes("first content"));
+        var second = WriteFile("second.txt", System.Text.Encoding.UTF8.GetBytes("second content"));
+        var huge = WriteFile("huge.cs", new byte[FileContentGuard.MaxFileBytes + 1]);
+        var viewModel = CreateViewModel(first, second, huge);
+        await viewModel.PickFilesCommand.ExecuteAsync(null);
+        return viewModel;
+    }
+
+    private static DocumentRowViewModel Row(ExtractionViewModel viewModel, string filename) =>
+        viewModel.Documents.Single(d => d.Filename == filename);
+
+    [Fact]
+    public Task RemoveSelected_NoneSomeAndAllVisibleChecked_TracksCanExecuteAndHeaderState() =>
+        UiThreadHost.RunAsync(async () =>
+        {
+            var viewModel = await PickMixedDocumentsAsync();
+            Assert.False(viewModel.RemoveSelectedCommand.CanExecute(null));
+            Assert.False(viewModel.AllVisibleChecked);
+
+            Row(viewModel, "first.txt").IsChecked = true;
+            viewModel.RowCheckChangedCommand.Execute(null);
+            Assert.True(viewModel.RemoveSelectedCommand.CanExecute(null));
+            Assert.Null(viewModel.AllVisibleChecked);
+
+            viewModel.ToggleAllVisibleCommand.Execute(null);
+            Assert.True(viewModel.AllVisibleChecked);
+            Assert.All(viewModel.Documents, d => Assert.True(d.IsChecked));
+
+            viewModel.ToggleAllVisibleCommand.Execute(null);
+            Assert.False(viewModel.AllVisibleChecked);
+            Assert.False(viewModel.RemoveSelectedCommand.CanExecute(null));
+        });
+
+    [Fact]
+    public Task RemoveSelected_CheckedRows_RemovesThemClearsSelectionAndUpdatesTally() =>
+        UiThreadHost.RunAsync(async () =>
+        {
+            var viewModel = await PickMixedDocumentsAsync();
+            var survivor = Row(viewModel, "second.txt");
+            Row(viewModel, "first.txt").IsChecked = true;
+            Row(viewModel, "huge.cs").IsChecked = true;
+            viewModel.RowCheckChangedCommand.Execute(null);
+
+            viewModel.RemoveSelectedCommand.Execute(null);
+
+            Assert.Equal([survivor], viewModel.Documents);
+            Assert.False(survivor.IsChecked);
+            Assert.Equal(1, viewModel.FilesCount);
+            Assert.Equal(1, viewModel.AnalyzedCount);
+            Assert.Equal(0, viewModel.SkippedCount);
+            Assert.Null(viewModel.SkipBanner);
+            Assert.False(viewModel.RemoveSelectedCommand.CanExecute(null));
+        });
+
+    [Fact]
+    public Task RemoveSelected_SelectedDocumentNotRemoved_KeepsSelection() =>
+        UiThreadHost.RunAsync(async () =>
+        {
+            var viewModel = await PickMixedDocumentsAsync();
+            var keep = Row(viewModel, "first.txt");
+            viewModel.SelectedDocument = keep;
+            Row(viewModel, "second.txt").IsChecked = true;
+            viewModel.RowCheckChangedCommand.Execute(null);
+
+            viewModel.RemoveSelectedCommand.Execute(null);
+
+            Assert.Same(keep, viewModel.SelectedDocument);
+        });
+
+    [Fact]
+    public Task RemoveSelected_SelectedDocumentRemoved_RepicksAnExtractedDocument() =>
+        UiThreadHost.RunAsync(async () =>
+        {
+            var viewModel = await PickMixedDocumentsAsync();
+            var removed = Row(viewModel, "first.txt");
+            viewModel.SelectedDocument = removed;
+            removed.IsChecked = true;
+            viewModel.RowCheckChangedCommand.Execute(null);
+
+            viewModel.RemoveSelectedCommand.Execute(null);
+
+            Assert.DoesNotContain(removed, viewModel.Documents);
+            Assert.Equal("second.txt", viewModel.SelectedDocument!.Filename);
+        });
+
+    [Fact]
+    public Task RemoveSelected_HiddenCheckedRow_IsUncheckedByTheFilterAndKept() =>
+        UiThreadHost.RunAsync(async () =>
+        {
+            var viewModel = await PickMixedDocumentsAsync();
+            var hidden = Row(viewModel, "huge.cs");
+            hidden.IsChecked = true;
+            Row(viewModel, "first.txt").IsChecked = true;
+            viewModel.RowCheckChangedCommand.Execute(null);
+
+            viewModel.StatusFilter = DocumentStatusFilter.Analyzed;
+            viewModel.RemoveSelectedCommand.Execute(null);
+
+            Assert.False(hidden.IsChecked);
+            Assert.Contains(hidden, viewModel.Documents);
+            Assert.DoesNotContain(viewModel.Documents, d => d.Filename == "first.txt");
+            Assert.Equal(2, viewModel.Documents.Count);
+        });
+
+    [Fact]
+    public Task ToggleAllVisible_FilteredView_ChecksOnlyVisibleRows() =>
+        UiThreadHost.RunAsync(async () =>
+        {
+            var viewModel = await PickMixedDocumentsAsync();
+            viewModel.StatusFilter = DocumentStatusFilter.Skipped;
+
+            viewModel.ToggleAllVisibleCommand.Execute(null);
+
+            Assert.True(Row(viewModel, "huge.cs").IsChecked);
+            Assert.False(Row(viewModel, "first.txt").IsChecked);
+            Assert.True(viewModel.AllVisibleChecked);
+        });
+
+    [Fact]
+    public Task AllVisibleChecked_NoVisibleRows_IsFalse() =>
+        UiThreadHost.RunAsync(() =>
+        {
+            var viewModel = CreateViewModel();
+
+            Assert.False(viewModel.AllVisibleChecked);
+            Assert.False(viewModel.RemoveSelectedCommand.CanExecute(null));
+            return Task.CompletedTask;
+        });
+
+    [Fact]
+    public Task ToggleSelectedCheck_FlipsTheSelectedRow() =>
+        UiThreadHost.RunAsync(async () =>
+        {
+            var viewModel = await PickMixedDocumentsAsync();
+            var row = viewModel.SelectedDocument!;
+
+            viewModel.ToggleSelectedCheckCommand.Execute(null);
+            Assert.True(row.IsChecked);
+            Assert.True(viewModel.RemoveSelectedCommand.CanExecute(null));
+
+            viewModel.ToggleSelectedCheckCommand.Execute(null);
+            Assert.False(row.IsChecked);
+        });
+
+    [Fact]
+    public Task SelectionCommands_KnowledgeRunInFlight_CannotExecute() =>
+        UiThreadHost.RunAsync(async () =>
+        {
+            var viewModel = await PickMixedDocumentsAsync();
+            Row(viewModel, "first.txt").IsChecked = true;
+            viewModel.RowCheckChangedCommand.Execute(null);
+            Assert.True(viewModel.RemoveSelectedCommand.CanExecute(null));
+            _knowledge.Runner.Gate = new TaskCompletionSource<KnowledgeRunOutcome>();
+
+            var run = viewModel.Knowledge.ExtractKnowledgeCommand.ExecuteAsync(null);
+
+            Assert.False(viewModel.RemoveSelectedCommand.CanExecute(null));
+            Assert.False(viewModel.ToggleAllVisibleCommand.CanExecute(null));
+            Assert.False(viewModel.RowCheckChangedCommand.CanExecute(null));
+            Assert.False(viewModel.ToggleSelectedCheckCommand.CanExecute(null));
+            _knowledge.Runner.Gate.SetResult(new KnowledgeRunOutcome(KnowledgeRunStatus.Failed));
+            await run;
+            Assert.True(viewModel.RemoveSelectedCommand.CanExecute(null));
+            Assert.True(viewModel.ToggleAllVisibleCommand.CanExecute(null));
+        });
+
     private static async Task WaitForDocumentsAsync(ExtractionViewModel viewModel, int count)
     {
         var deadline = DateTime.UtcNow.AddSeconds(10);

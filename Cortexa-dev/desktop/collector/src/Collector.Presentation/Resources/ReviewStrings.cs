@@ -49,7 +49,7 @@ public static class ReviewStrings
     public const string RunPartialTitle = "Some units couldn't be processed.";
 
     public const string NoRunTitle = "Nothing to review yet";
-    public const string NoRunBody = "Parse documents on the Data Connectors screen, then choose Extract knowledge.";
+    public const string NoRunBody = "Parse documents on the Data Connectors screen, then choose Process.";
     public const string GoToExtract = "Go to Data Connectors";
     public const string EmptyTitle = "No knowledge found";
     public const string EmptyBody = "The AI found nothing to extract. Covers, reference lists, and boilerplate often produce no items.";
@@ -57,7 +57,7 @@ public static class ReviewStrings
     public const string NothingIncluded = "Include at least one item to upload.";
 
     public const string SelectionLocked =
-        "Selection is locked after upload starts. Run Extract knowledge again to start a new review.";
+        "Selection is locked after upload starts. Choose Process again to start a new review.";
 
     public const string UploadedButton = "Uploaded";
     public const string UploadedTitle = "Upload complete.";

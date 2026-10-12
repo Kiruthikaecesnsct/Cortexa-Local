@@ -21,6 +21,11 @@ public static class ExtractionStrings
     public const string ClearAll = "Clear all";
     public const string ClearAllName = "Clear all documents";
     public const string RemoveName = "Remove";
+    public const string RemoveSelected = "Remove selected";
+    public const string RemoveSelectedName = "Remove selected documents";
+    public const string SelectAllName = "Select all shown documents";
+
+    public static string SelectRowName(string filename) => $"Select {filename}";
 
     public const string EmptyTitle = "Nothing parsed yet";
 
@@ -84,8 +89,8 @@ public static class ExtractionStrings
     public const string PartialSkipTitle = "Some files were skipped.";
     public const string PartialSkipMessage = "Review the skipped files below.";
 
-    public const string ExtractKnowledge = "Extract knowledge";
-    public const string ExtractKnowledgeName = "Extract knowledge from parsed documents";
+    public const string ExtractKnowledge = "Process";
+    public const string ExtractKnowledgeName = "Process parsed documents";
     public const string ExtractDisabledHelp = "Parse at least one document first.";
     public const string RunTitle = "Extracting knowledge…";
     public const string RunProgressName = "Knowledge extraction progress";

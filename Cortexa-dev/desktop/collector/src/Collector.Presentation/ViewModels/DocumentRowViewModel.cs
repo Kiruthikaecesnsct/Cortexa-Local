@@ -2,10 +2,11 @@ using System.IO;
 using Collector.Application.Extraction;
 using Collector.Domain.Enums;
 using Collector.Presentation.Resources;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Collector.Presentation.ViewModels;
 
-public sealed class DocumentRowViewModel
+public sealed partial class DocumentRowViewModel : ObservableObject
 {
     private const char RepoSeparator = '/';
 
@@ -64,6 +65,11 @@ public sealed class DocumentRowViewModel
     public string SkipAutomationName => ExtractionStrings.SkipAutomationName(Filename, SkipReasonText);
 
     public string RemoveAutomationName => $"{ExtractionStrings.RemoveName} {Filename}";
+
+    public string SelectAutomationName => ExtractionStrings.SelectRowName(Filename);
+
+    [ObservableProperty]
+    public partial bool IsChecked { get; set; }
 
     public string SkipReasonText => SkipReasonTextFor(Status, SkipReasonRaw);
 

@@ -100,6 +100,15 @@ public sealed partial class ExtractionViewModel : FocusableViewModel, INavigatio
     {
         Knowledge.IsParsing = value;
         SyncRemoteLock();
+        NotifySelectionCommands();
+    }
+
+    private void NotifySelectionCommands()
+    {
+        RemoveSelectedCommand.NotifyCanExecuteChanged();
+        ToggleAllVisibleCommand.NotifyCanExecuteChanged();
+        RowCheckChangedCommand.NotifyCanExecuteChanged();
+        ToggleSelectedCheckCommand.NotifyCanExecuteChanged();
     }
 
     public void OnNavigatedTo() => _ = ActiveModel.RefreshAsync(CancellationToken.None);
@@ -164,8 +173,33 @@ public sealed partial class ExtractionViewModel : FocusableViewModel, INavigatio
             return;
         }
 
-        _tally.Remove(row);
-        if (SelectedDocument == row)
+        AfterRemoval([row]);
+    }
+
+    [RelayCommand(CanExecute = nameof(CanRemoveSelected))]
+    private void RemoveSelected()
+    {
+        var targets = VisibleDocuments().Where(row => row.IsChecked).ToList();
+        foreach (var row in Documents)
+        {
+            row.IsChecked = false;
+        }
+
+        var removed = targets.ToHashSet();
+        PreserveSelection(() => Documents.ReplaceAll(Documents.Where(row => !removed.Contains(row)).ToList()));
+        AfterRemoval(targets);
+    }
+
+    private bool CanRemoveSelected() => CanEditDocuments && HasVisibleChecked;
+
+    private void AfterRemoval(IReadOnlyList<DocumentRowViewModel> removedRows)
+    {
+        foreach (var row in removedRows)
+        {
+            _tally.Remove(row);
+        }
+
+        if (SelectedDocument is { } selected && removedRows.Contains(selected))
         {
             SelectedDocument = Documents.FirstOrDefault(d => d.Status == DocumentStatus.Extracted);
         }
@@ -255,5 +289,6 @@ public sealed partial class ExtractionViewModel : FocusableViewModel, INavigatio
         PickFilesCommand.NotifyCanExecuteChanged();
         ClearAllCommand.NotifyCanExecuteChanged();
         RemoveDocumentCommand.NotifyCanExecuteChanged();
+        NotifySelectionCommands();
     }
 }

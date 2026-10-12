@@ -80,6 +80,10 @@ public sealed partial class ExtractionViewModel
 
     public bool ShowNoDocumentMatch => HasDocuments && DocumentsView.Count == 0;
 
+    public bool HasVisibleChecked => VisibleDocuments().Any(row => row.IsChecked);
+
+    public bool? AllVisibleChecked => VisibleCheckState(VisibleDocuments());
+
     [ObservableProperty]
     public partial DocumentStatusFilter StatusFilter { get; set; }
 
@@ -134,6 +138,60 @@ public sealed partial class ExtractionViewModel
         ApplyFilterChange();
     }
 
+    [RelayCommand(CanExecute = nameof(CanEditDocuments))]
+    private void ToggleAllVisible()
+    {
+        var check = AllVisibleChecked != true;
+        foreach (var row in VisibleDocuments())
+        {
+            row.IsChecked = check;
+        }
+
+        RefreshSelection();
+    }
+
+    [RelayCommand(CanExecute = nameof(CanEditDocuments))]
+    private void RowCheckChanged() => RefreshSelection();
+
+    [RelayCommand(CanExecute = nameof(CanEditDocuments))]
+    private void ToggleSelectedCheck()
+    {
+        if (SelectedDocument is not { } row)
+        {
+            return;
+        }
+
+        row.IsChecked = !row.IsChecked;
+        RefreshSelection();
+    }
+
+    private static bool? VisibleCheckState(List<DocumentRowViewModel> rows)
+    {
+        var checkedCount = rows.Count(row => row.IsChecked);
+        if (checkedCount == 0)
+        {
+            return false;
+        }
+
+        return checkedCount == rows.Count ? true : null;
+    }
+
+    private List<DocumentRowViewModel> VisibleDocuments() => [.. DocumentsView.OfType<DocumentRowViewModel>()];
+
+    private void RefreshSelection()
+    {
+        OnPropertyChanged(nameof(AllVisibleChecked));
+        RemoveSelectedCommand.NotifyCanExecuteChanged();
+    }
+
+    private void UncheckHiddenDocuments()
+    {
+        foreach (var row in Documents.Where(row => row.IsChecked && !MatchesFilter(row)))
+        {
+            row.IsChecked = false;
+        }
+    }
+
     private ITimer CreateSearchTimer() =>
         _time.CreateTimer(_ => Services.UiThread.Post(ApplyFilterChange), null, Timeout.InfiniteTimeSpan, Timeout.InfiniteTimeSpan);
 
@@ -154,8 +212,10 @@ public sealed partial class ExtractionViewModel
         }
 
         PreserveSelection(DocumentsView.Refresh);
+        UncheckHiddenDocuments();
         OnPropertyChanged(nameof(DocumentsShowingText));
         OnPropertyChanged(nameof(ShowNoDocumentMatch));
+        RefreshSelection();
     }
 
     private void PreserveSelection(Action change)
@@ -186,6 +246,7 @@ public sealed partial class ExtractionViewModel
         Knowledge.SetDocuments([.. _tally.AnalyzedIds]);
         RecomputeEstimate();
         UpdateSkipBanner();
+        RefreshSelection();
     }
 
     private void UpdateSkipBanner()

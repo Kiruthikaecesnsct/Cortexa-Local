@@ -252,71 +252,6 @@
                 </Grid>
             </Border>
 
-            <Grid Margin="{StaticResource Thickness.StackGap}">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0" Orientation="Horizontal">
-                    <Button Margin="{StaticResource Thickness.InlineGapLarge}"
-                            AutomationProperties.Name="{x:Static res:ExtractionStrings.PickFilesName}"
-                            Command="{Binding PickFilesCommand}"
-                            Content="{x:Static res:ExtractionStrings.PickFiles}"
-                            Style="{StaticResource Button.Secondary}" />
-                    <Button AutomationProperties.Name="{x:Static res:ExtractionStrings.ClearAllName}"
-                            Command="{Binding ClearAllCommand}"
-                            Content="{x:Static res:ExtractionStrings.ClearAll}"
-                            Style="{StaticResource Button.Link}" />
-                </StackPanel>
-                <StackPanel Grid.Column="1"
-                            HorizontalAlignment="Right"
-                            VerticalAlignment="Center"
-                            Orientation="Horizontal">
-                    <TextBlock VerticalAlignment="Center"
-                               Style="{StaticResource Text.Caption}"
-                               Text="{Binding StatusCaption}" />
-                    <Button Margin="{StaticResource Thickness.LeadingGap}"
-                            AutomationProperties.HelpText="{Binding Knowledge.ExtractHelp, TargetNullValue={x:Static sys:String.Empty}}"
-                            AutomationProperties.Name="{x:Static res:ExtractionStrings.ExtractKnowledgeName}"
-                            Command="{Binding Knowledge.ExtractKnowledgeCommand}"
-                            Content="{x:Static res:ExtractionStrings.ExtractKnowledge}"
-                            Style="{StaticResource Button.Primary}"
-                            ToolTip="{Binding Knowledge.ExtractHelp}"
-                            ToolTipService.ShowOnDisabled="True" />
-                </StackPanel>
-            </Grid>
-
-            <Border Margin="{StaticResource Thickness.StackGap}"
-                    Style="{StaticResource Card}"
-                    Visibility="{Binding Knowledge.IsRunning, Converter={StaticResource BoolToVisibility}}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
-                        <TextBlock Margin="{StaticResource Thickness.StackGap}"
-                                   Style="{StaticResource Text.Label}"
-                                   Text="{x:Static res:ExtractionStrings.RunTitle}" />
-                        <ProgressBar Margin="{StaticResource Thickness.StackGap}"
-                                     AutomationProperties.Name="{x:Static res:ExtractionStrings.RunProgressName}"
-                                     IsIndeterminate="False"
-                                     Maximum="{Binding Knowledge.ProgressMaximum, Mode=OneWay}"
-                                     Style="{StaticResource Progress.Thin}"
-                                     Value="{Binding Knowledge.CompletedUnits, Mode=OneWay}" />
-                        <TextBlock Style="{StaticResource Text.Caption}" Text="{Binding Knowledge.ProgressText}" />
-                    </StackPanel>
-                    <Button Grid.Column="1"
-                            Margin="{StaticResource Thickness.LeadingGap}"
-                            VerticalAlignment="Center"
-                            AutomationProperties.Name="{x:Static res:ExtractionStrings.CancelName}"
-                            Command="{Binding Knowledge.ExtractKnowledgeCancelCommand}"
-                            Content="{x:Static res:ExtractionStrings.Cancel}"
-                            Style="{StaticResource Button.Secondary}"
-                            b:FocusRouter.Key="Cancel" />
-                </Grid>
-            </Border>
-
             <WrapPanel Margin="{StaticResource Thickness.SectionTop}">
                 <Border Style="{StaticResource Kpi.Tile}">
                     <StackPanel>
@@ -387,6 +322,77 @@
                                TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
+
+            <StackPanel Margin="{StaticResource Thickness.SectionTop}">
+                <Grid Margin="{StaticResource Thickness.StackGap}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                        <Button Margin="{StaticResource Thickness.InlineGapLarge}"
+                                AutomationProperties.Name="{x:Static res:ExtractionStrings.PickFilesName}"
+                                Command="{Binding PickFilesCommand}"
+                                Content="{x:Static res:ExtractionStrings.PickFiles}"
+                                Style="{StaticResource Button.Secondary}" />
+                        <Button AutomationProperties.Name="{x:Static res:ExtractionStrings.ClearAllName}"
+                                Command="{Binding ClearAllCommand}"
+                                Content="{x:Static res:ExtractionStrings.ClearAll}"
+                                Style="{StaticResource Button.Link}" />
+                        <Button AutomationProperties.Name="{x:Static res:ExtractionStrings.RemoveSelectedName}"
+                                Command="{Binding RemoveSelectedCommand}"
+                                Content="{x:Static res:ExtractionStrings.RemoveSelected}"
+                                Style="{StaticResource Button.Link}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                Orientation="Horizontal">
+                        <TextBlock VerticalAlignment="Center"
+                                   Style="{StaticResource Text.Caption}"
+                                   Text="{Binding StatusCaption}" />
+                        <Button Margin="{StaticResource Thickness.LeadingGap}"
+                                AutomationProperties.HelpText="{Binding Knowledge.ExtractHelp, TargetNullValue={x:Static sys:String.Empty}}"
+                                AutomationProperties.Name="{x:Static res:ExtractionStrings.ExtractKnowledgeName}"
+                                Command="{Binding Knowledge.ExtractKnowledgeCommand}"
+                                Content="{x:Static res:ExtractionStrings.ExtractKnowledge}"
+                                Style="{StaticResource Button.Primary}"
+                                ToolTip="{Binding Knowledge.ExtractHelp}"
+                                ToolTipService.ShowOnDisabled="True" />
+                    </StackPanel>
+                </Grid>
+    
+                <Border Margin="{StaticResource Thickness.StackGap}"
+                        Style="{StaticResource Card}"
+                        Visibility="{Binding Knowledge.IsRunning, Converter={StaticResource BoolToVisibility}}">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                            <TextBlock Margin="{StaticResource Thickness.StackGap}"
+                                       Style="{StaticResource Text.Label}"
+                                       Text="{x:Static res:ExtractionStrings.RunTitle}" />
+                            <ProgressBar Margin="{StaticResource Thickness.StackGap}"
+                                         AutomationProperties.Name="{x:Static res:ExtractionStrings.RunProgressName}"
+                                         IsIndeterminate="False"
+                                         Maximum="{Binding Knowledge.ProgressMaximum, Mode=OneWay}"
+                                         Style="{StaticResource Progress.Thin}"
+                                         Value="{Binding Knowledge.CompletedUnits, Mode=OneWay}" />
+                            <TextBlock Style="{StaticResource Text.Caption}" Text="{Binding Knowledge.ProgressText}" />
+                        </StackPanel>
+                        <Button Grid.Column="1"
+                                Margin="{StaticResource Thickness.LeadingGap}"
+                                VerticalAlignment="Center"
+                                AutomationProperties.Name="{x:Static res:ExtractionStrings.CancelName}"
+                                Command="{Binding Knowledge.ExtractKnowledgeCancelCommand}"
+                                Content="{x:Static res:ExtractionStrings.Cancel}"
+                                Style="{StaticResource Button.Secondary}"
+                                b:FocusRouter.Key="Cancel" />
+                    </Grid>
+                </Border>
+            </StackPanel>
 
             <Border Margin="{StaticResource Thickness.SectionTop}" Style="{StaticResource Card}">
                 <StackPanel>
@@ -473,7 +479,54 @@
                                   VirtualizingPanel.ScrollUnit="Item"
                                   VirtualizingPanel.VirtualizationMode="Recycling"
                                   b:FocusRouter.Key="Documents">
+                            <DataGrid.InputBindings>
+                                <KeyBinding Key="Space" Command="{Binding ToggleSelectedCheckCommand}" />
+                                <KeyBinding Key="Delete"
+                                            Command="{Binding RemoveDocumentCommand}"
+                                            CommandParameter="{Binding SelectedDocument}" />
+                            </DataGrid.InputBindings>
                             <DataGrid.Columns>
+                                <DataGridTemplateColumn MinWidth="{StaticResource Size.RowAction}"
+                                                        MaxWidth="{StaticResource Size.RowAction}"
+                                                        CanUserResize="False"
+                                                        CanUserSort="False">
+                                    <DataGridTemplateColumn.CellStyle>
+                                        <Style BasedOn="{StaticResource DataGridCell.Default}" TargetType="DataGridCell">
+                                            <Setter Property="b:CellActionBehavior.KeepsRowSelection" Value="True" />
+                                            <Setter Property="Padding" Value="{StaticResource Thickness.None}" />
+                                            <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                        </Style>
+                                    </DataGridTemplateColumn.CellStyle>
+                                    <DataGridTemplateColumn.HeaderStyle>
+                                        <Style BasedOn="{StaticResource DataGridColumnHeader.Sortable}" TargetType="DataGridColumnHeader">
+                                            <Setter Property="Padding" Value="{StaticResource Thickness.None}" />
+                                            <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                            <Setter Property="Cursor" Value="Arrow" />
+                                            <Setter Property="AutomationProperties.HelpText" Value="" />
+                                        </Style>
+                                    </DataGridTemplateColumn.HeaderStyle>
+                                    <DataGridTemplateColumn.Header>
+                                        <CheckBox AutomationProperties.Name="{x:Static res:ExtractionStrings.SelectAllName}"
+                                                  Command="{Binding DataContext.ToggleAllVisibleCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                  Focusable="False"
+                                                  IsChecked="{Binding DataContext.AllVisibleChecked, Mode=OneWay, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                  IsEnabled="{Binding DataContext.CanEditDocuments, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                  IsTabStop="False"
+                                                  IsThreeState="True"
+                                                  Style="{StaticResource CheckBox.Default}" />
+                                    </DataGridTemplateColumn.Header>
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate DataType="{x:Type vm:DocumentRowViewModel}">
+                                            <CheckBox AutomationProperties.Name="{Binding SelectAutomationName}"
+                                                      Command="{Binding DataContext.RowCheckChangedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                      Focusable="False"
+                                                      IsChecked="{Binding IsChecked, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                      IsEnabled="{Binding DataContext.CanEditDocuments, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                      IsTabStop="False"
+                                                      Style="{StaticResource CheckBox.Default}" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
                                 <DataGridTemplateColumn Width="2*"
                                                         MinWidth="160"
                                                         Header="{x:Static res:ExtractionStrings.ColumnName}"
@@ -554,6 +607,38 @@
                                                                Text="{Binding StatusLabel}" />
                                                 </StackPanel>
                                             </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn MinWidth="{StaticResource Size.RowAction}"
+                                                        MaxWidth="{StaticResource Size.RowAction}"
+                                                        CanUserResize="False"
+                                                        CanUserSort="False">
+                                    <DataGridTemplateColumn.CellStyle>
+                                        <Style BasedOn="{StaticResource DataGridCell.Default}" TargetType="DataGridCell">
+                                            <Setter Property="b:CellActionBehavior.KeepsRowSelection" Value="True" />
+                                            <Setter Property="Padding" Value="{StaticResource Thickness.None}" />
+                                            <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                        </Style>
+                                    </DataGridTemplateColumn.CellStyle>
+                                    <DataGridTemplateColumn.HeaderStyle>
+                                        <Style BasedOn="{StaticResource DataGridColumnHeader.Sortable}" TargetType="DataGridColumnHeader">
+                                            <Setter Property="Padding" Value="{StaticResource Thickness.None}" />
+                                            <Setter Property="Cursor" Value="Arrow" />
+                                            <Setter Property="AutomationProperties.HelpText" Value="" />
+                                        </Style>
+                                    </DataGridTemplateColumn.HeaderStyle>
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate DataType="{x:Type vm:DocumentRowViewModel}">
+                                            <Button Width="{StaticResource Size.RowAction}"
+                                                    Height="{StaticResource Size.RowAction}"
+                                                    AutomationProperties.Name="{Binding RemoveAutomationName}"
+                                                    Command="{Binding DataContext.RemoveDocumentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"
+                                                    Content="{x:Static res:Glyphs.Close}"
+                                                    Focusable="False"
+                                                    IsTabStop="False"
+                                                    Style="{StaticResource Button.Icon}" />
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>

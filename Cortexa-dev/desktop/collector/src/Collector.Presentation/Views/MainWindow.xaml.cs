@@ -5,6 +5,8 @@ namespace Collector.Presentation.Views;
 
 public partial class MainWindow : Window
 {
+    private bool? _isNarrow;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -19,6 +21,13 @@ public partial class MainWindow : Window
         }
 
         var breakpoint = (double)FindResource("Breakpoint.RailCompact");
-        shell.IsRailCompact = e.NewSize.Width < breakpoint;
+        var isNarrow = e.NewSize.Width < breakpoint;
+        if (_isNarrow == isNarrow)
+        {
+            return;
+        }
+
+        _isNarrow = isNarrow;
+        shell.OnWindowNarrowChanged(isNarrow);
     }
 }

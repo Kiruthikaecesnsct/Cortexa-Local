@@ -90,7 +90,7 @@
     <Thickness x:Key="Thickness.KpiPadding">16,14,16,14</Thickness>
     <Thickness x:Key="Thickness.KpiGap">0,0,12,12</Thickness>
     <Thickness x:Key="Thickness.RailBrand">20,0,16,0</Thickness>
-    <Thickness x:Key="Thickness.RailBrandCompact">19,0,19,0</Thickness>
+    <Thickness x:Key="Thickness.RailToggle">0,0,12,0</Thickness>
     <Thickness x:Key="Thickness.RailSection">24,20,16,8</Thickness>
     <Thickness x:Key="Thickness.RailFooter">12,8,12,16</Thickness>
     <Thickness x:Key="Thickness.RailUserCard">10,10,10,10</Thickness>
@@ -213,8 +213,8 @@
     <sys:Double x:Key="Size.BranchListMaxHeight">400</sys:Double>
     <sys:Double x:Key="Size.StepMinWidth">96</sys:Double>
     <sys:Double x:Key="Size.FileTreeHeight">440</sys:Double>
-    <sys:Double x:Key="Size.DocumentsTableHeight">480</sys:Double>
-    <sys:Double x:Key="Size.UnitListHeight">420</sys:Double>
+    <sys:Double x:Key="Size.DocumentsTableMaxHeight">480</sys:Double>
+    <sys:Double x:Key="Size.UnitListMaxHeight">420</sys:Double>
     <sys:Double x:Key="Size.SkipListMaxHeight">288</sys:Double>
     <sys:Double x:Key="Size.TreeIndent">20</sys:Double>
     <sys:Double x:Key="Size.TreeChevron">24</sys:Double>
@@ -2555,7 +2555,7 @@
     </Style>
 
     <Style x:Key="UnitPreview.List" TargetType="ListBox" BasedOn="{StaticResource List.Master}">
-        <Setter Property="Height" Value="{StaticResource Size.UnitListHeight}" />
+        <Setter Property="MaxHeight" Value="{StaticResource Size.UnitListMaxHeight}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
         <Setter Property="BorderThickness" Value="{StaticResource Thickness.Border}" />
         <Setter Property="Tag" Value="{StaticResource Radius.Control}" />
@@ -2798,7 +2798,7 @@
     </Style>
 
     <Style x:Key="DataGrid.Documents" TargetType="DataGrid">
-        <Setter Property="Height" Value="{StaticResource Size.DocumentsTableHeight}" />
+        <Setter Property="MaxHeight" Value="{StaticResource Size.DocumentsTableMaxHeight}" />
         <Setter Property="Background" Value="{DynamicResource Brush.Surface.Card}" />
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
         <Setter Property="BorderThickness" Value="{StaticResource Thickness.Border}" />

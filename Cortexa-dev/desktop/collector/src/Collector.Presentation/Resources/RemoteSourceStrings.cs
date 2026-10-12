@@ -340,8 +340,8 @@ public static class RemoteSourceStrings
     public static string RepositoryAutomationName(string name, bool isPrivate, string branch, string size, string? overLimit) =>
         $"{name}, {(isPrivate ? "private, " : string.Empty)}default branch {branch}, {size}{(overLimit is null ? string.Empty : $", over the {overLimit} fetch limit")}";
 
-    public const string SshLabel = "_SSH";
-    public const string SshName = "SSH";
+    public const string SshLabel = "_Remote System";
+    public const string SshName = "Remote System";
 
     public const string SshHostLabel = "_IP address or hostname";
     public const string SshHostName = "IP address or hostname";

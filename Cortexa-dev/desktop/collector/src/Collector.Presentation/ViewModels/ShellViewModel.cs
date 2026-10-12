@@ -47,7 +47,10 @@ public sealed partial class ShellViewModel : ObservableObject
     public partial string Subtitle { get; set; } = string.Empty;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RailToggleName))]
     public partial bool IsRailCompact { get; set; }
+
+    public string RailToggleName => IsRailCompact ? ShellStrings.ExpandNav : ShellStrings.CollapseNav;
 
     [ObservableProperty]
     public partial SessionBadge Badge { get; set; }
@@ -59,6 +62,9 @@ public sealed partial class ShellViewModel : ObservableObject
 
     public void OnWindowClosing() => (_navigation.CurrentViewModel as INavigationAware)?.OnNavigatedFrom();
 
+    // The window width picks the rail mode only when it crosses the breakpoint, so a manual toggle sticks until then.
+    public void OnWindowNarrowChanged(bool isNarrow) => IsRailCompact = isNarrow;
+
     partial void OnIsRailCompactChanged(bool value)
     {
         foreach (var item in MainItems.Concat(FooterItems))
@@ -66,6 +72,9 @@ public sealed partial class ShellViewModel : ObservableObject
             item.IsCompact = value;
         }
     }
+
+    [RelayCommand]
+    private void ToggleRail() => IsRailCompact = !IsRailCompact;
 
     [RelayCommand]
     private void Navigate(string key) => _navigation.NavigateTo(key);

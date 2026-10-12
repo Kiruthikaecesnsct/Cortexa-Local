@@ -460,7 +460,6 @@
                                   EnableRowVirtualization="True"
                                   GridLinesVisibility="None"
                                   HeadersVisibility="Column"
-                                  Height="{StaticResource Size.DocumentsTableHeight}"
                                   IsReadOnly="True"
                                   ItemsSource="{Binding DocumentsView}"
                                   KeyboardNavigation.TabNavigation="Once"
@@ -616,7 +615,6 @@
                         <ListBox Grid.Column="0"
                                  Margin="{StaticResource Thickness.InlineGapXL}"
                                  AutomationProperties.Name="{Binding SectionListName}"
-                                 Height="{StaticResource Size.UnitListHeight}"
                                  ItemsSource="{Binding PreviewUnits}"
                                  SelectedItem="{Binding SelectedUnit, Mode=TwoWay}"
                                  Style="{StaticResource UnitPreview.List}"
@@ -667,7 +665,7 @@
                             </ListBox.ItemTemplate>
                         </ListBox>
                         <Border Grid.Column="1"
-                                Height="{StaticResource Size.UnitListHeight}"
+                                MaxHeight="{StaticResource Size.UnitListMaxHeight}"
                                 Background="{DynamicResource Brush.Surface.Sunken}"
                                 BorderBrush="{DynamicResource Brush.Border.Subtle}"
                                 BorderThickness="{StaticResource Thickness.Border}"

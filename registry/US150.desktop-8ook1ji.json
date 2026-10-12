@@ -4,19 +4,19 @@
   "machine": "desktop-8ook1ji",
   "env": "windows",
   "branch": "develop/US150",
-  "status": "implementing",
+  "status": "review",
   "files": [
-    "desktop/collector/src/Collector.Presentation/Behaviors/CellActionBehavior.cs",
-    "desktop/collector/src/Collector.Presentation/Resources/ExtractionStrings.cs",
-    "desktop/collector/src/Collector.Presentation/Resources/ReviewStrings.cs",
-    "desktop/collector/src/Collector.Presentation/Resources/SettingsStrings.cs",
-    "desktop/collector/src/Collector.Presentation/ViewModels/DocumentRowViewModel.cs",
-    "desktop/collector/src/Collector.Presentation/ViewModels/ExtractionViewModel.Documents.cs",
-    "desktop/collector/src/Collector.Presentation/ViewModels/ExtractionViewModel.cs",
-    "desktop/collector/src/Collector.Presentation/Views/ExtractionView.xaml",
+    "desktop/collector/src/Collector.Presentation/Behaviors/CellActionBehavior.cs",
+    "desktop/collector/src/Collector.Presentation/Resources/ExtractionStrings.cs",
+    "desktop/collector/src/Collector.Presentation/Resources/ReviewStrings.cs",
+    "desktop/collector/src/Collector.Presentation/Resources/SettingsStrings.cs",
+    "desktop/collector/src/Collector.Presentation/ViewModels/DocumentRowViewModel.cs",
+    "desktop/collector/src/Collector.Presentation/ViewModels/ExtractionViewModel.Documents.cs",
+    "desktop/collector/src/Collector.Presentation/ViewModels/ExtractionViewModel.cs",
+    "desktop/collector/src/Collector.Presentation/Views/ExtractionView.xaml",
     "desktop/collector/tests/Collector.Tests/Presentation/ExtractionViewModelTests.cs"
   ],
   "started": "2026-10-12T07:38:21Z",
-  "heartbeat": "2026-10-12T08:08:01Z",
+  "heartbeat": "2026-10-12T08:15:19Z",
   "schema": 2
 }

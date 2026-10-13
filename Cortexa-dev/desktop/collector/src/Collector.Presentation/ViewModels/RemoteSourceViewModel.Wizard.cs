@@ -81,7 +81,7 @@ public sealed partial class RemoteSourceViewModel
 
     private string StepPromptText => Step switch
     {
-        RemoteWizardStep.Connect => RemoteSourceStrings.ConnectPromptText,
+        RemoteWizardStep.Connect => ConnectPrompt,
         RemoteWizardStep.Repository => RemoteSourceStrings.RepositoryPromptText(_all.Count, _connectedOrganization),
         RemoteWizardStep.Branch => RemoteSourceStrings.BranchPromptText(SelectedRepository?.FullName ?? string.Empty, _allBranches.Count),
         RemoteWizardStep.Files => RemoteSourceStrings.FilesPromptText,
@@ -124,7 +124,7 @@ public sealed partial class RemoteSourceViewModel
         }
     }
 
-    private bool CanConnect() => IsTokenSource && AreControlsEnabled && !IsConnecting && !IsListLoading;
+    private bool CanConnect() => IsTokenSource && IsPatMethod && AreControlsEnabled && !IsConnecting && !IsListLoading;
 
     private bool CanDisconnect() => IsTokenSource && AreControlsEnabled && Status != ConnectionStatus.NotConnected;
 
@@ -222,6 +222,7 @@ public sealed partial class RemoteSourceViewModel
         Step = RemoteWizardStep.Connect;
         OrgUrl = DefaultOrgUrl(SelectedSource);
         OrgUrlError = null;
+        ResetGitHubAuth();
         CredentialsCleared?.Invoke(this, EventArgs.Empty);
     }
 
@@ -272,6 +273,7 @@ public sealed partial class RemoteSourceViewModel
         OnPropertyChanged(nameof(TokenHint));
         OnPropertyChanged(nameof(TokenPlaceholder));
         OnPropertyChanged(nameof(TokenLinkText));
+        NotifyGitHubAuth();
         ConnectCommand.NotifyCanExecuteChanged();
         DisconnectCommand.NotifyCanExecuteChanged();
         ChangeBranchCommand.NotifyCanExecuteChanged();

@@ -1,5 +1,6 @@
 using System.Net;
 using Collector.Application.Remote;
+using Collector.Application.Remote.Auth;
 using Collector.Domain.Enums;
 using Collector.Domain.Remote;
 using Collector.Infrastructure.Http;
@@ -24,11 +25,18 @@ public class GitHubRepositoryClientTests
     private static GitHubRepositoryClient CreateClient(
         RouteHandler handler,
         Action<RemoteSourceOptions>? configure = null,
-        BaseAddressClientFactory? factory = null) => new(
+        BaseAddressClientFactory? factory = null,
+        RemoteAuthMethod method = RemoteAuthMethod.Pat)
+    {
+        var api = new GitHubApiTransport(
             factory ?? new BaseAddressClientFactory(handler, $"{Origin}/"),
             RemoteData.Options(configure),
             new GitHubErrorMapper(new GitHubRateHeaders(), TimeProvider.System),
-            NullLogger<GitHubRepositoryClient>.Instance);
+            NullLogger<GitHubApiTransport>.Instance);
+        var state = new RemoteAuthState();
+        state.Set(SourceType.Github, method);
+        return new GitHubRepositoryClient(api, new GitHubInstallationLister(api), state);
+    }
 
     private static string RepoJson(string name, string owner = "octo", bool isPrivate = false, string? branch = "dev") =>
         $$"""
@@ -352,5 +360,62 @@ public class GitHubRepositoryClientTests
             () => CreateClient(handler).OpenBlobAsync(RemoteData.GitHubRepo(), "b1", TestSupport.Ct));
 
         Assert.Equal(RemoteFailureKind.NotFound, exception.Kind);
+    }
+
+    private static string InstallationsJson(params (long Id, string Login)[] installations)
+    {
+        var items = installations.Select(i => "{\"id\":" + i.Id + ",\"account\":{\"login\":\"" + i.Login + "\"}}");
+        return "{\"installations\":[" + string.Join(",", items) + "]}";
+    }
+
+    private static HttpResponseMessage AppRoute(RecordedCall call) => call.Uri.AbsolutePath switch
+    {
+        "/user/installations" => RemoteResponses.Json(InstallationsJson((1, "octo"), (2, "other"))),
+        "/user/installations/1/repositories" => RemoteResponses.Json($$"""{"total_count":1,"repositories":[{{RepoJson("hello")}}]}"""),
+        "/user/installations/2/repositories" => RemoteResponses.Json($$"""{"total_count":1,"repositories":[{{RepoJson("granted", "other")}}]}"""),
+        _ => RemoteResponses.Status(HttpStatusCode.NotFound),
+    };
+
+    [Fact]
+    public async Task ListRepositoriesAsync_GitHubApp_ListsOnlyTheInstallationRepositories()
+    {
+        var handler = new RouteHandler(AppRoute);
+        var client = CreateClient(handler, method: RemoteAuthMethod.GitHubApp);
+
+        var repositories = await client.ListRepositoriesAsync(null, TestSupport.Ct);
+
+        Assert.Equal(["octo/hello", "other/granted"], repositories.Select(repository => repository.RepoKey));
+        Assert.DoesNotContain(handler.Calls, call => call.Uri.AbsolutePath == "/user/repos");
+    }
+
+    [Fact]
+    public async Task ListRepositoriesAsync_GitHubAppWithOrgScope_KeepsOnlyTheMatchingInstallation()
+    {
+        var handler = new RouteHandler(AppRoute);
+        var client = CreateClient(handler, method: RemoteAuthMethod.GitHubApp);
+
+        var repositories = await client.ListRepositoriesAsync("Other", TestSupport.Ct);
+
+        Assert.Equal("other/granted", Assert.Single(repositories).RepoKey);
+        Assert.DoesNotContain(handler.Calls, call => call.Uri.AbsolutePath == "/user/installations/1/repositories");
+    }
+
+    [Fact]
+    public async Task ListRepositoriesAsync_GitHubAppWithUnknownScope_ReturnsNothing()
+    {
+        var client = CreateClient(new RouteHandler(AppRoute), method: RemoteAuthMethod.GitHubApp);
+
+        Assert.Empty(await client.ListRepositoriesAsync("nobody", TestSupport.Ct));
+    }
+
+    [Fact]
+    public async Task ListRepositoriesAsync_DeviceMethod_StillUsesUserRepos()
+    {
+        var handler = new RouteHandler(_ => RemoteResponses.Json("[]"));
+        var client = CreateClient(handler, method: RemoteAuthMethod.GitHubDevice);
+
+        await client.ListRepositoriesAsync(null, TestSupport.Ct);
+
+        Assert.Equal(Origin + ReposPath, Assert.Single(handler.Calls).Uri.AbsoluteUri);
     }
 }

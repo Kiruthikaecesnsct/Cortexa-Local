@@ -2,11 +2,14 @@ using Collector.Application.Auth;
 using Collector.Application.Extraction;
 using Collector.Application.History;
 using Collector.Application.Knowledge;
+using Collector.Application.Ports;
 using Collector.Application.Remote;
+using Collector.Application.Remote.Auth;
 using Collector.Application.Remote.Selection;
 using Collector.Application.Secrets;
 using Collector.Application.Settings;
 using Collector.Application.Upload;
+using Collector.Domain.Enums;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Collector.Application;
@@ -50,6 +53,19 @@ public static class DependencyInjection
         services.AddSingleton<FileTreeBuilder>();
         services.AddSingleton<RemoteFileFetcher>();
         services.AddSingleton<RemoteFetchService>();
+        services.AddCollectorRemoteAuth();
+    }
+
+    private static void AddCollectorRemoteAuth(this IServiceCollection services)
+    {
+        services.AddSingleton<IRemoteAuthState, RemoteAuthState>();
+        services.AddSingleton<IRemoteTokenSource>(sp => new SessionPatTokenSource(sp.GetRequiredService<ISessionCredentials>(), SourceType.Github));
+        services.AddSingleton<IRemoteTokenSource, GitHubDeviceTokenSource>();
+        services.AddSingleton<IRemoteTokenSource, GitHubAppTokenSource>();
+        services.AddSingleton<IRemoteTokenResolver, RemoteTokenResolver>();
+        services.AddSingleton<DeviceFlowRunner>();
+        services.AddSingleton<IGitHubSignIn, GitHubSignInService>();
+        services.AddSingleton<OAuthSignOutListener>();
     }
 
     private static void AddCollectorKnowledge(this IServiceCollection services)

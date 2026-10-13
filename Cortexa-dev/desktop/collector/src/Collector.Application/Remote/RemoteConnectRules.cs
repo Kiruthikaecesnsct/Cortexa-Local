@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
+using Collector.Application.Remote.Auth;
 using Collector.Domain.Enums;
 
 namespace Collector.Application.Remote;
@@ -23,6 +24,25 @@ public static partial class RemoteConnectRules
         OrganizationUrlError(provider, url),
         TokenError(token),
         token?.Trim() ?? string.Empty);
+
+    public static OAuthFormResult ValidateOAuthForm(SourceType provider, string? url) => new(
+        OrgUrlParser.Parse(provider, url),
+        OrganizationUrlError(provider, url));
+
+    public static IReadOnlyList<RemoteAuthMethod> AuthMethodsFor(SourceType provider) =>
+        provider == SourceType.Github
+            ? [RemoteAuthMethod.GitHubDevice, RemoteAuthMethod.GitHubApp, RemoteAuthMethod.Pat]
+            : [RemoteAuthMethod.Pat];
+
+    public static bool IsMethodEnabled(RemoteAuthMethod method, RemoteAuthAvailability availability) => method switch
+    {
+        RemoteAuthMethod.GitHubDevice => availability.DeviceEnabled,
+        RemoteAuthMethod.GitHubApp => availability.AppEnabled,
+        _ => true,
+    };
+
+    public static RemoteAuthMethod DefaultMethod(SourceType provider, RemoteAuthAvailability availability) =>
+        AuthMethodsFor(provider).First(method => IsMethodEnabled(method, availability));
 
     public static SshFormErrors ValidateSshForm(SshFormInput input) => new(
         HostError(input.Host),

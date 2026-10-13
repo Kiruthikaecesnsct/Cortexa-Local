@@ -1,5 +1,6 @@
 using System.Windows.Input;
 using Collector.Application.Remote;
+using Collector.Application.Remote.Auth;
 using Collector.Domain.Enums;
 using Collector.Presentation.Resources;
 
@@ -11,7 +12,8 @@ public sealed record RemoteBannerActions(
     ICommand Reload,
     ICommand OpenGitHubTokens,
     ICommand UseLocal,
-    ICommand Dismiss);
+    ICommand Dismiss,
+    ICommand? SignInAgain = null);
 
 public sealed record RemoteFailureContext(
     SourceType Provider,
@@ -22,6 +24,10 @@ public sealed record RemoteFailureContext(
     string Limit)
 {
     public TimeSpan? RetryAfter { get; init; }
+
+    public RemoteAuthMethod? ExpiredSignIn { get; init; }
+
+    public RemoteAuthMethod? SignedInWith { get; init; }
 }
 
 public sealed class RemoteBannerFactory(RemoteBannerActions actions)
@@ -58,7 +64,10 @@ public sealed class RemoteBannerFactory(RemoteBannerActions actions)
         return kind switch
         {
             RemoteFailureKind.MissingToken => Missing(provider),
+            RemoteFailureKind.Auth when context.ExpiredSignIn is not null => ExpiredSignIn(),
             RemoteFailureKind.Auth => Auth(provider),
+            RemoteFailureKind.AccessDenied when context.SignedInWith is not null => OrgBlocked(context.Owner),
+            RemoteFailureKind.AccessDenied when context.Repository.Length == 0 => OrgDenied(provider, context.Owner),
             RemoteFailureKind.AccessDenied => Denied(provider, context.Repository, isGitHub),
             RemoteFailureKind.SsoRequired when isGitHub => Sso(context.Owner),
             RemoteFailureKind.SsoRequired => Auth(provider),
@@ -124,6 +133,16 @@ public sealed class RemoteBannerFactory(RemoteBannerActions actions)
         SecondaryActionCommand = actions.TryAgain,
     };
 
+    private BannerContent ExpiredSignIn() => new()
+    {
+        Severity = BannerSeverity.Error,
+        Title = GitHubAuthStrings.ExpiredSignInTitle,
+        Message = GitHubAuthStrings.ExpiredSignInMessage,
+        ActionText = GitHubAuthStrings.SignInAgain,
+        ActionName = GitHubAuthStrings.SignInAgainName,
+        ActionCommand = actions.SignInAgain,
+    };
+
     private BannerContent Denied(string provider, string repository, bool isGitHub) => new()
     {
         Severity = BannerSeverity.Error,
@@ -132,6 +151,21 @@ public sealed class RemoteBannerFactory(RemoteBannerActions actions)
         ActionText = RemoteSourceStrings.ChangeToken,
         ActionName = RemoteSourceStrings.ChangeTokenName(provider),
         ActionCommand = actions.ChangeToken,
+    };
+
+    private BannerContent OrgDenied(string provider, string organization) => Denied(provider, organization, true) with
+    {
+        Title = RemoteSourceStrings.OrgDeniedTitle,
+        Message = RemoteSourceStrings.OrgDeniedMessage(organization),
+    };
+
+    private BannerContent OrgBlocked(string organization) => Dismissible(
+        BannerSeverity.Error,
+        GitHubAuthStrings.OrgBlockedTitle(organization),
+        GitHubAuthStrings.OrgBlockedMessage) with
+    {
+        ActionText = RemoteSourceStrings.TryAgain,
+        ActionCommand = actions.TryAgain,
     };
 
     private BannerContent Sso(string owner) => new()

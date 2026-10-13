@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Threading;
 using Collector.Application.Auth;
 using Collector.Application.Ports;
+using Collector.Application.Remote.Auth;
 using Collector.Application.Secrets;
 using Collector.Presentation.Hosting;
 using Collector.Presentation.Themes;
@@ -55,6 +56,8 @@ public partial class App : System.Windows.Application
         await services.GetRequiredService<ILocalCacheInitializer>().InitializeAsync(CancellationToken.None);
         await services.GetRequiredService<StaleRemoteSecretPurge>().RunAsync(CancellationToken.None);
         await services.GetRequiredService<ISignInService>().RestoreAsync(CancellationToken.None);
+        await services.GetRequiredService<IGitHubSignIn>().RestoreAsync(CancellationToken.None);
+        services.GetRequiredService<OAuthSignOutListener>();
         var window = services.GetRequiredService<MainWindow>();
         MainWindow = window;
         window.DataContext = services.GetRequiredService<ShellViewModel>();

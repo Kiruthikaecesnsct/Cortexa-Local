@@ -268,6 +268,7 @@ public sealed class RemoteSourceOptionsValidator : IValidateOptions<RemoteSource
     {
         var failures = new List<string>();
         CheckProvider(failures, "GitHub", options.GitHub);
+        CheckGitHubAuth(failures, options.GitHub);
         CheckProvider(failures, "AzureDevOps", options.AzureDevOps);
         CheckSsh(failures, options.Ssh);
         CheckCortexa(failures, options.Cortexa);
@@ -283,6 +284,23 @@ public sealed class RemoteSourceOptionsValidator : IValidateOptions<RemoteSource
         }
 
         return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
+    }
+
+    private static void CheckGitHubAuth(List<string> failures, GitHubSourceOptions options)
+    {
+        const string Prefix = $"{RemoteSourceOptions.SectionName}:GitHub";
+        if (string.IsNullOrWhiteSpace(options.OAuthClientId) && string.IsNullOrWhiteSpace(options.AppClientId))
+        {
+            return;
+        }
+
+        var validUrl = Uri.TryCreate(options.AuthBaseUrl, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps;
+        if (!validUrl)
+        {
+            failures.Add($"{Prefix}:{nameof(options.AuthBaseUrl)} must be an absolute https URL.");
+        }
+
+        CheckPositive(failures, $"GitHub:{nameof(options.TokenRefreshSkewSeconds)}", options.TokenRefreshSkewSeconds);
     }
 
     private static void CheckSsh(List<string> failures, SshSourceOptions options)

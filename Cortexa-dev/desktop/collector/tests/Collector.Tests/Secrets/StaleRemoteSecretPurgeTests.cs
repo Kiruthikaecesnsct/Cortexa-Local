@@ -27,6 +27,19 @@ public sealed class StaleRemoteSecretPurgeTests
     }
 
     [Fact]
+    public async Task RunAsync_OAuthSlots_Survive()
+    {
+        var secrets = new InMemorySecretStore();
+        secrets.Values[SecretSlot.GitHubPat] = "old";
+        secrets.Values[SecretSlot.GitHubOAuthToken] = "device";
+        secrets.Values[SecretSlot.GitHubAppToken] = "app";
+
+        await new StaleRemoteSecretPurge(secrets, NullLogger<StaleRemoteSecretPurge>.Instance).RunAsync(TestSupport.Ct);
+
+        Assert.Equal([SecretSlot.GitHubOAuthToken, SecretSlot.GitHubAppToken], secrets.Values.Keys.Order());
+    }
+
+    [Fact]
     public async Task RunAsync_NothingStored_Succeeds()
     {
         var secrets = new InMemorySecretStore();

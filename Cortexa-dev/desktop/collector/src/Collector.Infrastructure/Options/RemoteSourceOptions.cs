@@ -19,6 +19,16 @@ public sealed class GitHubSourceOptions : RemoteProviderOptions
         ApiVersion = "2026-03-10";
         MinRemaining = 50;
     }
+
+    public string AuthBaseUrl { get; set; } = "https://github.com";
+
+    public string OAuthClientId { get; set; } = string.Empty;
+
+    public string OAuthScopes { get; set; } = "repo read:org";
+
+    public string AppClientId { get; set; } = string.Empty;
+
+    public int TokenRefreshSkewSeconds { get; set; } = 300;
 }
 
 public sealed class AzureDevOpsSourceOptions : RemoteProviderOptions

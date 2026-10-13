@@ -1,5 +1,6 @@
 using Collector.Application.Ports;
 using Collector.Application.Remote;
+using Collector.Application.Remote.Auth;
 using Collector.Domain.Enums;
 using Collector.Infrastructure.Auth;
 using Collector.Infrastructure.Cache;
@@ -43,19 +44,22 @@ internal static class RemoteSourceRegistration
         services.AddSingleton<IRemoteRepositoryClient, AzureDevOpsRepositoryClient>();
         services.AddCollectorSshRemoteSource();
         services.AddCollectorCortexaRemoteSource();
+        services.AddGitHubOAuth();
         services.AddSingleton<IRemoteRepositoryClients, RemoteRepositoryClients>();
         services.AddRemoteClient(new RemoteClientSpec(
             HttpClientNames.GitHub,
             SourceType.Github,
             PatScheme.Bearer,
             options => options.GitHub,
-            sp => sp.GetRequiredService<GitHubRateHeaders>()));
+            sp => sp.GetRequiredService<GitHubRateHeaders>(),
+            CreateTokenHandler));
         services.AddRemoteClient(new RemoteClientSpec(
             HttpClientNames.AzureDevOps,
             SourceType.AzureDevops,
             PatScheme.Basic,
             options => options.AzureDevOps,
-            sp => sp.GetRequiredService<AzureDevOpsRateHeaders>()));
+            sp => sp.GetRequiredService<AzureDevOpsRateHeaders>(),
+            CreatePatHandler));
         return services;
     }
 
@@ -66,6 +70,29 @@ internal static class RemoteSourceRegistration
         services.AddSingleton<IRemoteRepositoryClient>(sp => sp.GetRequiredService<SftpRepositoryClient>());
         services.AddSingleton<ISshConnectionCloser>(sp => sp.GetRequiredService<SftpRepositoryClient>());
     }
+
+    private static void AddGitHubOAuth(this IServiceCollection services)
+    {
+        services.AddSingleton<GitHubApiTransport>();
+        services.AddSingleton<GitHubInstallationLister>();
+        services.AddSingleton<IDeviceAuthorizationClient, GitHubDeviceAuthorizationClient>();
+        services.AddSingleton<IOAuthTokenVault, CredentialManagerOAuthVault>();
+        services.AddSingleton(sp => CreateAvailability(sp.GetRequiredService<IOptions<RemoteSourceOptions>>().Value.GitHub));
+        services.AddSingleton(sp => new OAuthRefreshPolicy(TimeSpan.FromSeconds(sp.GetRequiredService<IOptions<RemoteSourceOptions>>().Value.GitHub.TokenRefreshSkewSeconds)));
+        services.AddHttpClient(HttpClientNames.GitHubAuth)
+            .ConfigureHttpClient((sp, client) =>
+            {
+                var options = sp.GetRequiredService<IOptions<RemoteSourceOptions>>().Value;
+                client.BaseAddress = RemoteUrl.BaseAddress(options.GitHub.AuthBaseUrl);
+                client.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { UseCookies = false, AllowAutoRedirect = false })
+            .RedactLoggedHeaders(name => RedactedHeaders.Contains(name, StringComparer.OrdinalIgnoreCase));
+    }
+
+    private static RemoteAuthAvailability CreateAvailability(GitHubSourceOptions options) => new(
+        !string.IsNullOrWhiteSpace(options.OAuthClientId),
+        !string.IsNullOrWhiteSpace(options.AppClientId));
 
     private static void AddCollectorCortexaRemoteSource(this IServiceCollection services)
     {
@@ -88,7 +115,7 @@ internal static class RemoteSourceRegistration
         services.AddHttpClient(spec.Name)
             .ConfigureHttpClient((sp, client) => Configure(sp, client, spec))
             .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { UseCookies = false, AllowAutoRedirect = false })
-            .AddHttpMessageHandler(sp => CreatePatHandler(sp, spec))
+            .AddHttpMessageHandler(sp => spec.AuthHandler(sp, spec))
             .AddHttpMessageHandler(sp => CreateRateLimitHandler(sp, spec))
             .RedactLoggedHeaders(name => RedactedHeaders.Contains(name, StringComparer.OrdinalIgnoreCase));
 
@@ -104,6 +131,13 @@ internal static class RemoteSourceRegistration
         var options = sp.GetRequiredService<IOptions<RemoteSourceOptions>>().Value;
         var target = new PatTarget(spec.Provider, RemoteUrl.BaseAddress(spec.Select(options).BaseUrl));
         return new PatAuthHandler(sp.GetRequiredService<ISessionCredentials>(), spec.Scheme, target);
+    }
+
+    private static RemoteTokenAuthHandler CreateTokenHandler(IServiceProvider sp, RemoteClientSpec spec)
+    {
+        var options = sp.GetRequiredService<IOptions<RemoteSourceOptions>>().Value;
+        var target = new PatTarget(spec.Provider, RemoteUrl.BaseAddress(spec.Select(options).BaseUrl));
+        return new RemoteTokenAuthHandler(sp.GetRequiredService<IRemoteTokenResolver>(), spec.Scheme, target);
     }
 
     private static RateLimitHandler CreateRateLimitHandler(IServiceProvider sp, RemoteClientSpec spec)
@@ -123,5 +157,6 @@ internal static class RemoteSourceRegistration
         SourceType Provider,
         PatScheme Scheme,
         Func<RemoteSourceOptions, RemoteProviderOptions> Select,
-        Func<IServiceProvider, IRateHeaderReader> Reader);
+        Func<IServiceProvider, IRateHeaderReader> Reader,
+        Func<IServiceProvider, RemoteClientSpec, DelegatingHandler> AuthHandler);
 }

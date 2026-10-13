@@ -15,6 +15,14 @@ internal sealed record GitHubRepoWire(
     string? Description = null,
     DateTimeOffset? UpdatedAt = null);
 
+internal sealed record GitHubInstallationAccountWire(string? Login);
+
+internal sealed record GitHubInstallationWire(long Id, GitHubInstallationAccountWire? Account);
+
+internal sealed record GitHubInstallationsWire(List<GitHubInstallationWire>? Installations);
+
+internal sealed record GitHubInstallationReposWire(List<GitHubRepoWire>? Repositories);
+
 internal sealed record GitHubCommitWire(string? Sha);
 
 internal sealed record GitHubBranchWire(
@@ -33,6 +41,8 @@ internal sealed record GitHubTreeWire(string? Sha, bool Truncated, List<GitHubTr
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower, PropertyNameCaseInsensitive = true)]
 [JsonSerializable(typeof(List<GitHubRepoWire>))]
 [JsonSerializable(typeof(List<GitHubBranchWire>))]
+[JsonSerializable(typeof(GitHubInstallationsWire))]
+[JsonSerializable(typeof(GitHubInstallationReposWire))]
 [JsonSerializable(typeof(GitHubRefWire))]
 [JsonSerializable(typeof(GitHubTreeWire))]
 internal sealed partial class GitHubJson : JsonSerializerContext;

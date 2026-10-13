@@ -122,18 +122,18 @@ public class DependencyInjectionTests
     }
 
     [Theory]
-    [InlineData(HttpClientNames.GitHub)]
-    [InlineData(HttpClientNames.AzureDevOps)]
-    public void RemoteClients_Always_AuthenticateBeforeRateLimiting(string name)
+    [InlineData(HttpClientNames.GitHub, typeof(RemoteTokenAuthHandler))]
+    [InlineData(HttpClientNames.AzureDevOps, typeof(PatAuthHandler))]
+    public void RemoteClients_Always_AuthenticateBeforeRateLimiting(string name, Type authHandler)
     {
         using var provider = Build();
         var factory = provider.GetRequiredService<IHttpMessageHandlerFactory>();
 
         var chain = Chain(factory, name);
 
-        Assert.Contains(typeof(PatAuthHandler), chain);
+        Assert.Contains(authHandler, chain);
         Assert.Contains(typeof(RateLimitHandler), chain);
-        Assert.True(chain.IndexOf(typeof(PatAuthHandler)) < chain.IndexOf(typeof(RateLimitHandler)));
+        Assert.True(chain.IndexOf(authHandler) < chain.IndexOf(typeof(RateLimitHandler)));
     }
 
     [Theory]

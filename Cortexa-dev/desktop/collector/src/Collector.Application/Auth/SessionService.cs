@@ -251,6 +251,8 @@ public sealed class SessionService : ISignInService, IAccessTokenProvider, ISess
         _credentials.ClearAll();
         await _secrets.DeleteAsync(SecretSlot.CortexaAccessToken, cancellationToken);
         await _secrets.DeleteAsync(SecretSlot.CortexaRefreshToken, cancellationToken);
+        await _secrets.DeleteAsync(SecretSlot.GitHubOAuthToken, cancellationToken);
+        await _secrets.DeleteAsync(SecretSlot.GitHubAppToken, cancellationToken);
         await TryCloseSshAsync();
     }
 

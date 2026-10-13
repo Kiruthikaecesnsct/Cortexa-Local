@@ -32,9 +32,7 @@ None in `contracts/`. US151 and US152 both have Contract None. The batch results
 - **Source-agnostic remote files table (2026-10-08)**: One `remote_files` table covers all four sources. Do not drop the `COALESCE` in the unique key. SSH reuses it.
 - **Upload retry and rollback (2026-10-08)**: Publish failures do not roll back. Recovery is a replay with the same Idempotency-Key. A 409 `upload_in_progress` is retryable. A 409 `idempotency_key_reused` is final.
 
-## Open conflict to resolve before US151 or US152 starts
-
-- **Token storage contradicts US138.** The US151 and US152 capsules assume tokens persist through `CredentialManagerStore` (the App refresh token pair in US151, the encrypted MSAL cache in US152). US138 forbids that for remote credentials. Alpha must choose one: a new decision that scopes an exception for these two credentials, or in-memory tokens with a fresh sign-in after each restart. Both capsules are not startable as written until this is settled.
+**Resolved 2026-10-13**: OAuth tokens for US151 and US152 may persist encrypted in Credential Manager (approved exception to US138); PATs and the SSH passphrase stay session-only. See `decisions/20261013-collector-oauth-token-persistence.md`.
 
 ## Standing blockers and open follow-ups
 

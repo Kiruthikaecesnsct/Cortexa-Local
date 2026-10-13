@@ -1,4 +1,5 @@
 using Collector.Application.Remote;
+using Collector.Application.Remote.Auth;
 using Collector.Domain.Enums;
 
 namespace Collector.Tests.Remote;
@@ -135,5 +136,61 @@ public sealed class RemoteConnectRulesTests
         Assert.NotNull(errors.UsernameError);
         Assert.NotNull(errors.KeyFileError);
         Assert.NotNull(errors.FolderError);
+    }
+
+    [Fact]
+    public void AuthMethodsFor_GitHub_AlwaysListsDeviceAppAndPat() =>
+        Assert.Equal(
+            [RemoteAuthMethod.GitHubDevice, RemoteAuthMethod.GitHubApp, RemoteAuthMethod.Pat],
+            RemoteConnectRules.AuthMethodsFor(SourceType.Github));
+
+    [Fact]
+    public void AuthMethodsFor_AzureDevOps_IsPatOnly() =>
+        Assert.Equal([RemoteAuthMethod.Pat], RemoteConnectRules.AuthMethodsFor(SourceType.AzureDevops));
+
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    [InlineData(false, false)]
+    public void IsMethodEnabled_FollowsAvailability_AndPatIsAlwaysEnabled(bool device, bool app)
+    {
+        var availability = new RemoteAuthAvailability(device, app);
+
+        Assert.Equal(device, RemoteConnectRules.IsMethodEnabled(RemoteAuthMethod.GitHubDevice, availability));
+        Assert.Equal(app, RemoteConnectRules.IsMethodEnabled(RemoteAuthMethod.GitHubApp, availability));
+        Assert.True(RemoteConnectRules.IsMethodEnabled(RemoteAuthMethod.Pat, availability));
+    }
+
+    [Theory]
+    [InlineData(true, true, RemoteAuthMethod.GitHubDevice)]
+    [InlineData(true, false, RemoteAuthMethod.GitHubDevice)]
+    [InlineData(false, true, RemoteAuthMethod.GitHubApp)]
+    [InlineData(false, false, RemoteAuthMethod.Pat)]
+    public void DefaultMethod_GitHub_IsTheFirstEnabledMethod(bool device, bool app, RemoteAuthMethod expected) =>
+        Assert.Equal(expected, RemoteConnectRules.DefaultMethod(SourceType.Github, new RemoteAuthAvailability(device, app)));
+
+    [Fact]
+    public void DefaultMethod_AzureDevOps_IsPatEvenWhenGitHubMethodsAreConfigured() =>
+        Assert.Equal(
+            RemoteAuthMethod.Pat,
+            RemoteConnectRules.DefaultMethod(SourceType.AzureDevops, new RemoteAuthAvailability(true, true)));
+
+    [Fact]
+    public void ValidateOAuthForm_ValidUrl_IsValidWithoutAToken()
+    {
+        var result = RemoteConnectRules.ValidateOAuthForm(SourceType.Github, "https://github.com/octo");
+
+        Assert.True(result.IsValid);
+        Assert.Null(result.UrlError);
+    }
+
+    [Fact]
+    public void ValidateOAuthForm_InvalidUrl_ReturnsTheUrlError()
+    {
+        var result = RemoteConnectRules.ValidateOAuthForm(SourceType.Github, "nope");
+
+        Assert.False(result.IsValid);
+        Assert.Equal("Enter a URL like https://github.com/your-organization", result.UrlError);
     }
 }

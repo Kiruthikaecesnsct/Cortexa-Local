@@ -1,9 +1,11 @@
 using Collector.Application.Ports;
 using Collector.Application.Remote;
+using Collector.Application.Remote.Auth;
 using Collector.Application.Remote.Selection;
 using Collector.Application.Settings;
 using Collector.Domain.Enums;
 using Collector.Domain.Remote;
+using Collector.Infrastructure.Options;
 using Collector.Infrastructure.Secrets;
 using Collector.Presentation.Services;
 using Collector.Presentation.ViewModels;
@@ -32,9 +34,12 @@ internal sealed class ScriptedRemoteClient(SourceType provider) : IRemoteReposit
 
     public TaskCompletionSource? Gate { get; set; }
 
+    public Action? BeforeList { get; set; }
+
     public async Task<IReadOnlyList<RemoteRepository>> ListRepositoriesAsync(string? scope, CancellationToken cancellationToken)
     {
         ListCalls++;
+        BeforeList?.Invoke();
         LastScope = scope;
         if (Gate is not null)
         {
@@ -119,11 +124,86 @@ internal sealed class FakeLinkLauncher : IExternalLinkLauncher
 {
     public List<Uri> Opened { get; } = [];
 
+    public bool Succeeds { get; set; } = true;
+
     public bool TryOpen(Uri uri)
     {
         Opened.Add(uri);
-        return true;
+        return Succeeds;
     }
+}
+
+internal sealed class SwitchableClipboard : IClipboard
+{
+    public string? Text { get; private set; }
+
+    public bool Succeeds { get; set; } = true;
+
+    public bool TrySetText(string text)
+    {
+        Text = Succeeds ? text : Text;
+        return Succeeds;
+    }
+}
+
+internal sealed class FakeGitHubSignIn : IGitHubSignIn
+{
+    public RemoteAuthMethod ActiveMethod { get; set; }
+
+    public bool IsSignedIn => ActiveMethod != RemoteAuthMethod.Pat;
+
+    public DeviceCodeGrant Grant { get; set; } = new(
+        "device-code",
+        "WDJB-MJHT",
+        new Uri("https://github.com/login/device"),
+        TimeSpan.FromMinutes(15),
+        TimeSpan.FromSeconds(5));
+
+    public Exception? StartError { get; set; }
+
+    public DeviceFlowOutcome Outcome { get; set; } = new DeviceFlowOutcome.SignedIn();
+
+    public TaskCompletionSource<DeviceFlowOutcome>? CompleteGate { get; set; }
+
+    public Exception? SignOutError { get; set; }
+
+    public List<RemoteAuthMethod> Started { get; } = [];
+
+    public int SignOutCalls { get; private set; }
+
+    public Task<DeviceCodeGrant> StartAsync(RemoteAuthMethod method, CancellationToken cancellationToken)
+    {
+        Started.Add(method);
+        return StartError is null ? Task.FromResult(Grant) : Task.FromException<DeviceCodeGrant>(StartError);
+    }
+
+    public async Task<DeviceFlowOutcome> CompleteAsync(
+        RemoteAuthMethod method,
+        DeviceCodeGrant grant,
+        CancellationToken cancellationToken)
+    {
+        var outcome = CompleteGate is null ? Outcome : await CompleteGate.Task.WaitAsync(cancellationToken);
+        if (outcome is DeviceFlowOutcome.SignedIn)
+        {
+            ActiveMethod = method;
+        }
+
+        return outcome;
+    }
+
+    public Task SignOutAsync(CancellationToken cancellationToken)
+    {
+        SignOutCalls++;
+        if (SignOutError is not null)
+        {
+            return Task.FromException(SignOutError);
+        }
+
+        ActiveMethod = RemoteAuthMethod.Pat;
+        return Task.CompletedTask;
+    }
+
+    public Task RestoreAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 }
 
 internal sealed class FakeSshCloser : ISshConnectionCloser
@@ -144,9 +224,13 @@ internal sealed class RemoteSourceHarness
 
     private IntakeProgressViewModel? _intake;
 
-    public RemoteSourceHarness(Action<RemoteFetchOptions>? configureOptions = null)
+    public RemoteSourceHarness(
+        Action<RemoteFetchOptions>? configureOptions = null,
+        RemoteAuthAvailability? availability = null,
+        Action<FakeGitHubSignIn>? configureSignIn = null)
     {
         configureOptions?.Invoke(FetchOptions.Value);
+        configureSignIn?.Invoke(SignIn);
         Settings = new SettingsService(Store, Secrets, new FakeGeminiKeyStore());
         var clients = new FakeRemoteClients(GitHub, AzureDevOps, Cortexa);
         var dependencies = new RemoteSourceDependencies(
@@ -160,7 +244,12 @@ internal sealed class RemoteSourceHarness
             Picker,
             FetchOptions,
             Intake,
-            new FileTreeBuilder(new RemoteFileFilter(FetchOptions)));
+            new FileTreeBuilder(new RemoteFileFilter(FetchOptions)),
+            new GitHubAuthDependencies(
+                SignIn,
+                Clipboard,
+                availability ?? RemoteAuthAvailability.None,
+                Options.Create(new RemoteSourceOptions())));
         ViewModel = new RemoteSourceViewModel(
             dependencies,
             TimeProvider.System,
@@ -194,6 +283,10 @@ internal sealed class RemoteSourceHarness
     public FakeRateLimitMonitor RateLimits { get; } = new();
 
     public FakeLinkLauncher Links { get; } = new();
+
+    public FakeGitHubSignIn SignIn { get; } = new();
+
+    public SwitchableClipboard Clipboard { get; } = new();
 
     public FakeFilePicker Picker { get; } = new([]);
 

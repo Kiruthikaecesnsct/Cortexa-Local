@@ -1,5 +1,6 @@
 using System.Windows.Input;
 using Collector.Application.Remote;
+using Collector.Application.Remote.Auth;
 using Collector.Domain.Enums;
 using Collector.Presentation.ViewModels;
 
@@ -106,6 +107,34 @@ public sealed class RemoteFormattingTests
         var banner = Factory().ForFailure(RemoteFailureKind.RateLimited, context);
 
         Assert.Equal("Try again in about 4 minutes.", banner.Message);
+    }
+
+    [Fact]
+    public void AccessDenied_WhileSignedInWithOAuth_NamesTheOrgAndNeverMentionsTokens()
+    {
+        var context = new RemoteFailureContext(SourceType.Github, string.Empty, string.Empty, "acme-labs", string.Empty, string.Empty)
+        {
+            SignedInWith = RemoteAuthMethod.GitHubDevice,
+        };
+
+        var banner = Factory().ForFailure(RemoteFailureKind.AccessDenied, context);
+
+        Assert.Equal(BannerSeverity.Error, banner.Severity);
+        Assert.Contains("acme-labs", banner.Title, StringComparison.Ordinal);
+        Assert.Equal("Try again", banner.ActionText);
+        Assert.DoesNotContain("token can't", $"{banner.Title} {banner.Message}", StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void AccessDenied_WithTokenAndNoRepositoryPicked_TalksAboutTheOrganization()
+    {
+        var context = new RemoteFailureContext(SourceType.Github, string.Empty, string.Empty, "acme-labs", string.Empty, string.Empty);
+
+        var banner = Factory().ForFailure(RemoteFailureKind.AccessDenied, context);
+
+        Assert.Equal("Your token can't read this organization.", banner.Title);
+        Assert.Contains("acme-labs", banner.Message, StringComparison.Ordinal);
+        Assert.Equal("Change token", banner.ActionText);
     }
 
     [Theory]

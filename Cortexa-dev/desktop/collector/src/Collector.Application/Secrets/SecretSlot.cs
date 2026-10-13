@@ -11,4 +11,6 @@ public enum SecretSlot
     GitHubPat,
     AzureDevOpsPat,
     SshPassphrase,
+    GitHubOAuthToken,
+    GitHubAppToken,
 }

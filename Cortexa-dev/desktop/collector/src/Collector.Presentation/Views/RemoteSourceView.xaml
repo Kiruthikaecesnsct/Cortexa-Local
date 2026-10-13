@@ -5,6 +5,7 @@
              xmlns:sys="clr-namespace:System;assembly=System.Runtime"
              xmlns:res="clr-namespace:Collector.Presentation.Resources"
              xmlns:vm="clr-namespace:Collector.Presentation.ViewModels"
+             xmlns:local="clr-namespace:Collector.Presentation.Views"
              Focusable="False"
              IsTabStop="False">
     <UserControl.InputBindings>
@@ -66,8 +67,56 @@
         <Style x:Key="Connection.Sections" TargetType="UniformGrid">
             <Setter Property="Margin" Value="{StaticResource Thickness.GridBleed.Section}" />
             <Style.Triggers>
-                <DataTrigger Binding="{Binding IsConnecting}" Value="True">
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding IsConnecting}" Value="True" />
+                        <Condition Binding="{Binding IsPatMethod}" Value="True" />
+                    </MultiDataTrigger.Conditions>
                     <Setter Property="IsEnabled" Value="False" />
+                </MultiDataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="GitHubAuth.SignIn" TargetType="Button" BasedOn="{StaticResource Button.Primary}">
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Content" Value="{x:Static res:GitHubAuthStrings.SignIn}" />
+        </Style>
+
+        <Style x:Key="GitHubAuth.SignedIn" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource Brush.Success.Surface}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Success.Border}" />
+            <Setter Property="BorderThickness" Value="{StaticResource Thickness.Border}" />
+            <Setter Property="CornerRadius" Value="{StaticResource Radius.Control}" />
+            <Setter Property="Padding" Value="{StaticResource Thickness.ControlPadding}" />
+        </Style>
+
+        <Style x:Key="GitHubAuth.Notice" TargetType="Border" BasedOn="{StaticResource InlineNotice.Warning}">
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding AuthNoticeKind}" Value="Info">
+                    <Setter Property="Background" Value="{DynamicResource Brush.Info.Surface}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Info.Border}" />
+                    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Info}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding AuthNoticeKind}" Value="Success">
+                    <Setter Property="Background" Value="{DynamicResource Brush.Success.Surface}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Success.Border}" />
+                    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Success}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="GitHubAuth.NoticeGlyph" TargetType="TextBlock" BasedOn="{StaticResource Text.Glyph}">
+            <Setter Property="Text" Value="{x:Static res:Glyphs.Warning}" />
+            <Setter Property="Foreground" Value="{DynamicResource Brush.Warning}" />
+            <Setter Property="Margin" Value="{StaticResource Thickness.InlineGapLarge}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding AuthNoticeKind}" Value="Info">
+                    <Setter Property="Text" Value="{x:Static res:Glyphs.Info}" />
+                    <Setter Property="Foreground" Value="{DynamicResource Brush.Info}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding AuthNoticeKind}" Value="Success">
+                    <Setter Property="Text" Value="{x:Static res:Glyphs.Success}" />
+                    <Setter Property="Foreground" Value="{DynamicResource Brush.Success}" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -384,6 +433,18 @@
                          Style="{StaticResource SegmentedToggle}" />
         </DataTemplate>
 
+        <DataTemplate x:Key="Segment.AuthMethod">
+            <RadioButton AutomationProperties.Name="{Binding Label}"
+                         Content="{Binding Label}"
+                         AutomationProperties.HelpText="{Binding HelpText}"
+                         GroupName="GitHubAuthMethod"
+                         IsChecked="{Binding IsSelected}"
+                         IsEnabled="{Binding IsAvailable}"
+                         Style="{StaticResource SegmentedToggle}"
+                         ToolTip="{Binding UnavailableReason}"
+                         ToolTipService.ShowOnDisabled="True" />
+        </DataTemplate>
+
         <DataTemplate x:Key="Segment.Sort">
             <RadioButton Content="{Binding Label}"
                          GroupName="RepositorySort"
@@ -423,7 +484,7 @@
                                 <TextBlock Style="{StaticResource Tag.Label}" Text="{Binding StatusText}" />
                             </StackPanel>
                         </Border>
-                        <Button AutomationProperties.Name="{x:Static res:RemoteSourceStrings.DisconnectName}"
+                        <Button AutomationProperties.Name="{Binding DisconnectAutomationName}"
                                 Command="{Binding DisconnectCommand}"
                                 Content="{x:Static res:RemoteSourceStrings.Disconnect}"
                                 Style="{StaticResource Connection.Disconnect}" />
@@ -498,14 +559,18 @@
                         <ProgressBar Margin="{StaticResource Thickness.StackGap}"
                                      AutomationProperties.Name="{x:Static res:RemoteSourceStrings.LoadingRepositories}"
                                      Style="{StaticResource Progress.Thin}" />
-                        <TextBlock Style="{StaticResource Text.Caption}" Text="{x:Static res:RemoteSourceStrings.ConnectingMessage}" />
+                        <TextBlock Style="{StaticResource Text.Caption}" Text="{Binding ConnectingText}" />
                     </StackPanel>
 
                     <StackPanel Visibility="{Binding ShowConnectStep, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel.InputBindings>
+                            <KeyBinding Key="Escape" Command="{Binding DeviceFlow.CancelCommand}" />
+                        </StackPanel.InputBindings>
                         <UniformGrid Columns="{Binding ActualWidth, RelativeSource={RelativeSource Self}, Converter={StaticResource Columns.Sections}}"
                                      Style="{StaticResource Connection.Sections}">
                             <HeaderedContentControl AutomationProperties.Name="{x:Static res:RemoteSourceStrings.OrganizationSectionTitle}"
                                                     Header="{x:Static res:RemoteSourceStrings.OrganizationSectionTitle}"
+                                                    IsEnabled="{Binding AreConnectInputsEnabled}"
                                                     Style="{StaticResource NumberedSectionCard}"
                                                     Tag="1"
                                                     b:FieldState.Helper="{Binding OrgUrlHint}">
@@ -523,20 +588,48 @@
                                              b:FieldState.HasError="{Binding OrgUrlError, Converter={StaticResource NotEmptyToBool}}"
                                              b:FocusRouter.Key="RemoteOrganization">
                                         <TextBox.InputBindings>
-                                            <KeyBinding Key="Enter" Command="{Binding ConnectCommand}" />
+                                            <KeyBinding Key="Enter" Command="{Binding ConnectActiveMethodCommand}" />
                                         </TextBox.InputBindings>
                                     </TextBox>
                                 </HeaderedContentControl>
                             </HeaderedContentControl>
 
-                            <HeaderedContentControl AutomationProperties.Name="{x:Static res:RemoteSourceStrings.TokenSectionTitle}"
-                                                    Header="{x:Static res:RemoteSourceStrings.TokenSectionTitle}"
+                            <HeaderedContentControl AutomationProperties.HelpText="{Binding SectionTwoHint}"
+                                                    AutomationProperties.Name="{Binding SectionTwoTitle}"
+                                                    Header="{Binding SectionTwoTitle}"
                                                     Style="{StaticResource NumberedSectionCard}"
                                                     Tag="2"
-                                                    b:FieldState.Helper="{Binding TokenHint}">
+                                                    b:FieldState.Helper="{Binding SectionTwoHint}">
                                 <StackPanel>
+                                    <StackPanel Margin="{StaticResource Thickness.StackGapMedium}"
+                                                Visibility="{Binding ShowAuthPicker, Converter={StaticResource BoolToVisibility}}">
+                                        <Border Margin="{StaticResource Thickness.StackGap}"
+                                                HorizontalAlignment="Left"
+                                                IsEnabled="{Binding AreConnectInputsEnabled}"
+                                                Style="{StaticResource SegmentedToggle.Track}">
+                                            <ItemsControl AutomationProperties.HelpText="{Binding AuthAvailabilityNote, TargetNullValue={x:Static sys:String.Empty}}"
+                                                          AutomationProperties.Name="{x:Static res:GitHubAuthStrings.AuthPickerName}"
+                                                          Focusable="False"
+                                                          IsTabStop="False"
+                                                          ItemTemplate="{StaticResource Segment.AuthMethod}"
+                                                          ItemsSource="{Binding AuthMethods}"
+                                                          KeyboardNavigation.DirectionalNavigation="Cycle"
+                                                          KeyboardNavigation.TabNavigation="Once">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <StackPanel Orientation="Horizontal" />
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                            </ItemsControl>
+                                        </Border>
+                                        <TextBlock AutomationProperties.LiveSetting="Off"
+                                                   Style="{StaticResource Text.Helper}"
+                                                   Text="{Binding AuthAvailabilityNote}"
+                                                   Visibility="{Binding AuthAvailabilityNote, Converter={StaticResource NotEmptyToVisibility}}" />
+                                    </StackPanel>
                                     <HeaderedContentControl Header="{x:Static res:RemoteSourceStrings.TokenLabel}"
                                                             Style="{StaticResource FormField}"
+                                                            Visibility="{Binding ShowTokenField, Converter={StaticResource BoolToVisibility}}"
                                                             b:FieldState.Error="{Binding TokenError}">
                                         <Grid Focusable="True"
                                               FocusVisualStyle="{x:Null}"
@@ -577,7 +670,8 @@
                                     <Button HorizontalAlignment="Left"
                                             AutomationProperties.Name="{Binding TokenLinkText}"
                                             Command="{Binding OpenTokenPageCommand}"
-                                            Style="{StaticResource Button.Link}">
+                                            Style="{StaticResource Button.Link}"
+                                            Visibility="{Binding ShowTokenField, Converter={StaticResource BoolToVisibility}}">
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Margin="{StaticResource Thickness.InlineGap}"
                                                        VerticalAlignment="Center"
@@ -587,13 +681,65 @@
                                                        Text="{x:Static res:Glyphs.OpenInNewWindow}" />
                                         </StackPanel>
                                     </Button>
+                                    <TextBlock Margin="{StaticResource Thickness.StackGap}"
+                                               Style="{StaticResource Text.Helper}"
+                                               Text="{x:Static res:GitHubAuthStrings.OAuthNote}"
+                                               Visibility="{Binding ShowStartSignIn, Converter={StaticResource BoolToVisibility}}" />
+                                    <local:GitHubDeviceCodePanel DataContext="{Binding DeviceFlow}" />
+                                    <Border Margin="{StaticResource Thickness.StackGapMedium}"
+                                            AutomationProperties.Name="{Binding SignedInLabel}"
+                                            Style="{StaticResource GitHubAuth.SignedIn}"
+                                            Visibility="{Binding IsGitHubSignedIn, Converter={StaticResource BoolToVisibility}}">
+                                        <StackPanel>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Margin="{StaticResource Thickness.InlineGapLarge}"
+                                                           Foreground="{DynamicResource Brush.Success}"
+                                                           Style="{StaticResource Text.Glyph}"
+                                                           Text="{x:Static res:Glyphs.Success}" />
+                                                <TextBlock Style="{StaticResource Text.Label}"
+                                                           Text="{Binding SignedInLabel}"
+                                                           TextWrapping="Wrap" />
+                                            </StackPanel>
+                                            <TextBlock Margin="{StaticResource Thickness.StackGap}"
+                                                       Style="{StaticResource Text.Helper}"
+                                                       Text="{x:Static res:GitHubAuthStrings.SignedInSaved}" />
+                                            <Button HorizontalAlignment="Left"
+                                                    AutomationProperties.Name="{Binding SignOutAutomationName}"
+                                                    Command="{Binding SignOutGitHubCommand}"
+                                                    Content="{Binding SignOutText}"
+                                                    Style="{StaticResource Button.Link}"
+                                                    b:FocusRouter.Key="GitHubSignOut" />
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Margin="{StaticResource Thickness.StackGap}"
+                                            AutomationProperties.LiveSetting="Polite"
+                                            AutomationProperties.Name="{Binding AuthNotice, TargetNullValue={x:Static sys:String.Empty}}"
+                                            Style="{StaticResource GitHubAuth.Notice}"
+                                            Visibility="{Binding HasAuthNotice, Converter={StaticResource BoolToVisibility}}">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Style="{StaticResource GitHubAuth.NoticeGlyph}" />
+                                            <TextBlock Style="{StaticResource Text.Body}" Text="{Binding AuthNotice}" TextWrapping="Wrap" />
+                                        </StackPanel>
+                                    </Border>
                                 </StackPanel>
                             </HeaderedContentControl>
                         </UniformGrid>
                         <Button Margin="{StaticResource Thickness.ActionTop}"
                                 AutomationProperties.Name="{x:Static res:RemoteSourceStrings.ConnectAndFindName}"
                                 Command="{Binding ConnectCommand}"
-                                Style="{StaticResource Connection.Connect}" />
+                                Style="{StaticResource Connection.Connect}"
+                                Visibility="{Binding IsPatMethod, Converter={StaticResource BoolToVisibility}}" />
+                        <Button Margin="{StaticResource Thickness.ActionTop}"
+                                AutomationProperties.Name="{x:Static res:GitHubAuthStrings.SignInName}"
+                                Command="{Binding StartGitHubSignInCommand}"
+                                Style="{StaticResource GitHubAuth.SignIn}"
+                                Visibility="{Binding ShowStartSignIn, Converter={StaticResource BoolToVisibility}}"
+                                b:FocusRouter.Key="GitHubSignIn" />
+                        <Button Margin="{StaticResource Thickness.ActionTop}"
+                                AutomationProperties.Name="{x:Static res:RemoteSourceStrings.ConnectAndFindName}"
+                                Command="{Binding ConnectOAuthCommand}"
+                                Style="{StaticResource Connection.Connect}"
+                                Visibility="{Binding IsGitHubSignedIn, Converter={StaticResource BoolToVisibility}}" />
                     </StackPanel>
 
                     <StackPanel x:Name="RepositoryStep"

@@ -246,6 +246,18 @@ public class SessionServiceTests
     }
 
     [Fact]
+    public async Task Sign_out_also_deletes_the_github_oauth_slots()
+    {
+        Seed("access", "refresh");
+        _secrets.Values[SecretSlot.GitHubOAuthToken] = "device";
+        _secrets.Values[SecretSlot.GitHubAppToken] = "app";
+
+        await _service.SignOutAsync(TestSupport.Ct);
+
+        Assert.Empty(_secrets.Values);
+    }
+
+    [Fact]
     public async Task Sign_out_clears_the_session_credentials()
     {
         SeedCredentials();

@@ -25,7 +25,8 @@ public sealed record RemoteSourceDependencies(
     IFilePicker Picker,
     IOptions<RemoteFetchOptions> FetchOptions,
     IntakeProgressViewModel Intake,
-    FileTreeBuilder TreeBuilder);
+    FileTreeBuilder TreeBuilder,
+    GitHubAuthDependencies GitHubAuth);
 
 public sealed record RemoteFilesFetchedEventArgs(IReadOnlyList<FetchedFile> Files, SourceType Source, string Origin)
 {
@@ -56,6 +57,11 @@ public static class RemoteFocusKeys
     public const string Proceed = "Proceed";
     public const string ChangeFiles = "ChangeFiles";
     public const string FetchAgain = "FetchAgain";
+    public const string GitHubSignIn = "GitHubSignIn";
+    public const string DeviceCopy = "DeviceCopy";
+    public const string DeviceOutcome = "DeviceOutcome";
+    public const string DeviceUsePat = "DeviceUsePat";
+    public const string GitHubSignOut = "GitHubSignOut";
 }
 
 public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposable
@@ -89,6 +95,7 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
         _limitText = RemoteSizeFormatter.Format(_limitBytes);
         _countdown = new RateLimitCountdown(time);
         _banners = new RemoteBannerFactory(CreateActions());
+        DeviceFlow = CreateDeviceFlow();
         FileTree = new RemoteFileTreeViewModel(dependencies.TreeBuilder, dependencies.FetchOptions.Value.MaxSelectedFiles, time);
         FileTree.PropertyChanged += OnFileTreeChanged;
         Sources = CreateSources();
@@ -97,6 +104,7 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
         InitializeOptions();
         SyncSteps();
         OrgUrl = DefaultOrgUrl(SelectedSource);
+        ResetGitHubAuth();
         dependencies.RateLimits.StatusChanged += OnRateStatusChanged;
         SyncChips();
     }
@@ -143,7 +151,7 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
     {
         SourceType.AzureDevops => RemoteSourceStrings.EmptyAzureDevOps(_connectedOrganization),
         SourceType.CortexaRepo => RemoteSourceStrings.EmptyCortexa,
-        _ => RemoteSourceStrings.EmptyGitHub,
+        _ => GitHubEmptyText(),
     };
 
     public string CortexaBranchName => RemoteSourceStrings.CortexaBranchName(SelectedBranch?.Name ?? string.Empty);
@@ -214,6 +222,7 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
     {
         _deps.RateLimits.StatusChanged -= OnRateStatusChanged;
         _countdown.Dispose();
+        DeviceFlow.Dispose();
         _listCts?.Cancel();
         _branchCts?.Cancel();
         _treeCts?.Cancel();
@@ -384,7 +393,8 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
         new AsyncRelayCommand(RunListAsync),
         new RelayCommand(OpenGitHubTokens),
         new RelayCommand(() => SelectedSource = SourceType.Local),
-        new RelayCommand(() => Banner = null));
+        new RelayCommand(() => Banner = null),
+        new RelayCommand(SignInAgain));
 
     private void OpenGitHubTokens()
     {
@@ -426,11 +436,13 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
             SelectedSource,
             row?.FullName ?? string.Empty,
             SelectedBranch?.Name ?? row?.DefaultBranch ?? string.Empty,
-            row?.Repository.Owner ?? string.Empty,
+            row?.Repository.Owner ?? _connectedOrganization,
             row?.SizeText ?? string.Empty,
             _limitText)
         {
             RetryAfter = retryAfter,
+            ExpiredSignIn = ExpiredOAuthMethod,
+            SignedInWith = SignedInOAuthMethod,
         };
     }
 }

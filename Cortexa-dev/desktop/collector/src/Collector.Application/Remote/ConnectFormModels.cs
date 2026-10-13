@@ -5,6 +5,11 @@ public sealed record TokenFormResult(OrgUrl? Organization, string? UrlError, str
     public bool IsValid => Organization is not null && TokenError is null;
 }
 
+public sealed record OAuthFormResult(OrgUrl? Organization, string? UrlError)
+{
+    public bool IsValid => Organization is not null;
+}
+
 public sealed record SshFormInput(string? Host, string? Port, string? Username, string? KeyFilePath, string? Folder);
 
 public sealed record SshFormErrors(

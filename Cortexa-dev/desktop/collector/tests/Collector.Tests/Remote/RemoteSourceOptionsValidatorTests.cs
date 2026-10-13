@@ -115,4 +115,49 @@ public class RemoteSourceOptionsValidatorTests
 
         Assert.Equal(4, result.Failures!.Count());
     }
+
+    [Fact]
+    public void Validate_EmptyClientIds_IgnoresTheAuthSettings()
+    {
+        var result = Validate(options =>
+        {
+            options.GitHub.AuthBaseUrl = "not a url";
+            options.GitHub.TokenRefreshSkewSeconds = 0;
+        });
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Theory]
+    [InlineData("http://github.com")]
+    [InlineData("not a url")]
+    [InlineData("")]
+    public void Validate_ClientIdSetWithBadAuthBaseUrl_Fails(string authBaseUrl)
+    {
+        var result = Validate(options =>
+        {
+            options.GitHub.OAuthClientId = "client";
+            options.GitHub.AuthBaseUrl = authBaseUrl;
+        });
+
+        Assert.Contains("GitHub:AuthBaseUrl", Assert.Single(result.Failures!));
+    }
+
+    [Fact]
+    public void Validate_AppClientIdSetWithZeroSkew_Fails()
+    {
+        var result = Validate(options =>
+        {
+            options.GitHub.AppClientId = "client";
+            options.GitHub.TokenRefreshSkewSeconds = 0;
+        });
+
+        Assert.Contains("TokenRefreshSkewSeconds", Assert.Single(result.Failures!));
+    }
+
+    [Fact]
+    public void Validate_ClientIdSetWithDefaults_Succeeds()
+    {
+        Assert.True(Validate(options => options.GitHub.OAuthClientId = "client").Succeeded);
+    }
 }

@@ -310,6 +310,11 @@ public static class RemoteSourceStrings
 
     public static string AuthTitle(string provider) => $"{provider} didn't accept your token.";
 
+    public const string OrgDeniedTitle = "Your token can't read this organization.";
+
+    public static string OrgDeniedMessage(string organization) =>
+        $"Give the token read access to {organization}, or check the organization URL.";
+
     public static string DeniedMessage(string repository, bool isGitHub) =>
         isGitHub
             ? $"Give the token Contents (Read) access to {repository}, or pick another repository."

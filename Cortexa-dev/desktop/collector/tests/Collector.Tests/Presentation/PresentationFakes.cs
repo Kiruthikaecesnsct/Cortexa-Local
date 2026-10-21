@@ -150,7 +150,12 @@ internal sealed class KnowledgeHarness
     {
         Session = new FakeSession { Current = session };
         Navigator = new SettingsNavigator(Navigation);
-        ViewModel = new KnowledgeRunViewModel(Runner, State, new KnowledgeRunNavigation(Navigation, Navigator), Session)
+        Passes = new ProcessPasses(Runner, State, CandidateRunner, CandidateState);
+        ViewModel = new KnowledgeRunViewModel(
+            Passes,
+            new KnowledgeRunNavigation(Navigation, Navigator),
+            Session,
+            new CandidateProgressViewModel(CandidateState))
         {
             Readiness = ProviderReadinessState.Ready,
         };
@@ -158,6 +163,12 @@ internal sealed class KnowledgeHarness
     }
 
     public SettingsNavigator Navigator { get; }
+
+    public ProcessPasses Passes { get; }
+
+    public FakeCandidateRunner CandidateRunner { get; } = new();
+
+    public CandidateRunState CandidateState { get; } = new();
 
     public FakeKnowledgeRunner Runner { get; } = new();
 

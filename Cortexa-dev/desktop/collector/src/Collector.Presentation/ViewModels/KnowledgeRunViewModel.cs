@@ -1,5 +1,6 @@
 using Collector.Application.Auth;
-using Collector.Application.Knowledge;
+// Knowledge extraction is disabled by product decision; restore this using when re-enabling it.
+// using Collector.Application.Knowledge;
 using Collector.Domain.Enums;
 using Collector.Presentation.Navigation;
 using Collector.Presentation.Resources;
@@ -11,7 +12,7 @@ namespace Collector.Presentation.ViewModels;
 
 public static class KnowledgeFocusKeys
 {
-    public const string Cancel = "Cancel";
+    public const string Cancel = "CandidateCancel";
     public const string Banner = "Banner";
 }
 
@@ -19,23 +20,25 @@ public sealed record KnowledgeRunNavigation(INavigationService Navigation, Setti
 
 public sealed partial class KnowledgeRunViewModel : FocusableViewModel
 {
-    private readonly IKnowledgeRunner _runner;
-    private readonly KnowledgeRunState _state;
+    private readonly ProcessPasses _passes;
     private readonly KnowledgeRunNavigation _navigation;
     private readonly ISessionState _session;
     private IReadOnlyList<string> _documentIds = [];
 
     public KnowledgeRunViewModel(
-        IKnowledgeRunner runner,
-        KnowledgeRunState state,
+        ProcessPasses passes,
         KnowledgeRunNavigation navigation,
-        ISessionState session)
+        ISessionState session,
+        CandidateProgressViewModel candidateProgress)
     {
-        _runner = runner;
-        _state = state;
+        _passes = passes;
         _navigation = navigation;
         _session = session;
+        CandidateProgress = candidateProgress;
+        CandidateProgress.CancelCommand = ExtractKnowledgeCancelCommand;
     }
+
+    public CandidateProgressViewModel CandidateProgress { get; }
 
     public string? Model { get; set; }
 
@@ -54,9 +57,10 @@ public sealed partial class KnowledgeRunViewModel : FocusableViewModel
     [NotifyCanExecuteChangedFor(nameof(ExtractKnowledgeCommand))]
     public partial ProviderReadinessState Readiness { get; set; } = ProviderReadinessState.Checking;
 
-    public string ProgressText => ExtractionStrings.RunProgress(CompletedUnits, TotalUnits);
-
-    public double ProgressMaximum => Math.Max(1, TotalUnits);
+    // Knowledge extraction is disabled by product decision; uncomment to re-enable.
+    // public string ProgressText => ExtractionStrings.RunProgress(CompletedUnits, TotalUnits);
+    //
+    // public double ProgressMaximum => Math.Max(1, TotalUnits);
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanExtract), nameof(ExtractHelp))]
@@ -68,13 +72,14 @@ public sealed partial class KnowledgeRunViewModel : FocusableViewModel
     [NotifyCanExecuteChangedFor(nameof(ExtractKnowledgeCommand))]
     public partial bool IsRunning { get; set; }
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ProgressText))]
-    public partial int CompletedUnits { get; set; }
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ProgressText), nameof(ProgressMaximum))]
-    public partial int TotalUnits { get; set; }
+    // Knowledge extraction is disabled by product decision; uncomment to re-enable.
+    // [ObservableProperty]
+    // [NotifyPropertyChangedFor(nameof(ProgressText))]
+    // public partial int CompletedUnits { get; set; }
+    //
+    // [ObservableProperty]
+    // [NotifyPropertyChangedFor(nameof(ProgressText), nameof(ProgressMaximum))]
+    // public partial int TotalUnits { get; set; }
 
     [ObservableProperty]
     public partial BannerViewModel? Banner { get; set; }
@@ -98,10 +103,12 @@ public sealed partial class KnowledgeRunViewModel : FocusableViewModel
         StartRun();
         try
         {
-            var progress = new SyncProgress<ExtractionProgress>(OnProgress);
-            var request = new KnowledgeRunRequest(_documentIds, Provider, Model);
-            var outcome = await _runner.RunAsync(request, progress, cancellationToken);
-            Finish(outcome);
+            // Knowledge pass disabled by product decision; uncomment the next four lines (and Decide below) to re-enable.
+            // var progress = new SyncProgress<ExtractionProgress>(OnProgress);
+            // var request = new KnowledgeRunRequest(_documentIds, Provider, Model);
+            // var outcome = await _passes.Knowledge.RunAsync(request, progress, cancellationToken);
+            await RunCandidatePassAsync(cancellationToken);
+            Decide();
         }
         finally
         {
@@ -112,37 +119,28 @@ public sealed partial class KnowledgeRunViewModel : FocusableViewModel
     private void StartRun()
     {
         Banner = null;
-        CompletedUnits = 0;
-        TotalUnits = 0;
+        _passes.KnowledgeState.Clear();
+        _passes.CandidateState.Clear();
         IsRunning = true;
         RequestFocus(KnowledgeFocusKeys.Cancel);
     }
 
-    private void OnProgress(ExtractionProgress progress)
+    private void Decide()
     {
-        TotalUnits = progress.TotalUnits;
-        CompletedUnits = progress.CompletedUnits;
-    }
-
-    private void Finish(KnowledgeRunOutcome outcome)
-    {
-        if (outcome.Status == KnowledgeRunStatus.Completed && outcome.Result is { } result)
+        var state = _passes.CandidateState;
+        if (!state.HasOutput)
         {
-            Complete(result);
             return;
         }
 
-        Banner = BannerFor(outcome);
-        RequestFocus(KnowledgeFocusKeys.Banner);
+        Proceed(state.Result?.AllCandidates.Count > 0);
     }
 
-    private void Complete(ExtractionRunResult result)
+    private void Proceed(bool hasCandidates)
     {
-        _state.Set(result);
         if (_session.Current != SessionState.SignedIn)
         {
-            Banner = SignInBanner();
-            RequestFocus(KnowledgeFocusKeys.Banner);
+            ShowSignInBanner(hasCandidates);
             return;
         }
 
@@ -152,26 +150,44 @@ public sealed partial class KnowledgeRunViewModel : FocusableViewModel
         }
     }
 
-    private BannerViewModel BannerFor(KnowledgeRunOutcome outcome)
+    private void ShowSignInBanner(bool hasCandidates)
     {
-        if (outcome.ConfiguredKeyCount > 1 && outcome.Status is KnowledgeRunStatus.KeyRejected or KnowledgeRunStatus.QuotaExceeded)
+        if (!hasCandidates)
         {
-            return Dismissible(
-                BannerSeverity.Error,
-                ExtractionStrings.AllKeysFailedTitle,
-                ExtractionStrings.AllKeysFailedMessage(outcome.ConfiguredKeyCount));
+            return;
         }
 
-        return outcome.Status switch
-        {
-            KnowledgeRunStatus.Canceled => Dismissible(BannerSeverity.Info, ExtractionStrings.CanceledTitle, ExtractionStrings.CanceledMessage),
-            KnowledgeRunStatus.KeyMissing => KeyMissingBanner(outcome.Provider),
-            KnowledgeRunStatus.KeyRejected => Dismissible(BannerSeverity.Error, ExtractionStrings.KeyRejectedTitle, ExtractionStrings.KeyRejectedMessage),
-            KnowledgeRunStatus.QuotaExceeded => Dismissible(BannerSeverity.Warning, ExtractionStrings.QuotaExceededTitle, ExtractionStrings.QuotaExceededMessage),
-            KnowledgeRunStatus.NetworkFailed => Dismissible(BannerSeverity.Error, ExtractionStrings.NetworkFailedTitle, ExtractionStrings.NetworkFailedMessage),
-            _ => Dismissible(BannerSeverity.Error, ExtractionStrings.RunFailedTitle, ExtractionStrings.RunFailedMessage),
-        };
+        Banner = SignInBanner();
+        RequestFocus(KnowledgeFocusKeys.Banner);
     }
+
+    // Knowledge run progress and banners are disabled by product decision; uncomment with the knowledge call above to re-enable.
+    // private void OnProgress(ExtractionProgress progress)
+    // {
+    //     TotalUnits = progress.TotalUnits;
+    //     CompletedUnits = progress.CompletedUnits;
+    // }
+    //
+    // private BannerViewModel BannerFor(KnowledgeRunOutcome outcome)
+    // {
+    //     if (outcome.ConfiguredKeyCount > 1 && outcome.Status is KnowledgeRunStatus.KeyRejected or KnowledgeRunStatus.QuotaExceeded)
+    //     {
+    //         return Dismissible(
+    //             BannerSeverity.Error,
+    //             ExtractionStrings.AllKeysFailedTitle,
+    //             ExtractionStrings.AllKeysFailedMessage(outcome.ConfiguredKeyCount));
+    //     }
+    //
+    //     return outcome.Status switch
+    //     {
+    //         KnowledgeRunStatus.Canceled => Dismissible(BannerSeverity.Info, ExtractionStrings.CanceledTitle, ExtractionStrings.CanceledMessage),
+    //         KnowledgeRunStatus.KeyMissing => KeyMissingBanner(outcome.Provider),
+    //         KnowledgeRunStatus.KeyRejected => Dismissible(BannerSeverity.Error, ExtractionStrings.KeyRejectedTitle, ExtractionStrings.KeyRejectedMessage),
+    //         KnowledgeRunStatus.QuotaExceeded => Dismissible(BannerSeverity.Warning, ExtractionStrings.QuotaExceededTitle, ExtractionStrings.QuotaExceededMessage),
+    //         KnowledgeRunStatus.NetworkFailed => Dismissible(BannerSeverity.Error, ExtractionStrings.NetworkFailedTitle, ExtractionStrings.NetworkFailedMessage),
+    //         _ => Dismissible(BannerSeverity.Error, ExtractionStrings.RunFailedTitle, ExtractionStrings.RunFailedMessage),
+    //     };
+    // }
 
     private string? ResolveHelp()
     {
@@ -190,19 +206,20 @@ public sealed partial class KnowledgeRunViewModel : FocusableViewModel
         return ExtractionStrings.ExtractDisabledHelp;
     }
 
-    private BannerViewModel KeyMissingBanner(CollectorProvider provider)
-    {
-        var bedrock = provider == CollectorProvider.Bedrock;
-        return new BannerViewModel(new BannerContent
-        {
-            Severity = BannerSeverity.Warning,
-            Title = bedrock ? ExtractionStrings.BedrockMissingTitle : ExtractionStrings.KeyMissingTitle(provider.ToString()),
-            Message = bedrock ? ExtractionStrings.BedrockMissingMessage : ExtractionStrings.KeyMissingMessage(provider.ToString()),
-            ActionText = ExtractionStrings.OpenSettings,
-            ActionCommand = new RelayCommand(() => _navigation.Settings.Open(SettingsSection.ProviderKeys)),
-            DismissCommand = DismissCommand,
-        });
-    }
+    // Disabled with the knowledge pass; uncomment to re-enable.
+    // private BannerViewModel KeyMissingBanner(CollectorProvider provider)
+    // {
+    //     var bedrock = provider == CollectorProvider.Bedrock;
+    //     return new BannerViewModel(new BannerContent
+    //     {
+    //         Severity = BannerSeverity.Warning,
+    //         Title = bedrock ? ExtractionStrings.BedrockMissingTitle : ExtractionStrings.KeyMissingTitle(provider.ToString()),
+    //         Message = bedrock ? ExtractionStrings.BedrockMissingMessage : ExtractionStrings.KeyMissingMessage(provider.ToString()),
+    //         ActionText = ExtractionStrings.OpenSettings,
+    //         ActionCommand = new RelayCommand(() => _navigation.Settings.Open(SettingsSection.ProviderKeys)),
+    //         DismissCommand = DismissCommand,
+    //     });
+    // }
 
     private BannerViewModel SignInBanner() => new(new BannerContent
     {
@@ -214,13 +231,14 @@ public sealed partial class KnowledgeRunViewModel : FocusableViewModel
         DismissCommand = DismissCommand,
     });
 
-    private BannerViewModel Dismissible(BannerSeverity severity, string title, string message) => new(new BannerContent
-    {
-        Severity = severity,
-        Title = title,
-        Message = message,
-        DismissCommand = DismissCommand,
-    });
+    // Disabled with the knowledge pass; uncomment to re-enable.
+    // private BannerViewModel Dismissible(BannerSeverity severity, string title, string message) => new(new BannerContent
+    // {
+    //     Severity = severity,
+    //     Title = title,
+    //     Message = message,
+    //     DismissCommand = DismissCommand,
+    // });
 
     [RelayCommand]
     private void Dismiss() => Banner = null;

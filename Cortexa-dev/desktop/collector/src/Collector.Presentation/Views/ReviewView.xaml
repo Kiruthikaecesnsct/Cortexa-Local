@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:b="clr-namespace:Collector.Presentation.Behaviors"
              xmlns:res="clr-namespace:Collector.Presentation.Resources"
+             xmlns:views="clr-namespace:Collector.Presentation.Views"
              xmlns:vm="clr-namespace:Collector.Presentation.ViewModels"
              b:FocusRouter.IsHost="True"
              Focusable="False"
@@ -109,6 +110,22 @@
     </UserControl.Resources>
 
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Knowledge extraction is disabled by product decision; remove the comment markers to re-enable.
+        <Border VerticalAlignment="Top" Style="{StaticResource Card}" Visibility="{Binding ShowKnowledgeInline, Converter={StaticResource BoolToVisibility}}">
+            <StackPanel>
+                <TextBlock Margin="{StaticResource Thickness.StackGap}"
+                           Style="{StaticResource Text.Body}"
+                           Text="{Binding KnowledgeInlineText}"
+                           TextWrapping="Wrap" />
+                <ContentControl Content="{Binding RunBanner}" Style="{StaticResource Banner.Slot}" />
+            </StackPanel>
+        </Border>
+        -->
 
         <Border VerticalAlignment="Top" Style="{StaticResource Card}" Visibility="{Binding ShowEmptyCard, Converter={StaticResource BoolToVisibility}}">
             <StackPanel HorizontalAlignment="Center">
@@ -132,6 +149,7 @@
             </StackPanel>
         </Border>
 
+        <!-- Knowledge items grid, filters, details and upload footer are disabled by product decision; remove the comment markers to re-enable.
         <Grid Visibility="{Binding ShowReady, Converter={StaticResource BoolToVisibility}}">
             <Grid.Height>
                 <MultiBinding Converter="{StaticResource ViewportFit}">
@@ -431,5 +449,8 @@
                 </StackPanel>
             </Border>
         </Grid>
+        -->
+
+        <views:CandidatesPanelView Grid.Row="0" VerticalAlignment="Top" DataContext="{Binding Candidates}" />
     </Grid>
 </UserControl>

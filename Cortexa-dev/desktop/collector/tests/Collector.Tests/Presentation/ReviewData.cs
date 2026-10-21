@@ -65,8 +65,11 @@ internal sealed class ReviewHarness
             PdfExporter,
             FilePicker,
             Session,
-            new FakeTimeProvider(DateTimeOffset.Parse("2026-10-07T09:30:00Z")));
+            new FakeTimeProvider(DateTimeOffset.Parse("2026-10-07T09:30:00Z")),
+            new CandidatesPanelViewModel(CandidateState));
     }
+
+    public CandidateRunState CandidateState { get; } = new();
 
     public KnowledgeRunState State { get; } = new();
 

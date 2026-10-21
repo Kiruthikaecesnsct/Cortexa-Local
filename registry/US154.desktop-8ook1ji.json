@@ -4,9 +4,19 @@
   "machine": "desktop-8ook1ji",
   "env": "windows",
   "branch": "develop/US154",
-  "status": "planning",
-  "files": [],
+  "status": "implementing",
+  "files": [
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Services/CandidateRunState.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Services/KnowledgeRunState.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Services/ICandidateRunner.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Services/CandidateRunner.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/ViewModels/KnowledgeRunViewModel.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/ViewModels/ReviewViewModel.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Views/ExtractionView.xaml",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Views/ReviewView.xaml",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Hosting/CollectorHost.cs"
+  ],
   "started": "2026-10-21T17:05:13Z",
-  "heartbeat": "2026-10-21T17:05:13Z",
+  "heartbeat": "2026-10-21T17:10:13Z",
   "schema": 2
 }

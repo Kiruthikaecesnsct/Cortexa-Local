@@ -13,7 +13,8 @@ public sealed record RemoteBannerActions(
     ICommand OpenGitHubTokens,
     ICommand UseLocal,
     ICommand Dismiss,
-    ICommand? SignInAgain = null);
+    ICommand? SignInAgain = null,
+    ICommand? UsePat = null);
 
 public sealed record RemoteFailureContext(
     SourceType Provider,
@@ -63,8 +64,11 @@ public sealed class RemoteBannerFactory(RemoteBannerActions actions)
         var isGitHub = context.Provider == SourceType.Github;
         return kind switch
         {
-            RemoteFailureKind.MissingToken => Missing(provider),
+            RemoteFailureKind.MissingToken when context.SignedInWith != RemoteAuthMethod.EntraId => Missing(provider),
             RemoteFailureKind.Auth when context.ExpiredSignIn is not null => ExpiredSignIn(),
+            RemoteFailureKind.MissingToken when context.SignedInWith == RemoteAuthMethod.EntraId => EntraExpired(),
+            RemoteFailureKind.Auth or RemoteFailureKind.AccessDenied when context.SignedInWith == RemoteAuthMethod.EntraId =>
+                EntraNoAccess(context.Provider),
             RemoteFailureKind.Auth => Auth(provider),
             RemoteFailureKind.AccessDenied when context.SignedInWith is not null => OrgBlocked(context.Owner),
             RemoteFailureKind.AccessDenied when context.Repository.Length == 0 => OrgDenied(provider, context.Owner),
@@ -141,6 +145,26 @@ public sealed class RemoteBannerFactory(RemoteBannerActions actions)
         ActionText = GitHubAuthStrings.SignInAgain,
         ActionName = GitHubAuthStrings.SignInAgainName,
         ActionCommand = actions.SignInAgain,
+    };
+
+    private BannerContent EntraExpired() => new()
+    {
+        Severity = BannerSeverity.Error,
+        Title = EntraAuthStrings.ExpiredSignInTitle,
+        Message = GitHubAuthStrings.ExpiredSignInMessage,
+        ActionText = GitHubAuthStrings.SignInAgain,
+        ActionName = EntraAuthStrings.SignInAgainName,
+        ActionCommand = actions.SignInAgain,
+    };
+
+    private BannerContent EntraNoAccess(SourceType provider) => new()
+    {
+        Severity = BannerSeverity.Error,
+        Title = EntraAuthStrings.NoAccessTitle,
+        Message = RemoteFailureMessages.EntraNoAccess(provider),
+        ActionText = EntraAuthStrings.UsePat,
+        ActionName = EntraAuthStrings.UsePatName,
+        ActionCommand = actions.UsePat,
     };
 
     private BannerContent Denied(string provider, string repository, bool isGitHub) => new()

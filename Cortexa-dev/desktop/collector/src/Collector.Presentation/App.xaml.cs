@@ -57,12 +57,25 @@ public partial class App : System.Windows.Application
         await services.GetRequiredService<StaleRemoteSecretPurge>().RunAsync(CancellationToken.None);
         await services.GetRequiredService<ISignInService>().RestoreAsync(CancellationToken.None);
         await services.GetRequiredService<IGitHubSignIn>().RestoreAsync(CancellationToken.None);
+        await RestoreEntraSignInAsync(services);
         services.GetRequiredService<OAuthSignOutListener>();
         var window = services.GetRequiredService<MainWindow>();
         MainWindow = window;
         window.DataContext = services.GetRequiredService<ShellViewModel>();
         services.GetRequiredService<ShellViewModel>().Start();
         window.Show();
+    }
+
+    private static async Task RestoreEntraSignInAsync(IServiceProvider services)
+    {
+        try
+        {
+            await services.GetRequiredService<IEntraIdSignIn>().RestoreAsync(CancellationToken.None);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            services.GetService<ILogger<App>>()?.LogWarning("Could not restore the Microsoft sign-in ({Error}).", ex.GetType().Name);
+        }
     }
 
     private void StopHost()

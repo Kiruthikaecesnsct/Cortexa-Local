@@ -255,3 +255,10 @@ internal sealed class FakeSession : ISessionState, IAccessTokenProvider
         return Task.CompletedTask;
     }
 }
+
+internal sealed class FakeWindowHandleSource : IWindowHandleSource
+{
+    public nint Handle { get; set; } = 1;
+
+    public nint GetMainWindowHandle() => Handle;
+}

@@ -103,16 +103,19 @@ public sealed class RemoteGitHubAuthViewModelTests
     }
 
     [Fact]
-    public void AzureDevOps_IsAlwaysTokenOnly_EvenWhenGitHubSignInIsConfigured()
+    public void AzureDevOps_OffersEntraAndToken_AndDefaultsToTokenWhenEntraIsNotConfigured()
     {
         var harness = GitHubHarness();
         harness.ViewModel.SelectedSource = SourceType.AzureDevops;
 
-        Assert.Equal([RemoteAuthMethod.Pat], Methods(harness.ViewModel));
-        Assert.False(harness.ViewModel.ShowAuthPicker);
+        Assert.Equal([RemoteAuthMethod.EntraId, RemoteAuthMethod.Pat], Methods(harness.ViewModel));
+        Assert.Equal([false, true], Availability(harness.ViewModel));
+        Assert.True(harness.ViewModel.ShowAuthPicker);
+        Assert.Equal(EntraAuthStrings.UnavailableNote, harness.ViewModel.AuthAvailabilityNote);
         Assert.True(harness.ViewModel.ShowTokenField);
         Assert.True(harness.ViewModel.IsPatMethod);
         Assert.False(harness.ViewModel.ShowStartSignIn);
+        Assert.False(harness.ViewModel.EntraSignIn.IsAvailable);
     }
 
     [Fact]

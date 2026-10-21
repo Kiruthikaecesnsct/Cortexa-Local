@@ -20,6 +20,7 @@ using Collector.Infrastructure.Remote.GitHub;
 using Collector.Infrastructure.Remote.RateLimit;
 using Collector.Infrastructure.Remote.Ssh;
 using Collector.Presentation.ViewModels;
+using Collector.Tests.Support;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
@@ -49,6 +50,7 @@ public class DependencyInjectionTests
         services.AddLogging();
         services.AddCollectorApplication();
         services.AddCollectorInfrastructure(configuration);
+        services.AddSingleton<IWindowHandleSource, FakeWindowHandleSource>();
         configure?.Invoke(services);
         return services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
     }
@@ -123,7 +125,7 @@ public class DependencyInjectionTests
 
     [Theory]
     [InlineData(HttpClientNames.GitHub, typeof(RemoteTokenAuthHandler))]
-    [InlineData(HttpClientNames.AzureDevOps, typeof(PatAuthHandler))]
+    [InlineData(HttpClientNames.AzureDevOps, typeof(RemoteTokenAuthHandler))]
     public void RemoteClients_Always_AuthenticateBeforeRateLimiting(string name, Type authHandler)
     {
         using var provider = Build();

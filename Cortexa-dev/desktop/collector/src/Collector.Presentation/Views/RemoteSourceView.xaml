@@ -82,14 +82,6 @@
             <Setter Property="Content" Value="{x:Static res:GitHubAuthStrings.SignIn}" />
         </Style>
 
-        <Style x:Key="GitHubAuth.SignedIn" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource Brush.Success.Surface}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource Brush.Success.Border}" />
-            <Setter Property="BorderThickness" Value="{StaticResource Thickness.Border}" />
-            <Setter Property="CornerRadius" Value="{StaticResource Radius.Control}" />
-            <Setter Property="Padding" Value="{StaticResource Thickness.ControlPadding}" />
-        </Style>
-
         <Style x:Key="GitHubAuth.Notice" TargetType="Border" BasedOn="{StaticResource InlineNotice.Warning}">
             <Style.Triggers>
                 <DataTrigger Binding="{Binding AuthNoticeKind}" Value="Info">
@@ -437,7 +429,7 @@
             <RadioButton AutomationProperties.Name="{Binding Label}"
                          Content="{Binding Label}"
                          AutomationProperties.HelpText="{Binding HelpText}"
-                         GroupName="GitHubAuthMethod"
+                         GroupName="RemoteAuthMethod"
                          IsChecked="{Binding IsSelected}"
                          IsEnabled="{Binding IsAvailable}"
                          Style="{StaticResource SegmentedToggle}"
@@ -686,9 +678,10 @@
                                                Text="{x:Static res:GitHubAuthStrings.OAuthNote}"
                                                Visibility="{Binding ShowStartSignIn, Converter={StaticResource BoolToVisibility}}" />
                                     <local:GitHubDeviceCodePanel DataContext="{Binding DeviceFlow}" />
+                                    <local:EntraSignInPanel DataContext="{Binding EntraSignIn}" />
                                     <Border Margin="{StaticResource Thickness.StackGapMedium}"
                                             AutomationProperties.Name="{Binding SignedInLabel}"
-                                            Style="{StaticResource GitHubAuth.SignedIn}"
+                                            Style="{StaticResource Auth.SignedIn}"
                                             Visibility="{Binding IsGitHubSignedIn, Converter={StaticResource BoolToVisibility}}">
                                         <StackPanel>
                                             <StackPanel Orientation="Horizontal">

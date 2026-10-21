@@ -20,6 +20,8 @@
     <PackageReference Include="Microsoft.ML.Tokenizers.Data.Cl100kBase" />
     <PackageReference Include="Microsoft.Bcl.Memory" />
     <PackageReference Include="SSH.NET" />
+    <PackageReference Include="Microsoft.Identity.Client" />
+    <PackageReference Include="Microsoft.Identity.Client.Broker" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Collector.Application\Collector.Application.csproj" />

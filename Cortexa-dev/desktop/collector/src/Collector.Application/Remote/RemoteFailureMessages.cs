@@ -12,6 +12,9 @@ public static class RemoteFailureMessages
             : Generic(kind, name);
     }
 
+    public static string EntraNoAccess(SourceType provider) =>
+        $"Your Microsoft account cannot open this {DisplayName(provider)} organization. Ask an organization admin to add you, or connect with a personal access token.";
+
     public static string DisplayName(SourceType provider) => provider switch
     {
         SourceType.Github => "GitHub",

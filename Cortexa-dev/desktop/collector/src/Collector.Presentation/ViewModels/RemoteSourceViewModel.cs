@@ -26,7 +26,8 @@ public sealed record RemoteSourceDependencies(
     IOptions<RemoteFetchOptions> FetchOptions,
     IntakeProgressViewModel Intake,
     FileTreeBuilder TreeBuilder,
-    GitHubAuthDependencies GitHubAuth);
+    GitHubAuthDependencies GitHubAuth,
+    EntraAuthDependencies EntraAuth);
 
 public sealed record RemoteFilesFetchedEventArgs(IReadOnlyList<FetchedFile> Files, SourceType Source, string Origin)
 {
@@ -62,6 +63,11 @@ public static class RemoteFocusKeys
     public const string DeviceOutcome = "DeviceOutcome";
     public const string DeviceUsePat = "DeviceUsePat";
     public const string GitHubSignOut = "GitHubSignOut";
+    public const string EntraSignIn = "EntraSignIn";
+    public const string EntraCopy = "EntraCopy";
+    public const string EntraOutcome = "EntraOutcome";
+    public const string EntraConnect = "EntraConnect";
+    public const string EntraSignOut = "EntraSignOut";
 }
 
 public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposable
@@ -96,6 +102,7 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
         _countdown = new RateLimitCountdown(time);
         _banners = new RemoteBannerFactory(CreateActions());
         DeviceFlow = CreateDeviceFlow();
+        EntraSignIn = CreateEntraSignIn();
         FileTree = new RemoteFileTreeViewModel(dependencies.TreeBuilder, dependencies.FetchOptions.Value.MaxSelectedFiles, time);
         FileTree.PropertyChanged += OnFileTreeChanged;
         Sources = CreateSources();
@@ -223,6 +230,7 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
         _deps.RateLimits.StatusChanged -= OnRateStatusChanged;
         _countdown.Dispose();
         DeviceFlow.Dispose();
+        EntraSignIn.Dispose();
         _listCts?.Cancel();
         _branchCts?.Cancel();
         _treeCts?.Cancel();
@@ -394,7 +402,8 @@ public sealed partial class RemoteSourceViewModel : FocusableViewModel, IDisposa
         new RelayCommand(OpenGitHubTokens),
         new RelayCommand(() => SelectedSource = SourceType.Local),
         new RelayCommand(() => Banner = null),
-        new RelayCommand(SignInAgain));
+        new RelayCommand(SignInAgain),
+        new RelayCommand(UsePatFromBanner));
 
     private void OpenGitHubTokens()
     {

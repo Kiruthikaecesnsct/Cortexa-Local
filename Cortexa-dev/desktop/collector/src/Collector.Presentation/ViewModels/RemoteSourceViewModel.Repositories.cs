@@ -276,6 +276,7 @@ public sealed partial class RemoteSourceViewModel
 
         var retryAfter = resetAt is { } at ? at - _time.GetUtcNow() : (TimeSpan?)null;
         ShowFailure(kind, retryAfter, RunListAsync);
+        DropEntraSignInOnDenial(kind);
     }
 
     private void ReturnToConnect(RemoteFailureKind kind)

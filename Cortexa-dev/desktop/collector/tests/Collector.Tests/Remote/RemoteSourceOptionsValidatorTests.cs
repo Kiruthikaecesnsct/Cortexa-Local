@@ -32,6 +32,40 @@ public class RemoteSourceOptionsValidatorTests
         Assert.True(Validate(options => options.GitHub.MinRemaining = 0).Succeeded);
     }
 
+    [Fact]
+    public void Validate_EntraSettingsWithoutClientId_AreNotChecked()
+    {
+        Assert.True(Validate(options => options.AzureDevOps.EntraAuthority = "not a url").Succeeded);
+    }
+
+    [Fact]
+    public void Validate_EntraClientIdWithDefaults_Succeeds()
+    {
+        Assert.True(Validate(options => options.AzureDevOps.EntraClientId = "client-id").Succeeded);
+    }
+
+    public static TheoryData<string, Action<RemoteSourceOptions>> InvalidEntraChanges => new()
+    {
+        { "EntraAuthority", options => options.AzureDevOps.EntraAuthority = "http://login.microsoftonline.com/organizations" },
+        { "EntraAuthority", options => options.AzureDevOps.EntraAuthority = "not a url" },
+        { "EntraRedirectUri", options => options.AzureDevOps.EntraRedirectUri = "localhost" },
+        { "EntraScope", options => options.AzureDevOps.EntraScope = " " },
+    };
+
+    [Theory]
+    [MemberData(nameof(InvalidEntraChanges))]
+    public void Validate_EntraClientIdWithInvalidSetting_FailsAndNamesTheSetting(string expectedName, Action<RemoteSourceOptions> change)
+    {
+        var result = Validate(options =>
+        {
+            options.AzureDevOps.EntraClientId = "client-id";
+            change(options);
+        });
+
+        Assert.True(result.Failed);
+        Assert.Contains(result.Failures!, failure => failure.Contains(expectedName, StringComparison.Ordinal));
+    }
+
     public static TheoryData<string, Action<RemoteSourceOptions>> InvalidChanges => new()
     {
         { "GitHub:BaseUrl", options => options.GitHub.BaseUrl = "http://api.github.com" },

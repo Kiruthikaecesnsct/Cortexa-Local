@@ -8,42 +8,36 @@ _Last regenerated: 2026-10-21_
 
 ## Current focus
 
-The desktop collector is the active surface. It pulls source files from four remote sources (GitHub, Azure DevOps, SSH/SFTP, and the saved Cortexa repository), splits them, and uploads them to the collector server for knowledge extraction. All collector code stays inside `Cortexa-dev/desktop/collector`.
+The desktop collector is the active surface. It pulls source files from four remote sources (GitHub, Azure DevOps, SSH/SFTP, and the saved Cortexa repository), splits them, and uploads them for knowledge extraction. All collector code stays inside `Cortexa-dev/desktop/collector`.
 
-Remote intake has five steps: Connect, Repository, Branch, Files, Proceed. Cortexa and SSH skip Files and fetch the whole source.
+Sprint 5 is in progress. US153 (invention candidates from whole documents with Gemini) merged in PR #29 on 2026-10-21. Its claim is released and its capsule is archived. US154 is next. It wires the candidate pass into Process and shows candidates in Review. Candidates stay local and nothing is uploaded.
 
-Sign-in is available for both forge sources. US151 (GitHub device flow and GitHub App sign-in, PR #27, 2026-10-13) and US152 (Entra ID sign-in for Azure DevOps, PR #28, 2026-10-21) are merged. PAT stays as the fallback for both and works unchanged. Both paths are desktop-only, with no Cortexa endpoint.
+## Ordering and open follow-ups for US154
 
-Planned next, Sprint 5: US153 and US154 add a candidate pass to Process. The desktop reads each selected file whole, asks Gemini once per file, and shows invention candidates in Review. Nothing is uploaded. Unit knowledge extraction is unchanged. Both stories were hand-authored and their dependencies set by hand, because the backlog build refuses on legacy stories. Both are New, not started.
-
-Other open work: US142 (end-to-end GitHub flow) and US143 (end-to-end Azure DevOps flow). They cover the live Files to Proceed checks listed below. US126 (extract knowledge and upload) remains open. Its extraction prompt must yield generalizable ideation, concepts, and key points, not literal code identifiers. Providers sit behind `Ai:Provider`: Gemini, Claude, and Groq.
-
-Sprint 5 context: US150 (PR #26) added per-row remove and multi-select on the Documents grid and renamed Extract to Process. US149 (PR #25) renamed Extract to Data Connectors. US150 and US154 both touch the Process screen, so keep new UI in its own panel.
+- US154 depends on US153 and touches the Process screen. Keep its panel separate so US150 edits do not collide.
+- Run the knowledge pass and the candidate pass sequentially on a selection, so Gemini concurrency is not doubled.
+- A whole-document 400 or 413 can mark every Gemini key as Rejected in Settings. A follow-up bug is not filed yet.
+- Confirm the Gemini keys are on a paid tier before a long run.
 
 ## In-flight contracts
 
-None in `contracts/`. US151, US152, US153 and US154 record Contract as internal keys only. The token seam is internal to the collector and is recorded under Recent decisions. The batch results contract (GET /collector/batches and GET /collector/batches/{id}/results) is settled and merged.
+None in `contracts/`. Candidate types are in-process only and recorded under the decision below.
 
 ## Recent decisions
 
-- **Collector candidates identified on the desktop (2026-10-21)**: Candidates are identified on the desktop with Gemini, one request per whole document, and shown locally. Uploading candidates is out of scope. Unit knowledge extraction stays. This changes the earlier plan where the desktop extracted knowledge only and Cortexa found candidates.
-- **Remote token seam (2026-10-13)**: Remote requests get their token from `IRemoteTokenResolver`, which picks an `IRemoteTokenSource` per provider from `IRemoteAuthState`. `RemoteTokenAuthHandler` sends it. GitHub and Azure DevOps both use it. Do not add provider checks to the HTTP pipeline. OAuth client IDs are public and live in `appsettings.json`. A method with no client ID shows disabled with a note.
-- **OAuth token persistence (2026-10-13)**: US151 and US152 OAuth tokens may persist encrypted in Credential Manager. This is an approved exception to US138. PATs and the SSH passphrase stay session-only. The US138 startup purge skips the OAuth slots. Sign-out clears them. MSAL cache bytes are chunked across numbered Credential Manager targets; the 2560-byte store limit is unchanged.
-- **Remote HTTP timeouts (2026-10-10)**: Remote clients use an infinite `HttpClient.Timeout`. Rate-limit waits follow only the caller's cancel token. Blob reads use an idle timeout. `MaxRateLimitRetries` is per provider (Azure DevOps 10). Do not set a total timeout on these clients.
-- **Remote intake picks files before splitting (2026-10-10)**: The Files step runs for GitHub and Azure DevOps. A selection skips the 2,000-file fetch cap and is capped at 10,000.
-- **Remote credentials are session memory only (2026-10-08)**: PATs and the SSH passphrase are never written to Credential Manager or disk. Old saved secrets are purged at startup, except the OAuth slots noted above.
-- **Collector batch results contract (2026-10-08)**: Batch list adds `stage`, `harvesting_count`, `seeding_count`. Results return `{batch_id, candidates[]}` with `knowledge_links`. Breaking for clients on the old shapes.
-- **Upload retry and rollback (2026-10-08)**: Publish failures do not roll back. Recovery is a replay with the same Idempotency-Key. A 409 `upload_in_progress` is retryable. A 409 `idempotency_key_reused` is final.
+- **Collector candidates identified on the desktop (2026-10-21)**: Each selected document is read whole and sent to Gemini in its own request. Candidates are shown locally. Uploading candidates is out of scope. Unit knowledge extraction stays.
+- **Remote token seam (2026-10-13)**: Remote requests get their token from `IRemoteTokenResolver`. Do not add provider checks to the HTTP pipeline.
+- **OAuth token persistence (2026-10-13)**: US151 and US152 OAuth tokens may persist encrypted in Credential Manager. This is an approved exception to US138. PATs and the SSH passphrase stay session-only.
+- **Remote HTTP timeouts (2026-10-10)**: Remote clients use an infinite `HttpClient.Timeout`. Do not set a total timeout on these clients.
+- **Batch results contract (2026-10-08)**: Batch list adds `stage`, `harvesting_count`, `seeding_count`. Results return `{batch_id, candidates[]}`. Breaking for clients on the old shapes.
+- **Upload retry and rollback (2026-10-08)**: Publish failures do not roll back. Recovery is a replay with the same Idempotency-Key.
 
 ## Standing blockers and open follow-ups
 
-- **US151 org approval**: the Imaginext-Innovations-Private-Limited org returns 403 to the OAuth sign-in until an org owner approves the OAuth App and users meet the org's 2FA rule. Live sign-in to that org is blocked until then.
-- **Entra live sign-in (US152)**: the Entra app registration, tenant choice, and admin consent were external to the story. Confirm them before a live Azure DevOps Entra sign-in is claimed as verified. If the target org is not Entra-backed, PAT stays the only Azure DevOps path.
-- **Backlog audit legacy errors**: 8 pre-existing errors on US142, US143, US149 to US152 (dangling DependsOn, missing layer tag, orphan frontend). They block `backlog-graph.py build`. Fix them before the next generated sprint.
-- **Azure DevOps organization URL**: the connect form does not collect the organization URL for GitHub and Azure DevOps yet. It stays required. The Azure DevOps organization still sits on the Extract screen.
-- **Live checks not run**: the 5,000-file run and the full GitHub and Azure DevOps Files to Proceed flows (US142 and US143). Also unverified live: Azure DevOps UI, rate-limit banner, Esc cancel (US134), SSH and saved repository collectors, US138 session-only tokens, US139 Settings flow.
-- **Manual US133 check not run**: stop the stack mid-upload, restart, retry from History. The collector server on localhost:5091 is not started by run-local.ps1, so launch it by hand.
+- **US151 org approval**: the Imaginext-Innovations-Private-Limited org returns 403 to OAuth sign-in until an org owner approves the OAuth App.
+- **Entra live sign-in (US152)**: confirm the Entra app registration, tenant, and admin consent before a live Entra sign-in is claimed as verified.
+- **Backlog audit legacy errors**: 8 errors on US142, US143, US149 to US152 (dangling DependsOn, missing layer tag, orphan frontend). They block `backlog-graph.py build`. Fix before the next generated sprint.
+- **Live checks not run**: the 5,000-file run and the full GitHub and Azure DevOps Files to Proceed flows (US142, US143).
 - **Web retry stalls**: retry stalls until the watchdog fails the batch. Re-upload with the original Idempotency-Key is the only recovery.
-- **Duplicate batch gap (US133)**: if the server committed a failed upload and the selection then changed, a second batch can hold the same documents. The client does not detect it.
-- **Cosmos queries untested locally**: batch and results queries have only run live in Azure, not the emulator.
+- **Duplicate batch gap (US133)**: a second batch can hold the same documents after a server commit and a selection change. The client does not detect it.
 - **DOCX heading parity gap**: the desktop collector does not treat DOCX heading styles as section breaks. The backend does.

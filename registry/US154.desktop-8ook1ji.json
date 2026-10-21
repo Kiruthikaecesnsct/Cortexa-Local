@@ -4,38 +4,38 @@
   "machine": "desktop-8ook1ji",
   "env": "windows",
   "branch": "develop/US154",
-  "status": "implementing",
+  "status": "review",
   "files": [
-    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Hosting/CollectorHost.cs",
-    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Services/KnowledgeRunState.cs",
-    "Cortexa-dev/desktop/collector/src/Collector.Presentation/ViewModels/KnowledgeRunViewModel.cs",
-    "Cortexa-dev/desktop/collector/src/Collector.Presentation/ViewModels/ReviewViewModel.cs",
-    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Views/ExtractionView.xaml",
-    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Views/ReviewView.xaml",
-    "Cortexa-dev/desktop/collector/tests/Collector.Tests/Presentation/KnowledgeRunViewModelTests.cs",
-    "Cortexa-dev/desktop/collector/tests/Collector.Tests/Presentation/PresentationFakes.cs",
-    "Cortexa-dev/desktop/collector/tests/Collector.Tests/Presentation/ReviewData.cs",
-    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Resources/CandidateStrings.cs",
-    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Services/CandidateRunState.cs",
-    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Services/CandidateRunner.cs",
-    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Services/ICandidateRunner.cs",
-    "Cortexa-dev/desktop/collector/src/Collector.Presentation/ViewModels/CandidateBannerFactory.cs",
-    "Cortexa-dev/desktop/collector/src/Collector.Presentation/ViewModels/CandidateItemViewModel.cs",
-    "Cortexa-dev/desktop/collector/src/Collector.Presentation/ViewModels/CandidateProgressViewModel.cs",
-    "Cortexa-dev/desktop/collector/src/Collector.Presentation/ViewModels/CandidatesPanelViewModel.cs",
-    "Cortexa-dev/desktop/collector/src/Collector.Presentation/ViewModels/KnowledgeRunViewModel.Candidates.cs",
-    "Cortexa-dev/desktop/collector/src/Collector.Presentation/ViewModels/ProcessPasses.cs",
-    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Views/CandidateProgressView.xaml",
-    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Views/CandidateProgressView.xaml.cs",
-    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Views/CandidatesPanelView.xaml",
-    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Views/CandidatesPanelView.xaml.cs",
-    "Cortexa-dev/desktop/collector/tests/Collector.Tests/Presentation/CandidateBannerFactoryTests.cs",
-    "Cortexa-dev/desktop/collector/tests/Collector.Tests/Presentation/CandidateRunnerTests.cs",
-    "Cortexa-dev/desktop/collector/tests/Collector.Tests/Presentation/CandidateTestData.cs",
-    "Cortexa-dev/desktop/collector/tests/Collector.Tests/Presentation/KnowledgeRunViewModelCandidateTests.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Hosting/CollectorHost.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Services/KnowledgeRunState.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/ViewModels/KnowledgeRunViewModel.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/ViewModels/ReviewViewModel.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Views/ExtractionView.xaml",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Views/ReviewView.xaml",
+    "Cortexa-dev/desktop/collector/tests/Collector.Tests/Presentation/KnowledgeRunViewModelTests.cs",
+    "Cortexa-dev/desktop/collector/tests/Collector.Tests/Presentation/PresentationFakes.cs",
+    "Cortexa-dev/desktop/collector/tests/Collector.Tests/Presentation/ReviewData.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Resources/CandidateStrings.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Services/CandidateRunState.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Services/CandidateRunner.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Services/ICandidateRunner.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/ViewModels/CandidateBannerFactory.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/ViewModels/CandidateItemViewModel.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/ViewModels/CandidateProgressViewModel.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/ViewModels/CandidatesPanelViewModel.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/ViewModels/KnowledgeRunViewModel.Candidates.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/ViewModels/ProcessPasses.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Views/CandidateProgressView.xaml",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Views/CandidateProgressView.xaml.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Views/CandidatesPanelView.xaml",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Views/CandidatesPanelView.xaml.cs",
+    "Cortexa-dev/desktop/collector/tests/Collector.Tests/Presentation/CandidateBannerFactoryTests.cs",
+    "Cortexa-dev/desktop/collector/tests/Collector.Tests/Presentation/CandidateRunnerTests.cs",
+    "Cortexa-dev/desktop/collector/tests/Collector.Tests/Presentation/CandidateTestData.cs",
+    "Cortexa-dev/desktop/collector/tests/Collector.Tests/Presentation/KnowledgeRunViewModelCandidateTests.cs",
     "Cortexa-dev/desktop/collector/tests/Collector.Tests/Presentation/ReviewCandidatesTests.cs"
   ],
   "started": "2026-10-21T17:05:13Z",
-  "heartbeat": "2026-10-21T18:16:54Z",
+  "heartbeat": "2026-10-21T18:36:34Z",
   "schema": 2
 }

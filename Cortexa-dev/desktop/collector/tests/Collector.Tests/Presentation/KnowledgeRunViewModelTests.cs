@@ -11,8 +11,7 @@ namespace Collector.Tests.Presentation;
 public sealed class KnowledgeRunViewModelTests
 {
     private const string DocumentId = "doc-1";
-    private const int CompletedUnits = 2;
-    private const int TotalUnits = 5;
+    private const string SkipReason = "Knowledge extraction is disabled by product decision; the Process command runs candidates only.";
 
     private static KnowledgeRunOutcome Completed() => new(KnowledgeRunStatus.Completed, ReviewData.Run([ReviewData.Item("Idea")]));
 
@@ -54,7 +53,7 @@ public sealed class KnowledgeRunViewModelTests
         Assert.False(harness.ViewModel.ExtractKnowledgeCommand.CanExecute(null));
     }
 
-    [Fact]
+    [Fact(Skip = SkipReason)]
     public async Task ExtractKnowledgeCommand_CompletedSignedInOnExtractScreen_SetsStateAndNavigatesToReview()
     {
         var harness = Ready();
@@ -67,7 +66,7 @@ public sealed class KnowledgeRunViewModelTests
         Assert.Equal([DocumentId], harness.Runner.LastDocumentIds);
     }
 
-    [Fact]
+    [Fact(Skip = SkipReason)]
     public async Task ExtractKnowledgeCommand_CompletedSignedInOnAnotherScreen_SetsStateWithoutNavigating()
     {
         var harness = Ready();
@@ -80,7 +79,7 @@ public sealed class KnowledgeRunViewModelTests
         Assert.Empty(harness.Navigation.Visited);
     }
 
-    [Fact]
+    [Fact(Skip = SkipReason)]
     public async Task ExtractKnowledgeCommand_CompletedSignedOut_ShowsSignInBannerWithoutNavigating()
     {
         var harness = Ready(SessionState.SignedOut);
@@ -96,7 +95,7 @@ public sealed class KnowledgeRunViewModelTests
         Assert.Equal(KnowledgeFocusKeys.Banner, harness.ViewModel.PendingFocus);
     }
 
-    [Fact]
+    [Fact(Skip = SkipReason)]
     public async Task SignInBannerAction_Executed_NavigatesToSignIn()
     {
         var harness = Ready(SessionState.SignedOut);
@@ -108,7 +107,7 @@ public sealed class KnowledgeRunViewModelTests
         Assert.Equal([ScreenKeys.SignIn], harness.Navigation.Visited);
     }
 
-    [Fact]
+    [Fact(Skip = SkipReason)]
     public async Task ExtractKnowledgeCommand_KeyMissing_ShowsWarningBannerWithOpenSettingsAction()
     {
         var harness = Ready();
@@ -123,7 +122,7 @@ public sealed class KnowledgeRunViewModelTests
         Assert.Equal(KnowledgeFocusKeys.Banner, harness.ViewModel.PendingFocus);
     }
 
-    [Theory]
+    [Theory(Skip = SkipReason)]
     [InlineData(Collector.Domain.Enums.CollectorProvider.Gemini, "Gemini")]
     [InlineData(Collector.Domain.Enums.CollectorProvider.Claude, "Claude")]
     public async Task ExtractKnowledgeCommand_KeyMissing_BannerNamesSelectedProvider(
@@ -139,7 +138,7 @@ public sealed class KnowledgeRunViewModelTests
         Assert.Contains(name, harness.ViewModel.Banner!.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [Fact(Skip = SkipReason)]
     public async Task KeyMissingBannerAction_Executed_OpensTheProviderKeysSection()
     {
         var harness = Ready();
@@ -152,7 +151,7 @@ public sealed class KnowledgeRunViewModelTests
         Assert.Equal(SettingsSection.ProviderKeys, harness.Navigator.Selected);
     }
 
-    [Fact]
+    [Fact(Skip = SkipReason)]
     public async Task ExtractKnowledgeCommand_BedrockKeyMissing_BannerUsesTheBedrockCopy()
     {
         var harness = Ready();
@@ -223,7 +222,7 @@ public sealed class KnowledgeRunViewModelTests
         Assert.Equal(ExtractionStrings.KeyMissingTitle("Claude"), harness.ViewModel.ExtractHelp);
     }
 
-    [Fact]
+    [Fact(Skip = SkipReason)]
     public async Task ExtractKnowledgeCommand_Failed_ShowsErrorBannerAndKeepsState()
     {
         var harness = Ready();
@@ -236,7 +235,7 @@ public sealed class KnowledgeRunViewModelTests
         Assert.Empty(harness.Navigation.Visited);
     }
 
-    [Fact]
+    [Fact(Skip = SkipReason)]
     public async Task ExtractKnowledgeCommand_KeyRejected_ShowsErrorBannerWithKeyRejectedCopy()
     {
         var harness = Ready();
@@ -250,7 +249,7 @@ public sealed class KnowledgeRunViewModelTests
         Assert.Equal(ExtractionStrings.KeyRejectedMessage, banner.Message);
     }
 
-    [Fact]
+    [Fact(Skip = SkipReason)]
     public async Task ExtractKnowledgeCommand_QuotaExceeded_ShowsWarningBannerWithQuotaCopy()
     {
         var harness = Ready();
@@ -264,7 +263,7 @@ public sealed class KnowledgeRunViewModelTests
         Assert.Equal(ExtractionStrings.QuotaExceededMessage, banner.Message);
     }
 
-    [Fact]
+    [Fact(Skip = SkipReason)]
     public async Task ExtractKnowledgeCommand_NetworkFailed_ShowsErrorBannerWithNetworkCopy()
     {
         var harness = Ready();
@@ -278,8 +277,8 @@ public sealed class KnowledgeRunViewModelTests
         Assert.Equal(ExtractionStrings.NetworkFailedMessage, banner.Message);
     }
 
-    [Fact]
-    public async Task ExtractKnowledgeCommand_Canceled_ShowsInfoBannerAndKeepsPreviousState()
+    [Fact(Skip = SkipReason)]
+    public async Task ExtractKnowledgeCommand_Canceled_ShowsInfoBannerAndClearsPreviousState()
     {
         var harness = Ready();
         var previous = ReviewData.Run([ReviewData.Item("Previous")]);
@@ -291,12 +290,12 @@ public sealed class KnowledgeRunViewModelTests
         await run;
 
         Assert.Equal(BannerSeverity.Info, harness.ViewModel.Banner!.Severity);
-        Assert.Same(previous, harness.State.Current);
+        Assert.Null(harness.State.Current);
         Assert.False(harness.ViewModel.IsRunning);
         Assert.Equal(KnowledgeFocusKeys.Banner, harness.ViewModel.PendingFocus);
     }
 
-    [Fact]
+    [Fact(Skip = SkipReason)]
     public async Task ExtractKnowledgeCommand_WhileRunning_TogglesIsRunningAndFocusesCancel()
     {
         var harness = Ready();
@@ -312,23 +311,7 @@ public sealed class KnowledgeRunViewModelTests
         Assert.False(harness.ViewModel.IsRunning);
     }
 
-    [Fact]
-    public async Task Progress_Reported_UpdatesUnitsAndText()
-    {
-        var harness = Ready();
-        harness.Runner.Gate = new TaskCompletionSource<KnowledgeRunOutcome>();
-        var run = harness.ViewModel.ExtractKnowledgeCommand.ExecuteAsync(null);
-
-        harness.Runner.Progress!.Report(new ExtractionProgress(CompletedUnits, TotalUnits));
-
-        Assert.Equal(CompletedUnits, harness.ViewModel.CompletedUnits);
-        Assert.Equal(TotalUnits, harness.ViewModel.TotalUnits);
-        Assert.Equal(ExtractionStrings.RunProgress(CompletedUnits, TotalUnits), harness.ViewModel.ProgressText);
-        harness.Runner.Gate.SetResult(new KnowledgeRunOutcome(KnowledgeRunStatus.Failed));
-        await run;
-    }
-
-    [Fact]
+    [Fact(Skip = SkipReason)]
     public async Task ExtractKnowledgeCommand_KeyRejectedWithMultipleConfiguredKeys_ShowsAllKeysFailedBanner()
     {
         var harness = Ready();
@@ -343,7 +326,7 @@ public sealed class KnowledgeRunViewModelTests
         Assert.Equal(ExtractionStrings.AllKeysFailedMessage(ConfiguredKeyCount), banner.Message);
     }
 
-    [Fact]
+    [Fact(Skip = SkipReason)]
     public async Task ExtractKnowledgeCommand_QuotaExceededWithMultipleConfiguredKeys_ShowsAllKeysFailedBanner()
     {
         var harness = Ready();
@@ -358,7 +341,7 @@ public sealed class KnowledgeRunViewModelTests
         Assert.Equal(ExtractionStrings.AllKeysFailedMessage(ConfiguredKeyCount), banner.Message);
     }
 
-    [Fact]
+    [Fact(Skip = SkipReason)]
     public async Task ExtractKnowledgeCommand_KeyRejectedWithOnlyOneConfiguredKey_KeepsTheSingleKeyBanner()
     {
         var harness = Ready();
@@ -372,7 +355,7 @@ public sealed class KnowledgeRunViewModelTests
         Assert.NotEqual(ExtractionStrings.AllKeysFailedTitle, banner.Title);
     }
 
-    [Fact]
+    [Fact(Skip = SkipReason)]
     public async Task ExtractKnowledgeCommand_QuotaExceededWithZeroConfiguredKeyCount_KeepsTheSingleKeyBanner()
     {
         var harness = Ready();
@@ -385,7 +368,7 @@ public sealed class KnowledgeRunViewModelTests
         Assert.Equal(ExtractionStrings.QuotaExceededMessage, banner.Message);
     }
 
-    [Fact]
+    [Fact(Skip = SkipReason)]
     public async Task DismissCommand_BannerShown_ClearsIt()
     {
         var harness = Ready();

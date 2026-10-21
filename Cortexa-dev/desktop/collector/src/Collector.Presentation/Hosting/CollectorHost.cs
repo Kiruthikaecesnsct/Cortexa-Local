@@ -74,6 +74,11 @@ public static class CollectorHost
         services.AddSingleton<IAppVersion, AssemblyAppVersion>();
         services.AddSingleton<IClipboard, WpfClipboard>();
         services.AddSingleton<IKnowledgeRunner, KnowledgeRunner>();
+        services.AddSingleton<CandidateRunState>();
+        services.AddSingleton<ICandidateRunner, CandidateRunner>();
+        services.AddSingleton<ProcessPasses>();
+        services.AddSingleton<CandidateProgressViewModel>();
+        services.AddSingleton<CandidatesPanelViewModel>();
         services.AddSingleton<ReviewUploader>();
         services.AddSingleton<ILocalFileLauncher, ShellFileLauncher>();
         services.AddSingleton<HistoryPoller>();

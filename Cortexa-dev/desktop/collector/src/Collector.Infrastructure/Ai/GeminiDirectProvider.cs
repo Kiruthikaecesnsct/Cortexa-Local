@@ -72,9 +72,10 @@ public sealed class GeminiDirectProvider(
         {
             keyStatusStore.SetStatus(candidate.Id, StatusFor(exception.Kind));
             logger.LogWarning(
-                "Gemini key {KeyId} failed with {Kind}; rotating to next configured key.",
+                "Gemini key {KeyId} failed with {Kind} on model {Model}; rotating to next configured key.",
                 candidate.Id,
-                exception.Kind);
+                exception.Kind,
+                model);
             return new KeyAttemptResult(null, exception);
         }
     }

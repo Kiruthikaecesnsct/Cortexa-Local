@@ -13,4 +13,10 @@ public sealed class KnowledgeRunState
         Current = result;
         Changed?.Invoke(this, EventArgs.Empty);
     }
+
+    public void Clear()
+    {
+        Current = null;
+        Changed?.Invoke(this, EventArgs.Empty);
+    }
 }

@@ -1,3 +1,4 @@
+using Collector.Application.Candidates;
 using Collector.Application.Extraction;
 using Collector.Application.Knowledge;
 using Collector.Application.Remote;
@@ -243,7 +244,7 @@ public sealed class ExtractionViewModelTests : IDisposable
 
             await viewModel.Knowledge.ExtractKnowledgeCommand.ExecuteAsync(null);
 
-            Assert.Equal([extractedId], _knowledge.Runner.LastDocumentIds);
+            Assert.Equal([extractedId], _knowledge.CandidateRunner.LastDocumentIds);
         });
 
     [Fact]
@@ -254,14 +255,14 @@ public sealed class ExtractionViewModelTests : IDisposable
             var viewModel = CreateViewModel(ok);
             await viewModel.PickFilesCommand.ExecuteAsync(null);
             var row = viewModel.Documents.Single();
-            _knowledge.Runner.Gate = new TaskCompletionSource<KnowledgeRunOutcome>();
+            _knowledge.CandidateRunner.Gate = new TaskCompletionSource<CandidateRunOutcome>();
 
             var run = viewModel.Knowledge.ExtractKnowledgeCommand.ExecuteAsync(null);
 
             Assert.False(viewModel.PickFilesCommand.CanExecute(null));
             Assert.False(viewModel.ClearAllCommand.CanExecute(null));
             Assert.False(viewModel.RemoveDocumentCommand.CanExecute(row));
-            _knowledge.Runner.Gate.SetResult(new KnowledgeRunOutcome(KnowledgeRunStatus.Failed));
+            _knowledge.CandidateRunner.Gate.SetResult(CandidateRunOutcome.Failed());
             await run;
             Assert.True(viewModel.PickFilesCommand.CanExecute(null));
             Assert.True(viewModel.ClearAllCommand.CanExecute(null));
@@ -274,12 +275,12 @@ public sealed class ExtractionViewModelTests : IDisposable
             var ok = WriteFile("notes.txt", System.Text.Encoding.UTF8.GetBytes("some readable content"));
             var viewModel = CreateViewModel(ok);
             await viewModel.PickFilesCommand.ExecuteAsync(null);
-            _knowledge.Runner.Gate = new TaskCompletionSource<KnowledgeRunOutcome>();
+            _knowledge.CandidateRunner.Gate = new TaskCompletionSource<CandidateRunOutcome>();
 
             var run = viewModel.Knowledge.ExtractKnowledgeCommand.ExecuteAsync(null);
 
             Assert.Equal(KnowledgeFocusKeys.Cancel, viewModel.PendingFocus);
-            _knowledge.Runner.Gate.SetResult(new KnowledgeRunOutcome(KnowledgeRunStatus.Failed));
+            _knowledge.CandidateRunner.Gate.SetResult(CandidateRunOutcome.Failed());
             await run;
         });
 
@@ -300,7 +301,7 @@ public sealed class ExtractionViewModelTests : IDisposable
             Assert.True(viewModel.Knowledge.CanExtract);
         });
 
-    [Fact]
+    [Fact(Skip = "Knowledge extraction is disabled by product decision; the provider and model only feed the knowledge request.")]
     public Task ActiveModel_ChoiceChanged_PushesProviderAndModelIntoTheRun() =>
         UiThreadHost.RunAsync(async () =>
         {
@@ -622,7 +623,7 @@ public sealed class ExtractionViewModelTests : IDisposable
             Row(viewModel, "first.txt").IsChecked = true;
             viewModel.RowCheckChangedCommand.Execute(null);
             Assert.True(viewModel.RemoveSelectedCommand.CanExecute(null));
-            _knowledge.Runner.Gate = new TaskCompletionSource<KnowledgeRunOutcome>();
+            _knowledge.CandidateRunner.Gate = new TaskCompletionSource<CandidateRunOutcome>();
 
             var run = viewModel.Knowledge.ExtractKnowledgeCommand.ExecuteAsync(null);
 
@@ -630,7 +631,7 @@ public sealed class ExtractionViewModelTests : IDisposable
             Assert.False(viewModel.ToggleAllVisibleCommand.CanExecute(null));
             Assert.False(viewModel.RowCheckChangedCommand.CanExecute(null));
             Assert.False(viewModel.ToggleSelectedCheckCommand.CanExecute(null));
-            _knowledge.Runner.Gate.SetResult(new KnowledgeRunOutcome(KnowledgeRunStatus.Failed));
+            _knowledge.CandidateRunner.Gate.SetResult(CandidateRunOutcome.Failed());
             await run;
             Assert.True(viewModel.RemoveSelectedCommand.CanExecute(null));
             Assert.True(viewModel.ToggleAllVisibleCommand.CanExecute(null));

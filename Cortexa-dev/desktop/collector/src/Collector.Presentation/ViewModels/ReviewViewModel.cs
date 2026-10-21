@@ -17,6 +17,7 @@ public static class ReviewFocusKeys
     public const string GoToExtract = "GoToExtract";
     public const string Banner = "Banner";
     public const string ItemList = "ItemList";
+    public const string CandidateList = "CandidateList";
 }
 
 public sealed partial class ReviewViewModel : FocusableViewModel, INavigationAware
@@ -49,7 +50,8 @@ public sealed partial class ReviewViewModel : FocusableViewModel, INavigationAwa
         IKnowledgePdfExporter pdfExporter,
         IFilePicker filePicker,
         ISessionState authSession,
-        TimeProvider time)
+        TimeProvider time,
+        CandidatesPanelViewModel candidates)
     {
         _state = state;
         _uploader = uploader;
@@ -59,6 +61,8 @@ public sealed partial class ReviewViewModel : FocusableViewModel, INavigationAwa
         _filePicker = filePicker;
         _authSession = authSession;
         _time = time;
+        Candidates = candidates;
+        Candidates.PropertyChanged += (_, _) => NotifyCandidateLayout();
         VisibleRows = [];
         Filters = [];
         Results = [];
@@ -66,7 +70,14 @@ public sealed partial class ReviewViewModel : FocusableViewModel, INavigationAwa
 
     public bool ShowReady => _run is { Items.Count: > 0 };
 
-    public bool ShowEmptyCard => !ShowReady;
+    public CandidatesPanelViewModel Candidates { get; }
+
+    public bool ShowEmptyCard => !ShowReady && !Candidates.IsVisible;
+
+    // Knowledge extraction is disabled by product decision; uncomment to re-enable the inline knowledge card.
+    // public bool ShowKnowledgeInline => !ShowReady && Candidates.HasContent;
+    //
+    // public string KnowledgeInlineText => _run is null ? CandidateStrings.KnowledgeFailedInline : CandidateStrings.KnowledgeEmpty;
 
     public string EmptyTitle => _run is null ? ReviewStrings.NoRunTitle : ReviewStrings.EmptyTitle;
 
@@ -167,7 +178,22 @@ public sealed partial class ReviewViewModel : FocusableViewModel, INavigationAwa
             Load(_state.Current);
         }
 
-        RequestFocus(ShowReady ? ReviewFocusKeys.Filters : ReviewFocusKeys.GoToExtract);
+        RequestFocus(InitialFocusKey());
+    }
+
+    private string InitialFocusKey()
+    {
+        if (ShowReady)
+        {
+            return ReviewFocusKeys.Filters;
+        }
+
+        return Candidates.HasItems ? ReviewFocusKeys.CandidateList : ReviewFocusKeys.GoToExtract;
+    }
+
+    private void NotifyCandidateLayout()
+    {
+        OnPropertyChanged(nameof(ShowEmptyCard));
     }
 
     public void OnNavigatedFrom() => _pendingReplacement = [];
@@ -292,7 +318,7 @@ public sealed partial class ReviewViewModel : FocusableViewModel, INavigationAwa
         SelectedRow = null;
         ApplyFilter(_activeFilter);
         OnPropertyChanged(nameof(ShowReady));
-        OnPropertyChanged(nameof(ShowEmptyCard));
+        NotifyCandidateLayout();
         OnPropertyChanged(nameof(EmptyTitle));
         OnPropertyChanged(nameof(EmptyBody));
         OnPropertyChanged(nameof(RunCaption));

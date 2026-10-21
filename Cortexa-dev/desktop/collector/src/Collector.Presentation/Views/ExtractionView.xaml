@@ -362,6 +362,7 @@
                     </StackPanel>
                 </Grid>
     
+                <!-- Knowledge progress and cancel are disabled by product decision; remove the comment markers to re-enable.
                 <Border Margin="{StaticResource Thickness.StackGap}"
                         Style="{StaticResource Card}"
                         Visibility="{Binding Knowledge.IsRunning, Converter={StaticResource BoolToVisibility}}">
@@ -392,6 +393,8 @@
                                 b:FocusRouter.Key="Cancel" />
                     </Grid>
                 </Border>
+                -->
+                <views:CandidateProgressView DataContext="{Binding Knowledge.CandidateProgress}" />
             </StackPanel>
 
             <Border Margin="{StaticResource Thickness.SectionTop}" Style="{StaticResource Card}">

@@ -21,6 +21,11 @@ public sealed class DocumentCandidateRunner(
         }
         catch (AiProviderException exception)
         {
+            logger.LogWarning(
+                "Candidate run for document {DocumentId} failed with provider error {Kind} (status {StatusCode}).",
+                document.Id,
+                exception.Kind,
+                exception.StatusCode);
             return ReplyInterpreter.Fail(document, CandidateOutcomeMapper.FromException(exception));
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

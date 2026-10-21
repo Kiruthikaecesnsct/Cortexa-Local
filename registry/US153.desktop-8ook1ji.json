@@ -4,9 +4,21 @@
   "machine": "desktop-8ook1ji",
   "env": "windows",
   "branch": "develop/US153",
-  "status": "planning",
-  "files": [],
+  "status": "implementing",
+  "files": [
+    "desktop/collector/src/Collector.Application/Candidates",
+    "desktop/collector/src/Collector.Application/Collector.Application.csproj",
+    "desktop/collector/src/Collector.Application/Ports/IAiProvider.cs",
+    "desktop/collector/src/Collector.Application/Ports/IGeminiInputBudget.cs",
+    "desktop/collector/src/Collector.Application/DependencyInjection.cs",
+    "desktop/collector/src/Collector.Infrastructure/Ai",
+    "desktop/collector/src/Collector.Infrastructure/Options",
+    "desktop/collector/src/Collector.Infrastructure/DependencyInjection.cs",
+    "desktop/collector/src/Collector.Presentation/appsettings.json",
+    "desktop/collector/tests/Collector.Tests/Candidates",
+    "desktop/collector/tests/Collector.Tests/Ai"
+  ],
   "started": "2026-10-21T16:27:36Z",
-  "heartbeat": "2026-10-21T16:27:37Z",
+  "heartbeat": "2026-10-21T16:34:54Z",
   "schema": 2
 }

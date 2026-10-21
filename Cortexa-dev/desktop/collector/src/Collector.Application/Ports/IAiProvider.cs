@@ -42,13 +42,16 @@ public enum AiFailureKind
 
 public sealed class AiProviderException : Exception
 {
-    public AiProviderException(AiFailureKind kind, string message, Exception? innerException = null)
+    public AiProviderException(AiFailureKind kind, string message, Exception? innerException = null, int? statusCode = null)
         : base(message, innerException)
     {
         Kind = kind;
+        StatusCode = statusCode;
     }
 
     public AiFailureKind Kind { get; }
+
+    public int? StatusCode { get; }
 
     public bool IsPermanent => Kind != AiFailureKind.Transient;
 }

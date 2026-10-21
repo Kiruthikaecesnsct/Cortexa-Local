@@ -146,6 +146,7 @@ public sealed class GeminiProviderOptionsValidator : IValidateOptions<GeminiProv
     {
         var failures = new List<string>();
         AddIf(failures, string.IsNullOrWhiteSpace(options.Model), nameof(options.Model), "is required");
+        AddIf(failures, options.MaxInputTokens <= 0, nameof(options.MaxInputTokens), "must be greater than zero");
         AddIf(failures, options.MaxOutputTokens <= 0, nameof(options.MaxOutputTokens), "must be greater than zero");
         AddIf(failures, options.Concurrency <= 0, nameof(options.Concurrency), "must be greater than zero");
         AddIf(failures, options.MaxRetries < 0, nameof(options.MaxRetries), "must not be negative");

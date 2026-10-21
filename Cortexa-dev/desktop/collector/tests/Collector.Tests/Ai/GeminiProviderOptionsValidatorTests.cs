@@ -42,6 +42,7 @@ public sealed class GeminiProviderOptionsValidatorTests
         var options = new GeminiProviderOptions
         {
             Model = " ",
+            MaxInputTokens = 0,
             MaxOutputTokens = 0,
             Concurrency = 0,
             MaxRetries = -1,
@@ -51,10 +52,26 @@ public sealed class GeminiProviderOptionsValidatorTests
 
         var failures = Failures(_validator.Validate(null, options));
 
-        foreach (var field in new[] { "Model", "MaxOutputTokens", "Concurrency", "MaxRetries", "TimeoutSeconds", "Temperature" })
+        foreach (var field in new[] { "Model", "MaxInputTokens", "MaxOutputTokens", "Concurrency", "MaxRetries", "TimeoutSeconds", "Temperature" })
         {
             Assert.Contains($"Ai:Gemini:{field}", failures, StringComparison.Ordinal);
         }
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void Validate_NonPositiveMaxInputTokens_Fails(int value)
+    {
+        var result = _validator.Validate(null, new GeminiProviderOptions { MaxInputTokens = value });
+
+        Assert.Contains("Ai:Gemini:MaxInputTokens", Failures(result), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Validate_DefaultMaxInputTokens_IsNamedConstant()
+    {
+        Assert.Equal(GeminiProviderOptions.DefaultMaxInputTokens, new GeminiProviderOptions().MaxInputTokens);
     }
 
     [Theory]

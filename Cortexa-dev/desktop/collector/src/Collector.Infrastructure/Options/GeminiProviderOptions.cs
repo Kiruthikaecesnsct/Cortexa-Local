@@ -10,7 +10,11 @@ public sealed class GeminiProviderOptions
 
     public const string ThinkingHigh = "high";
 
+    public const int DefaultMaxInputTokens = 1_000_000;
+
     public string Model { get; set; } = "gemini-3.8-flash";
+
+    public int MaxInputTokens { get; set; } = DefaultMaxInputTokens;
 
     public int MaxOutputTokens { get; set; } = 8192;
 

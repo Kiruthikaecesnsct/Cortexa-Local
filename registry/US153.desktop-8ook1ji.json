@@ -23,12 +23,14 @@
     "desktop/collector/src/Collector.Application/Candidates/CandidatePromptLoader.cs",
     "desktop/collector/src/Collector.Application/Candidates/CandidateRunResult.cs",
     "desktop/collector/src/Collector.Application/Candidates/DocumentCandidateRunner.cs",
+    "desktop/collector/src/Collector.Application/Candidates/DocumentPreparer.cs",
     "desktop/collector/src/Collector.Application/Candidates/ExcerptVerifier.cs",
     "desktop/collector/src/Collector.Application/Candidates/GeminiInputLimitCheck.cs",
     "desktop/collector/src/Collector.Application/Candidates/IdentifyCandidatesHandler.cs",
     "desktop/collector/src/Collector.Application/Candidates/InventionCandidate.cs",
     "desktop/collector/src/Collector.Application/Candidates/Prompts/candidate-output.schema.json",
     "desktop/collector/src/Collector.Application/Candidates/Prompts/candidate-prompt.v1.json",
+    "desktop/collector/src/Collector.Application/Candidates/ReplyInterpreter.cs",
     "desktop/collector/src/Collector.Application/Candidates/WholeDocument.cs",
     "desktop/collector/src/Collector.Application/Candidates/WholeDocumentReader.cs",
     "desktop/collector/src/Collector.Application/Ports/IGeminiInputBudget.cs",
@@ -43,6 +45,6 @@
     "desktop/collector/tests/Collector.Tests/Candidates/WholeDocumentReaderTests.cs"
   ],
   "started": "2026-10-21T16:27:36Z",
-  "heartbeat": "2026-10-21T16:47:16Z",
+  "heartbeat": "2026-10-21T16:54:18Z",
   "schema": 2
 }

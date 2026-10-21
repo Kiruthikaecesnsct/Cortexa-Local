@@ -1,4 +1,5 @@
 using Collector.Application.Auth;
+using Collector.Application.Candidates;
 using Collector.Application.Extraction;
 using Collector.Application.History;
 using Collector.Application.Knowledge;
@@ -29,6 +30,7 @@ public static class DependencyInjection
         services.AddSingleton<LocalSourceResolver>();
         services.AddCollectorExtraction();
         services.AddCollectorKnowledge();
+        services.AddCollectorCandidates();
         services.AddCollectorRemote();
         return services;
     }
@@ -96,5 +98,19 @@ public static class DependencyInjection
         services.AddSingleton<BatchSender>();
         services.AddSingleton<UploadKnowledgeHandler>();
         services.AddSingleton<RetryFailedUploadHandler>();
+    }
+
+    private static void AddCollectorCandidates(this IServiceCollection services)
+    {
+        services.AddSingleton(CandidatePromptLoader.Load());
+        services.AddSingleton<WholeDocumentReader>();
+        services.AddSingleton<GeminiInputLimitCheck>();
+        services.AddSingleton<CandidatePromptBuilder>();
+        services.AddSingleton<CandidateParser>();
+        services.AddSingleton<ExcerptVerifier>();
+        services.AddSingleton<DocumentPreparer>();
+        services.AddSingleton<ReplyInterpreter>();
+        services.AddSingleton<DocumentCandidateRunner>();
+        services.AddSingleton<IdentifyCandidatesHandler>();
     }
 }

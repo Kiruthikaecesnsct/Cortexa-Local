@@ -31,7 +31,7 @@ public static class GeminiErrorMapper
         new(AiFailureKind.Transient, "Gemini returned a response that could not be read.", exception);
 
     private static AiProviderException MapStatus(HttpStatusCode status, Exception exception) =>
-        new(KindFor(status), Describe(status), exception);
+        new(KindFor(status), Describe(status), exception, (int)status);
 
     private static AiFailureKind KindFor(HttpStatusCode status)
     {

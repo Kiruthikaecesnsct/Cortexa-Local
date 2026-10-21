@@ -1,0 +1,37 @@
+{
+  "type": "object",
+  "description": "Invention candidates found in one whole document. An empty candidates array means the document holds no candidate.",
+  "properties": {
+    "candidates": {
+      "type": "array",
+      "description": "At most 8 patentable invention candidates, strongest first. Empty when the document has none.",
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "description": "One invention candidate: a novel, non-obvious, useful technical idea the document discloses.",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "At most 12 words naming the invention as a concept. No identifiers, file names, section numbers, or trailing period."
+          },
+          "summary": {
+            "type": "string",
+            "description": "2 to 3 sentences, at most 60 words: the technical problem, how the idea solves it, and the result. Own words, no location."
+          },
+          "patentability_rationale": {
+            "type": "string",
+            "description": "1 to 2 sentences, at most 60 words: what looks new, why it is not an obvious step over the usual approach, and why it is useful. Hedged, never a legal conclusion."
+          },
+          "excerpt_quote": {
+            "type": ["string", "null"],
+            "description": "At most 200 characters copied verbatim from the document on one line that best shows the idea, or null when no exact span fits. Never invented or edited."
+          }
+        },
+        "required": ["title", "summary", "patentability_rationale", "excerpt_quote"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["candidates"],
+  "additionalProperties": false
+}

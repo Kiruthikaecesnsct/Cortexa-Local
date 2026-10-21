@@ -17,10 +17,13 @@ public sealed class RemoteTokenAuthHandlerTests
     private const string BaseUrl = "https://api.github.com/";
     private const string OriginUrl = "https://api.github.com/user";
     private const string AuthorizationHeader = "Authorization";
+    private const string AzureDevOpsBaseUrl = "https://dev.azure.com/";
+    private const string AzureDevOpsUrl = "https://dev.azure.com/org/_apis/projects";
 
     private readonly InMemorySessionCredentials _credentials = new();
     private readonly RemoteAuthState _state = new();
-    private readonly FixedTokenSource _oauth = new(RemoteAuthMethod.GitHubDevice);
+    private readonly FixedTokenSource _oauth = new(SourceType.Github, RemoteAuthMethod.GitHubDevice);
+    private readonly FixedTokenSource _entra = new(SourceType.AzureDevops, RemoteAuthMethod.EntraId);
 
     private (HttpClient Client, StubHttpHandler Inner) Build(PatScheme scheme, string baseUrl = BaseUrl)
     {
@@ -32,6 +35,20 @@ public sealed class RemoteTokenAuthHandlerTests
             resolver,
             scheme,
             new PatTarget(SourceType.Github, new Uri(baseUrl)))
+        { InnerHandler = inner };
+        return (new HttpClient(handler), inner);
+    }
+
+    private (HttpClient Client, StubHttpHandler Inner) BuildAzureDevOps()
+    {
+        var inner = StubHttpHandler.Returning(HttpStatusCode.OK);
+        var resolver = new RemoteTokenResolver(
+            _state,
+            [new SessionPatTokenSource(_credentials, SourceType.AzureDevops), _entra]);
+        var handler = new RemoteTokenAuthHandler(
+            resolver,
+            PatScheme.Basic,
+            new PatTarget(SourceType.AzureDevops, new Uri(AzureDevOpsBaseUrl)))
         { InnerHandler = inner };
         return (new HttpClient(handler), inner);
     }
@@ -105,6 +122,31 @@ public sealed class RemoteTokenAuthHandlerTests
     }
 
     [Fact]
+    public async Task SendAsync_AzureDevOpsPat_SendsBasic()
+    {
+        _credentials.SetToken(SourceType.AzureDevops, Token);
+        var (client, inner) = BuildAzureDevOps();
+        var expected = Convert.ToBase64String(Encoding.UTF8.GetBytes($":{Token}"));
+
+        await client.GetAsync(AzureDevOpsUrl, TestSupport.Ct);
+
+        Assert.Equal($"Basic {expected}", inner.Requests.Single().Headers[AuthorizationHeader]);
+    }
+
+    [Fact]
+    public async Task SendAsync_AzureDevOpsEntraId_SendsBearerEvenWhenTheSchemeIsBasic()
+    {
+        _credentials.SetToken(SourceType.AzureDevops, Token);
+        _entra.Value = OAuthToken;
+        _state.Set(SourceType.AzureDevops, RemoteAuthMethod.EntraId);
+        var (client, inner) = BuildAzureDevOps();
+
+        await client.GetAsync(AzureDevOpsUrl, TestSupport.Ct);
+
+        Assert.Equal($"Bearer {OAuthToken}", inner.Requests.Single().Headers[AuthorizationHeader]);
+    }
+
+    [Fact]
     public async Task SendAsync_TokenChangesBetweenRequests_UsesTheLatestToken()
     {
         var (client, inner) = Build(PatScheme.Bearer);
@@ -167,11 +209,11 @@ public sealed class RemoteTokenAuthHandlerTests
         Assert.Empty(inner.Requests);
     }
 
-    private sealed class FixedTokenSource(RemoteAuthMethod method) : IRemoteTokenSource
+    private sealed class FixedTokenSource(SourceType provider, RemoteAuthMethod method) : IRemoteTokenSource
     {
         public string? Value { get; set; }
 
-        public SourceType Provider => SourceType.Github;
+        public SourceType Provider => provider;
 
         public RemoteAuthMethod Method => method;
 

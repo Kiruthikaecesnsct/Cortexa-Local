@@ -40,6 +40,33 @@ public sealed class StaleRemoteSecretPurgeTests
     }
 
     [Fact]
+    public async Task RunAsync_EntraCacheSlots_Survive()
+    {
+        SecretSlot[] entra =
+        [
+            SecretSlot.EntraIdCacheIndex,
+            SecretSlot.EntraIdCachePart1,
+            SecretSlot.EntraIdCachePart2,
+            SecretSlot.EntraIdCachePart3,
+            SecretSlot.EntraIdCachePart4,
+            SecretSlot.EntraIdCachePart5,
+            SecretSlot.EntraIdCachePart6,
+            SecretSlot.EntraIdCachePart7,
+            SecretSlot.EntraIdCachePart8,
+        ];
+        var secrets = new InMemorySecretStore();
+        secrets.Values[SecretSlot.AzureDevOpsPat] = "old";
+        foreach (var slot in entra)
+        {
+            secrets.Values[slot] = "cache";
+        }
+
+        await new StaleRemoteSecretPurge(secrets, NullLogger<StaleRemoteSecretPurge>.Instance).RunAsync(TestSupport.Ct);
+
+        Assert.Equal(entra.Order(), secrets.Values.Keys.Order());
+    }
+
+    [Fact]
     public async Task RunAsync_NothingStored_Succeeds()
     {
         var secrets = new InMemorySecretStore();

@@ -27,6 +27,16 @@ public class RemoteFailureMessagesTests
     }
 
     [Fact]
+    public void EntraNoAccess_NamesTheProviderAndOffersThePatFallback()
+    {
+        var message = RemoteFailureMessages.EntraNoAccess(SourceType.AzureDevops);
+
+        Assert.Contains("Azure DevOps", message, StringComparison.Ordinal);
+        Assert.Contains("Microsoft account", message, StringComparison.Ordinal);
+        Assert.Contains("personal access token", message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void For_EveryKind_ReturnsDistinctNonEmptyMessage()
     {
         var kinds = Enum.GetValues<RemoteFailureKind>();

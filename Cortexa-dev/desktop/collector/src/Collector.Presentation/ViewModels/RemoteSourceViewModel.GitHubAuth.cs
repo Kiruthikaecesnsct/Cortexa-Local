@@ -38,13 +38,15 @@ public sealed partial class RemoteSourceViewModel
 
     public bool IsGitHubSignedIn => IsGitHub && _deps.GitHubAuth.SignIn.IsSignedIn;
 
-    public bool ShowAuthPicker => IsGitHub && !IsGitHubSignedIn;
+    public bool ShowAuthPicker => IsTokenSource && AuthMethods.Count > 1 && !IsGitHubSignedIn && !IsEntraSignedIn;
 
-    public string? AuthAvailabilityNote => AvailabilityNote(_deps.GitHubAuth.Availability);
+    public string? AuthAvailabilityNote => IsAzure
+        ? EntraAvailabilityNote(_deps.GitHubAuth.Availability)
+        : AvailabilityNote(_deps.GitHubAuth.Availability);
 
     public bool ShowTokenField => IsTokenSource && IsPatMethod;
 
-    public bool ShowOAuthSignIn => !IsPatMethod && !IsGitHubSignedIn;
+    public bool ShowOAuthSignIn => IsGitHub && !IsPatMethod && !IsGitHubSignedIn;
 
     public bool ShowStartSignIn => ShowOAuthSignIn && !DeviceFlow.ShowPanel;
 
@@ -62,23 +64,31 @@ public sealed partial class RemoteSourceViewModel
         _ => TokenHint,
     };
 
-    public string SignedInLabel => _deps.GitHubAuth.SignIn.ActiveMethod == RemoteAuthMethod.GitHubApp
-        ? GitHubAuthStrings.SignedInApp
-        : GitHubAuthStrings.SignedInDevice;
+    public string SignedInLabel => !IsGitHub
+        ? string.Empty
+        : _deps.GitHubAuth.SignIn.ActiveMethod == RemoteAuthMethod.GitHubApp
+            ? GitHubAuthStrings.SignedInApp
+            : GitHubAuthStrings.SignedInDevice;
 
     public string SignOutText => IsSigningOut ? GitHubAuthStrings.SigningOut : GitHubAuthStrings.SignOut;
 
     public string SignOutAutomationName => IsSigningOut ? GitHubAuthStrings.SigningOut : GitHubAuthStrings.SignOutName;
 
-    public string DisconnectAutomationName => IsGitHubSignedIn
-        ? GitHubAuthStrings.DisconnectOAuthName
-        : RemoteSourceStrings.DisconnectName;
+    public string DisconnectAutomationName => (IsGitHubSignedIn, IsEntraSignedIn) switch
+    {
+        (true, _) => GitHubAuthStrings.DisconnectOAuthName,
+        (_, true) => EntraAuthStrings.DisconnectName,
+        _ => RemoteSourceStrings.DisconnectName,
+    };
 
-    public string ConnectingText => IsGitHubSignedIn
-        ? GitHubAuthStrings.OAuthConnectingMessage
-        : RemoteSourceStrings.ConnectingMessage;
+    public string ConnectingText => (IsGitHubSignedIn, IsEntraSignedIn) switch
+    {
+        (true, _) => GitHubAuthStrings.OAuthConnectingMessage,
+        (_, true) => EntraAuthStrings.ConnectingMessage,
+        _ => RemoteSourceStrings.ConnectingMessage,
+    };
 
-    private string AuthHint => IsGitHubSignedIn
+    private string AuthHint => IsGitHubSignedIn || IsEntraSignedIn
         ? GitHubAuthStrings.SignedInHint
         : MethodHint(SelectedAuthMethod);
 
@@ -89,6 +99,11 @@ public sealed partial class RemoteSourceViewModel
             if (IsPatMethod)
             {
                 return RemoteSourceStrings.ConnectPromptText;
+            }
+
+            if (IsAzure)
+            {
+                return EntraConnectPrompt;
             }
 
             if (IsGitHubSignedIn)
@@ -105,8 +120,9 @@ public sealed partial class RemoteSourceViewModel
     private RemoteAuthMethod? ExpiredOAuthMethod =>
         IsGitHub && !_deps.GitHubAuth.SignIn.IsSignedIn ? _lastOAuthMethod : null;
 
-    private RemoteAuthMethod? SignedInOAuthMethod =>
-        IsGitHub && _deps.GitHubAuth.SignIn.IsSignedIn ? _deps.GitHubAuth.SignIn.ActiveMethod : null;
+    private RemoteAuthMethod? SignedInOAuthMethod => IsEntraSignedIn
+        ? RemoteAuthMethod.EntraId
+        : IsGitHub && _deps.GitHubAuth.SignIn.IsSignedIn ? _deps.GitHubAuth.SignIn.ActiveMethod : null;
 
     [ObservableProperty]
     public partial RemoteAuthMethod SelectedAuthMethod { get; set; }
@@ -196,10 +212,28 @@ public sealed partial class RemoteSourceViewModel
     [RelayCommand]
     private void ConnectActiveMethod()
     {
-        IRelayCommand command = IsPatMethod ? ConnectCommand : IsGitHubSignedIn ? ConnectOAuthCommand : StartGitHubSignInCommand;
-        if (command.CanExecute(null))
+        var command = ActiveConnectCommand;
+        if (command?.CanExecute(null) == true)
         {
             command.Execute(null);
+        }
+    }
+
+    private IRelayCommand? ActiveConnectCommand
+    {
+        get
+        {
+            if (IsPatMethod)
+            {
+                return ConnectCommand;
+            }
+
+            if (IsAzure)
+            {
+                return ActiveEntraCommand;
+            }
+
+            return IsGitHubSignedIn ? ConnectOAuthCommand : StartGitHubSignInCommand;
         }
     }
 
@@ -289,7 +323,7 @@ public sealed partial class RemoteSourceViewModel
             SelectedAuthMethod = previous;
         }
 
-        RequestFocus(RemoteFocusKeys.GitHubSignIn);
+        RequestFocus(IsAzure ? RemoteFocusKeys.EntraSignIn : RemoteFocusKeys.GitHubSignIn);
     }
 
     private void ShowAuthNotice(string text, AuthNoticeKind kind)
@@ -301,6 +335,7 @@ public sealed partial class RemoteSourceViewModel
     private void ResetGitHubAuth()
     {
         DeviceFlow.Abort();
+        EntraSignIn.Abort();
         var active = _deps.GitHubAuth.SignIn.ActiveMethod;
         if (active != RemoteAuthMethod.Pat)
         {
@@ -344,6 +379,9 @@ public sealed partial class RemoteSourceViewModel
             MethodHint(method));
     }
 
+    private static string? EntraAvailabilityNote(RemoteAuthAvailability availability) =>
+        availability.EntraEnabled ? null : EntraAuthStrings.UnavailableNote;
+
     private static string? AvailabilityNote(RemoteAuthAvailability availability) => availability switch
     {
         { DeviceEnabled: false, AppEnabled: false } => GitHubAuthStrings.BothMethodsUnavailableNote,
@@ -352,9 +390,12 @@ public sealed partial class RemoteSourceViewModel
         _ => null,
     };
 
-    private static string MethodUnavailable(RemoteAuthMethod method) => method == RemoteAuthMethod.GitHubApp
-        ? GitHubAuthStrings.AppMethodUnavailable
-        : GitHubAuthStrings.DeviceMethodUnavailable;
+    private static string MethodUnavailable(RemoteAuthMethod method) => method switch
+    {
+        RemoteAuthMethod.GitHubApp => GitHubAuthStrings.AppMethodUnavailable,
+        RemoteAuthMethod.EntraId => EntraAuthStrings.MethodUnavailable,
+        _ => GitHubAuthStrings.DeviceMethodUnavailable,
+    };
 
     private void SyncAuthMethods()
     {
@@ -368,6 +409,7 @@ public sealed partial class RemoteSourceViewModel
     {
         RemoteAuthMethod.GitHubDevice => GitHubAuthStrings.DeviceMethodLabel,
         RemoteAuthMethod.GitHubApp => GitHubAuthStrings.AppMethodLabel,
+        RemoteAuthMethod.EntraId => EntraAuthStrings.MethodLabel,
         _ => GitHubAuthStrings.PatMethodLabel,
     };
 
@@ -375,6 +417,7 @@ public sealed partial class RemoteSourceViewModel
     {
         RemoteAuthMethod.GitHubDevice => GitHubAuthStrings.DeviceMethodHint,
         RemoteAuthMethod.GitHubApp => GitHubAuthStrings.AppMethodHint,
+        RemoteAuthMethod.EntraId => EntraAuthStrings.MethodHint,
         _ => GitHubAuthStrings.PatMethodHint,
     };
 
@@ -404,5 +447,6 @@ public sealed partial class RemoteSourceViewModel
         ConnectOAuthCommand.NotifyCanExecuteChanged();
         SignOutGitHubCommand.NotifyCanExecuteChanged();
         ConnectCommand.NotifyCanExecuteChanged();
+        NotifyEntraAuth();
     }
 }

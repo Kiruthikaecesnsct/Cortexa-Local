@@ -32,12 +32,15 @@ public static partial class RemoteConnectRules
     public static IReadOnlyList<RemoteAuthMethod> AuthMethodsFor(SourceType provider) =>
         provider == SourceType.Github
             ? [RemoteAuthMethod.GitHubDevice, RemoteAuthMethod.GitHubApp, RemoteAuthMethod.Pat]
-            : [RemoteAuthMethod.Pat];
+            : provider == SourceType.AzureDevops
+                ? [RemoteAuthMethod.EntraId, RemoteAuthMethod.Pat]
+                : [RemoteAuthMethod.Pat];
 
     public static bool IsMethodEnabled(RemoteAuthMethod method, RemoteAuthAvailability availability) => method switch
     {
         RemoteAuthMethod.GitHubDevice => availability.DeviceEnabled,
         RemoteAuthMethod.GitHubApp => availability.AppEnabled,
+        RemoteAuthMethod.EntraId => availability.EntraEnabled,
         _ => true,
     };
 

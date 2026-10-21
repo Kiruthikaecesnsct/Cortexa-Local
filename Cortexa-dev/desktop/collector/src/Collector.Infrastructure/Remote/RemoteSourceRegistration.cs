@@ -45,6 +45,7 @@ internal static class RemoteSourceRegistration
         services.AddCollectorSshRemoteSource();
         services.AddCollectorCortexaRemoteSource();
         services.AddGitHubOAuth();
+        services.AddAzureDevOpsEntra();
         services.AddSingleton<IRemoteRepositoryClients, RemoteRepositoryClients>();
         services.AddRemoteClient(new RemoteClientSpec(
             HttpClientNames.GitHub,
@@ -59,7 +60,7 @@ internal static class RemoteSourceRegistration
             PatScheme.Basic,
             options => options.AzureDevOps,
             sp => sp.GetRequiredService<AzureDevOpsRateHeaders>(),
-            CreatePatHandler));
+            CreateTokenHandler));
         return services;
     }
 
@@ -77,7 +78,7 @@ internal static class RemoteSourceRegistration
         services.AddSingleton<GitHubInstallationLister>();
         services.AddSingleton<IDeviceAuthorizationClient, GitHubDeviceAuthorizationClient>();
         services.AddSingleton<IOAuthTokenVault, CredentialManagerOAuthVault>();
-        services.AddSingleton(sp => CreateAvailability(sp.GetRequiredService<IOptions<RemoteSourceOptions>>().Value.GitHub));
+        services.AddSingleton(sp => CreateAvailability(sp.GetRequiredService<IOptions<RemoteSourceOptions>>().Value));
         services.AddSingleton(sp => new OAuthRefreshPolicy(TimeSpan.FromSeconds(sp.GetRequiredService<IOptions<RemoteSourceOptions>>().Value.GitHub.TokenRefreshSkewSeconds)));
         services.AddHttpClient(HttpClientNames.GitHubAuth)
             .ConfigureHttpClient((sp, client) =>
@@ -90,9 +91,17 @@ internal static class RemoteSourceRegistration
             .RedactLoggedHeaders(name => RedactedHeaders.Contains(name, StringComparer.OrdinalIgnoreCase));
     }
 
-    private static RemoteAuthAvailability CreateAvailability(GitHubSourceOptions options) => new(
-        !string.IsNullOrWhiteSpace(options.OAuthClientId),
-        !string.IsNullOrWhiteSpace(options.AppClientId));
+    private static void AddAzureDevOpsEntra(this IServiceCollection services)
+    {
+        services.AddSingleton<EntraTokenCacheStore>();
+        services.AddSingleton<MsalCacheBinding>();
+        services.AddSingleton<IEntraIdAuthClient, MsalEntraIdAuthClient>();
+    }
+
+    private static RemoteAuthAvailability CreateAvailability(RemoteSourceOptions options) => new(
+        !string.IsNullOrWhiteSpace(options.GitHub.OAuthClientId),
+        !string.IsNullOrWhiteSpace(options.GitHub.AppClientId),
+        !string.IsNullOrWhiteSpace(options.AzureDevOps.EntraClientId));
 
     private static void AddCollectorCortexaRemoteSource(this IServiceCollection services)
     {
@@ -124,13 +133,6 @@ internal static class RemoteSourceRegistration
         var options = sp.GetRequiredService<IOptions<RemoteSourceOptions>>().Value;
         client.BaseAddress = RemoteUrl.BaseAddress(spec.Select(options).BaseUrl);
         client.Timeout = Timeout.InfiniteTimeSpan;
-    }
-
-    private static PatAuthHandler CreatePatHandler(IServiceProvider sp, RemoteClientSpec spec)
-    {
-        var options = sp.GetRequiredService<IOptions<RemoteSourceOptions>>().Value;
-        var target = new PatTarget(spec.Provider, RemoteUrl.BaseAddress(spec.Select(options).BaseUrl));
-        return new PatAuthHandler(sp.GetRequiredService<ISessionCredentials>(), spec.Scheme, target);
     }
 
     private static RemoteTokenAuthHandler CreateTokenHandler(IServiceProvider sp, RemoteClientSpec spec)

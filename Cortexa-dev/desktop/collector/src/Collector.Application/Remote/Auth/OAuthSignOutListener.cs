@@ -27,5 +27,6 @@ public sealed class OAuthSignOutListener
 
         _vault.DropCache();
         _state.Reset(SourceType.Github);
+        _state.Reset(SourceType.AzureDevops);
     }
 }

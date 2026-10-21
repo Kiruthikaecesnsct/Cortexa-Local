@@ -270,6 +270,7 @@ public sealed class RemoteSourceOptionsValidator : IValidateOptions<RemoteSource
         CheckProvider(failures, "GitHub", options.GitHub);
         CheckGitHubAuth(failures, options.GitHub);
         CheckProvider(failures, "AzureDevOps", options.AzureDevOps);
+        CheckEntra(failures, options.AzureDevOps);
         CheckSsh(failures, options.Ssh);
         CheckCortexa(failures, options.Cortexa);
         CheckPositive(failures, nameof(options.TimeoutSeconds), options.TimeoutSeconds);
@@ -301,6 +302,32 @@ public sealed class RemoteSourceOptionsValidator : IValidateOptions<RemoteSource
         }
 
         CheckPositive(failures, $"GitHub:{nameof(options.TokenRefreshSkewSeconds)}", options.TokenRefreshSkewSeconds);
+    }
+
+    private static void CheckEntra(List<string> failures, AzureDevOpsSourceOptions options)
+    {
+        const string Prefix = $"{RemoteSourceOptions.SectionName}:AzureDevOps";
+        if (string.IsNullOrWhiteSpace(options.EntraClientId))
+        {
+            return;
+        }
+
+        var validAuthority = Uri.TryCreate(options.EntraAuthority, UriKind.Absolute, out var authority)
+            && authority.Scheme == Uri.UriSchemeHttps;
+        if (!validAuthority)
+        {
+            failures.Add($"{Prefix}:{nameof(options.EntraAuthority)} must be an absolute https URL.");
+        }
+
+        if (!Uri.TryCreate(options.EntraRedirectUri, UriKind.Absolute, out _))
+        {
+            failures.Add($"{Prefix}:{nameof(options.EntraRedirectUri)} must be an absolute URL.");
+        }
+
+        if (string.IsNullOrWhiteSpace(options.EntraScope))
+        {
+            failures.Add($"{Prefix}:{nameof(options.EntraScope)} is required.");
+        }
     }
 
     private static void CheckSsh(List<string> failures, SshSourceOptions options)

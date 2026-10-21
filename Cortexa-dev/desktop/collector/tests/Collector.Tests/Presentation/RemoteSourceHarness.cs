@@ -227,10 +227,12 @@ internal sealed class RemoteSourceHarness
     public RemoteSourceHarness(
         Action<RemoteFetchOptions>? configureOptions = null,
         RemoteAuthAvailability? availability = null,
-        Action<FakeGitHubSignIn>? configureSignIn = null)
+        Action<FakeGitHubSignIn>? configureSignIn = null,
+        Action<FakeEntraSignIn>? configureEntra = null)
     {
         configureOptions?.Invoke(FetchOptions.Value);
         configureSignIn?.Invoke(SignIn);
+        configureEntra?.Invoke(EntraSignIn);
         Settings = new SettingsService(Store, Secrets, new FakeGeminiKeyStore());
         var clients = new FakeRemoteClients(GitHub, AzureDevOps, Cortexa);
         var dependencies = new RemoteSourceDependencies(
@@ -249,7 +251,8 @@ internal sealed class RemoteSourceHarness
                 SignIn,
                 Clipboard,
                 availability ?? RemoteAuthAvailability.None,
-                Options.Create(new RemoteSourceOptions())));
+                Options.Create(new RemoteSourceOptions())),
+            new EntraAuthDependencies(EntraSignIn));
         ViewModel = new RemoteSourceViewModel(
             dependencies,
             TimeProvider.System,
@@ -285,6 +288,8 @@ internal sealed class RemoteSourceHarness
     public FakeLinkLauncher Links { get; } = new();
 
     public FakeGitHubSignIn SignIn { get; } = new();
+
+    public FakeEntraSignIn EntraSignIn { get; } = new();
 
     public SwitchableClipboard Clipboard { get; } = new();
 

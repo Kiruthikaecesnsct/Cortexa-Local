@@ -103,7 +103,9 @@ public static class CollectorHost
         services.AddSingleton<IRemoteFetcher, RemoteFetcher>();
         services.AddSingleton<IExternalLinkLauncher, ShellLinkLauncher>();
         services.AddSingleton<IntakeProgressViewModel>();
+        services.AddSingleton<IWindowHandleSource, MainWindowHandleSource>();
         services.AddSingleton<GitHubAuthDependencies>();
+        services.AddSingleton<EntraAuthDependencies>();
         services.AddSingleton<RemoteSourceDependencies>();
         services.AddSingleton<RemoteSourceViewModel>();
         return services;

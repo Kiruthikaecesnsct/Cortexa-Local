@@ -62,6 +62,9 @@ public static class DependencyInjection
         services.AddSingleton<IRemoteTokenSource>(sp => new SessionPatTokenSource(sp.GetRequiredService<ISessionCredentials>(), SourceType.Github));
         services.AddSingleton<IRemoteTokenSource, GitHubDeviceTokenSource>();
         services.AddSingleton<IRemoteTokenSource, GitHubAppTokenSource>();
+        services.AddSingleton<IRemoteTokenSource>(sp => new SessionPatTokenSource(sp.GetRequiredService<ISessionCredentials>(), SourceType.AzureDevops));
+        services.AddSingleton<IRemoteTokenSource, EntraIdTokenSource>();
+        services.AddSingleton<IEntraIdSignIn, EntraIdSignInService>();
         services.AddSingleton<IRemoteTokenResolver, RemoteTokenResolver>();
         services.AddSingleton<DeviceFlowRunner>();
         services.AddSingleton<IGitHubSignIn, GitHubSignInService>();

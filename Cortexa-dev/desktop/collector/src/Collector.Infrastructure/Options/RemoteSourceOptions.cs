@@ -41,6 +41,14 @@ public sealed class AzureDevOpsSourceOptions : RemoteProviderOptions
     }
 
     public string Organization { get; set; } = string.Empty;
+
+    public string EntraClientId { get; set; } = string.Empty;
+
+    public string EntraAuthority { get; set; } = "https://login.microsoftonline.com/organizations";
+
+    public string EntraRedirectUri { get; set; } = "http://localhost";
+
+    public string EntraScope { get; set; } = "499b84ac-1321-427f-aa17-267ca6975798/.default";
 }
 
 public sealed class RateLimitOptions

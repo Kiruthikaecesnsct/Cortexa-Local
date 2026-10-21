@@ -145,8 +145,30 @@ public sealed class RemoteConnectRulesTests
             RemoteConnectRules.AuthMethodsFor(SourceType.Github));
 
     [Fact]
-    public void AuthMethodsFor_AzureDevOps_IsPatOnly() =>
-        Assert.Equal([RemoteAuthMethod.Pat], RemoteConnectRules.AuthMethodsFor(SourceType.AzureDevops));
+    public void AuthMethodsFor_AzureDevOps_ListsEntraIdThenPat() =>
+        Assert.Equal(
+            [RemoteAuthMethod.EntraId, RemoteAuthMethod.Pat],
+            RemoteConnectRules.AuthMethodsFor(SourceType.AzureDevops));
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void IsMethodEnabled_EntraId_FollowsEntraAvailability(bool entra) =>
+        Assert.Equal(
+            entra,
+            RemoteConnectRules.IsMethodEnabled(RemoteAuthMethod.EntraId, new RemoteAuthAvailability(false, false, entra)));
+
+    [Fact]
+    public void DefaultMethod_AzureDevOps_EntraEnabled_IsEntraId() =>
+        Assert.Equal(
+            RemoteAuthMethod.EntraId,
+            RemoteConnectRules.DefaultMethod(SourceType.AzureDevops, new RemoteAuthAvailability(false, false, true)));
+
+    [Fact]
+    public void DefaultMethod_AzureDevOps_EntraDisabled_FallsBackToPat() =>
+        Assert.Equal(
+            RemoteAuthMethod.Pat,
+            RemoteConnectRules.DefaultMethod(SourceType.AzureDevops, new RemoteAuthAvailability(false, false, false)));
 
     [Theory]
     [InlineData(true, true)]

@@ -2883,4 +2883,73 @@
             </Setter.Value>
         </Setter>
     </Style>
+
+    <Style x:Key="Auth.SignedIn" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource Brush.Success.Surface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Success.Border}" />
+        <Setter Property="BorderThickness" Value="{StaticResource Thickness.Border}" />
+        <Setter Property="CornerRadius" Value="{StaticResource Radius.Control}" />
+        <Setter Property="Padding" Value="{StaticResource Thickness.ControlPadding}" />
+    </Style>
+
+    <Style x:Key="DeviceCode.Text" TargetType="TextBox" BasedOn="{StaticResource TextBox.Code}">
+        <Setter Property="FontFamily" Value="{StaticResource Font.Mono}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Hero}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
+        <Setter Property="Background" Value="{DynamicResource Brush.Surface.Card}" />
+        <Setter Property="HorizontalAlignment" Value="Left" />
+        <Setter Property="TextWrapping" Value="NoWrap" />
+    </Style>
+
+    <Style x:Key="DeviceCode.Surface" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource Brush.Surface.Sunken}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
+        <Setter Property="BorderThickness" Value="{StaticResource Thickness.Border}" />
+        <Setter Property="CornerRadius" Value="{StaticResource Radius.Control}" />
+        <Setter Property="Padding" Value="{StaticResource Thickness.CardPadding}" />
+        <Setter Property="Margin" Value="{StaticResource Thickness.StackGapMedium}" />
+    </Style>
+
+    <Style x:Key="DeviceCode.Outcome" TargetType="Border" BasedOn="{StaticResource DeviceCode.Surface}">
+        <Setter Property="Background" Value="{DynamicResource Brush.Danger.Surface}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.Danger.Border}" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsExpiredOutcome}" Value="True">
+                <Setter Property="Background" Value="{DynamicResource Brush.Warning.Surface}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource Brush.Warning.Border}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="DeviceCode.OutcomeGlyph" TargetType="TextBlock" BasedOn="{StaticResource Text.Glyph.Error}">
+        <Setter Property="Text" Value="{x:Static res:Glyphs.Error}" />
+        <Setter Property="Margin" Value="{StaticResource Thickness.InlineGapLarge}" />
+        <Setter Property="VerticalAlignment" Value="Top" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsExpiredOutcome}" Value="True">
+                <Setter Property="Text" Value="{x:Static res:Glyphs.Warning}" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.Warning}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="DeviceCode.Countdown" TargetType="TextBlock" BasedOn="{StaticResource Text.Caption}">
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsExpiringSoon}" Value="True">
+                <Setter Property="Foreground" Value="{DynamicResource Brush.Warning}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="DeviceCode.ClockGlyph" TargetType="TextBlock" BasedOn="{StaticResource Text.Glyph}">
+        <Setter Property="Text" Value="{x:Static res:Glyphs.Clock}" />
+        <Setter Property="Margin" Value="{StaticResource Thickness.InlineGap}" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsExpiringSoon}" Value="True">
+                <Setter Property="Text" Value="{x:Static res:Glyphs.Warning}" />
+                <Setter Property="Foreground" Value="{DynamicResource Brush.Warning}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
 </ResourceDictionary>

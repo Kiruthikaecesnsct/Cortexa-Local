@@ -71,7 +71,7 @@ public sealed partial class GitHubDeviceFlowViewModel : ObservableObject, IDispo
 
     public string LinkText => VerificationUri is { } uri ? uri.Host + uri.AbsolutePath.TrimEnd('/') : string.Empty;
 
-    public string UserCodeName => GitHubAuthStrings.UserCodeName(SpellCode(UserCode));
+    public string UserCodeName => GitHubAuthStrings.UserCodeName(DeviceCodeSpeller.Spell(UserCode));
 
     public string RemainingText => GitHubAuthStrings.ExpiresIn(CountdownFormatter.Format(RemainingTime));
 
@@ -235,9 +235,6 @@ public sealed partial class GitHubDeviceFlowViewModel : ObservableObject, IDispo
         ResetState();
         UsePatRequested?.Invoke(this, EventArgs.Empty);
     }
-
-    private static string SpellCode(string code) =>
-        string.Join(", dash, ", code.Split('-').Select(part => string.Join(' ', part.AsEnumerable())));
 
     private bool HostMatches(Uri uri) =>
         uri.Scheme == Uri.UriSchemeHttps && string.Equals(uri.Host, _services.AuthBase.Host, StringComparison.OrdinalIgnoreCase);

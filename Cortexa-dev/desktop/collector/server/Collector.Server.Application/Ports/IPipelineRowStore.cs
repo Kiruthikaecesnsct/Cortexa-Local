@@ -14,6 +14,8 @@ public interface IPipelineRowStore
 
     Task<SagaRow?> GetSagaAsync(string batchId, CancellationToken cancellationToken);
 
+    Task ReplaceSagaAsync(SagaRow saga, CancellationToken cancellationToken);
+
     Task<IReadOnlyList<string>> DeleteSagaAsync(string batchId, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<string>> DeleteProvenanceAsync(

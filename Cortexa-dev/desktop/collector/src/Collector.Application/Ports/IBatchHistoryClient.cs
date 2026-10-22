@@ -7,6 +7,8 @@ public interface IBatchHistoryClient
     Task<IReadOnlyList<BatchSummary>> ListBatchesAsync(CancellationToken cancellationToken);
 
     Task<BatchResults?> GetResultsAsync(string serverBatchId, CancellationToken cancellationToken);
+
+    Task RetryBatchAsync(string serverBatchId, CancellationToken cancellationToken);
 }
 
 public sealed class BatchHistoryException : Exception

@@ -72,6 +72,24 @@ public sealed class CosmosPipelineRowStore : IPipelineRowStore
         }
     }
 
+    public async Task ReplaceSagaAsync(SagaRow saga, CancellationToken cancellationToken)
+    {
+        var container = _client.GetContainer(_options.Database, _options.BatchesContainer);
+
+        try
+        {
+            await container.UpsertItemAsync(saga, new PartitionKey(saga.BatchId), cancellationToken: cancellationToken);
+        }
+        catch (CosmosException exception)
+        {
+            throw new PipelineWriteException(saga.BatchId, SagaStage, exception);
+        }
+        catch (OperationCanceledException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            throw new PipelineWriteException(saga.BatchId, SagaStage, exception);
+        }
+    }
+
     public Task<IReadOnlyList<string>> DeleteSagaAsync(string batchId, CancellationToken cancellationToken) =>
         DeleteAllAsync(_options.BatchesContainer, batchId, [batchId], cancellationToken);
 

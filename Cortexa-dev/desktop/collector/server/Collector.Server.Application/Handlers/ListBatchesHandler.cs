@@ -22,7 +22,7 @@ public sealed class ListBatchesHandler(IPipelineRowStore store, BatchStageCalcul
             BatchId = saga.BatchId,
             BatchName = saga.BatchName,
             CreatedAt = saga.CreatedAt,
-            State = saga.State,
+            State = BatchStateDeriver.Derive(saga),
             Stage = stage.Stage,
             ExtractionCompletedCount = saga.CompletedCount,
             ExtractionTotalCount = saga.TotalDocumentCount,

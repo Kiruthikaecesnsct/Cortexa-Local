@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using Collector.Domain.History;
 using Collector.Domain.Serialization;
+using Collector.Domain.Upload;
 using Collector.Server.Application.Rows;
 using Collector.Server.Tests.Fakes;
 
@@ -151,6 +152,99 @@ public class CollectorBatchesEndpointTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Empty((await ReadResultsAsync(response)).Candidates);
     }
+
+    [Fact]
+    public async Task Post_Retry_ForFailedBatch_ResetsDocumentsAndDispatchesWithoutReupload()
+    {
+        await using var factory = new CollectorServerFactory();
+        SeedFailedSagaWithDocuments(factory, "batch-mine", TestIdentity.UserId, TestIdentity.OrgId);
+
+        using var response = await factory.PostAsync($"{BatchesPath}/batch-mine/retry", TestJwtFactory.Create());
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await ReadUploadResultAsync(response);
+        Assert.Equal("batch-mine", result.BatchId);
+        Assert.Equal(["doc-1", "doc-2"], result.DocumentIds);
+        Assert.All(
+            factory.Store.Sagas["batch-mine"].Documents,
+            document => Assert.Equal(RowConstants.SagaDocumentStateQueued, document.State));
+        Assert.Equal(2, factory.Publisher.Published.Count);
+    }
+
+    [Fact]
+    public async Task Post_Retry_ForMissingBatch_Returns404()
+    {
+        await using var factory = new CollectorServerFactory();
+
+        using var response = await factory.PostAsync($"{BatchesPath}/does-not-exist/retry", TestJwtFactory.Create());
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Empty(factory.Publisher.Published);
+    }
+
+    [Fact]
+    public async Task Post_Retry_ForForeignBatch_Returns404AndDoesNotDispatch()
+    {
+        await using var factory = new CollectorServerFactory();
+        SeedFailedSagaWithDocuments(factory, "batch-other", TestIdentity.OtherUserId, TestIdentity.OrgId);
+
+        using var response = await factory.PostAsync($"{BatchesPath}/batch-other/retry", TestJwtFactory.Create());
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Empty(factory.Publisher.Published);
+        var untouchedSaga = factory.Store.Sagas["batch-other"];
+        Assert.Equal(
+            RowConstants.SagaDocumentStateFailed,
+            Assert.Single(untouchedSaga.Documents, document => document.DocumentId == "doc-2").State);
+    }
+
+    [Fact]
+    public async Task Post_Retry_NoToken_Returns401()
+    {
+        await using var factory = new CollectorServerFactory();
+
+        using var response = await factory.PostAsync($"{BatchesPath}/batch-mine/retry");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    private static void SeedFailedSagaWithDocuments(
+        CollectorServerFactory factory,
+        string batchId,
+        string ownerUserId,
+        string orgId)
+    {
+        SeedSaga(factory, batchId, ownerUserId, orgId);
+        var saga = factory.Store.Sagas[batchId] with
+        {
+            TotalDocumentCount = 2,
+            Documents =
+            [
+                new SagaDocumentProgressRow { DocumentId = "doc-1", State = RowConstants.SagaDocumentStateComplete },
+                new SagaDocumentProgressRow { DocumentId = "doc-2", State = RowConstants.SagaDocumentStateFailed }
+            ]
+        };
+        factory.Store.Sagas[batchId] = saga;
+        factory.Store.Documents.AddRange(
+        [
+            DocumentRowFor(batchId, "doc-1"),
+            DocumentRowFor(batchId, "doc-2")
+        ]);
+    }
+
+    private static DocumentRow DocumentRowFor(string batchId, string documentId) => new()
+    {
+        Id = documentId,
+        BatchId = batchId,
+        Filename = "seeded.pdf",
+        SourceKind = Collector.Domain.Enums.SourceKind.Paper,
+        ProvenanceMapId = $"{documentId}|0",
+        ChunkCount = 1,
+        CreatedAt = TestData.FixedTime
+    };
+
+    private static async Task<KnowledgeUploadResult> ReadUploadResultAsync(HttpResponseMessage response) =>
+        JsonSerializer.Deserialize<KnowledgeUploadResult>(await ReadRawAsync(response), CollectorJson.Options)!;
 
     private static void SeedSaga(CollectorServerFactory factory, string batchId, string ownerUserId, string orgId) =>
         factory.Store.Sagas[batchId] = new SagaRow

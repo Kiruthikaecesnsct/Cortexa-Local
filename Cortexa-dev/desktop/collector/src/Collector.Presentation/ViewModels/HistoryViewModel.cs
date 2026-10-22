@@ -57,10 +57,11 @@ public sealed partial class HistoryViewModel : FocusableViewModel, INavigationAw
         _services = services;
         _poller = poller;
         _navigation = navigation;
+        var rowActions = new HistoryBatchRowActions(RetryBatchRowAsync);
         _batchMerge = new KeyedMerge<HistoryBatchRowViewModel, BatchSummary>(
             row => row.BatchId,
             summary => summary.BatchId,
-            summary => new HistoryBatchRowViewModel(summary),
+            summary => new HistoryBatchRowViewModel(summary, rowActions),
             UpdateBatch)
         {
             InsertIndex = InsertIndexFor,
@@ -186,6 +187,26 @@ public sealed partial class HistoryViewModel : FocusableViewModel, INavigationAw
     }
 
     private void OnBatchUploaded() => LoadTask = ReloadQuietlyAsync(_lifetime.Token);
+
+    private async Task RetryBatchRowAsync(HistoryBatchRowViewModel row)
+    {
+        try
+        {
+            await _services.Client.RetryBatchAsync(row.BatchId, CancellationToken.None);
+        }
+        catch (BatchHistoryException exception) when (exception.IsAuthFailure)
+        {
+            StopForAuthFailure();
+            return;
+        }
+        catch (BatchHistoryException)
+        {
+            StageAnnouncement = HistoryStrings.AnnounceRetryBatchFailed(row.Name);
+            return;
+        }
+
+        await ReloadQuietlyAsync(_lifetime.Token);
+    }
 
     private async Task ReloadQuietlyAsync(CancellationToken cancellationToken)
     {

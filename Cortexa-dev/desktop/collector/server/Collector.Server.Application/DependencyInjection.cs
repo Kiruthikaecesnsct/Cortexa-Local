@@ -30,6 +30,7 @@ public static class DependencyInjection
         services.AddSingleton<BatchStageCalculator>();
         services.AddScoped<ListBatchesHandler>();
         services.AddScoped<GetBatchResultsHandler>();
+        services.AddScoped<RetryBatchHandler>();
         return services;
     }
 }

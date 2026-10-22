@@ -188,6 +188,20 @@ public sealed class KnowledgeRunViewModelCandidateTests
     }
 
     [Fact]
+    public async Task ExtractKnowledgeCommand_DuplicateDocumentIds_SeedsTotalWithDistinctCount()
+    {
+        var harness = new KnowledgeHarness();
+        harness.ViewModel.SetDocuments([DocumentId, DocumentId, "doc-2"]);
+        harness.CandidateRunner.Gate = new TaskCompletionSource<CandidateRunOutcome>();
+
+        var run = harness.ViewModel.ExtractKnowledgeCommand.ExecuteAsync(null);
+
+        Assert.Equal(2, harness.CandidateState.Total);
+        harness.ViewModel.ExtractKnowledgeCancelCommand.Execute(null);
+        await run;
+    }
+
+    [Fact]
     public void CancelCommand_CandidateProgress_IsWiredToKnowledgeCancel()
     {
         var harness = Ready();

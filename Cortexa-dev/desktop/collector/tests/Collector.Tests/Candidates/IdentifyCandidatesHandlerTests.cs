@@ -189,6 +189,54 @@ public sealed class IdentifyCandidatesHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task IdentifyAsync_DuplicateAndMissingIds_ProgressReachesDistinctTotalExactlyOnce()
+    {
+        var a = await AddDocumentAsync("a.txt");
+        var b = await AddDocumentAsync("b.txt");
+        var ids = new[] { a, a, b, "missing" };
+        var provider = new ScriptedAiProvider()
+            .Then(Completions.Completed("{\"candidates\":[]}"))
+            .Then(Completions.Completed("{\"candidates\":[]}"));
+        var progress = new RecordingProgress<CandidateProgress>();
+
+        var result = await Handler(provider).IdentifyAsync(new CandidateRunRequest(ids), progress, TestSupport.Ct);
+
+        const int distinctCount = 3;
+        Assert.Equal(distinctCount, result.Documents.Count);
+        Assert.Equal(distinctCount, progress.Reports.Count);
+        Assert.All(progress.Reports, report => Assert.Equal(distinctCount, report.Total));
+        Assert.Equal(Enumerable.Range(1, distinctCount), progress.Reports.Select(report => report.Completed).OrderBy(completed => completed));
+        Assert.Equal(distinctCount, progress.Reports[^1].Completed);
+    }
+
+    [Fact]
+    public async Task IdentifyAsync_ConcurrentProcessing_ProgressAdvancesWithoutLostUpdates()
+    {
+        var ids = new[]
+        {
+            await AddDocumentAsync("a.txt"),
+            await AddDocumentAsync("b.txt"),
+            await AddDocumentAsync("c.txt"),
+            await AddDocumentAsync("d.txt"),
+        };
+        var provider = new ScriptedAiProvider()
+            .Then(Completions.Completed("{\"candidates\":[]}"))
+            .Then(Completions.Completed("{\"candidates\":[]}"))
+            .Then(Completions.Completed("{\"candidates\":[]}"))
+            .Then(Completions.Completed("{\"candidates\":[]}"));
+        var progress = new RecordingProgress<CandidateProgress>();
+
+        await Handler(provider, concurrency: 4).IdentifyAsync(new CandidateRunRequest(ids), progress, TestSupport.Ct);
+
+        Assert.Equal(ids.Length, progress.Reports.Count);
+        Assert.All(progress.Reports, report => Assert.Equal(ids.Length, report.Total));
+        Assert.Equal(
+            Enumerable.Range(1, ids.Length),
+            progress.Reports.Select(report => report.Completed).OrderBy(completed => completed));
+        Assert.Equal(ids.Length, progress.Reports[^1].Completed);
+    }
+
+    [Fact]
     public async Task IdentifyAsync_ProviderReportsInputTooLarge_TooLargeWithCountAndLimitOthersUnchanged()
     {
         var ids = new[] { await AddDocumentAsync("a.txt"), await AddDocumentAsync("b.txt"), await AddDocumentAsync("c.txt") };

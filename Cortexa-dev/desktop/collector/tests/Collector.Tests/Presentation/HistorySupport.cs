@@ -91,6 +91,10 @@ internal sealed class FakeBatchHistoryClient : IBatchHistoryClient
 
     public List<string> ResultCalls { get; } = [];
 
+    public List<string> RetryCalls { get; } = [];
+
+    public Exception? RetryError { get; set; }
+
     public TaskCompletionSource? ResultsGate { get; set; }
 
     public void SetResults(string batchId, BatchResults? results)
@@ -121,6 +125,12 @@ internal sealed class FakeBatchHistoryClient : IBatchHistoryClient
         }
 
         return _results.TryGetValue(serverBatchId, out var results) ? results : HistoryData.Results(serverBatchId);
+    }
+
+    public Task RetryBatchAsync(string serverBatchId, CancellationToken cancellationToken)
+    {
+        RetryCalls.Add(serverBatchId);
+        return RetryError is null ? Task.CompletedTask : Task.FromException(RetryError);
     }
 }
 

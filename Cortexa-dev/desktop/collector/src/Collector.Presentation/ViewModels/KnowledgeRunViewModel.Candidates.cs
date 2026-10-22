@@ -15,7 +15,8 @@ public sealed partial class KnowledgeRunViewModel
         }
 
         var state = _passes.CandidateState;
-        state.Begin(_documentIds.Count);
+        var request = new CandidateRunRequest(_documentIds);
+        state.Begin(request.DistinctDocumentIds.Count);
         var progress = new SyncProgress<CandidateProgress>(state.Report);
         var outcome = await _passes.Candidates.RunAsync(_documentIds, progress, cancellationToken);
         state.Set(outcome);

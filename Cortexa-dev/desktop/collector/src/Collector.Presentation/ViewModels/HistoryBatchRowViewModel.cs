@@ -2,6 +2,7 @@ using System.Globalization;
 using Collector.Domain.History;
 using Collector.Presentation.Resources;
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 
 namespace Collector.Presentation.ViewModels;
 
@@ -14,12 +15,16 @@ public enum RowChange
     State = 4,
 }
 
+public sealed record HistoryBatchRowActions(Func<HistoryBatchRowViewModel, Task> Retry);
+
 public sealed partial class HistoryBatchRowViewModel : ObservableObject
 {
+    private readonly HistoryBatchRowActions _actions;
     private BatchSummary _summary;
 
-    public HistoryBatchRowViewModel(BatchSummary summary)
+    public HistoryBatchRowViewModel(BatchSummary summary, HistoryBatchRowActions actions)
     {
+        _actions = actions;
         _summary = summary;
         BatchId = summary.BatchId;
         Steps = [.. Enum.GetValues<BatchStage>().Select(stage => new StageStepViewModel(stage))];
@@ -54,6 +59,16 @@ public sealed partial class HistoryBatchRowViewModel : ObservableObject
 
     public bool IsStopped => StateKind is BatchState.Failed or BatchState.Cancelled;
 
+    public bool IsFailed => StateKind == BatchState.Failed;
+
+    public bool CanRetryBatch => IsFailed && !IsRetrying;
+
+    public string RetryFocusKey => $"BatchRetry:{BatchId}";
+
+    public string RetryLabel => IsRetrying ? HistoryStrings.Retrying : HistoryStrings.Retry;
+
+    public string RetryBatchName => IsRetrying ? HistoryStrings.RetryingName(Name) : HistoryStrings.RetryName(Name);
+
     [ObservableProperty]
     public partial string Name { get; set; }
 
@@ -64,6 +79,8 @@ public sealed partial class HistoryBatchRowViewModel : ObservableObject
     public partial string UploadedText { get; set; }
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsFailed), nameof(CanRetryBatch))]
+    [NotifyCanExecuteChangedFor(nameof(RetryBatchCommand))]
     public partial BatchState StateKind { get; set; }
 
     [ObservableProperty]
@@ -95,6 +112,30 @@ public sealed partial class HistoryBatchRowViewModel : ObservableObject
 
     [ObservableProperty]
     public partial string ProviderModelText { get; set; }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanRetryBatch), nameof(RetryLabel), nameof(RetryBatchName))]
+    [NotifyCanExecuteChangedFor(nameof(RetryBatchCommand))]
+    public partial bool IsRetrying { get; set; }
+
+    [RelayCommand(CanExecute = nameof(CanRetryBatch))]
+    private async Task RetryBatchAsync()
+    {
+        if (!CanRetryBatch)
+        {
+            return;
+        }
+
+        IsRetrying = true;
+        try
+        {
+            await _actions.Retry(this);
+        }
+        finally
+        {
+            IsRetrying = false;
+        }
+    }
 
     public RowChange Update(BatchSummary summary)
     {

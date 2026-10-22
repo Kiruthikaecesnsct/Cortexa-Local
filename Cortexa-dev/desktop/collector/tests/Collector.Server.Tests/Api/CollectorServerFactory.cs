@@ -47,6 +47,18 @@ internal sealed class CollectorServerFactory(IReadOnlyDictionary<string, string?
         return await client.SendAsync(request, TestContext.Current.CancellationToken);
     }
 
+    public async Task<HttpResponseMessage> PostAsync(string path, string? token = null)
+    {
+        using var client = CreateClient();
+        using var request = new HttpRequestMessage(HttpMethod.Post, path);
+        if (token is not null)
+        {
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        }
+
+        return await client.SendAsync(request, TestContext.Current.CancellationToken);
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(_settings));

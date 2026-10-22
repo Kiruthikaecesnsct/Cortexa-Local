@@ -10,25 +10,27 @@ _Last regenerated: 2026-10-22_
 
 The desktop collector is the active surface. It pulls source files from four remote sources (GitHub, Azure DevOps, SSH/SFTP, and the saved Cortexa repository), splits them, and uploads them for knowledge extraction. All collector code stays inside `Cortexa-dev/desktop/collector`.
 
-Sprint 5 is in progress. US153 (invention candidates from whole documents with Gemini) merged in PR #29. US154 (candidate pass chained into Process, candidates shown in Review) merged in PR #30. Candidates stay local. Nothing new is uploaded.
+Sprint 5 is in progress. US153 (invention candidates from whole documents with Gemini) and US154 (candidate pass chained into Process, candidates shown in Review) are merged. Candidates stay local. Nothing new is uploaded.
 
-US155 is planned next. It adds a fallback to the next Gemini model when every key hits quota on the current model. Its capsule is `context/US155.md`.
+US155 (Gemini model fallback on quota) is merged through PR #31. The model list is set by `Ai:Gemini:FallbackModels`, and a short per-minute 429 waits once before falling back. Its capsule is archived.
 
 ## Open follow-ups
 
+- US142 and US143 are still open as manual end-to-end checks. They are not code gaps.
 - The Process screen is shared with US150 (Extract renamed to Process). Check the current Process view before starting any further edit there.
 - Process runs the knowledge pass and the candidate pass one after the other on a selection, so Gemini concurrency is not doubled. Keep it that way.
 - A whole-document 400 or 413 can mark every Gemini key as Rejected in Settings. A follow-up bug is not filed yet.
 - Confirm the Gemini keys are on a paid tier before a long run.
-- US155 open questions: cooldown length for an exhausted model, and whether `Ai:Gemini:MaxInputTokens` becomes per model.
+- Gemini fallback has no cooldown timer. An exhausted model stays skipped for the rest of the run.
 - US151 and US152 (sign-in work) rely on the OAuth token persistence decision below. It is accepted but not yet implemented.
 
 ## In-flight contracts
 
-None in `contracts/`. Candidate types are in-process only and recorded under the decision below.
+None in `contracts/`. Candidate types are in-process only and recorded under the decisions below.
 
 ## Recent decisions
 
+- **Gemini model fallback is config-driven** (2026-10-22, active). Models are tried in `Ai:Gemini:FallbackModels` order. Exhausted models are skipped for the run. A short per-minute 429 waits once before falling back.
 - **Candidates identified on the desktop** (2026-10-21, active). Candidate identification runs in the collector. Results stay local. The desktop shows results and uploads nothing new.
 - **Collector OAuth token persistence** (2026-10-13, accepted, not implemented). Approved exception to US138 for OAuth tokens only. PATs stay out of persistence.
 - **Collector remote token seam** (2026-10-13, merged). Remote sources read tokens through one seam. US152 depends on it.

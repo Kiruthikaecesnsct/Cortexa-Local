@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "exists": [
+    "component:BannerView",
+    "component:CandidateRunState",
+    "component:CandidateRunner",
+    "component:CandidatesPanel",
+    "component:ProcessCommand",
+    "component:ReviewScreen",
+    "config:Ai.Gemini.FallbackModels",
+    "config:Ai.Gemini.MaxInputTokens",
+    "config:Ai.ModelCatalog",
+    "dto:CandidateRunResult",
+    "dto:InventionCandidate",
+    "service:AnchorLocator",
+    "service:DocumentStore",
+    "service:DocxTextExtractor",
+    "service:FileContentGuard",
+    "service:GeminiClientFactory",
+    "service:GeminiDirectProvider",
+    "service:GeminiInputLimitCheck",
+    "service:GeminiKeyRotation",
+    "service:GeminiKeyStore",
+    "service:GeminiModelFallback",
+    "service:IdentifyCandidatesHandler",
+    "service:PdfTextExtractor",
+    "service:TextNormalizer",
+    "service:WholeDocumentReader"
+  ],
+  "completed": [
+    "US153",
+    "US154",
+    "US155"
+  ]
+}

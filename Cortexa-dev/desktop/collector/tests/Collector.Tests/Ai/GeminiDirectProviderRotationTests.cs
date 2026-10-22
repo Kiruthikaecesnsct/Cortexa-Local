@@ -42,7 +42,7 @@ public sealed class GeminiDirectProviderRotationTests
             [FirstKeyValue] = StubHttpHandler.Json(HttpStatusCode.Unauthorized, GeminiWire.ErrorBody(401)),
         });
         var userSettings = new FakeUserSettingsStore();
-        var provider = GeminiWire.Provider(handler, keyStore: TwoKeyStore(), userSettings: userSettings);
+        var provider = GeminiWire.Provider(handler, setup: new GeminiWireSetup { KeyStore = TwoKeyStore(), UserSettings = userSettings });
 
         var completion = await provider.CompleteAsync(GeminiWire.Request, TestSupport.Ct);
 
@@ -58,7 +58,7 @@ public sealed class GeminiDirectProviderRotationTests
             [FirstKeyValue] = StubHttpHandler.Json(HttpStatusCode.TooManyRequests, GeminiWire.ErrorBody(429)),
         });
         var userSettings = new FakeUserSettingsStore();
-        var provider = GeminiWire.Provider(handler, keyStore: TwoKeyStore(), userSettings: userSettings);
+        var provider = GeminiWire.Provider(handler, setup: new GeminiWireSetup { KeyStore = TwoKeyStore(), UserSettings = userSettings });
 
         var completion = await provider.CompleteAsync(GeminiWire.Request, TestSupport.Ct);
 
@@ -72,7 +72,7 @@ public sealed class GeminiDirectProviderRotationTests
         var handler = new StubHttpHandler((_, _) => throw new HttpRequestException("no route"));
         var statusStore = new FakeGeminiKeyStatusStore();
         var userSettings = new FakeUserSettingsStore();
-        var provider = GeminiWire.Provider(handler, keyStore: TwoKeyStore(), statusStore: statusStore, userSettings: userSettings);
+        var provider = GeminiWire.Provider(handler, setup: new GeminiWireSetup { KeyStore = TwoKeyStore(), StatusStore = statusStore, UserSettings = userSettings });
 
         var exception = await Assert.ThrowsAsync<AiProviderException>(
             () => provider.CompleteAsync(GeminiWire.Request, TestSupport.Ct));
@@ -94,7 +94,7 @@ public sealed class GeminiDirectProviderRotationTests
         var userSettings = new FakeUserSettingsStore();
         await userSettings.SaveGeminiActiveKeyIdAsync(SecondKey.Id, TestSupport.Ct);
         var handler = GeminiWire.Ok();
-        var provider = GeminiWire.Provider(handler, keyStore: store, userSettings: userSettings);
+        var provider = GeminiWire.Provider(handler, setup: new GeminiWireSetup { KeyStore = store, UserSettings = userSettings });
 
         await provider.CompleteAsync(GeminiWire.Request, TestSupport.Ct);
 
@@ -110,7 +110,7 @@ public sealed class GeminiDirectProviderRotationTests
             [FirstKeyValue] = StubHttpHandler.Json(HttpStatusCode.Unauthorized, GeminiWire.ErrorBody(401)),
         });
         var logger = new CapturingLogger<GeminiDirectProvider>();
-        var provider = GeminiWire.Provider(handler, keyStore: TwoKeyStore(), logger: logger);
+        var provider = GeminiWire.Provider(handler, setup: new GeminiWireSetup { KeyStore = TwoKeyStore(), Logger = logger });
 
         await provider.CompleteAsync(GeminiWire.Request, TestSupport.Ct);
 

@@ -5,10 +5,30 @@ using Collector.Application.Secrets;
 using Collector.Infrastructure.Ai;
 using Collector.Infrastructure.Options;
 using Collector.Infrastructure.Secrets;
+using Collector.Tests.Candidates;
 using Collector.Tests.Support;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Collector.Tests.Ai;
+
+internal sealed record GeminiWireSetup
+{
+    public InMemorySecretStore? Secrets { get; init; }
+
+    public FakeUserSettingsStore? UserSettings { get; init; }
+
+    public IGeminiKeyStore? KeyStore { get; init; }
+
+    public FakeGeminiKeyStatusStore? StatusStore { get; init; }
+
+    public Microsoft.Extensions.Logging.ILogger<GeminiDirectProvider>? Logger { get; init; }
+
+    public IGeminiInputBudget? Budget { get; init; }
+
+    public IGeminiModelExhaustion? Tracker { get; init; }
+
+    public TimeProvider? Time { get; init; }
+}
 
 internal static class GeminiWire
 {
@@ -33,25 +53,23 @@ internal static class GeminiWire
     public static GeminiDirectProvider Provider(
         StubHttpHandler handler,
         GeminiProviderOptions? options = null,
-        InMemorySecretStore? secrets = null,
-        FakeUserSettingsStore? userSettings = null,
-        IGeminiKeyStore? keyStore = null,
-        FakeGeminiKeyStatusStore? statusStore = null,
-        Microsoft.Extensions.Logging.ILogger<GeminiDirectProvider>? logger = null)
+        GeminiWireSetup? setup = null)
     {
+        var wire = setup ?? new GeminiWireSetup();
         var settings = Microsoft.Extensions.Options.Options.Create(options ?? new GeminiProviderOptions { MaxRetries = 0 });
-        var store = secrets ?? WithKey();
+        var store = wire.Secrets ?? WithKey();
         var factory = new GeminiClientFactory(new StubHttpClientFactory(handler), settings);
-        var effectiveKeyStore = keyStore ?? new GeminiKeyStore(store);
-        var effectiveStatusStore = statusStore ?? new FakeGeminiKeyStatusStore();
-        var settingsStore = userSettings ?? new FakeUserSettingsStore();
+        var budget = wire.Budget ?? new FakeInputBudget(0, settings.Value.MaxInputTokens);
+        var fallback = new GeminiModelFallback(settings, wire.Tracker ?? new GeminiModelExhaustionTracker(), budget);
         return new GeminiDirectProvider(
             factory,
-            effectiveKeyStore,
-            effectiveStatusStore,
-            settingsStore,
+            wire.KeyStore ?? new GeminiKeyStore(store),
+            wire.StatusStore ?? new FakeGeminiKeyStatusStore(),
+            wire.UserSettings ?? new FakeUserSettingsStore(),
             settings,
-            logger ?? NullLogger<GeminiDirectProvider>.Instance);
+            fallback,
+            new GeminiQuotaWait(settings, wire.Time ?? TimeProvider.System),
+            wire.Logger ?? NullLogger<GeminiDirectProvider>.Instance);
     }
 
     public static InMemorySecretStore WithKey()

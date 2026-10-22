@@ -13,6 +13,7 @@ namespace Collector.Tests.Presentation;
 public sealed class KnowledgeRunnerTests
 {
     private const string DocumentId = "doc-1";
+    private const string ExhaustedModel = "gemini-exhausted";
 
     private readonly InMemoryDocumentStore _documents = new();
     private readonly InMemoryUnitStore _units = new();
@@ -25,7 +26,7 @@ public sealed class KnowledgeRunnerTests
             [.. unitTexts.Select((text, index) => TestData.FileUnit(text, id: $"{id}-u{index}", documentId: id) with { Ordinal = index })];
     }
 
-    private KnowledgeRunner Runner(IAiProvider provider, IGeminiKeyStore? geminiKeys = null)
+    private KnowledgeRunner Runner(IAiProvider provider, IGeminiKeyStore? geminiKeys = null, IGeminiModelExhaustion? tracker = null)
     {
         var handler = new ExtractKnowledgeHandler(
             _documents,
@@ -36,7 +37,7 @@ public sealed class KnowledgeRunnerTests
             LayerPipeline.Runner(provider, new CapturingLogger<LayerExtractionRunner>()),
             new SingleProviderFactory(provider));
         var settings = new SettingsService(new FakeUserSettingsStore(), new InMemorySecretStore(), geminiKeys ?? new FakeGeminiKeyStore());
-        return new KnowledgeRunner(handler, settings, NullLogger<KnowledgeRunner>.Instance);
+        return new KnowledgeRunner(handler, settings, tracker ?? new Collector.Infrastructure.Ai.GeminiModelExhaustionTracker(), NullLogger<KnowledgeRunner>.Instance);
     }
 
     private static FuncAiProvider FailingProvider(AiFailureKind kind) =>
@@ -140,5 +141,19 @@ public sealed class KnowledgeRunnerTests
 
         Assert.Equal(KnowledgeRunStatus.KeyRejected, outcome.Status);
         Assert.Equal(0, outcome.ConfiguredKeyCount);
+    }
+
+    [Fact]
+    public async Task RunAsync_TrackerHasExhaustedModels_ResetsItAtRunStart()
+    {
+        AddDocument(DocumentId, "one");
+        var tracker = new Collector.Infrastructure.Ai.GeminiModelExhaustionTracker();
+        tracker.MarkExhausted(ExhaustedModel);
+        var request = new KnowledgeRunRequest([DocumentId]);
+
+        await Runner(FailingProvider(AiFailureKind.Permanent), tracker: tracker)
+            .RunAsync(request, new RecordingProgress<ExtractionProgress>(), TestSupport.Ct);
+
+        Assert.False(tracker.IsExhausted(ExhaustedModel));
     }
 }

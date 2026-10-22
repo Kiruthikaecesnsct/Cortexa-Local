@@ -17,7 +17,7 @@ public static class GeminiErrorMapper
     ];
 
     public static AiProviderException Map(ApiException exception) =>
-        MapStatus((HttpStatusCode)exception.StatusCode, exception);
+        MapStatus((HttpStatusCode)exception.StatusCode, exception, exception.Message);
 
     public static AiProviderException MapUnreachable(HttpRequestException exception) =>
         exception.StatusCode is { } status
@@ -30,8 +30,11 @@ public static class GeminiErrorMapper
     public static AiProviderException MapMalformed(Exception exception) =>
         new(AiFailureKind.Transient, "Gemini returned a response that could not be read.", exception);
 
-    private static AiProviderException MapStatus(HttpStatusCode status, Exception exception) =>
-        new(KindFor(status), Describe(status), exception, (int)status);
+    private static AiProviderException MapStatus(HttpStatusCode status, Exception exception, string? detail = null) =>
+        new(KindFor(status), Describe(status), exception, (int)status)
+        {
+            QuotaHint = status == HttpStatusCode.TooManyRequests ? GeminiQuotaHintParser.Parse(detail) : null,
+        };
 
     private static AiFailureKind KindFor(HttpStatusCode status)
     {

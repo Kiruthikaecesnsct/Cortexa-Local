@@ -191,7 +191,7 @@ public sealed class GeminiDirectProviderTests
         }
 
         var handler = GeminiWire.Ok();
-        var provider = GeminiWire.Provider(handler, secrets: secrets);
+        var provider = GeminiWire.Provider(handler, setup: new GeminiWireSetup { Secrets = secrets });
 
         var exception = await Assert.ThrowsAsync<AiProviderException>(() => provider.CompleteAsync(GeminiWire.Request, TestSupport.Ct));
 
@@ -207,7 +207,7 @@ public sealed class GeminiDirectProviderTests
         secrets.Values[Collector.Application.Secrets.SecretSlot.AnthropicApiKey] = "sk-claude-only";
 
         var exception = await Assert.ThrowsAsync<AiProviderException>(
-            () => GeminiWire.Provider(GeminiWire.Ok(), secrets: secrets).CompleteAsync(GeminiWire.Request, TestSupport.Ct));
+            () => GeminiWire.Provider(GeminiWire.Ok(), setup: new GeminiWireSetup { Secrets = secrets }).CompleteAsync(GeminiWire.Request, TestSupport.Ct));
 
         Assert.Equal(AiFailureKind.MissingApiKey, exception.Kind);
     }

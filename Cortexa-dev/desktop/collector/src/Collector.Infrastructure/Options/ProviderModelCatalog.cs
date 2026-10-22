@@ -23,7 +23,7 @@ public sealed class ProviderModelCatalog
         [CollectorProvider.Gemini] = new ProviderModelCatalogEntry
         {
             DefaultModel = "gemini-3.8-flash",
-            Models = ["gemini-3.8-flash", "gemini-3.8-pro"],
+            Models = ["gemini-3.8-flash", "gemini-3.6-flash"],
         },
         [CollectorProvider.Bedrock] = new ProviderModelCatalogEntry
         {

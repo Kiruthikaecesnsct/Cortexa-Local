@@ -14,6 +14,8 @@ public sealed class IdentifyCandidatesHandlerTests : IDisposable
     private const int TokenCount = 50;
     private const int TokenLimit = 1000;
     private const string DocumentText = "The adaptive cache evicts entries by predicted reuse distance.";
+    private const int RejectedTokenCount = 5000;
+    private const string ExhaustedModel = "gemini-exhausted";
     private const string Quote = "evicts entries by predicted reuse distance";
 
     private readonly string _directory = Directory.CreateTempSubdirectory("identify").FullName;
@@ -32,7 +34,7 @@ public sealed class IdentifyCandidatesHandlerTests : IDisposable
         return document.Id;
     }
 
-    private IdentifyCandidatesHandler Handler(IAiProvider provider, int concurrency = 1, int tokens = TokenCount)
+    private IdentifyCandidatesHandler Handler(IAiProvider provider, int concurrency = 1, int tokens = TokenCount, IGeminiModelExhaustion? tracker = null)
     {
         var prompt = CandidatePromptLoader.Load();
         var builder = new CandidatePromptBuilder(prompt, new UntrustedSourceGuard(KnowledgePromptLoader.Load()));
@@ -45,7 +47,7 @@ public sealed class IdentifyCandidatesHandlerTests : IDisposable
             new SingleProviderFactory(provider, concurrency),
             new ReplyInterpreter(new CandidateParser(), new ExcerptVerifier(new AnchorLocator())),
             NullLogger<DocumentCandidateRunner>.Instance);
-        return new IdentifyCandidatesHandler(_store, new SingleProviderFactory(provider, concurrency), runner);
+        return new IdentifyCandidatesHandler(_store, new SingleProviderFactory(provider, concurrency), runner, tracker ?? new Collector.Infrastructure.Ai.GeminiModelExhaustionTracker());
     }
 
     [Fact]
@@ -184,5 +186,49 @@ public sealed class IdentifyCandidatesHandlerTests : IDisposable
 
         Assert.Equal(2, progress.Reports.Count);
         Assert.All(progress.Reports, report => Assert.Equal(ids.Length, report.Total));
+    }
+
+    [Fact]
+    public async Task IdentifyAsync_ProviderReportsInputTooLarge_TooLargeWithCountAndLimitOthersUnchanged()
+    {
+        var ids = new[] { await AddDocumentAsync("a.txt"), await AddDocumentAsync("b.txt"), await AddDocumentAsync("c.txt") };
+        var provider = new ScriptedAiProvider()
+            .Then(Completions.Completed(Reply(Quote)))
+            .Throw(new AiInputTooLargeException(RejectedTokenCount, TokenLimit, "gemini-fallback"))
+            .Then(Completions.Completed(Reply(Quote)));
+
+        var result = await Handler(provider).IdentifyAsync(new CandidateRunRequest(ids), null, TestSupport.Ct);
+
+        Assert.Equal(
+            [CandidateOutcome.Completed, CandidateOutcome.TooLarge, CandidateOutcome.Completed],
+            result.Documents.Select(document => document.Outcome));
+        Assert.Equal(RejectedTokenCount, result.Documents[1].TokenCount);
+        Assert.Equal(TokenLimit, result.Documents[1].TokenLimit);
+        Assert.Equal(2, result.AllCandidates.Count);
+    }
+
+    [Fact]
+    public async Task IdentifyAsync_AllModelsOutOfQuota_QuotaOutcomeForEveryDocument()
+    {
+        var ids = new[] { await AddDocumentAsync("a.txt"), await AddDocumentAsync("b.txt") };
+        var provider = new FuncAiProvider((_, _) =>
+            throw new AiProviderException(AiFailureKind.QuotaExceeded, "All configured Gemini models are out of quota for this run."));
+
+        var result = await Handler(provider).IdentifyAsync(new CandidateRunRequest(ids), null, TestSupport.Ct);
+
+        Assert.All(result.Documents, document => Assert.Equal(CandidateOutcome.Quota, document.Outcome));
+    }
+
+    [Fact]
+    public async Task IdentifyAsync_TrackerHasExhaustedModels_ResetsItAtRunStart()
+    {
+        var id = await AddDocumentAsync("a.txt");
+        var tracker = new Collector.Infrastructure.Ai.GeminiModelExhaustionTracker();
+        tracker.MarkExhausted(ExhaustedModel);
+        var provider = new ScriptedAiProvider().Then(Completions.Completed(Reply(Quote)));
+
+        await Handler(provider, tracker: tracker).IdentifyAsync(new CandidateRunRequest([id]), null, TestSupport.Ct);
+
+        Assert.False(tracker.IsExhausted(ExhaustedModel));
     }
 }

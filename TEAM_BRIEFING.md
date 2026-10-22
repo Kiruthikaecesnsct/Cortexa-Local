@@ -4,13 +4,15 @@ Rewritten whole from the live files under `context/`, `contracts/`, and `decisio
 
 Narrative only. Who is working on what right now is not here. That lives in `ACTIVE.md`, generated from the claim cards on every sync.
 
-_Last regenerated: 2026-10-21_
+_Last regenerated: 2026-10-22_
 
 ## Current focus
 
 The desktop collector is the active surface. It pulls source files from four remote sources (GitHub, Azure DevOps, SSH/SFTP, and the saved Cortexa repository), splits them, and uploads them for knowledge extraction. All collector code stays inside `Cortexa-dev/desktop/collector`.
 
-Sprint 5 is in progress. US153 (invention candidates from whole documents with Gemini) merged in PR #29. US154 (candidate pass chained into Process, candidates shown in Review) merged in PR #30. Both claims are released and their capsules are archived. Candidates stay local. Nothing new is uploaded.
+Sprint 5 is in progress. US153 (invention candidates from whole documents with Gemini) merged in PR #29. US154 (candidate pass chained into Process, candidates shown in Review) merged in PR #30. Candidates stay local. Nothing new is uploaded.
+
+US155 is planned next. It adds a fallback to the next Gemini model when every key hits quota on the current model. Its capsule is `context/US155.md`.
 
 ## Open follow-ups
 
@@ -18,6 +20,7 @@ Sprint 5 is in progress. US153 (invention candidates from whole documents with G
 - Process runs the knowledge pass and the candidate pass one after the other on a selection, so Gemini concurrency is not doubled. Keep it that way.
 - A whole-document 400 or 413 can mark every Gemini key as Rejected in Settings. A follow-up bug is not filed yet.
 - Confirm the Gemini keys are on a paid tier before a long run.
+- US155 open questions: cooldown length for an exhausted model, and whether `Ai:Gemini:MaxInputTokens` becomes per model.
 - US151 and US152 (sign-in work) rely on the OAuth token persistence decision below. It is accepted but not yet implemented.
 
 ## In-flight contracts

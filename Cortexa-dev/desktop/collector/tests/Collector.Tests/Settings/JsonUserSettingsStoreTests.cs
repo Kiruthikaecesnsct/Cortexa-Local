@@ -58,12 +58,12 @@ public sealed class JsonUserSettingsStoreTests : IDisposable
         var path = Path.Combine(_directory, "choice.json");
         var store = CreateStore(path);
 
-        await store.SaveAiModelChoiceAsync(new AiModelChoice(CollectorProvider.Gemini, "gemini-3.8-pro"), TestSupport.Ct);
+        await store.SaveAiModelChoiceAsync(new AiModelChoice(CollectorProvider.Gemini, "gemini-3.6-flash"), TestSupport.Ct);
 
         using var document = JsonDocument.Parse(await File.ReadAllTextAsync(path, TestSupport.Ct));
         var section = document.RootElement.GetProperty("AiModelChoice");
         Assert.Equal("Gemini", section.GetProperty("Provider").GetString());
-        Assert.Equal("gemini-3.8-pro", section.GetProperty("Model").GetString());
+        Assert.Equal("gemini-3.6-flash", section.GetProperty("Model").GetString());
         Assert.False(document.RootElement.TryGetProperty("Ai", out _));
     }
 

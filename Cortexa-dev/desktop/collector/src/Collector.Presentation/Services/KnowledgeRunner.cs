@@ -9,6 +9,7 @@ namespace Collector.Presentation.Services;
 public sealed class KnowledgeRunner(
     ExtractKnowledgeHandler handler,
     SettingsService settings,
+    IGeminiModelExhaustion exhaustion,
     ILogger<KnowledgeRunner> logger) : IKnowledgeRunner
 {
     public async Task<KnowledgeRunOutcome> RunAsync(
@@ -16,6 +17,7 @@ public sealed class KnowledgeRunner(
         IProgress<ExtractionProgress> progress,
         CancellationToken cancellationToken)
     {
+        exhaustion.Reset();
         try
         {
             var result = await handler.ExtractAsync(

@@ -7,7 +7,8 @@ namespace Collector.Application.Candidates;
 public sealed class IdentifyCandidatesHandler(
     IDocumentStore documentStore,
     IAiProviderFactory providerFactory,
-    DocumentCandidateRunner runner)
+    DocumentCandidateRunner runner,
+    IGeminiModelExhaustion exhaustion)
 {
     private const string NotFoundReason = "document not found";
 
@@ -16,6 +17,7 @@ public sealed class IdentifyCandidatesHandler(
         IProgress<CandidateProgress>? progress,
         CancellationToken cancellationToken)
     {
+        exhaustion.Reset();
         var ids = request.DocumentIds.Distinct(StringComparer.Ordinal).ToList();
         var results = ids.Select(id => CandidateDocumentResult.Canceled(id, id)).ToArray();
         var state = new RunState(ids.Count, progress);

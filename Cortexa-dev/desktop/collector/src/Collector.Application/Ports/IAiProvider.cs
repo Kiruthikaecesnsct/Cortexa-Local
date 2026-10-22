@@ -40,7 +40,7 @@ public enum AiFailureKind
     QuotaExceeded,
 }
 
-public sealed class AiProviderException : Exception
+public class AiProviderException : Exception
 {
     public AiProviderException(AiFailureKind kind, string message, Exception? innerException = null, int? statusCode = null)
         : base(message, innerException)
@@ -52,6 +52,8 @@ public sealed class AiProviderException : Exception
     public AiFailureKind Kind { get; }
 
     public int? StatusCode { get; }
+
+    public AiQuotaHint? QuotaHint { get; init; }
 
     public bool IsPermanent => Kind != AiFailureKind.Transient;
 }

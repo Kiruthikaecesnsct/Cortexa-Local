@@ -35,7 +35,7 @@ public sealed class DocumentPreparer(
         var limit = await limitCheck.CheckAsync(request, cancellationToken);
         return limit.IsWithin
             ? PreparationResult.Ready(new PreparedDocument(read.Document!, request, limit))
-            : PreparationResult.Rejected(TooLarge(document, limit));
+            : PreparationResult.Rejected(TooLarge(document, limit.TokenCount, limit.Limit));
     }
 
     private static CandidateDocumentResult RejectedRead(CollectorDocument document, WholeDocumentRead read) =>
@@ -43,8 +43,8 @@ public sealed class DocumentPreparer(
             with
         { SizeBytes = read.SizeBytes, SizeCapBytes = read.CapBytes };
 
-    private static CandidateDocumentResult TooLarge(CollectorDocument document, InputLimitResult limit) =>
+    internal static CandidateDocumentResult TooLarge(CollectorDocument document, int tokenCount, int limit) =>
         CandidateDocumentResult.Failure(document.Id, document.Filename, CandidateOutcome.TooLarge, TooLargeReason)
             with
-        { TokenCount = limit.TokenCount, TokenLimit = limit.Limit };
+        { TokenCount = tokenCount, TokenLimit = limit };
 }

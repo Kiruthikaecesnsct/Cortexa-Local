@@ -27,4 +27,8 @@ public sealed class GeminiProviderOptions
     public int MaxRetries { get; set; } = 1;
 
     public int TimeoutSeconds { get; set; } = 120;
+
+    public List<string> FallbackModels { get; set; } = [];
+
+    public int MaxQuotaRetryDelaySeconds { get; set; } = 60;
 }

@@ -19,6 +19,8 @@ public sealed class CandidateRunnerTests : IDisposable
     private const int TokenCount = 50;
     private const int TokenLimit = 1000;
     private const int ConfiguredKeys = 2;
+    private const int RejectedTokenCount = 5000;
+    private const string ExhaustedModel = "gemini-exhausted";
     private const string DocumentText = "The adaptive cache evicts entries by predicted reuse distance.";
     private const string Reply =
         "{\"candidates\":[{\"title\":\"Adaptive cache\",\"summary\":\"s\",\"patentability_rationale\":\"r\",\"excerpt_quote\":\"evicts entries by predicted reuse distance\"}]}";
@@ -39,7 +41,7 @@ public sealed class CandidateRunnerTests : IDisposable
         return document.Id;
     }
 
-    private CandidateRunner Runner(IAiProvider provider, IDocumentStore? store = null)
+    private CandidateRunner Runner(IAiProvider provider, IDocumentStore? store = null, IGeminiModelExhaustion? tracker = null)
     {
         var prompt = CandidatePromptLoader.Load();
         var builder = new CandidatePromptBuilder(prompt, new UntrustedSourceGuard(KnowledgePromptLoader.Load()));
@@ -53,7 +55,7 @@ public sealed class CandidateRunnerTests : IDisposable
             factory,
             new ReplyInterpreter(new CandidateParser(), new ExcerptVerifier(new AnchorLocator())),
             Microsoft.Extensions.Logging.Abstractions.NullLogger<DocumentCandidateRunner>.Instance);
-        var handler = new IdentifyCandidatesHandler(store ?? _store, factory, runner);
+        var handler = new IdentifyCandidatesHandler(store ?? _store, factory, runner, tracker ?? new Collector.Infrastructure.Ai.GeminiModelExhaustionTracker());
         var settings = new SettingsService(new FakeUserSettingsStore(), new InMemorySecretStore(), _keys);
         return new CandidateRunner(handler, settings, _logger);
     }
@@ -147,6 +149,34 @@ public sealed class CandidateRunnerTests : IDisposable
         var entry = Assert.Single(_logger.Entries);
         Assert.Contains(nameof(InvalidOperationException), entry, StringComparison.Ordinal);
         Assert.DoesNotContain(SecretMessage, entry, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task RunAsync_ProviderReportsInputTooLarge_DocumentTooLargeWithCountAndLimitAndNoKeyRead()
+    {
+        var ids = new[] { await AddDocumentAsync("a.txt") };
+        var provider = new ScriptedAiProvider().Throw(new AiInputTooLargeException(RejectedTokenCount, TokenLimit, "gemini-fallback"));
+
+        var outcome = await Runner(provider).RunAsync(ids, new Progress<CandidateProgress>(), TestSupport.Ct);
+
+        var document = Assert.Single(outcome.Result!.Documents);
+        Assert.Equal(CandidateOutcome.TooLarge, document.Outcome);
+        Assert.Equal(RejectedTokenCount, document.TokenCount);
+        Assert.Equal(TokenLimit, document.TokenLimit);
+        Assert.Equal(0, _keys.Reads);
+    }
+
+    [Fact]
+    public async Task RunAsync_TrackerHasExhaustedModels_ResetsItAtRunStart()
+    {
+        var ids = new[] { await AddDocumentAsync("a.txt") };
+        var tracker = new Collector.Infrastructure.Ai.GeminiModelExhaustionTracker();
+        tracker.MarkExhausted(ExhaustedModel);
+        var provider = new ScriptedAiProvider().Then(Completions.Completed(Reply));
+
+        await Runner(provider, tracker: tracker).RunAsync(ids, new Progress<CandidateProgress>(), TestSupport.Ct);
+
+        Assert.False(tracker.IsExhausted(ExhaustedModel));
     }
 
     private sealed class CancelingProgress(CancellationTokenSource source) : IProgress<CandidateProgress>

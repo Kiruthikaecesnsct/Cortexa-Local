@@ -129,7 +129,7 @@ public sealed class AiProviderOptionsValidator : IValidateOptions<AiProviderOpti
     }
 }
 
-public sealed class GeminiProviderOptionsValidator : IValidateOptions<GeminiProviderOptions>
+public sealed class GeminiProviderOptionsValidator(IOptions<ProviderModelCatalog> catalog) : IValidateOptions<GeminiProviderOptions>
 {
     private const double MinTemperature = 0.0;
     private const double MaxTemperature = 2.0;
@@ -153,8 +153,43 @@ public sealed class GeminiProviderOptionsValidator : IValidateOptions<GeminiProv
         AddIf(failures, options.TimeoutSeconds <= 0, nameof(options.TimeoutSeconds), "must be greater than zero");
         AddIf(failures, !ThinkingLevels.Contains(options.Thinking), nameof(options.Thinking), "is not a known thinking level");
         AddIf(failures, options.Temperature is < MinTemperature or > MaxTemperature, nameof(options.Temperature), "must be between 0 and 2");
+        AddIf(failures, options.MaxQuotaRetryDelaySeconds < 0, nameof(options.MaxQuotaRetryDelaySeconds), "must not be negative");
+        failures.AddRange(FallbackModelFailures(options.FallbackModels, GeminiCatalogModels()));
         return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
     }
+
+    internal static IEnumerable<string> FallbackModelFailures(
+        IReadOnlyList<string> fallbackModels,
+        IReadOnlyCollection<string> catalogModels)
+    {
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var model in fallbackModels)
+        {
+            var problem = FallbackProblem(model, catalogModels, seen);
+            if (problem is not null)
+            {
+                yield return $"{GeminiProviderOptions.SectionName}:{nameof(GeminiProviderOptions.FallbackModels)} entry '{model}' {problem}.";
+            }
+        }
+    }
+
+    private static string? FallbackProblem(string? model, IReadOnlyCollection<string> catalogModels, HashSet<string> seen)
+    {
+        if (string.IsNullOrWhiteSpace(model))
+        {
+            return "is blank";
+        }
+
+        if (!catalogModels.Contains(model, StringComparer.Ordinal))
+        {
+            return "is not in the Gemini model catalog";
+        }
+
+        return seen.Add(model) ? null : "is repeated";
+    }
+
+    private List<string> GeminiCatalogModels() =>
+        catalog.Value.Providers.TryGetValue(CollectorProvider.Gemini, out var entry) ? entry.Models : [];
 
     private static void AddIf(List<string> failures, bool failed, string name, string reason)
     {

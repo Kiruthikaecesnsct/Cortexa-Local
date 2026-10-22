@@ -99,6 +99,9 @@ public static class DependencyInjection
         services.AddSingleton<GeminiClientFactory>();
         services.AddSingleton<GeminiDirectProvider>();
         services.AddSingleton<IGeminiInputBudget, GeminiInputBudget>();
+        services.AddSingleton<IGeminiModelExhaustion, GeminiModelExhaustionTracker>();
+        services.AddSingleton<GeminiModelFallback>();
+        services.AddSingleton<GeminiQuotaWait>();
         services.AddSingleton<IBedrockSsoClientFactory, BedrockSsoClientFactory>();
         services.AddSingleton(sp => new BedrockSsoCredentialsDependencies(
             sp.GetRequiredService<ISecretStore>(),

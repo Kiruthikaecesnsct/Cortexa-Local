@@ -19,6 +19,10 @@ public sealed class DocumentCandidateRunner(
         {
             return await RunCoreAsync(document, cancellationToken);
         }
+        catch (AiInputTooLargeException exception)
+        {
+            return TooLargeRun(document, exception);
+        }
         catch (AiProviderException exception)
         {
             logger.LogWarning(
@@ -37,6 +41,17 @@ public sealed class DocumentCandidateRunner(
             logger.LogWarning("Candidate run for document {DocumentId} failed with {ErrorType}.", document.Id, exception.GetType().Name);
             return ReplyInterpreter.Fail(document, new CandidateFailure(CandidateOutcome.Failed, "unexpected error"));
         }
+    }
+
+    private DocumentRun TooLargeRun(CollectorDocument document, AiInputTooLargeException exception)
+    {
+        logger.LogWarning(
+            "Document {DocumentId} has {TokenCount} tokens, over the {Limit} limit of model {Model}.",
+            document.Id,
+            exception.TokenCount,
+            exception.Limit,
+            exception.Model);
+        return new DocumentRun(DocumentPreparer.TooLarge(document, exception.TokenCount, exception.Limit), null);
     }
 
     private async Task<DocumentRun> RunCoreAsync(CollectorDocument document, CancellationToken cancellationToken)

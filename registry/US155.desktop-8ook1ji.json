@@ -4,9 +4,20 @@
   "machine": "desktop-8ook1ji",
   "env": "windows",
   "branch": "develop/US155",
-  "status": "planning",
-  "files": [],
+  "status": "implementing",
+  "files": [
+    "desktop/collector/src/Collector.Infrastructure/Ai/GeminiDirectProvider.cs",
+    "desktop/collector/src/Collector.Infrastructure/Ai/GeminiModelFallback.cs",
+    "desktop/collector/src/Collector.Infrastructure/Ai/GeminiModelExhaustionTracker.cs",
+    "desktop/collector/src/Collector.Infrastructure/Options/GeminiProviderOptions.cs",
+    "desktop/collector/src/Collector.Infrastructure/Options/OptionsValidators.cs",
+    "desktop/collector/src/Collector.Infrastructure/DependencyInjection.cs",
+    "desktop/collector/src/Collector.Application/Ports/IAiProvider.cs",
+    "desktop/collector/src/Collector.Application/Candidates/DocumentCandidateRunner.cs",
+    "desktop/collector/src/Collector.Application/Candidates/IdentifyCandidatesHandler.cs",
+    "desktop/collector/src/Collector.Presentation/Services/KnowledgeRunner.cs"
+  ],
   "started": "2026-10-22T06:10:43Z",
-  "heartbeat": "2026-10-22T06:10:43Z",
+  "heartbeat": "2026-10-22T06:17:15Z",
   "schema": 2
 }

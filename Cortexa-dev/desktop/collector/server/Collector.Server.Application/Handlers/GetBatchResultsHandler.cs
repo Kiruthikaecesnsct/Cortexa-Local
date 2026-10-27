@@ -1,7 +1,6 @@
 using Collector.Domain.History;
 using Collector.Server.Application.Ports;
 using Collector.Server.Application.Reads;
-using Collector.Server.Application.Rows;
 using Collector.Server.Application.Upload;
 
 namespace Collector.Server.Application.Handlers;
@@ -14,7 +13,7 @@ public sealed class GetBatchResultsHandler(IPipelineRowStore store)
         CancellationToken cancellationToken)
     {
         var saga = await store.GetSagaAsync(batchId, cancellationToken);
-        if (saga is null || !OwnedBy(saga, caller))
+        if (saga is null || !SagaOwnership.OwnedBy(saga, caller))
         {
             return GetBatchResultsOutcome.NotFound();
         }
@@ -32,8 +31,4 @@ public sealed class GetBatchResultsHandler(IPipelineRowStore store)
             await chunksTask);
         return GetBatchResultsOutcome.Ok(new BatchResults { BatchId = batchId, Candidates = candidates });
     }
-
-    private static bool OwnedBy(SagaRow saga, UploadCaller caller) =>
-        string.Equals(saga.OwnerUserId, caller.UserId, StringComparison.Ordinal) &&
-        string.Equals(saga.OrgId, caller.OrgId, StringComparison.Ordinal);
 }

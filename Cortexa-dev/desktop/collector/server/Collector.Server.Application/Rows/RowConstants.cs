@@ -4,6 +4,8 @@ public static class RowConstants
 {
     public const string DocumentStatusCompleted = "completed";
     public const string SagaStateInProgress = "InProgress";
+    public const string SagaStateCompleted = "Completed";
+    public const string SagaStateFailed = "Failed";
     public const string SagaDocumentStateQueued = "Queued";
     public const string SagaDocumentStateIngested = "Ingested";
     public const string SagaDocumentStateExtracted = "Extracted";

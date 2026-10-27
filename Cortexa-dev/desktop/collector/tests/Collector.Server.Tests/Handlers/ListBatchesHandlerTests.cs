@@ -38,6 +38,31 @@ public class ListBatchesHandlerTests
         Assert.Equal(EmbeddingTotal, summary.EmbeddingTotalCount);
     }
 
+    [Theory]
+    [InlineData(RowConstants.SagaStateCompleted, RowConstants.SagaDocumentStateComplete, RowConstants.SagaDocumentStateNoCandidates)]
+    [InlineData(RowConstants.SagaStateFailed, RowConstants.SagaDocumentStateComplete, RowConstants.SagaDocumentStateFailed)]
+    [InlineData(RowConstants.SagaStateInProgress, RowConstants.SagaDocumentStateComplete, RowConstants.SagaDocumentStateExtracted)]
+    public async Task HandleAsync_DerivesStateFromDocumentProgress(
+        string expectedState,
+        string firstDocumentState,
+        string secondDocumentState)
+    {
+        var store = new FakePipelineRowStore();
+        store.Sagas[BatchId] = TestSagas.WithDocumentStates(
+            BatchId,
+            wantsHarvesting: true,
+            wantsSeeding: true,
+            firstDocumentState,
+            secondDocumentState);
+
+        var handler = new ListBatchesHandler(store, new BatchStageCalculator(NullLogger<BatchStageCalculator>.Instance));
+
+        var batches = await handler.HandleAsync(TestIdentity.Caller, TestContext.Current.CancellationToken);
+
+        var summary = Assert.Single(batches);
+        Assert.Equal(expectedState, summary.State);
+    }
+
     private static SagaRow BuildSaga() => new()
     {
         Id = BatchId,

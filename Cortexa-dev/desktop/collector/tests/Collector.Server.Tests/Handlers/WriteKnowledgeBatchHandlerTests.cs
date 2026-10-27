@@ -297,6 +297,8 @@ public class WriteKnowledgeBatchHandlerTests
         public Task<SagaRow?> GetSagaAsync(string batchId, CancellationToken cancellationToken) =>
             Task.FromResult<SagaRow?>(null);
 
+        public Task ReplaceSagaAsync(SagaRow saga, CancellationToken cancellationToken) => Task.CompletedTask;
+
         public Task<IReadOnlyList<SagaRow>> ListSagasByOwnerAsync(
             string ownerUserId,
             string orgId,

@@ -28,6 +28,8 @@ public sealed class CollectorHistoryClientTests
         "\"knowledge_item\":{\"id\":\"doc|0\",\"kind\":\"key_content\",\"title\":\"K\",\"summary\":\"S\"}," +
         "\"source\":{\"document_id\":\"d1\",\"page_number\":4}}]}]}";
 
+    private const string RetryJson = "{\"batch_id\":\"srv-1\",\"document_ids\":[\"d1\",\"d2\"]}";
+
     private static CollectorHistoryClient Client(
         StubHttpHandler handler,
         int timeoutSeconds = TimeoutSeconds,
@@ -264,6 +266,67 @@ public sealed class CollectorHistoryClientTests
         var exception = await Assert.ThrowsAsync<BatchHistoryException>(() => Client(handler).ListBatchesAsync(TestSupport.Ct));
 
         Assert.Equal(404, exception.StatusCode);
+    }
+
+    [Fact]
+    public async Task RetryBatchAsync_Success_PostsToTheRetryPath()
+    {
+        var handler = StubHttpHandler.Returning(HttpStatusCode.OK, RetryJson);
+
+        await Client(handler).RetryBatchAsync("srv-1", TestSupport.Ct);
+
+        var sent = Assert.Single(handler.Requests);
+        Assert.Equal(HttpMethod.Post, sent.Method);
+        Assert.Equal("https://server.example/collector/batches/srv-1/retry", sent.Uri!.AbsoluteUri);
+    }
+
+    [Fact]
+    public async Task RetryBatchAsync_IdWithReservedCharacters_IsEscapedInThePath()
+    {
+        var handler = StubHttpHandler.Returning(HttpStatusCode.OK, RetryJson);
+
+        await Client(handler).RetryBatchAsync("a/b c?d", TestSupport.Ct);
+
+        var sent = Assert.Single(handler.Requests);
+        Assert.Equal("https://server.example/collector/batches/a%2Fb%20c%3Fd/retry", sent.Uri!.AbsoluteUri);
+    }
+
+    [Fact]
+    public async Task RetryBatchAsync_NotFound_Throws()
+    {
+        var handler = StubHttpHandler.Returning(HttpStatusCode.NotFound);
+
+        var exception = await Assert.ThrowsAsync<BatchHistoryException>(
+            () => Client(handler).RetryBatchAsync("srv-1", TestSupport.Ct));
+
+        Assert.Equal(404, exception.StatusCode);
+        Assert.False(exception.IsAuthFailure);
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.Unauthorized)]
+    [InlineData(HttpStatusCode.Forbidden)]
+    public async Task RetryBatchAsync_AuthStatus_FlagsAuthFailureWithoutRetry(HttpStatusCode status)
+    {
+        var handler = Sequence(status);
+
+        var exception = await Assert.ThrowsAsync<BatchHistoryException>(
+            () => Client(handler).RetryBatchAsync("srv-1", TestSupport.Ct));
+
+        Assert.True(exception.IsAuthFailure);
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task RetryBatchAsync_PersistentServerError_StopsAfterTwoRetries()
+    {
+        var handler = new StubHttpHandler((_, _) => Task.FromResult(StubHttpHandler.Json(HttpStatusCode.InternalServerError, "{}")));
+
+        var exception = await Assert.ThrowsAsync<BatchHistoryException>(
+            () => Client(handler).RetryBatchAsync("srv-1", TestSupport.Ct));
+
+        Assert.Equal(500, exception.StatusCode);
+        Assert.Equal(ExpectedAttemptsWithRetries, handler.Requests.Count);
     }
 
     [Fact]

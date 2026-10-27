@@ -578,6 +578,76 @@ public sealed class HistoryViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task BatchRow_Failed_CanRetry_OtherStates_Cannot()
+    {
+        await _harness.OpenAsync(HistoryData.Batch("a", "Failed", BatchStage.Extracted), Done("b"));
+
+        var failedRow = ViewModel.Batches.Single(row => row.BatchId == "a");
+        var doneRow = ViewModel.Batches.Single(row => row.BatchId == "b");
+
+        Assert.True(failedRow.IsFailed);
+        Assert.True(failedRow.CanRetryBatch);
+        Assert.True(failedRow.RetryBatchCommand.CanExecute(null));
+        Assert.False(doneRow.IsFailed);
+        Assert.False(doneRow.CanRetryBatch);
+        Assert.False(doneRow.RetryBatchCommand.CanExecute(null));
+    }
+
+    [Fact]
+    public async Task RetryBatch_Invoked_CallsClientAndReloadsHistoryStatus()
+    {
+        await _harness.OpenAsync(HistoryData.Batch("a", "Failed", BatchStage.Extracted));
+        var row = ViewModel.Batches[0];
+        var listCallsBefore = _harness.Client.ListCalls;
+        _harness.Client.Batches = [Done("a")];
+
+        await row.RetryBatchCommand.ExecuteAsync(null);
+
+        Assert.Equal(["a"], _harness.Client.RetryCalls);
+        Assert.True(_harness.Client.ListCalls > listCallsBefore);
+        Assert.Equal(BatchState.Completed, ViewModel.Batches[0].StateKind);
+    }
+
+    [Fact]
+    public async Task RetryBatch_RowNotFailed_DoesNotCallClient()
+    {
+        await _harness.OpenAsync(Done("a"));
+        var row = ViewModel.Batches[0];
+
+        await row.RetryBatchCommand.ExecuteAsync(null);
+
+        Assert.Empty(_harness.Client.RetryCalls);
+    }
+
+    [Fact]
+    public async Task RetryBatch_ServerRejects_AnnouncesFailureWithoutReload()
+    {
+        await _harness.OpenAsync(HistoryData.Batch("a", "Failed", BatchStage.Extracted));
+        _harness.Client.RetryError = HistoryData.ServerError();
+        var listCallsBefore = _harness.Client.ListCalls;
+        var row = ViewModel.Batches[0];
+
+        await row.RetryBatchCommand.ExecuteAsync(null);
+
+        Assert.Equal("Name a couldn't be retried.", ViewModel.StageAnnouncement);
+        Assert.Equal(listCallsBefore, _harness.Client.ListCalls);
+    }
+
+    [Fact]
+    public async Task RetryBatch_AuthFailure_StopsPollerWithoutReload()
+    {
+        await _harness.OpenAsync(HistoryData.Batch("a", "Failed", BatchStage.Extracted));
+        _harness.Client.RetryError = HistoryData.AuthError();
+        var listCallsBefore = _harness.Client.ListCalls;
+        var row = ViewModel.Batches[0];
+
+        await row.RetryBatchCommand.ExecuteAsync(null);
+
+        Assert.False(_harness.Poller.IsRunning);
+        Assert.Equal(listCallsBefore, _harness.Client.ListCalls);
+    }
+
+    [Fact]
     public async Task FailedUploadFocusRequest_IsForwardedToHistory()
     {
         await _harness.SeedFailedAsync("key-1");

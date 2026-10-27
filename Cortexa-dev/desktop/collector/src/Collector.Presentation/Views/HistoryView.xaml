@@ -45,6 +45,16 @@
                                    Style="{StaticResource Row.Caption}"
                                    Text="{Binding StageLine}" />
                     </StackPanel>
+                    <Button MinWidth="{StaticResource Size.ActionMinWidth}"
+                            MinHeight="{StaticResource Size.RowAction}"
+                            Margin="{StaticResource Thickness.HelperGap}"
+                            HorizontalAlignment="Left"
+                            AutomationProperties.Name="{Binding RetryBatchName}"
+                            b:FocusRouter.Key="{Binding RetryFocusKey}"
+                            Command="{Binding RetryBatchCommand}"
+                            Content="{Binding RetryLabel}"
+                            Style="{StaticResource Button.Secondary}"
+                            Visibility="{Binding IsFailed, Converter={StaticResource BoolToVisibility}}" />
                 </StackPanel>
             </Border>
         </DataTemplate>

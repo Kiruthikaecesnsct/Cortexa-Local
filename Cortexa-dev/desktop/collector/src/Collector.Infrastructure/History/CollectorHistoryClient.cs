@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Collector.Application.Ports;
 using Collector.Domain.History;
 using Collector.Domain.Serialization;
@@ -19,26 +20,38 @@ public sealed class CollectorHistoryClient(
 {
     private const string BatchesPath = "collector/batches";
     private const string ResultsSuffix = "results";
+    private const string RetrySuffix = "retry";
 
     public async Task<IReadOnlyList<BatchSummary>> ListBatchesAsync(CancellationToken cancellationToken)
     {
-        var batches = await FetchAsync<List<BatchSummary>>(BatchesPath, cancellationToken);
+        var batches = await SendRequestAsync<List<BatchSummary>>(HttpMethod.Get, BatchesPath, cancellationToken);
         return batches ?? throw new BatchHistoryException((int)HttpStatusCode.NotFound, false, "The batch list was not found.");
     }
 
     public Task<BatchResults?> GetResultsAsync(string serverBatchId, CancellationToken cancellationToken) =>
-        FetchAsync<BatchResults>(
+        SendRequestAsync<BatchResults>(
+            HttpMethod.Get,
             $"{BatchesPath}/{Uri.EscapeDataString(serverBatchId)}/{ResultsSuffix}",
             cancellationToken);
 
-    private async Task<T?> FetchAsync<T>(string path, CancellationToken cancellationToken)
+    public async Task RetryBatchAsync(string serverBatchId, CancellationToken cancellationToken)
+    {
+        var path = $"{BatchesPath}/{Uri.EscapeDataString(serverBatchId)}/{RetrySuffix}";
+        var result = await SendRequestAsync<BatchRetryResponse>(HttpMethod.Post, path, cancellationToken);
+        if (result is null)
+        {
+            throw new BatchHistoryException((int)HttpStatusCode.NotFound, false, "The batch was not found.");
+        }
+    }
+
+    private async Task<T?> SendRequestAsync<T>(HttpMethod method, string path, CancellationToken cancellationToken)
         where T : class
     {
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(server.CurrentValue.ReadTimeoutSeconds));
         try
         {
-            using var response = await SendAsync(path, timeout.Token);
+            using var response = await SendAsync(method, path, timeout.Token);
             return await ReadAsync<T>(response, timeout.Token);
         }
         catch (HttpRequestException exception)
@@ -53,14 +66,14 @@ public sealed class CollectorHistoryClient(
         }
     }
 
-    private Task<HttpResponseMessage> SendAsync(string path, CancellationToken cancellationToken)
+    private Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, CancellationToken cancellationToken)
     {
         var uri = new Uri($"{server.CurrentValue.BaseUrl.TrimEnd('/')}/{path}");
         var client = httpClientFactory.CreateClient(HttpClientNames.CollectorServer);
         return retryPolicy.SendAsync(
             async token =>
             {
-                using var message = new HttpRequestMessage(HttpMethod.Get, uri);
+                using var message = new HttpRequestMessage(method, uri);
                 return await client.SendAsync(message, token);
             },
             cancellationToken);
@@ -91,4 +104,13 @@ public sealed class CollectorHistoryClient(
             throw new BatchHistoryException(status, false, "The server response could not be read.", exception);
         }
     }
+}
+
+internal sealed record BatchRetryResponse
+{
+    [JsonPropertyName("batch_id")]
+    public required string BatchId { get; init; }
+
+    [JsonPropertyName("document_ids")]
+    public required IReadOnlyList<string> DocumentIds { get; init; }
 }

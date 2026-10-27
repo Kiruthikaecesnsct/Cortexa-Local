@@ -140,6 +140,8 @@ public static class HistoryStrings
 
     public static string AnnounceFailed(string batch, string stage) => $"{batch} failed after {stage}";
 
+    public static string AnnounceRetryBatchFailed(string name) => $"{name} couldn't be retried.";
+
     public static string ProgressName(string stage) => $"{stage} progress";
 
     public static string ProviderModel(CollectorProvider? provider, string? model) =>

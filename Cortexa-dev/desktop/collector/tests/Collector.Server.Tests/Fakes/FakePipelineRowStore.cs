@@ -114,6 +114,18 @@ internal sealed class FakePipelineRowStore : IPipelineRowStore
     public Task<SagaRow?> GetSagaAsync(string batchId, CancellationToken cancellationToken) =>
         Task.FromResult(Sagas.GetValueOrDefault(batchId));
 
+    public Task ReplaceSagaAsync(SagaRow saga, CancellationToken cancellationToken)
+    {
+        WriteCalls++;
+        if (FailAtStage == SagaStage)
+        {
+            return Task.FromException(new PipelineWriteException(saga.BatchId, SagaStage, new InvalidOperationException("forced")));
+        }
+
+        Sagas[saga.BatchId] = saga;
+        return Task.CompletedTask;
+    }
+
     public Task<IReadOnlyList<SagaRow>> ListSagasByOwnerAsync(
         string ownerUserId,
         string orgId,

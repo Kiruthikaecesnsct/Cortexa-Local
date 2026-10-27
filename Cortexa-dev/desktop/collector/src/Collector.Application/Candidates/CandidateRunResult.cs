@@ -23,6 +23,10 @@ public sealed record CandidateRunResult(IReadOnlyList<CandidateDocumentResult> D
     public IReadOnlyList<InventionCandidate> AllCandidates => [.. Documents.SelectMany(document => document.Candidates)];
 }
 
-public sealed record CandidateRunRequest(IReadOnlyList<string> DocumentIds);
+public sealed record CandidateRunRequest(IReadOnlyList<string> DocumentIds)
+{
+    public IReadOnlyList<string> DistinctDocumentIds { get; } =
+        [.. DocumentIds.Distinct(StringComparer.Ordinal)];
+}
 
 public sealed record CandidateProgress(int Completed, int Total);

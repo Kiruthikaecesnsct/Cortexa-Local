@@ -18,7 +18,7 @@ public sealed class IdentifyCandidatesHandler(
         CancellationToken cancellationToken)
     {
         exhaustion.Reset();
-        var ids = request.DocumentIds.Distinct(StringComparer.Ordinal).ToList();
+        var ids = request.DistinctDocumentIds;
         var results = ids.Select(id => CandidateDocumentResult.Canceled(id, id)).ToArray();
         var state = new RunState(ids.Count, progress);
         try

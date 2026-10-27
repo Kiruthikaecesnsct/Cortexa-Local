@@ -164,10 +164,16 @@ function Start-Minio([hashtable]$Config) {
         Write-Warning 'Docker is not running - MinIO is skipped and saving repositories is disabled.'
         return (Test-Port $MinioPort)
     }
-    Start-Container $MinioContainer (Get-MinioRunArguments $Config)
-    Wait-Port $MinioPort 'MinIO'
-    Start-Container $MinioConsoleContainer (Get-MinioConsoleRunArguments)
-    return $true
+    try {
+        Start-Container $MinioContainer (Get-MinioRunArguments $Config)
+        Wait-Port $MinioPort 'MinIO'
+        Start-Container $MinioConsoleContainer (Get-MinioConsoleRunArguments)
+        return $true
+    }
+    catch {
+        Write-Warning "MinIO could not be started ($($_.Exception.Message)) - skipped, saving repositories is disabled."
+        return (Test-Port $MinioPort)
+    }
 }
 
 function Stop-Minio {

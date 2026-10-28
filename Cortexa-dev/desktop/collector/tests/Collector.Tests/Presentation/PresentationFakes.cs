@@ -4,9 +4,7 @@ using Collector.Application.Knowledge;
 using Collector.Application.Ports;
 using Collector.Application.Secrets;
 using Collector.Application.Settings;
-using Collector.Application.Upload;
 using Collector.Domain.Enums;
-using Collector.Domain.Upload;
 using Collector.Presentation.Navigation;
 using Collector.Presentation.Services;
 using Collector.Presentation.ViewModels;
@@ -127,21 +125,6 @@ internal sealed class FakeClipboard : IClipboard
 internal sealed class FixedAppVersion : IAppVersion
 {
     public string Current => "1.0.0";
-}
-
-internal sealed class GateableUploadClient(FakeUploadClient inner) : IKnowledgeUploadClient
-{
-    public TaskCompletionSource? Gate { get; set; }
-
-    public async Task<KnowledgeUploadResult> UploadAsync(UploadPayload payload, string idempotencyKey, CancellationToken cancellationToken)
-    {
-        if (Gate is not null)
-        {
-            await Gate.Task;
-        }
-
-        return await inner.UploadAsync(payload, idempotencyKey, cancellationToken);
-    }
 }
 
 internal sealed class KnowledgeHarness

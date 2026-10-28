@@ -128,7 +128,7 @@ public sealed partial class KnowledgeRunViewModel : FocusableViewModel
     private void Decide()
     {
         var state = _passes.CandidateState;
-        if (!state.HasOutput)
+        if (!state.HasOutput && !state.HasFinishedRun)
         {
             return;
         }

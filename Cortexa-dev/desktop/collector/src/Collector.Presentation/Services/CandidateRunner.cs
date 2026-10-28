@@ -1,4 +1,5 @@
 using Collector.Application.Candidates;
+using Collector.Application.History;
 using Collector.Application.Settings;
 using Microsoft.Extensions.Logging;
 
@@ -7,6 +8,7 @@ namespace Collector.Presentation.Services;
 public sealed class CandidateRunner(
     IdentifyCandidatesHandler handler,
     SettingsService settings,
+    ProcessedDocumentRecorder recorder,
     ILogger<CandidateRunner> logger) : ICandidateRunner
 {
     public async Task<CandidateRunOutcome> RunAsync(
@@ -17,6 +19,7 @@ public sealed class CandidateRunner(
         try
         {
             var result = await handler.IdentifyAsync(new CandidateRunRequest(documentIds), progress, cancellationToken);
+            await recorder.RecordAsync(result, CancellationToken.None);
             var keyCount = await ConfiguredKeyCountAsync(result, cancellationToken);
             return new CandidateRunOutcome(result, cancellationToken.IsCancellationRequested, keyCount);
         }

@@ -23,7 +23,7 @@ public sealed class ActiveModelViewModelTests
         Assert.Equal(ProviderReadinessState.Missing, active.Readiness);
         Assert.False(active.IsReady);
         Assert.Equal(ExtractionStrings.AddKeyInSettings, active.AddKeyText);
-        Assert.Equal(ExtractionStrings.ModelLineName("Gemini", "gemini-b"), active.GroupName);
+        Assert.Equal(ExtractionStrings.ModelLineName(), active.GroupName);
         Assert.True(updates > 0);
     }
 

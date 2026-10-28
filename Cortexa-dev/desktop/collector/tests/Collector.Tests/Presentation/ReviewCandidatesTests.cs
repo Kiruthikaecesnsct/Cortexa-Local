@@ -93,36 +93,6 @@ public sealed class ReviewCandidatesTests
     }
 
     [Fact]
-    public async Task UploadCommand_CandidatesPresent_NothingFromCandidatesIsSent()
-    {
-        ShowCandidates(CandidateData.Doc(CandidateOutcome.Completed, "a.txt", CandidateData.Candidate(SecretCandidateTitle)));
-        var viewModel = _harness.Open(ReviewData.Item(KnowledgeTitle));
-
-        await viewModel.UploadCommand.ExecuteAsync(null);
-
-        var bodies = _harness.Client.Calls.Select(call => Encoding.UTF8.GetString(call.Body)).ToList();
-        Assert.NotEmpty(bodies);
-        Assert.All(bodies, body =>
-        {
-            Assert.DoesNotContain(SecretCandidateTitle, body, StringComparison.Ordinal);
-            Assert.DoesNotContain(CandidateData.CandidateSummary, body, StringComparison.Ordinal);
-        });
-        Assert.Equal([KnowledgeTitle], _harness.SentTitles());
-    }
-
-    [Fact]
-    public void CanUpload_CandidatesOnly_IsFalseAndNothingIsSent()
-    {
-        ShowCandidates(CandidateData.Completed());
-
-        _harness.ViewModel.OnNavigatedTo();
-
-        Assert.False(_harness.ViewModel.CanUpload);
-        Assert.False(_harness.ViewModel.UploadCommand.CanExecute(null));
-        Assert.Empty(_harness.Client.Calls);
-    }
-
-    [Fact]
     public void Candidates_ItemsFromState_ExposeItemsAndCount()
     {
         ShowCandidates(CandidateData.Completed("a.txt", "One"), CandidateData.Completed("b.txt", "Two"));

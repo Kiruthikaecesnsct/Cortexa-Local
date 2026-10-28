@@ -69,7 +69,6 @@ public static class ExtractionStrings
         "Approximate. Counted with an OpenAI tokenizer (Cl100kBase) as a cross-provider stand-in; the selected provider may count tokens differently.";
 
     public const string ModelLineLabel = "AI MODEL";
-    public const string ModelLineSeparator = " · ";
     public const string ChangeInSettings = "Change in Settings";
     public const string ChangeInSettingsName = "Change the AI model in Settings";
     public const string AddKeyInSettings = "Add key in Settings";
@@ -118,7 +117,7 @@ public static class ExtractionStrings
     public const string ReadySignInMessage = "Sign in to review and upload it.";
     public const string SignIn = "Sign in";
 
-    public static string ModelLineName(string provider, string model) => $"AI model: {provider}, {model}";
+    public static string ModelLineName() => "AI model in use";
 
     public static string AddKeyInSettingsName(string provider) => $"Add the {provider} key in Settings";
 

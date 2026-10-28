@@ -6,7 +6,6 @@ using Collector.Application.Ports;
 using Collector.Application.Remote;
 using Collector.Application.Remote.Selection;
 using Collector.Application.Settings;
-using Collector.Application.Upload;
 using Collector.Domain.Enums;
 using Collector.Infrastructure;
 using Collector.Infrastructure.Ai;
@@ -38,7 +37,6 @@ public class DependencyInjectionTests
         var settings = new Dictionary<string, string?>
         {
             ["Gateway:BaseUrl"] = "https://gateway.example",
-            ["CollectorServer:BaseUrl"] = "https://server.example",
         };
         foreach (var pair in extraSettings ?? new Dictionary<string, string?>())
         {
@@ -154,7 +152,6 @@ public class DependencyInjectionTests
 
     [Theory]
     [InlineData(HttpClientNames.CortexaAuth)]
-    [InlineData(HttpClientNames.CollectorServer)]
     public void ExistingClients_Always_DoNotCarryRemoteSourceHandlers(string name)
     {
         using var provider = Build();
@@ -187,16 +184,6 @@ public class DependencyInjectionTests
     }
 
     [Fact]
-    public void Bearer_handler_is_only_on_the_collector_server_client()
-    {
-        using var provider = Build();
-        var factory = provider.GetRequiredService<IHttpMessageHandlerFactory>();
-
-        Assert.DoesNotContain(typeof(BearerTokenHandler), Chain(factory, HttpClientNames.CortexaAuth));
-        Assert.Contains(typeof(BearerTokenHandler), Chain(factory, HttpClientNames.CollectorServer));
-    }
-
-    [Fact]
     public void Auth_client_disables_cookies()
     {
         using var provider = Build();
@@ -208,12 +195,11 @@ public class DependencyInjectionTests
     }
 
     [Fact]
-    public void Graph_Always_ResolvesKnowledgeAndUploadServices()
+    public void Graph_Always_ResolvesKnowledgeServices()
     {
         using var provider = Build();
 
         Assert.NotNull(provider.GetRequiredService<ExtractKnowledgeHandler>());
-        Assert.NotNull(provider.GetRequiredService<UploadKnowledgeHandler>());
         Assert.Equal("knowledge.v1", provider.GetRequiredService<KnowledgePrompt>().Version);
     }
 
@@ -354,17 +340,6 @@ public class DependencyInjectionTests
         Assert.Same(intake, provider.GetRequiredService<IntakeProgressViewModel>());
     }
 
-    [Fact]
-    public void Retry_handler_resolves_without_extraction_or_ai_dependencies()
-    {
-        using var provider = Build();
-
-        var handler = provider.GetRequiredService<RetryFailedUploadHandler>();
-
-        Assert.Same(handler, provider.GetRequiredService<RetryFailedUploadHandler>());
-        Assert.Empty(ForbiddenDependencies(typeof(RetryFailedUploadHandler)));
-    }
-
     private static List<Type> ForbiddenDependencies(Type root)
     {
         var forbidden = new List<Type>();
@@ -393,8 +368,7 @@ public class DependencyInjectionTests
     }
 
     private static bool IsForbidden(Type type) =>
-        type == typeof(UploadKnowledgeHandler)
-        || type == typeof(ExtractKnowledgeHandler)
+        type == typeof(ExtractKnowledgeHandler)
         || type == typeof(IAiProvider)
         || type == typeof(IAiProviderFactory)
         || type.Namespace is "Collector.Application.Knowledge" or "Collector.Application.Extraction";

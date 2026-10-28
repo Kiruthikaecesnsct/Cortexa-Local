@@ -17,7 +17,9 @@ public sealed class DocumentCandidateRunner(
     {
         try
         {
-            return await RunCoreAsync(document, cancellationToken);
+            var run = await RunCoreAsync(document, cancellationToken);
+            LogOutcome(document, run.Result);
+            return run;
         }
         catch (AiInputTooLargeException exception)
         {
@@ -40,6 +42,14 @@ public sealed class DocumentCandidateRunner(
         {
             logger.LogWarning("Candidate run for document {DocumentId} failed with {ErrorType}.", document.Id, exception.GetType().Name);
             return ReplyInterpreter.Fail(document, new CandidateFailure(CandidateOutcome.Failed, "unexpected error"));
+        }
+    }
+
+    private void LogOutcome(CollectorDocument document, CandidateDocumentResult result)
+    {
+        if (result.Outcome != CandidateOutcome.Completed)
+        {
+            logger.LogWarning("Candidate run for document {DocumentId} ended as {Outcome}: {Reason}.", document.Id, result.Outcome, result.Reason);
         }
     }
 

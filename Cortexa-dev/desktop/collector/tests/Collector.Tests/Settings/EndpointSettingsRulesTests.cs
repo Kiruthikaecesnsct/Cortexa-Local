@@ -30,14 +30,12 @@ public class EndpointSettingsRulesTests
     }
 
     [Fact]
-    public void Reports_the_first_invalid_field()
+    public void Reports_the_gateway_field_when_invalid()
     {
-        var gateway = EndpointSettingsRules.Validate(new EndpointSettings("nope", "https://server.example"));
-        var server = EndpointSettingsRules.Validate(new EndpointSettings("https://gateway.example", "nope"));
-        var ok = EndpointSettingsRules.Validate(new EndpointSettings("https://gateway.example", "https://server.example"));
+        var gateway = EndpointSettingsRules.Validate(new EndpointSettings("nope"));
+        var ok = EndpointSettingsRules.Validate(new EndpointSettings("https://gateway.example"));
 
         Assert.Equal(EndpointField.GatewayUrl, gateway.Field);
-        Assert.Equal(EndpointField.CollectorServerUrl, server.Field);
         Assert.True(ok.IsValid);
     }
 }

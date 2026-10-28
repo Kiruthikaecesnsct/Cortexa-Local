@@ -11,31 +11,6 @@ public sealed class GatewayOptionsValidator : IValidateOptions<GatewayOptions>
         OptionsChecks.Url(GatewayOptions.SectionName, options.BaseUrl);
 }
 
-public sealed class CollectorServerOptionsValidator : IValidateOptions<CollectorServerOptions>
-{
-    public ValidateOptionsResult Validate(string? name, CollectorServerOptions options)
-    {
-        var failures = new List<string>();
-        var url = OptionsChecks.Url(CollectorServerOptions.SectionName, options.BaseUrl);
-        if (url.Failed)
-        {
-            failures.AddRange(url.Failures ?? []);
-        }
-
-        if (options.ReadTimeoutSeconds <= 0)
-        {
-            failures.Add($"{CollectorServerOptions.SectionName}:{nameof(options.ReadTimeoutSeconds)} must be greater than zero.");
-        }
-
-        if (options.ReadRetryDelaysMs.Any(delay => delay < 0))
-        {
-            failures.Add($"{CollectorServerOptions.SectionName}:{nameof(options.ReadRetryDelaysMs)} must not contain negative values.");
-        }
-
-        return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
-    }
-}
-
 public sealed class HistoryOptionsValidator : IValidateOptions<HistoryOptions>
 {
     public ValidateOptionsResult Validate(string? name, HistoryOptions options)

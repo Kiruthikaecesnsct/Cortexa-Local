@@ -3,7 +3,6 @@ namespace Collector.Application.Settings;
 public enum EndpointField
 {
     GatewayUrl,
-    CollectorServerUrl,
     AzureDevOpsOrganization,
 }
 

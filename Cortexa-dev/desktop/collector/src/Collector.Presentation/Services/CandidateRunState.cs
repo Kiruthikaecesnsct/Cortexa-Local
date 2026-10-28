@@ -39,6 +39,8 @@ public sealed class CandidateRunState
 
     public bool HasOutput => HasBanner || Result?.AllCandidates.Count > 0;
 
+    public bool HasFinishedRun => Result is not null && !Canceled && !Failed;
+
     public event EventHandler? Changed;
 
     public void Begin(int documentCount = 0)

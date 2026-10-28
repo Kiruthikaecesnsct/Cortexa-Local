@@ -3,7 +3,7 @@ namespace Collector.Presentation.Resources;
 public static class SettingsStrings
 {
     public const string ConnectionsTitle = "Connections";
-    public const string ConnectionsIntro = "Where the app sends sign-in and uploads.";
+    public const string ConnectionsIntro = "Where the app signs you in.";
     public const string GatewayLabel = "_Gateway URL";
     public const string GatewayName = "Gateway URL";
     public const string GatewayHelper = "Cortexa API gateway. Used for sign-in.";
@@ -11,9 +11,6 @@ public static class SettingsStrings
     public const string GatewayHint =
         "You're signed in through the current gateway. Saving a different gateway URL signs you out.";
 
-    public const string CollectorLabel = "C_ollector server URL";
-    public const string CollectorName = "Collector server URL";
-    public const string CollectorHelper = "Receives the knowledge you upload.";
     public const string Save = "Sa_ve endpoints";
     public const string SaveName = "Save endpoints";
     public const string Saving = "Saving…";
@@ -30,8 +27,6 @@ public static class SettingsStrings
 
     public const string GatewayEmpty = "Enter the gateway URL.";
     public const string GatewayNotAbsolute = "Enter a full URL, like https://gateway.example.com.";
-    public const string CollectorEmpty = "Enter the collector server URL.";
-    public const string CollectorNotAbsolute = "Enter a full URL, like https://collector.example.com.";
     public const string UrlHttpNotLocal = "Use https. Plain http is only allowed for localhost.";
     public const string UrlOtherScheme = "Use an https:// address.";
 
@@ -135,6 +130,19 @@ public static class SettingsStrings
     public static string ReadinessUnknownTitle(string provider) => $"Couldn't check {provider} access.";
 
 
+    public const string HistoryDbName = "History database";
+    public const string HistoryDbDescription = "MongoDB connection string. Your processed documents are saved here.";
+    public const string HistoryDbRunsName = "Save history";
+    public const string AddUri = "Add connection string";
+    public const string SaveUri = "Save connection string";
+    public const string ClearUri = "Clear connection string";
+    public const string KeepUri = "Keep connection string";
+    public const string UriEditorHelper = "Paste the connection string. It is stored in Windows Credential Manager and won't be shown again.";
+    public const string PasteUriFirst = "Paste the connection string first.";
+    public const string UriTooLong = "That connection string is too long.";
+    public const string UriSaveFailed = "Couldn't save the connection string to Windows Credential Manager. Try again.";
+    public const string UriClearFailed = "Couldn't remove the connection string from Windows Credential Manager. Try again.";
+    public const string UriStatusUnknownHelper = "Couldn't read the connection string status. Reopen Settings to try again.";
     public const string AddToken = "Add token";
     public const string SaveToken = "Save token";
     public const string ClearToken = "Clear token";

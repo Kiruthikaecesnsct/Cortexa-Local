@@ -20,7 +20,7 @@ public sealed class SettingsService(IUserSettingsStore store, ISecretStore secre
             return result;
         }
 
-        var normalized = new EndpointSettings(settings.GatewayUrl.Trim(), settings.CollectorServerUrl.Trim());
+        var normalized = new EndpointSettings(settings.GatewayUrl.Trim());
         await store.SaveEndpointsAsync(normalized, cancellationToken);
         return SettingsSaveResult.Ok;
     }

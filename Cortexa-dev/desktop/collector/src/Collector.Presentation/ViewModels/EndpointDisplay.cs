@@ -15,7 +15,7 @@ public static class EndpointDisplay
         return uri.IsDefaultPort ? uri.Host : $"{uri.Host}:{uri.Port}";
     }
 
-    public static string? ErrorFor(string? url, EndpointField field)
+    public static string? ErrorFor(string? url)
     {
         if (EndpointSettingsRules.ValidateUrl(url) is null)
         {
@@ -24,14 +24,12 @@ public static class EndpointDisplay
 
         if (string.IsNullOrWhiteSpace(url))
         {
-            return field == EndpointField.GatewayUrl ? SettingsStrings.GatewayEmpty : SettingsStrings.CollectorEmpty;
+            return SettingsStrings.GatewayEmpty;
         }
 
         if (!Uri.TryCreate(url.Trim(), UriKind.Absolute, out var uri))
         {
-            return field == EndpointField.GatewayUrl
-                ? SettingsStrings.GatewayNotAbsolute
-                : SettingsStrings.CollectorNotAbsolute;
+            return SettingsStrings.GatewayNotAbsolute;
         }
 
         return uri.Scheme == Uri.UriSchemeHttp ? SettingsStrings.UrlHttpNotLocal : SettingsStrings.UrlOtherScheme;

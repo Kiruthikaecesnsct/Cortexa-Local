@@ -12,7 +12,7 @@ public sealed class GeminiProviderOptions
 
     public const int DefaultMaxInputTokens = 1_000_000;
 
-    public string Model { get; set; } = "gemini-3.8-flash";
+    public string Model { get; set; } = "gemini-3.6-flash";
 
     public int MaxInputTokens { get; set; } = DefaultMaxInputTokens;
 

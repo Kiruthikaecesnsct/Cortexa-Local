@@ -121,7 +121,6 @@ public sealed partial class GeminiDirectProviderFallbackTests
     }
 
     [Theory]
-    [InlineData(HttpStatusCode.ServiceUnavailable, AiFailureKind.Transient)]
     [InlineData(HttpStatusCode.Unauthorized, AiFailureKind.Permanent)]
     [InlineData(HttpStatusCode.BadRequest, AiFailureKind.Permanent)]
     public async Task CompleteAsync_NonQuotaFailureOnPrimary_KeepsItsKindAndNeverTriesBackup(HttpStatusCode status, AiFailureKind expectedKind)
@@ -137,13 +136,45 @@ public sealed partial class GeminiDirectProviderFallbackTests
     }
 
     [Fact]
-    public async Task CompleteAsync_ConnectionFailureOnPrimary_StaysTransientWithoutBackup()
+    public async Task CompleteAsync_ServiceUnavailableOnPrimary_FallsBackWithoutMarkingItExhausted()
+    {
+        var handler = Endpoint(call => call.Model == Primary ? Status(HttpStatusCode.ServiceUnavailable) : Ok(call.Model));
+
+        var completion = await Provider(handler, Options(Backup)).CompleteAsync(GeminiWire.Request, TestSupport.Ct);
+
+        Assert.Equal(Backup, completion.Model);
+        Assert.False(_tracker.IsExhausted(Primary));
+    }
+
+    [Fact]
+    public async Task CompleteAsync_ConnectionFailureOnPrimary_FallsBackToNextModel()
     {
         var requested = new List<string>();
         var handler = new StubHttpHandler((request, _) =>
         {
             requested.Add(ModelOf(request));
-            throw new HttpRequestException("no route");
+            if (ModelOf(request) == Primary)
+            {
+                throw new HttpRequestException("no route");
+            }
+
+            return Task.FromResult(Ok(ModelOf(request)));
+        });
+
+        var completion = await Provider(handler, Options(Backup)).CompleteAsync(GeminiWire.Request, TestSupport.Ct);
+
+        Assert.Equal(Backup, completion.Model);
+        Assert.Equal([Primary, Backup], requested);
+    }
+
+    [Fact]
+    public async Task CompleteAsync_TimeoutOnPrimary_DoesNotFallBack()
+    {
+        var requested = new List<string>();
+        var handler = new StubHttpHandler((request, _) =>
+        {
+            requested.Add(ModelOf(request));
+            throw new TaskCanceledException("timed out");
         });
 
         var exception = await Assert.ThrowsAsync<AiProviderException>(
@@ -151,6 +182,19 @@ public sealed partial class GeminiDirectProviderFallbackTests
 
         Assert.Equal(AiFailureKind.Transient, exception.Kind);
         Assert.Equal([Primary], requested);
+    }
+
+    [Fact]
+    public async Task CompleteAsync_EveryModelUnavailable_ThrowsTransientAfterTryingAll()
+    {
+        var handler = Endpoint(_ => Status(HttpStatusCode.ServiceUnavailable));
+
+        var exception = await Assert.ThrowsAsync<AiProviderException>(
+            () => Provider(handler, Options(Backup)).CompleteAsync(GeminiWire.Request, TestSupport.Ct));
+
+        Assert.Equal(AiFailureKind.Transient, exception.Kind);
+        Assert.Equal(1, Requests(handler, Primary));
+        Assert.Equal(1, Requests(handler, Backup));
     }
 
     [Fact]

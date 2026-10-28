@@ -46,7 +46,7 @@ public sealed partial class ActiveModelViewModel : ObservableObject
         ? ExtractionStrings.ConnectInSettingsName
         : ExtractionStrings.AddKeyInSettingsName(ProviderName);
 
-    public string GroupName => ExtractionStrings.ModelLineName(ProviderName, Model);
+    public string GroupName => ExtractionStrings.ModelLineName();
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(

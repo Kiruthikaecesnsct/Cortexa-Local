@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using Collector.Application.Ai;
 using Collector.Application.Auth;
+using Collector.Application.History;
 using Collector.Application.Ports;
 using Collector.Application.Secrets;
 using Collector.Application.Settings;
@@ -155,7 +156,7 @@ internal sealed class FakeAuthClient : IAuthClient
 
 internal sealed class FakeUserSettingsStore : IUserSettingsStore
 {
-    public EndpointSettings Current { get; private set; } = new("https://gateway.example", "https://server.example");
+    public EndpointSettings Current { get; private set; } = new("https://gateway.example");
 
     public int SaveCalls { get; private set; }
 
@@ -210,7 +211,7 @@ internal sealed class FakeSession : ISessionState, IAccessTokenProvider
 {
     public SessionState Current { get; set; } = SessionState.SignedOut;
 
-    public string? UserEmail => null;
+    public string? UserEmail { get; set; }
 
     public DateTimeOffset? ExpiresAt { get; set; }
 
@@ -261,4 +262,36 @@ internal sealed class FakeWindowHandleSource : IWindowHandleSource
     public nint Handle { get; set; } = 1;
 
     public nint GetMainWindowHandle() => Handle;
+}
+
+internal sealed class InMemoryProcessedDocumentRepository : IProcessedDocumentRepository
+{
+    private readonly Dictionary<string, ProcessedDocumentRecord> _records = new(StringComparer.Ordinal);
+
+    public bool Unreachable { get; set; }
+
+    public IReadOnlyCollection<ProcessedDocumentRecord> All => _records.Values;
+
+    public Task<IReadOnlyList<ProcessedDocumentRecord>> ListAsync(string userId, CancellationToken cancellationToken)
+    {
+        ThrowIfUnreachable();
+        IReadOnlyList<ProcessedDocumentRecord> found =
+            [.. _records.Values.Where(record => record.UserId == userId).OrderByDescending(record => record.UpdatedAt)];
+        return Task.FromResult(found);
+    }
+
+    public Task UpsertAsync(ProcessedDocumentRecord record, CancellationToken cancellationToken)
+    {
+        ThrowIfUnreachable();
+        _records[$"{record.UserId}|{record.DocumentId}"] = record;
+        return Task.CompletedTask;
+    }
+
+    private void ThrowIfUnreachable()
+    {
+        if (Unreachable)
+        {
+            throw new ProcessedDocumentStoreException("History storage could not be reached.");
+        }
+    }
 }

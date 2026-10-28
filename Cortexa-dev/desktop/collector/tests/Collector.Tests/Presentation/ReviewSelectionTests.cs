@@ -166,14 +166,6 @@ public sealed class ReviewSelectionTests
     }
 
     [Fact]
-    public void UploadableCount_BlockedDocument_ExcludesItsItems()
-    {
-        var viewModel = _harness.Open(SmallAndBigDocuments());
-
-        Assert.Equal(SmallDocumentItems, viewModel.UploadableCount);
-    }
-
-    [Fact]
     public void ExcludingItems_BlockedDocumentDropsToLimit_UnblocksIt()
     {
         var viewModel = _harness.Open(SmallAndBigDocuments());
@@ -184,6 +176,5 @@ public sealed class ReviewSelectionTests
         Assert.False(big.IsBlocked);
         Assert.All(big.Rows, row => Assert.False(row.IsDocumentBlocked));
         Assert.Equal(0, viewModel.BlockedDocumentCount);
-        Assert.Equal(SmallDocumentItems + UploadLimitsMirror.MaxItemsPerDocument, viewModel.UploadableCount);
     }
 }

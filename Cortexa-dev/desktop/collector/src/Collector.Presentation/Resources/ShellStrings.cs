@@ -27,7 +27,7 @@ public static class ShellStrings
     public const string SignInSubtitle = "Connect to your Cortexa workspace.";
     public const string ExtractSubtitle = "Pick a source and pull knowledge out of your files.";
     public const string ReviewSubtitle = "Choose which knowledge items to upload.";
-    public const string HistorySubtitle = "Track uploaded batches and the candidates they produce.";
+    public const string HistorySubtitle = "Documents you have processed, and the invention candidates found in them.";
     public const string SettingsSubtitle = "AI model, provider keys and connections.";
 
     public const string UnhandledError =

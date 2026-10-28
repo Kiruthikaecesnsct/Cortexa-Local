@@ -33,7 +33,6 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
     private readonly ILogger<SettingsViewModel> _logger;
     private EndpointSettings _saved;
     private bool _gatewayLive;
-    private bool _collectorLive;
     private bool _constructed;
 
     public SettingsViewModel(
@@ -48,7 +47,6 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
         _logger = logger;
         _saved = _settings.GetEndpoints();
         GatewayUrl = _saved.GatewayUrl;
-        CollectorServerUrl = _saved.CollectorServerUrl;
         Rows = CreateRows();
         foreach (var row in AllRows)
         {
@@ -81,7 +79,7 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
     [ObservableProperty]
     public partial SettingsSectionItemViewModel? SelectedSection { get; set; }
 
-    public bool IsDirty => Normalize(GatewayUrl) != _saved.GatewayUrl || Normalize(CollectorServerUrl) != _saved.CollectorServerUrl;
+    public bool IsDirty => Normalize(GatewayUrl) != _saved.GatewayUrl;
 
     public bool ShowGatewayHint =>
         _session.Current == SessionState.SignedIn && Normalize(GatewayUrl) != _saved.GatewayUrl;
@@ -97,22 +95,11 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
     [NotifyCanExecuteChangedFor(nameof(SaveEndpointsCommand))]
     public partial string GatewayUrl { get; set; }
 
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsDirty))]
-    [NotifyCanExecuteChangedFor(nameof(SaveEndpointsCommand))]
-    public partial string CollectorServerUrl { get; set; }
-
     public string GatewayHelp => GatewayError ?? SettingsStrings.GatewayHelper;
-
-    public string CollectorHelp => CollectorError ?? SettingsStrings.CollectorHelper;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(GatewayHelp))]
     public partial string? GatewayError { get; set; }
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(CollectorHelp))]
-    public partial string? CollectorError { get; set; }
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(AreFieldsEnabled), nameof(SaveLabel))]
@@ -171,38 +158,21 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
         SaveBanner = null;
         if (_gatewayLive)
         {
-            GatewayError = EndpointDisplay.ErrorFor(value, EndpointField.GatewayUrl);
-        }
-    }
-
-    partial void OnCollectorServerUrlChanged(string value)
-    {
-        SaveBanner = null;
-        if (_collectorLive)
-        {
-            CollectorError = EndpointDisplay.ErrorFor(value, EndpointField.CollectorServerUrl);
+            GatewayError = EndpointDisplay.ErrorFor(value);
         }
     }
 
     [RelayCommand]
     private void ValidateGateway()
     {
-        GatewayError = EndpointDisplay.ErrorFor(GatewayUrl, EndpointField.GatewayUrl);
+        GatewayError = EndpointDisplay.ErrorFor(GatewayUrl);
         _gatewayLive |= GatewayError is not null;
-    }
-
-    [RelayCommand]
-    private void ValidateCollector()
-    {
-        CollectorError = EndpointDisplay.ErrorFor(CollectorServerUrl, EndpointField.CollectorServerUrl);
-        _collectorLive |= CollectorError is not null;
     }
 
     [RelayCommand(CanExecute = nameof(CanSave))]
     private async Task SaveEndpointsAsync(CancellationToken cancellationToken)
     {
         ValidateGateway();
-        ValidateCollector();
         if (FocusFirstError())
         {
             return;
@@ -211,7 +181,7 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
         IsSaving = true;
         try
         {
-            await PersistAsync(new EndpointSettings(Normalize(GatewayUrl), Normalize(CollectorServerUrl)), cancellationToken);
+            await PersistAsync(new EndpointSettings(Normalize(GatewayUrl)), cancellationToken);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
@@ -235,11 +205,8 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
     private void Discard()
     {
         _gatewayLive = false;
-        _collectorLive = false;
         GatewayError = null;
-        CollectorError = null;
         GatewayUrl = _saved.GatewayUrl;
-        CollectorServerUrl = _saved.CollectorServerUrl;
         RequestFocus(SettingsFocusKeys.Gateway);
     }
 
@@ -255,7 +222,6 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
         var gatewayChanged = next.GatewayUrl != _saved.GatewayUrl;
         _saved = next;
         GatewayUrl = next.GatewayUrl;
-        CollectorServerUrl = next.CollectorServerUrl;
         var signedOut = gatewayChanged && await SignOutAsync(cancellationToken);
         SaveBanner = new BannerViewModel(new BannerContent
         {
@@ -281,35 +247,19 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
 
     private void ShowRejected(SettingsSaveResult result)
     {
-        var gateway = result.Field == EndpointField.GatewayUrl;
-        if (gateway)
-        {
-            GatewayError = EndpointDisplay.ErrorFor(GatewayUrl, EndpointField.GatewayUrl) ?? result.Reason;
-            _gatewayLive = true;
-        }
-        else
-        {
-            CollectorError = EndpointDisplay.ErrorFor(CollectorServerUrl, EndpointField.CollectorServerUrl) ?? result.Reason;
-            _collectorLive = true;
-        }
-
-        RequestFocus(gateway ? SettingsFocusKeys.Gateway : SettingsFocusKeys.Collector);
+        GatewayError = EndpointDisplay.ErrorFor(GatewayUrl) ?? result.Reason;
+        _gatewayLive = true;
+        RequestFocus(SettingsFocusKeys.Gateway);
     }
 
     private bool FocusFirstError()
     {
-        if (GatewayError is not null)
-        {
-            RequestFocus(SettingsFocusKeys.Gateway);
-            return true;
-        }
-
-        if (CollectorError is null)
+        if (GatewayError is null)
         {
             return false;
         }
 
-        RequestFocus(SettingsFocusKeys.Collector);
+        RequestFocus(SettingsFocusKeys.Gateway);
         return true;
     }
 
@@ -317,7 +267,6 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
     {
         _saved = _settings.GetEndpoints();
         GatewayUrl = _saved.GatewayUrl;
-        CollectorServerUrl = _saved.CollectorServerUrl;
         SaveEndpointsCommand.NotifyCanExecuteChanged();
     }
 
@@ -409,6 +358,18 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
             },
             _settings,
             _logger),
+        new(
+            new AiKeyRowDescriptor
+            {
+                Slot = SecretSlot.MongoConnectionString,
+                Name = SettingsStrings.HistoryDbName,
+                Description = SettingsStrings.HistoryDbDescription,
+                ShortName = "History",
+                RunsName = SettingsStrings.HistoryDbRunsName,
+                Words = CredentialWords.ConnectionString,
+            },
+            _settings,
+            _logger),
     ];
 
     private static string Normalize(string? value) => value?.Trim() ?? string.Empty;
@@ -417,6 +378,5 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
 public static class SettingsFocusKeys
 {
     public const string Gateway = "GatewayUrl";
-    public const string Collector = "CollectorUrl";
     public const string Sections = "SectionList";
 }

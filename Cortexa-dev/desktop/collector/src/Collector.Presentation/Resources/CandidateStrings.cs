@@ -6,7 +6,7 @@ public static class CandidateStrings
     public const string ProgressName = "Candidate progress";
     public const string CancelName = "Cancel candidate search";
     public const string PanelTitle = "Invention candidates";
-    public const string PanelCaption = "Found on this computer with Gemini. Not uploaded.";
+    public const string PanelCaption = "Found on this computer. Not uploaded.";
     public const string EmptyText = "No candidates found in these documents.";
     // Knowledge extraction is disabled by product decision; restore these inline texts when re-enabling it.
     // public const string KnowledgeEmpty = "No knowledge items came from this run.";
@@ -17,15 +17,15 @@ public static class CandidateStrings
     public const string TagUnverified = "Unverified";
     public const string UnverifiedHelp = "This excerpt was not found in the source file. Check it before you rely on it.";
 
-    public const string KeyMissingTitle = "Add a Gemini key to find candidates.";
-    public const string KeyMissingMessage = "Candidate search uses your own Gemini API key.";
+    public const string KeyMissingTitle = "Add an AI key to find candidates.";
+    public const string KeyMissingMessage = "Candidate search uses your own AI key.";
     public const string OpenSettingsName = "Open Settings, Provider keys";
-    public const string KeyRejectedTitle = "Your Gemini key was rejected.";
+    public const string KeyRejectedTitle = "Your AI key was rejected.";
     public const string KeyRejectedMessage = "Check the key in Settings, then try again.";
-    public const string AllKeysFailedTitle = "All of your Gemini keys failed.";
-    public const string QuotaTitle = "Gemini rate limit or quota reached.";
+    public const string AllKeysFailedTitle = "All of your AI keys failed.";
+    public const string QuotaTitle = "AI rate limit or quota reached.";
     public const string QuotaMessage = "Try again later.";
-    public const string NetworkTitle = "Candidate search couldn't reach Gemini.";
+    public const string NetworkTitle = "Candidate search couldn't reach the AI service.";
     public const string NetworkMessage = "Check your connection, then try again.";
     public const string FailedTitle = "Candidate search failed.";
     public const string CanceledTitle = "Candidate search canceled.";

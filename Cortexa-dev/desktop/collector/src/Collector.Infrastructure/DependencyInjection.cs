@@ -13,7 +13,6 @@ using Collector.Infrastructure.Options;
 using Collector.Infrastructure.Remote;
 using Collector.Infrastructure.Secrets;
 using Collector.Infrastructure.Settings;
-using Collector.Infrastructure.Upload;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -43,15 +42,13 @@ public static class DependencyInjection
         services.AddSingleton<ILocalCacheInitializer, SqliteCacheInitializer>();
         services.AddSingleton<IDocumentStore, SqliteDocumentStore>();
         services.AddSingleton<IUnitStore, SqliteUnitStore>();
-        services.AddSingleton<IBatchStore, SqliteBatchStore>();
         services.AddSingleton<IPdfTextExtractor, PdfPigTextExtractor>();
         services.AddSingleton<IDocxTextExtractor, OpenXmlTextExtractor>();
         services.AddSingleton<ITokenCounter, MlTokenizerCounter>();
         services.AddAiProviders();
-        services.AddSingleton<IKnowledgeUploadClient, CollectorUploadClient>();
         services.AddSingleton<IKnowledgePdfExporter, QuestPdfKnowledgeExporter>();
-        services.AddSingleton<HistoryRetryPolicy>();
-        services.AddSingleton<IBatchHistoryClient, CollectorHistoryClient>();
+        services.Configure<MongoHistoryOptions>(configuration.GetSection(MongoHistoryOptions.SectionName));
+        services.AddSingleton<IProcessedDocumentRepository, MongoProcessedDocumentRepository>();
         services.AddCollectorRemoteSources(configuration);
         services.AddHostedService<TokenRefreshWorker>();
         return services;
@@ -60,9 +57,6 @@ public static class DependencyInjection
     private static void AddCollectorOptions(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddValidatedOptions<GatewayOptions, GatewayOptionsValidator>(configuration, GatewayOptions.SectionName);
-        services.AddValidatedOptions<CollectorServerOptions, CollectorServerOptionsValidator>(
-            configuration,
-            CollectorServerOptions.SectionName);
         services.AddValidatedOptions<CacheOptions, CacheOptionsValidator>(configuration, CacheOptions.SectionName);
         services.AddValidatedOptions<HistoryOptions, HistoryOptionsValidator>(configuration, HistoryOptions.SectionName);
         services.AddValidatedOptions<SecretsOptions, SecretsOptionsValidator>(configuration, SecretsOptions.SectionName);
@@ -134,10 +128,6 @@ public static class DependencyInjection
             .ConfigureHttpClient((sp, client) =>
                 client.Timeout = TimeSpan.FromSeconds(sp.GetRequiredService<IOptions<AuthOptions>>().Value.HttpTimeoutSeconds))
             .ConfigurePrimaryHttpMessageHandler(CreateCookielessHandler)
-            .RedactLoggedHeaders(name => RedactedHeaders.Contains(name, StringComparer.OrdinalIgnoreCase));
-        services.AddHttpClient(HttpClientNames.CollectorServer)
-            .ConfigurePrimaryHttpMessageHandler(CreateCookielessHandler)
-            .AddHttpMessageHandler<BearerTokenHandler>()
             .RedactLoggedHeaders(name => RedactedHeaders.Contains(name, StringComparer.OrdinalIgnoreCase));
         services.AddHttpClient(HttpClientNames.Gemini)
             .ConfigureHttpClient((sp, client) =>

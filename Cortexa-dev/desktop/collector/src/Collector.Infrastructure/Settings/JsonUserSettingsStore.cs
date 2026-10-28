@@ -10,7 +10,6 @@ namespace Collector.Infrastructure.Settings;
 public sealed class JsonUserSettingsStore(
     IOptions<UserSettingsOptions> settingsOptions,
     IOptionsMonitor<GatewayOptions> gateway,
-    IOptionsMonitor<CollectorServerOptions> collectorServer,
     IOptionsMonitor<RemoteSourceOptions> remoteSources,
     IOptionsMonitor<AiModelChoiceOptions> aiModelChoice,
     IOptionsMonitor<GeminiRotationOptions> geminiRotation) : IUserSettingsStore
@@ -25,7 +24,7 @@ public sealed class JsonUserSettingsStore(
     private readonly SemaphoreSlim _writeGate = new(1, 1);
 
     public EndpointSettings GetEndpoints() =>
-        new(gateway.CurrentValue.BaseUrl, collectorServer.CurrentValue.BaseUrl);
+        new(gateway.CurrentValue.BaseUrl);
 
     public RemoteSourceSettings GetRemoteSources() =>
         new(remoteSources.CurrentValue.AzureDevOps.Organization)
@@ -66,8 +65,6 @@ public sealed class JsonUserSettingsStore(
             {
                 root[GatewayOptions.SectionName] =
                     JsonSerializer.SerializeToNode(new GatewayOptions { BaseUrl = settings.GatewayUrl });
-                root[CollectorServerOptions.SectionName] =
-                    JsonSerializer.SerializeToNode(new CollectorServerOptions { BaseUrl = settings.CollectorServerUrl });
             },
             cancellationToken);
 

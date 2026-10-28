@@ -7,17 +7,6 @@ public sealed class GatewayOptions
     public string BaseUrl { get; set; } = string.Empty;
 }
 
-public sealed class CollectorServerOptions
-{
-    public const string SectionName = "CollectorServer";
-
-    public string BaseUrl { get; set; } = string.Empty;
-
-    public int ReadTimeoutSeconds { get; set; } = 15;
-
-    public int[] ReadRetryDelaysMs { get; set; } = [];
-}
-
 public sealed class CacheOptions
 {
     public const string SectionName = "Cache";

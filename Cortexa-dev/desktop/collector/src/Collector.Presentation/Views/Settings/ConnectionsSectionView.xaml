@@ -44,20 +44,6 @@
                            Text="{x:Static res:SettingsStrings.GatewayHint}"
                            Visibility="{Binding ShowGatewayHint, Converter={StaticResource BoolToVisibility}}" />
 
-                <HeaderedContentControl Header="{x:Static res:SettingsStrings.CollectorLabel}"
-                                        Style="{StaticResource FormField}"
-                                        b:FieldState.Error="{Binding CollectorError}"
-                                        b:FieldState.Helper="{x:Static res:SettingsStrings.CollectorHelper}">
-                    <TextBox AutomationProperties.HelpText="{Binding CollectorHelp}"
-                             AutomationProperties.Name="{x:Static res:SettingsStrings.CollectorName}"
-                             IsEnabled="{Binding AreFieldsEnabled}"
-                             Style="{StaticResource TextBox.Url}"
-                             Text="{Binding CollectorServerUrl, UpdateSourceTrigger=PropertyChanged}"
-                             b:CommandBehaviors.LostFocusCommand="{Binding ValidateCollectorCommand}"
-                             b:FieldState.HasError="{Binding CollectorError, Converter={StaticResource NotEmptyToBool}}"
-                             b:FocusRouter.Key="CollectorUrl" />
-                </HeaderedContentControl>
-
                 <ContentControl Margin="{StaticResource Thickness.FieldGap}"
                                 Content="{Binding SaveBanner}"
                                 Focusable="False"

@@ -9,7 +9,6 @@ using Collector.Application.Remote.Auth;
 using Collector.Application.Remote.Selection;
 using Collector.Application.Secrets;
 using Collector.Application.Settings;
-using Collector.Application.Upload;
 using Collector.Domain.Enums;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -27,7 +26,6 @@ public static class DependencyInjection
         services.AddSingleton<SettingsService>();
         services.AddSingleton<AiModelChoiceService>();
         services.AddSingleton<StaleRemoteSecretPurge>();
-        services.AddSingleton<LocalSourceResolver>();
         services.AddCollectorExtraction();
         services.AddCollectorKnowledge();
         services.AddCollectorCandidates();
@@ -94,10 +92,6 @@ public static class DependencyInjection
         services.AddSingleton<LayerExtractionRunner>();
         services.AddSingleton<ExtractKnowledgeHandler>();
         services.AddSingleton<TokenEstimator>();
-        services.AddSingleton<UploadBatchPlanner>();
-        services.AddSingleton<BatchSender>();
-        services.AddSingleton<UploadKnowledgeHandler>();
-        services.AddSingleton<RetryFailedUploadHandler>();
     }
 
     private static void AddCollectorCandidates(this IServiceCollection services)
@@ -112,5 +106,6 @@ public static class DependencyInjection
         services.AddSingleton<ReplyInterpreter>();
         services.AddSingleton<DocumentCandidateRunner>();
         services.AddSingleton<IdentifyCandidatesHandler>();
+        services.AddSingleton<ProcessedDocumentRecorder>();
     }
 }

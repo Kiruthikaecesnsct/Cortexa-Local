@@ -212,22 +212,6 @@
                                    VerticalAlignment="Center"
                                    Style="{StaticResource Text.Overline}"
                                    Text="{x:Static res:ExtractionStrings.ModelLineLabel}" />
-                        <TextBlock VerticalAlignment="Center"
-                                   Style="{StaticResource Text.Label}"
-                                   Text="{Binding ProviderName}" />
-                        <TextBlock VerticalAlignment="Center"
-                                   Foreground="{DynamicResource Brush.Text.Muted}"
-                                   Style="{StaticResource Text.Body}"
-                                   Text="{x:Static res:ExtractionStrings.ModelLineSeparator}" />
-                        <TextBlock MaxWidth="{StaticResource Size.ModelIdMax}"
-                                   VerticalAlignment="Center"
-                                   FontFamily="{StaticResource Font.Mono}"
-                                   FontSize="{StaticResource FontSize.Mono}"
-                                   Foreground="{DynamicResource Brush.Text.Body}"
-                                   Text="{Binding Model}"
-                                   TextTrimming="CharacterEllipsis"
-                                   TextWrapping="NoWrap"
-                                   ToolTip="{Binding Model}" />
                         <Border Style="{StaticResource ReadinessChip}"
                                 Visibility="{Binding ShowChip, Converter={StaticResource BoolToVisibility}}">
                             <StackPanel Orientation="Horizontal">

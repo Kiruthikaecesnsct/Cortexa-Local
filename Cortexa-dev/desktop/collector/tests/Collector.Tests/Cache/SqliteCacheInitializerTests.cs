@@ -19,7 +19,7 @@ public sealed class SqliteCacheInitializerTests : IDisposable
     {
         var options = MsOptions.Create(new CacheOptions { DatabasePath = Path.Combine(_directory, "nested", "cache.db") });
         _factory = new SqliteConnectionFactory(options);
-        _initializer = new SqliteCacheInitializer(_factory, new SqliteBatchStore(_factory, TimeProvider.System), NullLogger<SqliteCacheInitializer>.Instance);
+        _initializer = new SqliteCacheInitializer(_factory, NullLogger<SqliteCacheInitializer>.Instance);
     }
 
     public void Dispose()
@@ -120,19 +120,6 @@ public sealed class SqliteCacheInitializerTests : IDisposable
         Assert.Equal(LatestVersion, await ScalarAsync("PRAGMA user_version"));
         Assert.Equal(1, await ScalarAsync("SELECT COUNT(*) FROM batches WHERE id = 'old' AND replaced_at IS NULL"));
         Assert.Equal(0, await ScalarAsync("SELECT COUNT(*) FROM batch_payloads"));
-    }
-
-    [Fact]
-    public async Task Marks_uploading_batches_failed_with_network_error_on_startup()
-    {
-        await _initializer.InitializeAsync(TestSupport.Ct);
-        await ExecuteAsync(
-            "INSERT INTO batches (id, idempotency_key, batch_name, provider, model, prompt_version, status, created_at, updated_at) " +
-            "VALUES ('b1', 'k1', 'n', 'claude', 'm', 'p', 'uploading', '2026-10-06T00:00:00Z', '2026-10-06T00:00:00Z')");
-
-        await _initializer.InitializeAsync(TestSupport.Ct);
-
-        Assert.Equal(1, await ScalarAsync("SELECT COUNT(*) FROM batches WHERE id = 'b1' AND status = 'failed' AND last_error = 'network'"));
     }
 
     private async Task SeedVersionOneAsync()

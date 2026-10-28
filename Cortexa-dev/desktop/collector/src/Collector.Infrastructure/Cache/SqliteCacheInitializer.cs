@@ -8,7 +8,6 @@ namespace Collector.Infrastructure.Cache;
 
 public sealed partial class SqliteCacheInitializer(
     SqliteConnectionFactory connections,
-    IBatchStore batchStore,
     ILogger<SqliteCacheInitializer> logger) : ILocalCacheInitializer
 {
     public async Task InitializeAsync(CancellationToken cancellationToken)
@@ -22,7 +21,6 @@ public sealed partial class SqliteCacheInitializer(
             logger.LogInformation("Applied cache schema version {Version}.", script.Version);
         }
 
-        await batchStore.MarkInterruptedAsync(cancellationToken);
     }
 
     private static async Task ApplyAsync(SqliteConnection connection, SchemaScript script, CancellationToken cancellationToken)

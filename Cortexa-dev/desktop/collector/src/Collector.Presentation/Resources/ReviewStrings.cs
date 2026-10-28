@@ -1,5 +1,4 @@
 using Collector.Application.Knowledge;
-using Collector.Application.Upload;
 using Collector.Domain.Enums;
 
 namespace Collector.Presentation.Resources;
@@ -174,13 +173,4 @@ public static class ReviewStrings
 
     public static string CantRetryNote(int batches) => batches == 1 ? "1 batch can't be retried." : $"{batches} batches can't be retried.";
 
-    public static string UploadErrorText(UploadError? error) => error switch
-    {
-        { Kind: UploadErrorKind.Session } => ErrorSession,
-        { Kind: UploadErrorKind.Rejected, RejectedCode: KeyReusedCode } => ErrorKeyReused,
-        { Kind: UploadErrorKind.Rejected } => ErrorRejected(error.RejectedCode),
-        { Kind: UploadErrorKind.Network } => ErrorNetwork,
-        { Kind: UploadErrorKind.InProgress } => ErrorInProgress,
-        _ => ErrorUnknown,
-    };
 }

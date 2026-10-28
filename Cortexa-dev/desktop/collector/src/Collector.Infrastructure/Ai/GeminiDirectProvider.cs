@@ -26,7 +26,7 @@ public sealed class GeminiDirectProvider(
     public async Task<AiCompletion> CompleteAsync(AiRequest request, CancellationToken cancellationToken)
     {
         var context = await CreateContextAsync(request, cancellationToken);
-        AiProviderException? lastQuota = null;
+        AiProviderException? lastFailure = null;
         foreach (var step in fallback.Sequence(request))
         {
             if (!fallback.IsUsable(step.Model))
@@ -34,16 +34,29 @@ public sealed class GeminiDirectProvider(
                 continue;
             }
 
-            var outcome = await RunModelAsync(new ModelAttempt(context, step.Model, step.IsFallback), cancellationToken);
+            var outcome = await TryStepAsync(new ModelAttempt(context, step.Model, step.IsFallback), cancellationToken);
             if (outcome.Completion is { } completion)
             {
                 return completion;
             }
 
-            lastQuota = outcome.QuotaFailure ?? lastQuota;
+            lastFailure = outcome.QuotaFailure ?? lastFailure;
         }
 
-        throw lastQuota ?? new AiProviderException(AiFailureKind.QuotaExceeded, AllModelsExhaustedMessage);
+        throw lastFailure ?? new AiProviderException(AiFailureKind.QuotaExceeded, AllModelsExhaustedMessage);
+    }
+
+    private async Task<ModelOutcome> TryStepAsync(ModelAttempt attempt, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await RunModelAsync(attempt, cancellationToken);
+        }
+        catch (AiProviderException exception) when (exception.Kind == AiFailureKind.Transient)
+        {
+            logger.LogWarning("Gemini model {Model} is temporarily unavailable; trying the next model.", attempt.Model);
+            return new ModelOutcome(null, exception);
+        }
     }
 
     private async Task<AttemptContext> CreateContextAsync(AiRequest request, CancellationToken cancellationToken)

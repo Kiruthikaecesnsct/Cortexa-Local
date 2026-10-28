@@ -1,6 +1,5 @@
 using Collector.Application.Knowledge;
 using Collector.Application.Ports;
-using Collector.Application.Upload;
 using Collector.Domain.Enums;
 using Collector.Presentation.Services;
 using Collector.Presentation.ViewModels;
@@ -45,23 +44,11 @@ internal static class ReviewData
 
 internal sealed class ReviewHarness
 {
-    private readonly GateableUploadClient _gateable;
-
     public ReviewHarness()
     {
-        _gateable = new GateableUploadClient(Client);
-        var handler = new UploadKnowledgeHandler(
-            Documents,
-            Batches,
-            new BatchSender(_gateable, Batches, NullLogger<BatchSender>.Instance),
-            new UploadBatchPlanner(),
-            new FakeTimeProvider(DateTimeOffset.Parse("2026-10-07T09:30:00Z")));
-        var uploader = new ReviewUploader(handler, Batches, new FixedAppVersion(), NullLogger<ReviewUploader>.Instance);
         ViewModel = new ReviewViewModel(
             State,
-            uploader,
             Navigation,
-            new FakeClipboard(),
             PdfExporter,
             FilePicker,
             Session,
@@ -75,10 +62,6 @@ internal sealed class ReviewHarness
 
     public InMemoryDocumentStore Documents { get; } = new();
 
-    public InMemoryBatchStore Batches { get; } = new();
-
-    public FakeUploadClient Client { get; } = new();
-
     public FakeNavigationService Navigation { get; } = new();
 
     public FakeKnowledgePdfExporter PdfExporter { get; } = new();
@@ -88,12 +71,6 @@ internal sealed class ReviewHarness
     public FakeSession Session { get; } = new();
 
     public ReviewViewModel ViewModel { get; }
-
-    public TaskCompletionSource? UploadGate
-    {
-        get => _gateable.Gate;
-        set => _gateable.Gate = value;
-    }
 
     public ReviewViewModel Open(params ExtractedKnowledgeItem[] items) => Open(ReviewData.Run(items));
 
@@ -110,11 +87,6 @@ internal sealed class ReviewHarness
         return ViewModel;
     }
 
-    public IReadOnlyList<string> SentTitles() =>
-        [.. Client.Calls.SelectMany(call => call.Request.Documents).SelectMany(document => document.KnowledgeItems).Select(item => item.Title)];
-
-    public IReadOnlyList<string> SentDocumentIds() =>
-        [.. Client.Calls.SelectMany(call => call.Request.Documents).Select(document => document.ClientDocumentId)];
 }
 
 internal static class ReviewViewModelExtensions

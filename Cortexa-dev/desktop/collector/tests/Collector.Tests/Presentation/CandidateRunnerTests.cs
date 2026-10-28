@@ -1,5 +1,6 @@
 using Collector.Application.Candidates;
 using Collector.Application.Extraction;
+using Collector.Application.History;
 using Collector.Application.Knowledge;
 using Collector.Application.Ports;
 using Collector.Application.Secrets;
@@ -57,7 +58,8 @@ public sealed class CandidateRunnerTests : IDisposable
             Microsoft.Extensions.Logging.Abstractions.NullLogger<DocumentCandidateRunner>.Instance);
         var handler = new IdentifyCandidatesHandler(store ?? _store, factory, runner, tracker ?? new Collector.Infrastructure.Ai.GeminiModelExhaustionTracker());
         var settings = new SettingsService(new FakeUserSettingsStore(), new InMemorySecretStore(), _keys);
-        return new CandidateRunner(handler, settings, _logger);
+        var recorder = new ProcessedDocumentRecorder(store ?? _store, new InMemoryProcessedDocumentRepository(), new FakeSession(), TimeProvider.System, Microsoft.Extensions.Logging.Abstractions.NullLogger<ProcessedDocumentRecorder>.Instance);
+        return new CandidateRunner(handler, settings, recorder, _logger);
     }
 
     [Fact]

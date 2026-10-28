@@ -32,7 +32,6 @@ public sealed class JsonUserSettingsStoreRemoteTests : IDisposable
         return new JsonUserSettingsStore(
             MsOptions.Create(new UserSettingsOptions { Path = SettingsPath }),
             new StaticMonitor<GatewayOptions>(new GatewayOptions { BaseUrl = CurrentGateway }),
-            new StaticMonitor<CollectorServerOptions>(new CollectorServerOptions { BaseUrl = "https://current-srv.example" }),
             new StaticMonitor<RemoteSourceOptions>(remote),
         new StaticMonitor<AiModelChoiceOptions>(new AiModelChoiceOptions()),
             new StaticMonitor<GeminiRotationOptions>(new GeminiRotationOptions()));
@@ -67,13 +66,12 @@ public sealed class JsonUserSettingsStoreRemoteTests : IDisposable
     public async Task SaveRemoteSourcesAsync_ExistingEndpoints_KeepsEndpointSections()
     {
         var store = CreateStore();
-        await store.SaveEndpointsAsync(new EndpointSettings("https://gw.example", "https://srv.example"), TestSupport.Ct);
+        await store.SaveEndpointsAsync(new EndpointSettings("https://gw.example"), TestSupport.Ct);
 
         await store.SaveRemoteSourcesAsync(new RemoteSourceSettings(Organization), TestSupport.Ct);
 
         var root = ReadRoot();
         Assert.Equal("https://gw.example", root.GetProperty("Gateway").GetProperty("BaseUrl").GetString());
-        Assert.Equal("https://srv.example", root.GetProperty("CollectorServer").GetProperty("BaseUrl").GetString());
         Assert.Equal(Organization, root.GetProperty("RemoteSources").GetProperty("AzureDevOps").GetProperty("Organization").GetString());
     }
 
@@ -83,7 +81,7 @@ public sealed class JsonUserSettingsStoreRemoteTests : IDisposable
         var store = CreateStore();
         await store.SaveRemoteSourcesAsync(new RemoteSourceSettings(Organization), TestSupport.Ct);
 
-        await store.SaveEndpointsAsync(new EndpointSettings("https://gw.example", "https://srv.example"), TestSupport.Ct);
+        await store.SaveEndpointsAsync(new EndpointSettings("https://gw.example"), TestSupport.Ct);
 
         var root = ReadRoot();
         Assert.Equal(Organization, root.GetProperty("RemoteSources").GetProperty("AzureDevOps").GetProperty("Organization").GetString());
@@ -95,7 +93,7 @@ public sealed class JsonUserSettingsStoreRemoteTests : IDisposable
     {
         WriteRaw("""{"Gateway":{"BaseUrl":"https://old-gw.example"}}""");
 
-        await CreateStore().SaveEndpointsAsync(new EndpointSettings("https://gw.example", "https://srv.example"), TestSupport.Ct);
+        await CreateStore().SaveEndpointsAsync(new EndpointSettings("https://gw.example"), TestSupport.Ct);
 
         Assert.False(ReadRoot().TryGetProperty("RemoteSources", out _));
     }
@@ -158,7 +156,6 @@ public sealed class JsonUserSettingsStoreRemoteTests : IDisposable
         var store = new JsonUserSettingsStore(
             MsOptions.Create(new UserSettingsOptions { Path = SettingsPath }),
             new StaticMonitor<GatewayOptions>(new GatewayOptions()),
-            new StaticMonitor<CollectorServerOptions>(new CollectorServerOptions()),
             new StaticMonitor<RemoteSourceOptions>(remote),
         new StaticMonitor<AiModelChoiceOptions>(new AiModelChoiceOptions()),
             new StaticMonitor<GeminiRotationOptions>(new GeminiRotationOptions()));

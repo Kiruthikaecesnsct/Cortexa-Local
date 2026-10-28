@@ -1,6 +1,4 @@
 using Collector.Application.Ports;
-using Collector.Application.Upload;
-using Collector.Domain.Upload;
 using Collector.Infrastructure.Cache;
 using Collector.Infrastructure.Options;
 using Microsoft.Data.Sqlite;
@@ -19,7 +17,6 @@ internal sealed class SqliteTestDatabase : IDisposable
         Connections = new SqliteConnectionFactory(options);
         Time = new FakeTimeProvider(DateTimeOffset.Parse("2026-10-07T00:00:00Z"));
         Documents = new SqliteDocumentStore(Connections, Time);
-        Batches = new SqliteBatchStore(Connections, Time);
     }
 
     public SqliteConnectionFactory Connections { get; }
@@ -28,12 +25,10 @@ internal sealed class SqliteTestDatabase : IDisposable
 
     public SqliteDocumentStore Documents { get; }
 
-    public SqliteBatchStore Batches { get; }
-
     public static async Task<SqliteTestDatabase> CreateAsync()
     {
         var database = new SqliteTestDatabase();
-        var initializer = new SqliteCacheInitializer(database.Connections, database.Batches, NullLogger<SqliteCacheInitializer>.Instance);
+        var initializer = new SqliteCacheInitializer(database.Connections, NullLogger<SqliteCacheInitializer>.Instance);
         await initializer.InitializeAsync(TestSupport.Ct);
         return database;
     }
@@ -47,24 +42,6 @@ internal sealed class SqliteTestDatabase : IDisposable
             "hash",
             1,
             TestSupport.Ct)).Id;
-
-    public static NewBatch NewBatch(string key, params string[] documentIds) => new()
-    {
-        IdempotencyKey = key,
-        BatchName = $"Batch {key}",
-        Provider = Collector.Domain.Enums.CollectorProvider.Claude,
-        Model = "claude-test",
-        PromptVersion = "knowledge.v1",
-        DocumentIds = documentIds,
-        Payload = UploadPayload.From(SampleRequest(key, documentIds)),
-    };
-
-    public static KnowledgeUploadRequest SampleRequest(string key, params string[] documentIds) => new()
-    {
-        BatchName = $"Batch {key}",
-        Collector = UploadData.Collector,
-        Documents = [.. documentIds.Select(id => UploadData.Document(id))],
-    };
 
     public void Dispose()
     {

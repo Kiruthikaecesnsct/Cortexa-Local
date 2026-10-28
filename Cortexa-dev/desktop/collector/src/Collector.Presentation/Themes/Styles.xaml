@@ -959,25 +959,6 @@
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.Info.Border}" />
         <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Info}" />
     </Style>
-    <Style x:Key="Tag.State" TargetType="Border" BasedOn="{StaticResource Tag.Surface}">
-        <Style.Triggers>
-            <DataTrigger Binding="{Binding StateKind}" Value="{x:Static vm:BatchState.InProgress}">
-                <Setter Property="Background" Value="{DynamicResource Brush.Info.Surface}" />
-                <Setter Property="BorderBrush" Value="{DynamicResource Brush.Info.Border}" />
-                <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Info}" />
-            </DataTrigger>
-            <DataTrigger Binding="{Binding StateKind}" Value="{x:Static vm:BatchState.Completed}">
-                <Setter Property="Background" Value="{DynamicResource Brush.Success.Surface}" />
-                <Setter Property="BorderBrush" Value="{DynamicResource Brush.Success.Border}" />
-                <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Success}" />
-            </DataTrigger>
-            <DataTrigger Binding="{Binding StateKind}" Value="{x:Static vm:BatchState.Failed}">
-                <Setter Property="Background" Value="{DynamicResource Brush.Danger.Surface}" />
-                <Setter Property="BorderBrush" Value="{DynamicResource Brush.Danger.Border}" />
-                <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Danger}" />
-            </DataTrigger>
-        </Style.Triggers>
-    </Style>
     <Style x:Key="GeminiStatusChip" TargetType="Border" BasedOn="{StaticResource Tag.Surface}">
         <Style.Triggers>
             <DataTrigger Binding="{Binding Status}" Value="{x:Static ai:GeminiKeyStatus.Ok}">
@@ -1332,55 +1313,6 @@
         <Setter Property="KeyboardNavigation.TabNavigation" Value="Once" />
         <Setter Property="KeyboardNavigation.DirectionalNavigation" Value="Contained" />
         <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-    </Style>
-
-    <!-- History stage stepper -->
-    <Style x:Key="Step.Glyph" TargetType="TextBlock" BasedOn="{StaticResource Text.Glyph}">
-        <Setter Property="Text" Value="{x:Static res:Glyphs.CircleRing}" />
-        <Setter Property="Foreground" Value="{DynamicResource Brush.Border.Control}" />
-        <Style.Triggers>
-            <DataTrigger Binding="{Binding Status}" Value="{x:Static vm:StepStatus.Done}">
-                <Setter Property="Text" Value="{x:Static res:Glyphs.Success}" />
-                <Setter Property="Foreground" Value="{DynamicResource Brush.Success}" />
-            </DataTrigger>
-            <DataTrigger Binding="{Binding Status}" Value="{x:Static vm:StepStatus.Current}">
-                <Setter Property="Text" Value="{x:Static res:Glyphs.RadioBtnOn}" />
-                <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
-            </DataTrigger>
-            <DataTrigger Binding="{Binding Status}" Value="{x:Static vm:StepStatus.NotUsed}">
-                <Setter Property="Text" Value="{x:Static res:Glyphs.Dash}" />
-                <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Muted}" />
-            </DataTrigger>
-            <DataTrigger Binding="{Binding Status}" Value="{x:Static vm:StepStatus.Failed}">
-                <Setter Property="Text" Value="{x:Static res:Glyphs.Error}" />
-                <Setter Property="Foreground" Value="{DynamicResource Brush.Danger}" />
-            </DataTrigger>
-            <DataTrigger Binding="{Binding Status}" Value="{x:Static vm:StepStatus.Cancelled}">
-                <Setter Property="Text" Value="{x:Static res:Glyphs.Close}" />
-                <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Muted}" />
-            </DataTrigger>
-        </Style.Triggers>
-    </Style>
-    <Style x:Key="Step.Label" TargetType="TextBlock">
-        <Setter Property="FontFamily" Value="{StaticResource Font.Body}" />
-        <Setter Property="FontSize" Value="{StaticResource FontSize.Caption}" />
-        <Setter Property="FontWeight" Value="SemiBold" />
-        <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Primary}" />
-        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
-    </Style>
-    <Style x:Key="Step.Count" TargetType="TextBlock" BasedOn="{StaticResource Text.Caption}">
-        <Setter Property="TextWrapping" Value="Wrap" />
-    </Style>
-    <Style x:Key="Step.Connector" TargetType="Border" BasedOn="{StaticResource Divider}">
-        <Setter Property="Height" Value="{StaticResource Size.Progress}" />
-        <Setter Property="CornerRadius" Value="{StaticResource Radius.Progress}" />
-        <Setter Property="VerticalAlignment" Value="Center" />
-        <Setter Property="Margin" Value="{StaticResource Thickness.InlineGap}" />
-        <Style.Triggers>
-            <DataTrigger Binding="{Binding Status}" Value="{x:Static vm:StepStatus.Done}">
-                <Setter Property="Background" Value="{DynamicResource Brush.Success}" />
-            </DataTrigger>
-        </Style.Triggers>
     </Style>
 
     <Style x:Key="Metric.Value" TargetType="TextBlock" BasedOn="{StaticResource Row.Text.Base}">

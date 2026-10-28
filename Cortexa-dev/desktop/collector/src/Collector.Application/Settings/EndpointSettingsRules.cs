@@ -17,15 +17,9 @@ public static class EndpointSettingsRules
     public static SettingsSaveResult Validate(EndpointSettings settings)
     {
         var gateway = ValidateUrl(settings.GatewayUrl);
-        if (gateway is not null)
-        {
-            return SettingsSaveResult.Invalid(EndpointField.GatewayUrl, gateway);
-        }
-
-        var server = ValidateUrl(settings.CollectorServerUrl);
-        return server is null
+        return gateway is null
             ? SettingsSaveResult.Ok
-            : SettingsSaveResult.Invalid(EndpointField.CollectorServerUrl, server);
+            : SettingsSaveResult.Invalid(EndpointField.GatewayUrl, gateway);
     }
 
     private static bool IsAllowedScheme(Uri uri) =>

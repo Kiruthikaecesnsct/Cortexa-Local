@@ -20,21 +20,21 @@ public class SettingsServiceTests
     public async Task Saves_valid_endpoints_trimmed()
     {
         var result = await _service.SaveEndpointsAsync(
-            new EndpointSettings(" https://gw.example ", "http://localhost:9000 "),
+            new EndpointSettings(" https://gw.example "),
             TestSupport.Ct);
 
         Assert.True(result.IsValid);
-        Assert.Equal(new EndpointSettings("https://gw.example", "http://localhost:9000"), _store.Current);
+        Assert.Equal(new EndpointSettings("https://gw.example"), _store.Current);
     }
 
     [Fact]
     public async Task Does_not_save_invalid_endpoints()
     {
         var result = await _service.SaveEndpointsAsync(
-            new EndpointSettings("https://gw.example", "http://remote.example"),
+            new EndpointSettings("http://remote.example"),
             TestSupport.Ct);
 
-        Assert.Equal(EndpointField.CollectorServerUrl, result.Field);
+        Assert.Equal(EndpointField.GatewayUrl, result.Field);
         Assert.Equal(0, _store.SaveCalls);
     }
 

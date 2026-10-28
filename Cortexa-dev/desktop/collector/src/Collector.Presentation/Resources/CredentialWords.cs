@@ -34,6 +34,22 @@ public sealed record CredentialWords
         StatusUnknown = SettingsStrings.TokenStatusUnknownHelper,
     };
 
+    public static CredentialWords ConnectionString { get; } = new()
+    {
+        Noun = "connection string",
+        EditorNoun = "MongoDB connection string",
+        AddLabel = SettingsStrings.AddUri,
+        SaveLabel = SettingsStrings.SaveUri,
+        ClearLabel = SettingsStrings.ClearUri,
+        KeepLabel = SettingsStrings.KeepUri,
+        EditorHelper = SettingsStrings.UriEditorHelper,
+        PasteFirst = SettingsStrings.PasteUriFirst,
+        TooLong = SettingsStrings.UriTooLong,
+        SaveFailed = SettingsStrings.UriSaveFailed,
+        ClearFailed = SettingsStrings.UriClearFailed,
+        StatusUnknown = SettingsStrings.UriStatusUnknownHelper,
+    };
+
     public required string Noun { get; init; }
 
     public required string EditorNoun { get; init; }

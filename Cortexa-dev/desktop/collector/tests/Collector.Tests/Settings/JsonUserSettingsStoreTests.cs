@@ -23,7 +23,6 @@ public sealed class JsonUserSettingsStoreTests : IDisposable
     private static JsonUserSettingsStore CreateStore(string path, AiModelChoiceOptions? choice = null) => new(
         MsOptions.Create(new UserSettingsOptions { Path = path }),
         new StaticMonitor<GatewayOptions>(new GatewayOptions { BaseUrl = "https://current-gw.example" }),
-        new StaticMonitor<CollectorServerOptions>(new CollectorServerOptions { BaseUrl = "https://current-srv.example" }),
         new StaticMonitor<RemoteSourceOptions>(new RemoteSourceOptions()),
         new StaticMonitor<AiModelChoiceOptions>(choice ?? new AiModelChoiceOptions()),
         new StaticMonitor<GeminiRotationOptions>(new GeminiRotationOptions()));
@@ -33,7 +32,7 @@ public sealed class JsonUserSettingsStoreTests : IDisposable
     {
         var store = CreateStore(Path.Combine(_directory, "s.json"));
 
-        Assert.Equal(new EndpointSettings("https://current-gw.example", "https://current-srv.example"), store.GetEndpoints());
+        Assert.Equal(new EndpointSettings("https://current-gw.example"), store.GetEndpoints());
     }
 
     [Fact]
@@ -42,13 +41,12 @@ public sealed class JsonUserSettingsStoreTests : IDisposable
         var path = Path.Combine(_directory, "nested", "usersettings.json");
         var store = CreateStore(path);
 
-        await store.SaveEndpointsAsync(new EndpointSettings("https://gw.example", "https://srv.example"), TestSupport.Ct);
-        await store.SaveEndpointsAsync(new EndpointSettings("https://gw2.example", "https://srv2.example"), TestSupport.Ct);
+        await store.SaveEndpointsAsync(new EndpointSettings("https://gw.example"), TestSupport.Ct);
+        await store.SaveEndpointsAsync(new EndpointSettings("https://gw2.example"), TestSupport.Ct);
 
         using var document = JsonDocument.Parse(await File.ReadAllTextAsync(path, TestSupport.Ct));
         var root = document.RootElement;
         Assert.Equal("https://gw2.example", root.GetProperty("Gateway").GetProperty("BaseUrl").GetString());
-        Assert.Equal("https://srv2.example", root.GetProperty("CollectorServer").GetProperty("BaseUrl").GetString());
         Assert.Equal([path], Directory.GetFiles(Path.GetDirectoryName(path)!));
     }
 
@@ -72,7 +70,7 @@ public sealed class JsonUserSettingsStoreTests : IDisposable
     {
         var path = Path.Combine(_directory, "keep.json");
         var store = CreateStore(path);
-        await store.SaveEndpointsAsync(new EndpointSettings("https://gw.example", "https://srv.example"), TestSupport.Ct);
+        await store.SaveEndpointsAsync(new EndpointSettings("https://gw.example"), TestSupport.Ct);
         await store.SaveRemoteSourcesAsync(new RemoteSourceSettings("acme"), TestSupport.Ct);
 
         await store.SaveAiModelChoiceAsync(new AiModelChoice(CollectorProvider.Claude, "claude-opus-5"), TestSupport.Ct);

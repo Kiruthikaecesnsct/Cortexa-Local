@@ -35,13 +35,25 @@ public sealed class ProcessedDocumentRecorder(
             var document = await documentStore.GetAsync(result.DocumentId, cancellationToken);
             if (document is not null)
             {
-                await repository.UpsertAsync(ToRecord(userId, model, document, result), cancellationToken);
+                await SaveAsync(ToRecord(userId, model, document, result), cancellationToken);
             }
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
             logger.LogWarning("Saving history for document {DocumentId} failed ({ErrorType}, cause {CauseType}).", result.DocumentId, exception.GetType().Name, (exception.InnerException ?? exception).GetType().Name);
         }
+    }
+
+    private async Task SaveAsync(ProcessedDocumentRecord next, CancellationToken cancellationToken)
+    {
+        var existing = await repository.GetAsync(next.UserId, next.DocumentId, cancellationToken);
+        if (existing is { Status: ProcessedStatus.Succeeded } && next.Status == ProcessedStatus.Failed)
+        {
+            logger.LogInformation("Keeping the saved result for document {DocumentId}; the re-run failed.", next.DocumentId);
+            return;
+        }
+
+        await repository.UpsertAsync(existing is null ? next : next with { CreatedAt = existing.CreatedAt }, cancellationToken);
     }
 
     private ProcessedDocumentRecord ToRecord(string userId, string model, CollectorDocument document, CandidateDocumentResult result)

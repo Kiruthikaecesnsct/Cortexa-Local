@@ -92,6 +92,7 @@ public sealed class HistoryViewModelTests
         try
         {
             await _repository.UpsertAsync(Record("a", ProcessedStatus.Failed, UserId, path), TestSupport.Ct);
+            _runner.Outcome = CandidateData.Outcome(CandidateData.Result(CandidateData.Completed("a.txt") with { DocumentId = "id-a" }));
             var viewModel = Create();
             await viewModel.LoadAsync(TestSupport.Ct);
 
@@ -104,6 +105,65 @@ public sealed class HistoryViewModelTests
         {
             File.Delete(path);
         }
+    }
+
+    [Fact]
+    public async Task Retry_RunFailsForTheDocument_SaysItFailedAgainWithTheReason()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"history-{Guid.NewGuid():N}.txt");
+        await File.WriteAllTextAsync(path, "x", TestSupport.Ct);
+        try
+        {
+            await _repository.UpsertAsync(Record("a", ProcessedStatus.Failed, UserId, path), TestSupport.Ct);
+            var failed = CandidateDocumentResult.Failure("id-a", "a.txt", CandidateOutcome.Quota, "rate limited");
+            _runner.Outcome = CandidateData.Outcome(CandidateData.Result(failed));
+            var viewModel = Create();
+            await viewModel.LoadAsync(TestSupport.Ct);
+
+            await viewModel.Documents.Single().RetryCommand.ExecuteAsync(null);
+
+            Assert.Equal(HistoryStrings.RetryFailedBecause("a.txt", "rate limited"), viewModel.StageAnnouncement);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task Retry_DocumentGoneFromLocalCache_ExplainsTheSourceIsMissing()
+    {
+        var path = Path.Combine(Path.GetTempPath(), $"history-{Guid.NewGuid():N}.txt");
+        await File.WriteAllTextAsync(path, "x", TestSupport.Ct);
+        try
+        {
+            await _repository.UpsertAsync(Record("a", ProcessedStatus.Failed, UserId, path), TestSupport.Ct);
+            var missing = CandidateDocumentResult.Failure("id-a", "a.txt", CandidateOutcome.Failed, HistoryStrings.DocumentNotFoundReason);
+            _runner.Outcome = CandidateData.Outcome(CandidateData.Result(missing));
+            var viewModel = Create();
+            await viewModel.LoadAsync(TestSupport.Ct);
+
+            await viewModel.Documents.Single().RetryCommand.ExecuteAsync(null);
+
+            Assert.Equal(HistoryStrings.SourceMissing("a.txt"), viewModel.StageAnnouncement);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task Row_SucceededWithoutCandidates_ShowsTheNoCandidatesNotice()
+    {
+        await _repository.UpsertAsync(Record("a", ProcessedStatus.Succeeded, UserId), TestSupport.Ct);
+        await _repository.UpsertAsync(Record("b", ProcessedStatus.Failed, UserId), TestSupport.Ct);
+        var viewModel = Create();
+
+        await viewModel.LoadAsync(TestSupport.Ct);
+
+        Assert.True(viewModel.Documents.Single(row => row.Name == "a.txt").ShowNoCandidates);
+        Assert.False(viewModel.Documents.Single(row => row.Name == "b.txt").ShowNoCandidates);
     }
 
     [Fact]

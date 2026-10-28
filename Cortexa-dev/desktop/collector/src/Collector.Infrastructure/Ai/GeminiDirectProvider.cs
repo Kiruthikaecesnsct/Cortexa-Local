@@ -52,7 +52,7 @@ public sealed class GeminiDirectProvider(
         {
             return await RunModelAsync(attempt, cancellationToken);
         }
-        catch (AiProviderException exception) when (exception.Kind == AiFailureKind.Transient)
+        catch (AiProviderException exception) when (exception.Kind == AiFailureKind.Transient && exception.InnerException is not OperationCanceledException)
         {
             logger.LogWarning("Gemini model {Model} is temporarily unavailable; trying the next model.", attempt.Model);
             return new ModelOutcome(null, exception);

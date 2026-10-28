@@ -33,6 +33,8 @@ public sealed partial class HistoryDocumentRowViewModel : ObservableObject
 
     public bool HasCandidates => Candidates.Count > 0;
 
+    public bool ShowNoCandidates => IsSucceeded && !HasCandidates;
+
     public string StatusText => IsFailed ? HistoryStrings.FailedTag : HistoryStrings.DocumentDone;
 
     public string FailureText => HistoryStrings.FailureReason(Record.FailureReason);

@@ -33,6 +33,15 @@ public sealed class MongoProcessedDocumentRepository(
         return [.. found.Select(document => document.TryToRecord()).OfType<ProcessedDocumentRecord>()];
     }
 
+    public async Task<ProcessedDocumentRecord?> GetAsync(string userId, string documentId, CancellationToken cancellationToken)
+    {
+        var collection = await CollectionAsync(cancellationToken);
+        var id = $"{userId}|{documentId}";
+        var found = await Guarded(async () =>
+            await collection.Find(document => document.Id == id && document.UserId == userId).FirstOrDefaultAsync(cancellationToken));
+        return found?.TryToRecord();
+    }
+
     public async Task UpsertAsync(ProcessedDocumentRecord record, CancellationToken cancellationToken)
     {
         var collection = await CollectionAsync(cancellationToken);
@@ -183,18 +192,19 @@ internal sealed class ProcessedDocumentDocument
 
     public ProcessedDocumentRecord? TryToRecord() =>
         Enum.TryParse<SourceType>(SourceType, out var sourceType)
+        && Enum.TryParse<SourceKind>(SourceKind, out var sourceKind)
         && Enum.TryParse<ProcessedStatus>(Status, out var status)
         && Enum.TryParse<CandidateOutcome>(Outcome, out var outcome)
-            ? ToRecord(sourceType, status, outcome)
+            ? ToRecord(sourceType, sourceKind, status, outcome)
             : null;
 
-    private ProcessedDocumentRecord ToRecord(SourceType sourceType, ProcessedStatus status, CandidateOutcome outcome) => new()
+    private ProcessedDocumentRecord ToRecord(SourceType sourceType, SourceKind sourceKind, ProcessedStatus status, CandidateOutcome outcome) => new()
     {
         UserId = UserId,
         DocumentId = DocumentId,
         Filename = Filename,
         SourceType = sourceType,
-        SourceKind = Enum.Parse<SourceKind>(SourceKind),
+        SourceKind = sourceKind,
         SourcePath = SourcePath,
         SizeBytes = SizeBytes,
         ContentHash = ContentHash,

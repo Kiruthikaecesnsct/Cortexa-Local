@@ -168,6 +168,23 @@ public sealed partial class GeminiDirectProviderFallbackTests
     }
 
     [Fact]
+    public async Task CompleteAsync_TimeoutOnPrimary_DoesNotFallBack()
+    {
+        var requested = new List<string>();
+        var handler = new StubHttpHandler((request, _) =>
+        {
+            requested.Add(ModelOf(request));
+            throw new TaskCanceledException("timed out");
+        });
+
+        var exception = await Assert.ThrowsAsync<AiProviderException>(
+            () => Provider(handler, Options(Backup)).CompleteAsync(GeminiWire.Request, TestSupport.Ct));
+
+        Assert.Equal(AiFailureKind.Transient, exception.Kind);
+        Assert.Equal([Primary], requested);
+    }
+
+    [Fact]
     public async Task CompleteAsync_EveryModelUnavailable_ThrowsTransientAfterTryingAll()
     {
         var handler = Endpoint(_ => Status(HttpStatusCode.ServiceUnavailable));

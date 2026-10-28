@@ -7,7 +7,7 @@ public static class CandidateStrings
     public const string CancelName = "Cancel candidate search";
     public const string PanelTitle = "Invention candidates";
     public const string PanelCaption = "Found on this computer. Not uploaded.";
-    public const string EmptyText = "No candidates found in these documents.";
+    public const string EmptyText = "No candidates found for the uploaded file.";
     // Knowledge extraction is disabled by product decision; restore these inline texts when re-enabling it.
     // public const string KnowledgeEmpty = "No knowledge items came from this run.";
     // public const string KnowledgeFailedInline = "Knowledge extraction did not finish. Candidates are shown below.";

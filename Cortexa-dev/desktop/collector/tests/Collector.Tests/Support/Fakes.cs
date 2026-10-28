@@ -280,6 +280,12 @@ internal sealed class InMemoryProcessedDocumentRepository : IProcessedDocumentRe
         return Task.FromResult(found);
     }
 
+    public Task<ProcessedDocumentRecord?> GetAsync(string userId, string documentId, CancellationToken cancellationToken)
+    {
+        ThrowIfUnreachable();
+        return Task.FromResult(_records.GetValueOrDefault($"{userId}|{documentId}"));
+    }
+
     public Task UpsertAsync(ProcessedDocumentRecord record, CancellationToken cancellationToken)
     {
         ThrowIfUnreachable();

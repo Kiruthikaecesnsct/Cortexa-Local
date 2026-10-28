@@ -40,6 +40,11 @@ public static class HistoryStrings
 
     public static string SourceMissing(string name) => $"{name} can't be retried because the source file is no longer on this computer.";
 
+    public const string DocumentNotFoundReason = "document not found";
+    public const string NoCandidatesIdentified = "No invention candidates identified in this document.";
+
+    public static string RetryFailedBecause(string name, string reason) => $"{name} failed again: {reason}.";
+
     public static string RetryFailed(string name) => $"{name} failed again.";
 
     public static string RetryDone(string name) => $"{name} was processed again.";

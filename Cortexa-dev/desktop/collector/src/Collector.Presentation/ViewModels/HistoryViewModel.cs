@@ -150,6 +150,18 @@ public sealed partial class HistoryViewModel(HistoryServices services, INavigati
         });
     }
 
+    private static string RetryMessage(HistoryDocumentRowViewModel row, CandidateRunOutcome outcome)
+    {
+        var result = outcome.Result?.Documents.FirstOrDefault(document => document.DocumentId == row.DocumentId);
+        return result switch
+        {
+            null => HistoryStrings.RetryFailed(row.Name),
+            { Outcome: CandidateOutcome.Completed } => HistoryStrings.RetryDone(row.Name),
+            { Reason: HistoryStrings.DocumentNotFoundReason } => HistoryStrings.SourceMissing(row.Name),
+            _ => HistoryStrings.RetryFailedBecause(row.Name, result.Reason ?? result.Outcome.ToString()),
+        };
+    }
+
     private async Task RetryDocumentAsync(HistoryDocumentRowViewModel row)
     {
         if (row.Record.SourceType == SourceType.Local && !File.Exists(row.Record.SourcePath))
@@ -159,7 +171,7 @@ public sealed partial class HistoryViewModel(HistoryServices services, INavigati
         }
 
         var outcome = await services.Runner.RunAsync([row.DocumentId], new Progress<CandidateProgress>(), CancellationToken.None);
-        StageAnnouncement = outcome.IsFailed ? HistoryStrings.RetryFailed(row.Name) : HistoryStrings.RetryDone(row.Name);
+        StageAnnouncement = RetryMessage(row, outcome);
         await LoadAsync(_lifetime.Token);
     }
 }

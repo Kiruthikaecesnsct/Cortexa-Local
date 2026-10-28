@@ -172,6 +172,23 @@
                         </Grid>
                     </Border>
 
+                    <Border Margin="0,16,0,0"
+                            Padding="16"
+                            Background="{DynamicResource Brush.Surface.Sunken}"
+                            CornerRadius="{StaticResource Radius.Tile}"
+                            Visibility="{Binding ShowNoCandidates, Converter={StaticResource BoolToVisibility}}">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Margin="0,0,10,0"
+                                       VerticalAlignment="Center"
+                                       FontFamily="{StaticResource Font.Icon}"
+                                       Foreground="{DynamicResource Brush.Text.Muted}"
+                                       Text="{x:Static res:Glyphs.Lightbulb}" />
+                            <TextBlock VerticalAlignment="Center"
+                                       Style="{StaticResource Text.Body}"
+                                       Text="{x:Static res:HistoryStrings.NoCandidatesIdentified}" />
+                        </StackPanel>
+                    </Border>
+
                     <StackPanel Margin="0,20,0,0" Visibility="{Binding HasCandidates, Converter={StaticResource BoolToVisibility}}">
                         <Grid Margin="0,0,0,12">
                             <Grid.ColumnDefinitions>

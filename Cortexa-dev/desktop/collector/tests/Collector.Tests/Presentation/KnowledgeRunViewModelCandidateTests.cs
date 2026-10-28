@@ -62,14 +62,14 @@ public sealed class KnowledgeRunViewModelCandidateTests
     }
 
     [Fact]
-    public async Task ExtractKnowledgeCommand_NoCandidatesAndNoBanner_StaysOnProcess()
+    public async Task ExtractKnowledgeCommand_NoCandidatesAndNoBanner_MovesToReview()
     {
         var harness = Ready();
         harness.CandidateRunner.Outcome = CandidateData.Outcome(CandidateData.Result(CandidateData.Doc(CandidateOutcome.Completed)));
 
         await harness.ViewModel.ExtractKnowledgeCommand.ExecuteAsync(null);
 
-        Assert.Empty(harness.Navigation.Visited);
+        Assert.Equal([ScreenKeys.Review], harness.Navigation.Visited);
         Assert.Null(harness.ViewModel.Banner);
         Assert.NotNull(harness.CandidateState.Result);
     }

@@ -6,6 +6,8 @@ public interface IProcessedDocumentRepository
 {
     Task<IReadOnlyList<ProcessedDocumentRecord>> ListAsync(string userId, CancellationToken cancellationToken);
 
+    Task<ProcessedDocumentRecord?> GetAsync(string userId, string documentId, CancellationToken cancellationToken);
+
     Task UpsertAsync(ProcessedDocumentRecord record, CancellationToken cancellationToken);
 }
 

@@ -189,6 +189,49 @@ public sealed class HistoryViewModelTests
         Assert.False(viewModel.Documents.Single().RetryCommand.CanExecute(null));
     }
 
+    [Fact]
+    public async Task Delete_RemovesRecordFromStoreAndList()
+    {
+        await _repository.UpsertAsync(Record("a", ProcessedStatus.Succeeded, UserId), TestSupport.Ct);
+        await _repository.UpsertAsync(Record("b", ProcessedStatus.Succeeded, UserId), TestSupport.Ct);
+        var viewModel = Create();
+        await viewModel.LoadAsync(TestSupport.Ct);
+
+        await viewModel.Documents.Single(row => row.Name == "a.txt").DeleteCommand.ExecuteAsync(null);
+
+        Assert.Equal("b.txt", Assert.Single(viewModel.Documents).Name);
+        Assert.Equal("id-b", Assert.Single(_repository.All).DocumentId);
+        Assert.Equal(1, viewModel.TotalCount);
+    }
+
+    [Fact]
+    public async Task Delete_OtherUsersRecordWithSameDocument_IsKept()
+    {
+        await _repository.UpsertAsync(Record("a", ProcessedStatus.Succeeded, UserId), TestSupport.Ct);
+        await _repository.UpsertAsync(Record("a", ProcessedStatus.Succeeded, "other@example.com"), TestSupport.Ct);
+        var viewModel = Create();
+        await viewModel.LoadAsync(TestSupport.Ct);
+
+        await viewModel.Documents.Single().DeleteCommand.ExecuteAsync(null);
+
+        Assert.Empty(viewModel.Documents);
+        Assert.Equal("other@example.com", Assert.Single(_repository.All).UserId);
+    }
+
+    [Fact]
+    public async Task Delete_StoreUnreachable_KeepsRowAndAnnouncesFailure()
+    {
+        await _repository.UpsertAsync(Record("a", ProcessedStatus.Succeeded, UserId), TestSupport.Ct);
+        var viewModel = Create();
+        await viewModel.LoadAsync(TestSupport.Ct);
+        _repository.Unreachable = true;
+
+        await viewModel.Documents.Single().DeleteCommand.ExecuteAsync(null);
+
+        Assert.Single(viewModel.Documents);
+        Assert.Equal(HistoryStrings.DeleteFailed("a.txt"), viewModel.StageAnnouncement);
+    }
+
     private HistoryViewModel Create() =>
         new(new HistoryServices(_repository, _runner, _session), new FakeNavigationService());
 

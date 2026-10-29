@@ -124,11 +124,16 @@ public sealed partial class HistoryViewModel(HistoryServices services, INavigati
         Documents.Clear();
         foreach (var record in records)
         {
-            Documents.Add(new HistoryDocumentRowViewModel(record, RetryDocumentAsync));
+            Documents.Add(new HistoryDocumentRowViewModel(record, RetryDocumentAsync, DeleteDocumentAsync));
         }
 
         HasLoadError = false;
         Banner = null;
+        NotifySummaryChanged();
+    }
+
+    private void NotifySummaryChanged()
+    {
         OnPropertyChanged(nameof(ShowList));
         OnPropertyChanged(nameof(ShowEmpty));
         OnPropertyChanged(nameof(TotalCount));
@@ -160,6 +165,31 @@ public sealed partial class HistoryViewModel(HistoryServices services, INavigati
             { Reason: HistoryStrings.DocumentNotFoundReason } => HistoryStrings.SourceMissing(row.Name),
             _ => HistoryStrings.RetryFailedBecause(row.Name, result.Reason ?? result.Outcome.ToString()),
         };
+    }
+
+    private async Task DeleteDocumentAsync(HistoryDocumentRowViewModel row)
+    {
+        var userId = UserKey.From(services.Session.UserEmail);
+        if (userId is null)
+        {
+            StageAnnouncement = HistoryStrings.SignInRequired;
+            return;
+        }
+
+        try
+        {
+            using var timeout = new CancellationTokenSource(LoadTimeout);
+            await services.Repository.DeleteAsync(userId, row.DocumentId, timeout.Token);
+        }
+        catch (Exception exception) when (exception is ProcessedDocumentStoreException or OperationCanceledException)
+        {
+            StageAnnouncement = HistoryStrings.DeleteFailed(row.Name);
+            return;
+        }
+
+        Documents.Remove(row);
+        NotifySummaryChanged();
+        StageAnnouncement = HistoryStrings.Deleted(row.Name);
     }
 
     private async Task RetryDocumentAsync(HistoryDocumentRowViewModel row)

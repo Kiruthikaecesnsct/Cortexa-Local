@@ -24,6 +24,7 @@ public static class Glyphs
     public const string Dash = "";
     public const string Refresh = "";
     public const string History = "\uE81C";
+    public const string Delete = "\uE74D";
     public const string Sync = "\uE895";
     public const string ChevronRight = "\uE76C";
     public const string ChevronDown = "\uE70D";

@@ -11,11 +11,16 @@ namespace Collector.Presentation.ViewModels;
 public sealed partial class HistoryDocumentRowViewModel : ObservableObject
 {
     private readonly Func<HistoryDocumentRowViewModel, Task> _retry;
+    private readonly Func<HistoryDocumentRowViewModel, Task> _delete;
 
-    public HistoryDocumentRowViewModel(ProcessedDocumentRecord record, Func<HistoryDocumentRowViewModel, Task> retry)
+    public HistoryDocumentRowViewModel(
+        ProcessedDocumentRecord record,
+        Func<HistoryDocumentRowViewModel, Task> retry,
+        Func<HistoryDocumentRowViewModel, Task> delete)
     {
         Record = record;
         _retry = retry;
+        _delete = delete;
         Candidates = [.. record.Candidates.Select((candidate, index) => HistoryCandidateLine.From(index + 1, candidate))];
     }
 
@@ -58,7 +63,7 @@ public sealed partial class HistoryDocumentRowViewModel : ObservableObject
     public string RetryName => HistoryStrings.RetryDocument(Name);
 
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(RetryCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RetryCommand), nameof(DeleteCommand))]
     public partial bool IsRetrying { get; set; }
 
     [ObservableProperty]
@@ -86,7 +91,29 @@ public sealed partial class HistoryDocumentRowViewModel : ObservableObject
         }
     }
 
-    private bool CanRetry() => IsFailed && !IsRetrying;
+    private bool CanRetry() => IsFailed && !IsRetrying && !IsDeleting;
+
+    public string DeleteName => HistoryStrings.DeleteDocument(Name);
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(RetryCommand), nameof(DeleteCommand))]
+    public partial bool IsDeleting { get; set; }
+
+    [RelayCommand(CanExecute = nameof(CanDelete))]
+    private async Task DeleteAsync()
+    {
+        IsDeleting = true;
+        try
+        {
+            await _delete(this);
+        }
+        finally
+        {
+            IsDeleting = false;
+        }
+    }
+
+    private bool CanDelete() => !IsDeleting && !IsRetrying;
 }
 
 public sealed record HistoryCandidateLine(int Number, string Title, string Summary, string Rationale, string? Quote)

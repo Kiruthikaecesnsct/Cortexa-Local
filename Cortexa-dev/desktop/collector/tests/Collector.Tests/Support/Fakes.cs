@@ -293,6 +293,13 @@ internal sealed class InMemoryProcessedDocumentRepository : IProcessedDocumentRe
         return Task.CompletedTask;
     }
 
+    public Task DeleteAsync(string userId, string documentId, CancellationToken cancellationToken)
+    {
+        ThrowIfUnreachable();
+        _records.Remove($"{userId}|{documentId}");
+        return Task.CompletedTask;
+    }
+
     private void ThrowIfUnreachable()
     {
         if (Unreachable)

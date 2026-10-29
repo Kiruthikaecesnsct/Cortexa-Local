@@ -54,6 +54,14 @@ public sealed class MongoProcessedDocumentRepository(
                 cancellationToken));
     }
 
+    public async Task DeleteAsync(string userId, string documentId, CancellationToken cancellationToken)
+    {
+        var collection = await CollectionAsync(cancellationToken);
+        var id = $"{userId}|{documentId}";
+        await Guarded(async () =>
+            await collection.DeleteOneAsync(document => document.Id == id && document.UserId == userId, cancellationToken));
+    }
+
     private static async Task<T> Guarded<T>(Func<Task<T>> call)
     {
         try

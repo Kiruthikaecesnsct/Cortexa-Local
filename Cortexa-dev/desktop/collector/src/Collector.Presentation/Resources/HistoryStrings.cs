@@ -48,4 +48,10 @@ public static class HistoryStrings
     public static string RetryFailed(string name) => $"{name} failed again.";
 
     public static string RetryDone(string name) => $"{name} was processed again.";
+
+    public static string DeleteDocument(string name) => $"Delete {name} from history";
+
+    public static string Deleted(string name) => $"{name} was deleted from history.";
+
+    public static string DeleteFailed(string name) => $"{name} could not be deleted. Try again.";
 }

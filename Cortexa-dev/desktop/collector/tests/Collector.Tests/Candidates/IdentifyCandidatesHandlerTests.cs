@@ -47,7 +47,11 @@ public sealed class IdentifyCandidatesHandlerTests : IDisposable
             new SingleProviderFactory(provider, concurrency),
             new ReplyInterpreter(new CandidateParser(), new ExcerptVerifier(new AnchorLocator())),
             NullLogger<DocumentCandidateRunner>.Instance);
-        return new IdentifyCandidatesHandler(_store, new SingleProviderFactory(provider, concurrency), runner, tracker ?? new Collector.Infrastructure.Ai.GeminiModelExhaustionTracker());
+        return new IdentifyCandidatesHandler(
+            _store,
+            new SingleProviderFactory(provider, concurrency),
+            runner,
+            tracker ?? new Collector.Infrastructure.Ai.GeminiModelExhaustionTracker());
     }
 
     [Fact]
@@ -184,8 +188,9 @@ public sealed class IdentifyCandidatesHandlerTests : IDisposable
 
         await Handler(provider).IdentifyAsync(new CandidateRunRequest(ids), progress, TestSupport.Ct);
 
-        Assert.Equal(2, progress.Reports.Count);
+        Assert.NotEmpty(progress.Reports);
         Assert.All(progress.Reports, report => Assert.Equal(ids.Length, report.Total));
+        Assert.Equal(ids.Length, progress.Reports[^1].Completed);
     }
 
     [Fact]
@@ -203,9 +208,8 @@ public sealed class IdentifyCandidatesHandlerTests : IDisposable
 
         const int distinctCount = 3;
         Assert.Equal(distinctCount, result.Documents.Count);
-        Assert.Equal(distinctCount, progress.Reports.Count);
         Assert.All(progress.Reports, report => Assert.Equal(distinctCount, report.Total));
-        Assert.Equal(Enumerable.Range(1, distinctCount), progress.Reports.Select(report => report.Completed).OrderBy(completed => completed));
+        Assert.Equal(Enumerable.Range(1, distinctCount), DistinctCompletedCounts(progress.Reports));
         Assert.Equal(distinctCount, progress.Reports[^1].Completed);
     }
 
@@ -228,12 +232,27 @@ public sealed class IdentifyCandidatesHandlerTests : IDisposable
 
         await Handler(provider, concurrency: 4).IdentifyAsync(new CandidateRunRequest(ids), progress, TestSupport.Ct);
 
-        Assert.Equal(ids.Length, progress.Reports.Count);
         Assert.All(progress.Reports, report => Assert.Equal(ids.Length, report.Total));
-        Assert.Equal(
-            Enumerable.Range(1, ids.Length),
-            progress.Reports.Select(report => report.Completed).OrderBy(completed => completed));
+        Assert.Equal(Enumerable.Range(1, ids.Length), DistinctCompletedCounts(progress.Reports));
         Assert.Equal(ids.Length, progress.Reports[^1].Completed);
+    }
+
+    private static List<int> DistinctCompletedCounts(IReadOnlyList<CandidateProgress> reports)
+    {
+        var counts = new List<int>();
+        var highest = 0;
+        foreach (var report in reports)
+        {
+            if (report.Completed <= highest)
+            {
+                continue;
+            }
+
+            highest = report.Completed;
+            counts.Add(highest);
+        }
+
+        return counts;
     }
 
     [Fact]

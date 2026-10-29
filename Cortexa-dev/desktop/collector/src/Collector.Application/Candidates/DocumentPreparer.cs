@@ -23,14 +23,19 @@ public sealed class DocumentPreparer(
 {
     private const string TooLargeReason = "document exceeds the model input limit";
 
-    public async Task<PreparationResult> PrepareAsync(CollectorDocument document, CancellationToken cancellationToken)
+    public async Task<PreparationResult> PrepareAsync(
+        CollectorDocument document,
+        Action<CandidateStage, double> reportStage,
+        CancellationToken cancellationToken)
     {
+        reportStage(CandidateStage.UploadRead, 0d);
         var read = await reader.ReadAsync(document, cancellationToken);
         if (!read.IsRead)
         {
             return PreparationResult.Rejected(RejectedRead(document, read));
         }
 
+        reportStage(CandidateStage.Extraction, 0d);
         var request = promptBuilder.Build(read.Document!);
         var limit = await limitCheck.CheckAsync(request, cancellationToken);
         return limit.IsWithin

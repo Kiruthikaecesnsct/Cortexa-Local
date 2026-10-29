@@ -21,11 +21,11 @@ public sealed class CandidateProgressViewModel : ObservableObject
 
     public bool IsRunning => _state.IsRunning;
 
-    public int Completed => _state.Completed;
+    public double OverallFraction => _state.OverallFraction;
 
-    public double Maximum => Math.Max(1, _state.Total);
+    public double Maximum => 1;
 
-    public string ProgressText => CandidateStrings.ProgressText(_state.Completed, _state.Total);
+    public string StageCaption => CandidateStrings.StageCaption(_state.ActiveStage, _state.Completed, _state.Total);
 
     public BannerViewModel? RunBanner => _state.RunBanner;
 

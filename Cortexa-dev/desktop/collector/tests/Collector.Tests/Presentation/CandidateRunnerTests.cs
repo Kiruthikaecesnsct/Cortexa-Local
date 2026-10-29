@@ -56,7 +56,11 @@ public sealed class CandidateRunnerTests : IDisposable
             factory,
             new ReplyInterpreter(new CandidateParser(), new ExcerptVerifier(new AnchorLocator())),
             Microsoft.Extensions.Logging.Abstractions.NullLogger<DocumentCandidateRunner>.Instance);
-        var handler = new IdentifyCandidatesHandler(store ?? _store, factory, runner, tracker ?? new Collector.Infrastructure.Ai.GeminiModelExhaustionTracker());
+        var handler = new IdentifyCandidatesHandler(
+            store ?? _store,
+            factory,
+            runner,
+            tracker ?? new Collector.Infrastructure.Ai.GeminiModelExhaustionTracker());
         var settings = new SettingsService(new FakeUserSettingsStore(), new InMemorySecretStore(), _keys);
         var recorder = new ProcessedDocumentRecorder(store ?? _store, new InMemoryProcessedDocumentRepository(), new FakeSession(), TimeProvider.System, Microsoft.Extensions.Logging.Abstractions.NullLogger<ProcessedDocumentRecorder>.Instance);
         return new CandidateRunner(handler, settings, recorder, _logger);
@@ -183,7 +187,16 @@ public sealed class CandidateRunnerTests : IDisposable
 
     private sealed class CancelingProgress(CancellationTokenSource source) : IProgress<CandidateProgress>
     {
-        public void Report(CandidateProgress value) => source.Cancel();
+        private int _lastCompleted;
+
+        public void Report(CandidateProgress value)
+        {
+            if (value.Completed > _lastCompleted)
+            {
+                _lastCompleted = value.Completed;
+                source.Cancel();
+            }
+        }
     }
 
     private sealed class ThrowingStore : IDocumentStore

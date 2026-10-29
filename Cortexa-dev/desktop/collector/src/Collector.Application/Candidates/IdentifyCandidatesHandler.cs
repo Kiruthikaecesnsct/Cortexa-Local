@@ -46,7 +46,7 @@ public sealed class IdentifyCandidatesHandler(
             if (documents[index] is null)
             {
                 results[index] = CandidateDocumentResult.Failure(ids[index], ids[index], CandidateOutcome.Failed, NotFoundReason);
-                state.Advance();
+                state.Advance(index);
             }
         }
 
@@ -67,33 +67,46 @@ public sealed class IdentifyCandidatesHandler(
         var indexes = Enumerable.Range(0, documents.Length).Where(index => documents[index] is not null);
         await Parallel.ForEachAsync(indexes, options, async (index, token) =>
         {
-            var run = await runner.RunAsync(documents[index]!, token);
+            void ReportStage(CandidateStage stage, double fraction) => state.ReportStage(index, stage, fraction);
+            var run = await runner.RunAsync(documents[index]!, ReportStage, token);
             results[index] = run.Result;
-            state.Record(run);
+            state.Record(index, run);
         });
     }
 
     private sealed class RunState(int total, IProgress<CandidateProgress>? progress)
     {
+        private readonly Lock _gate = new();
         private int _completed;
         private string? _model;
 
         public string? Model => Volatile.Read(ref _model);
 
-        public void Record(DocumentRun run)
+        public void Record(int documentIndex, DocumentRun run)
         {
             if (run.Model is not null)
             {
                 Interlocked.CompareExchange(ref _model, run.Model, null);
             }
 
-            Advance();
+            Advance(documentIndex);
         }
 
-        public void Advance()
+        public void Advance(int documentIndex)
         {
-            var completed = Interlocked.Increment(ref _completed);
-            progress?.Report(new CandidateProgress(completed, total));
+            lock (_gate)
+            {
+                var completed = ++_completed;
+                progress?.Report(new CandidateProgress(completed, total, documentIndex, CandidateStage.Save, 1d));
+            }
+        }
+
+        public void ReportStage(int documentIndex, CandidateStage stage, double stageFraction)
+        {
+            lock (_gate)
+            {
+                progress?.Report(new CandidateProgress(_completed, total, documentIndex, stage, stageFraction));
+            }
         }
     }
 }

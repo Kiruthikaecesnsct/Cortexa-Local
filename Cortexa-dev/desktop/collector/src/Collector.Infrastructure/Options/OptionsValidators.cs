@@ -1,4 +1,5 @@
 using Collector.Application.Auth;
+using Collector.Application.Candidates;
 using Collector.Application.Settings;
 using Collector.Domain.Enums;
 using Microsoft.Extensions.Options;
@@ -242,6 +243,36 @@ public sealed class GroqProviderOptionsValidator : IValidateOptions<GroqProvider
         if (failed)
         {
             failures.Add($"{GroqProviderOptions.SectionName}:{name} {reason}.");
+        }
+    }
+}
+
+public sealed class CandidateStageWeightsValidator : IValidateOptions<CandidateStageWeights>
+{
+    private const double SumTolerance = 0.001;
+
+    public ValidateOptionsResult Validate(string? name, CandidateStageWeights options)
+    {
+        var failures = new List<string>();
+        AddIfNegative(failures, nameof(options.UploadRead), options.UploadRead);
+        AddIfNegative(failures, nameof(options.Extraction), options.Extraction);
+        AddIfNegative(failures, nameof(options.LlmCall), options.LlmCall);
+        AddIfNegative(failures, nameof(options.Save), options.Save);
+
+        var sum = options.UploadRead + options.Extraction + options.LlmCall + options.Save;
+        if (Math.Abs(sum - 1.0) > SumTolerance)
+        {
+            failures.Add($"{CandidateStageWeights.SectionName}:weights must sum to 1.0, but sum to {sum}.");
+        }
+
+        return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
+    }
+
+    private static void AddIfNegative(List<string> failures, string name, double value)
+    {
+        if (value < 0)
+        {
+            failures.Add($"{CandidateStageWeights.SectionName}:{name} must not be negative.");
         }
     }
 }

@@ -1,3 +1,4 @@
+using Collector.Application.Candidates;
 using Collector.Application.Knowledge;
 using Collector.Application.Ports;
 using Collector.Domain.Enums;
@@ -6,6 +7,7 @@ using Collector.Presentation.ViewModels;
 using Collector.Tests.Extraction;
 using Collector.Tests.Support;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 
 namespace Collector.Tests.Presentation;
@@ -56,7 +58,7 @@ internal sealed class ReviewHarness
             new CandidatesPanelViewModel(CandidateState));
     }
 
-    public CandidateRunState CandidateState { get; } = new();
+    public CandidateRunState CandidateState { get; } = new(Options.Create(new CandidateStageWeights()));
 
     public KnowledgeRunState State { get; } = new();
 

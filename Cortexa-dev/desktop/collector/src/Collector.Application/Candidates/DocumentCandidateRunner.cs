@@ -13,11 +13,14 @@ public sealed class DocumentCandidateRunner(
     ReplyInterpreter interpreter,
     ILogger<DocumentCandidateRunner> logger)
 {
-    public async Task<DocumentRun> RunAsync(CollectorDocument document, CancellationToken cancellationToken)
+    public async Task<DocumentRun> RunAsync(
+        CollectorDocument document,
+        Action<CandidateStage, double> reportStage,
+        CancellationToken cancellationToken)
     {
         try
         {
-            var run = await RunCoreAsync(document, cancellationToken);
+            var run = await RunCoreAsync(document, reportStage, cancellationToken);
             LogOutcome(document, run.Result);
             return run;
         }
@@ -64,15 +67,23 @@ public sealed class DocumentCandidateRunner(
         return new DocumentRun(DocumentPreparer.TooLarge(document, exception.TokenCount, exception.Limit), null);
     }
 
-    private async Task<DocumentRun> RunCoreAsync(CollectorDocument document, CancellationToken cancellationToken)
+    private async Task<DocumentRun> RunCoreAsync(
+        CollectorDocument document,
+        Action<CandidateStage, double> reportStage,
+        CancellationToken cancellationToken)
     {
-        var preparation = await preparer.PrepareAsync(document, cancellationToken);
+        var preparation = await preparer.PrepareAsync(document, reportStage, cancellationToken);
         if (preparation.Prepared is not { } prepared)
         {
+            reportStage(CandidateStage.Save, 1d);
             return new DocumentRun(preparation.Rejection!, null);
         }
 
+        reportStage(CandidateStage.LlmCall, 0d);
         var completion = await providerFactory.Resolve(CollectorProvider.Gemini).CompleteAsync(prepared.Request, cancellationToken);
-        return interpreter.Interpret(document, prepared, completion);
+        reportStage(CandidateStage.Save, 0d);
+        var run = interpreter.Interpret(document, prepared, completion);
+        reportStage(CandidateStage.Save, 1d);
+        return run;
     }
 }

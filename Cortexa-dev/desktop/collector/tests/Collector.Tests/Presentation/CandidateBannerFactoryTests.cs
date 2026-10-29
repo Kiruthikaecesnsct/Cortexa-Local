@@ -97,7 +97,7 @@ public sealed class CandidateBannerFactoryTests
     public void Create_RunnerFailed_UsesTotalDocumentCountInMessage()
     {
         const int Total = 4;
-        var state = new CandidateRunState();
+        var state = new CandidateRunState(Microsoft.Extensions.Options.Options.Create(new CandidateStageWeights()));
         state.Begin(Total);
         state.Set(CandidateRunOutcome.Failed());
 

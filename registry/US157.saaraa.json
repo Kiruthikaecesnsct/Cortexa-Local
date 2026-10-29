@@ -4,31 +4,31 @@
   "machine": "saaraa",
   "env": "windows",
   "branch": "develop/US157",
-  "status": "implementing",
+  "status": "review",
   "files": [
-    "Cortexa-dev/desktop/collector/src/Collector.Application/Candidates/CandidateStage.cs",
-    "Cortexa-dev/desktop/collector/src/Collector.Application/Candidates/CandidateStageWeights.cs",
-    "Cortexa-dev/desktop/collector/src/Collector.Application/Candidates/CandidateStageProgress.cs",
-    "Cortexa-dev/desktop/collector/src/Collector.Application/Candidates/CandidateRunResult.cs",
-    "Cortexa-dev/desktop/collector/src/Collector.Application/Candidates/DocumentPreparer.cs",
-    "Cortexa-dev/desktop/collector/src/Collector.Application/Candidates/DocumentCandidateRunner.cs",
-    "Cortexa-dev/desktop/collector/src/Collector.Application/Candidates/IdentifyCandidatesHandler.cs",
-    "Cortexa-dev/desktop/collector/src/Collector.Infrastructure/Options/OptionsValidators.cs",
-    "Cortexa-dev/desktop/collector/src/Collector.Infrastructure/DependencyInjection.cs",
-    "Cortexa-dev/desktop/collector/src/Collector.Presentation/appsettings.json",
-    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Services/CandidateRunState.cs",
-    "Cortexa-dev/desktop/collector/src/Collector.Presentation/ViewModels/CandidateProgressViewModel.cs",
-    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Resources/CandidateStrings.cs",
-    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Views/CandidateProgressView.xaml",
-    "Cortexa-dev/desktop/collector/tests/Collector.Tests/Candidates/CandidateStageProgressTests.cs",
-    "Cortexa-dev/desktop/collector/tests/Collector.Tests/Candidates/IdentifyCandidatesHandlerTests.cs",
-    "Cortexa-dev/desktop/collector/tests/Collector.Tests/Presentation/CandidateRunnerTests.cs",
-    "Cortexa-dev/desktop/collector/tests/Collector.Tests/Presentation/CandidateTestData.cs",
-    "Cortexa-dev/desktop/collector/tests/Collector.Tests/Presentation/CandidateBannerFactoryTests.cs",
-    "Cortexa-dev/desktop/collector/tests/Collector.Tests/Presentation/PresentationFakes.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Application/Candidates/CandidateStage.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Application/Candidates/CandidateStageWeights.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Application/Candidates/CandidateStageProgress.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Application/Candidates/CandidateRunResult.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Application/Candidates/DocumentPreparer.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Application/Candidates/DocumentCandidateRunner.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Application/Candidates/IdentifyCandidatesHandler.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Infrastructure/Options/OptionsValidators.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Infrastructure/DependencyInjection.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/appsettings.json",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Services/CandidateRunState.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/ViewModels/CandidateProgressViewModel.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Resources/CandidateStrings.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Views/CandidateProgressView.xaml",
+    "Cortexa-dev/desktop/collector/tests/Collector.Tests/Candidates/CandidateStageProgressTests.cs",
+    "Cortexa-dev/desktop/collector/tests/Collector.Tests/Candidates/IdentifyCandidatesHandlerTests.cs",
+    "Cortexa-dev/desktop/collector/tests/Collector.Tests/Presentation/CandidateRunnerTests.cs",
+    "Cortexa-dev/desktop/collector/tests/Collector.Tests/Presentation/CandidateTestData.cs",
+    "Cortexa-dev/desktop/collector/tests/Collector.Tests/Presentation/CandidateBannerFactoryTests.cs",
+    "Cortexa-dev/desktop/collector/tests/Collector.Tests/Presentation/PresentationFakes.cs",
     "Cortexa-dev/desktop/collector/tests/Collector.Tests/Presentation/ReviewData.cs"
   ],
   "started": "2026-10-29T13:18:35Z",
-  "heartbeat": "2026-10-29T14:48:58Z",
+  "heartbeat": "2026-10-29T15:00:14Z",
   "schema": 2
 }

@@ -4,9 +4,24 @@
   "machine": "saaraa",
   "env": "windows",
   "branch": "develop/US157",
-  "status": "planning",
-  "files": [],
+  "status": "implementing",
+  "files": [
+    "Cortexa-dev/desktop/collector/src/Collector.Application/Candidates/CandidateStage.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Application/Candidates/CandidateStageWeights.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Application/Candidates/CandidateRunResult.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Application/Candidates/CandidateStageProgress.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Application/Candidates/DocumentCandidateRunner.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Application/Candidates/IdentifyCandidatesHandler.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Infrastructure/Options/OptionsValidators.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Infrastructure/DependencyInjection.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/appsettings.json",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Services/CandidateRunState.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/ViewModels/CandidateProgressViewModel.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Resources/CandidateStrings.cs",
+    "Cortexa-dev/desktop/collector/src/Collector.Presentation/Views/CandidateProgressView.xaml",
+    "Cortexa-dev/desktop/collector/tests/Collector.Tests/Candidates/CandidateStageProgressTests.cs"
+  ],
   "started": "2026-10-29T13:18:35Z",
-  "heartbeat": "2026-10-29T13:18:36Z",
+  "heartbeat": "2026-10-29T13:22:45Z",
   "schema": 2
 }

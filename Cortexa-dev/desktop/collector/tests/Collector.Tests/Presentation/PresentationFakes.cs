@@ -151,7 +151,7 @@ internal sealed class KnowledgeHarness
 
     public FakeCandidateRunner CandidateRunner { get; } = new();
 
-    public CandidateRunState CandidateState { get; } = new();
+    public CandidateRunState CandidateState { get; } = new(MsOptions.Create(new Collector.Application.Candidates.CandidateStageWeights()));
 
     public FakeKnowledgeRunner Runner { get; } = new();
 

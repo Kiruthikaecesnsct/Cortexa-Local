@@ -29,4 +29,9 @@ public sealed record CandidateRunRequest(IReadOnlyList<string> DocumentIds)
         [.. DocumentIds.Distinct(StringComparer.Ordinal)];
 }
 
-public sealed record CandidateProgress(int Completed, int Total);
+public sealed record CandidateProgress(
+    int Completed,
+    int Total,
+    int DocumentIndex = 0,
+    CandidateStage Stage = CandidateStage.UploadRead,
+    double StageFraction = 0d);

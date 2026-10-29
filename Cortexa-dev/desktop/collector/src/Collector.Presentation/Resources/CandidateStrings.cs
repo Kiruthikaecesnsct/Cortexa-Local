@@ -1,3 +1,5 @@
+using Collector.Application.Candidates;
+
 namespace Collector.Presentation.Resources;
 
 public static class CandidateStrings
@@ -5,6 +7,10 @@ public static class CandidateStrings
     public const string ProgressTitle = "Finding invention candidates";
     public const string ProgressName = "Candidate progress";
     public const string CancelName = "Cancel candidate search";
+    public const string StageNameUploadRead = "Uploading and reading";
+    public const string StageNameExtraction = "Extracting";
+    public const string StageNameLlmCall = "Sending to model";
+    public const string StageNameSave = "Saving results";
     public const string PanelTitle = "Invention candidates";
     public const string PanelCaption = "Found on this computer. Not uploaded.";
     public const string EmptyText = "No candidates found for the uploaded file.";
@@ -31,7 +37,17 @@ public static class CandidateStrings
     public const string CanceledTitle = "Candidate search canceled.";
     public const string PartialSuffix = "Candidates from finished documents are shown.";
 
-    public static string ProgressText(int completed, int total) => $"Candidates: {completed} of {total} documents";
+    public static string StageCaption(CandidateStage stage, int completed, int total) =>
+        $"{StageName(stage)}, {completed} of {total} documents";
+
+    private static string StageName(CandidateStage stage) => stage switch
+    {
+        CandidateStage.UploadRead => StageNameUploadRead,
+        CandidateStage.Extraction => StageNameExtraction,
+        CandidateStage.LlmCall => StageNameLlmCall,
+        CandidateStage.Save => StageNameSave,
+        _ => StageNameUploadRead,
+    };
 
     public static string CountText(int count) => count == 1 ? "1 candidate" : $"{count} candidates";
 

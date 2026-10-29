@@ -1,5 +1,6 @@
 using Collector.Application.Candidates;
 using Collector.Presentation.Services;
+using Microsoft.Extensions.Options;
 
 namespace Collector.Tests.Presentation;
 
@@ -31,7 +32,7 @@ internal static class CandidateData
 
     public static CandidateRunState StateFor(CandidateRunOutcome outcome)
     {
-        var state = new CandidateRunState();
+        var state = new CandidateRunState(Options.Create(new CandidateStageWeights()));
         state.Set(outcome);
         return state;
     }

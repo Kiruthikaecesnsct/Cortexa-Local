@@ -20,14 +20,14 @@
                                Style="{StaticResource Text.Label}"
                                Text="{x:Static res:CandidateStrings.ProgressTitle}" />
                     <ProgressBar Margin="{StaticResource Thickness.StackGap}"
-                                 AutomationProperties.Name="{Binding ProgressText}"
+                                 AutomationProperties.Name="{Binding StageCaption}"
                                  IsIndeterminate="False"
                                  Maximum="{Binding Maximum, Mode=OneWay}"
                                  Style="{StaticResource Progress.Thin}"
-                                 Value="{Binding Completed, Mode=OneWay}" />
+                                 Value="{Binding OverallFraction, Mode=OneWay}" />
                     <TextBlock AutomationProperties.LiveSetting="Polite"
                                Style="{StaticResource Text.Caption}"
-                               Text="{Binding ProgressText}" />
+                               Text="{Binding StageCaption}" />
                 </StackPanel>
                 <Button Grid.Column="1"
                         Margin="{StaticResource Thickness.LeadingGap}"

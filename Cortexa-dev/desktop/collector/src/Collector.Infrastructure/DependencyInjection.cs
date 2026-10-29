@@ -1,4 +1,5 @@
 using Collector.Application.Auth;
+using Collector.Application.Candidates;
 using Collector.Application.Extraction;
 using Collector.Application.Knowledge;
 using Collector.Application.Ports;
@@ -77,6 +78,9 @@ public static class DependencyInjection
             configuration,
             GroqProviderOptions.SectionName);
         services.AddValidatedOptions<AiOptions, AiOptionsValidator>(configuration, AiOptions.SectionName);
+        services.AddValidatedOptions<CandidateStageWeights, CandidateStageWeightsValidator>(
+            configuration,
+            CandidateStageWeights.SectionName);
         services.AddOptions<AiModelChoiceOptions>().Bind(configuration.GetSection(AiModelChoiceOptions.SectionName));
         services.AddOptions<GeminiRotationOptions>().Bind(configuration.GetSection(GeminiRotationOptions.SectionName));
         services.AddSingleton<IProviderModelCatalog, ProviderModelCatalogAdapter>();

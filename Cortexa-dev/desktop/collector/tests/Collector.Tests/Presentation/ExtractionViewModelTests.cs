@@ -33,7 +33,8 @@ public sealed class ExtractionViewModelTests : IDisposable
     private readonly ProviderOutputLimits _limits = new(
         Options.Create(new AiProviderOptions()),
         Options.Create(new GeminiProviderOptions()),
-        Options.Create(new BedrockProviderOptions()));
+        Options.Create(new BedrockProviderOptions()),
+        Options.Create(new VertexProviderOptions()));
 
     public ExtractionViewModelTests()
     {

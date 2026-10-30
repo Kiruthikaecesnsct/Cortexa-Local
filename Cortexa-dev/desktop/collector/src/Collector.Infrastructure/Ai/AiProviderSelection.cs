@@ -12,7 +12,8 @@ public sealed class AiProviderSelection(
     IOptions<AiProviderOptions> claude,
     IOptions<GeminiProviderOptions> gemini,
     IOptions<BedrockProviderOptions> bedrock,
-    IOptions<GroqProviderOptions> groq) : IAiProviderFactory
+    IOptions<GroqProviderOptions> groq,
+    IOptions<VertexProviderOptions> vertex) : IAiProviderFactory
 {
     public IAiProvider Resolve(CollectorProvider provider) => provider switch
     {
@@ -20,6 +21,7 @@ public sealed class AiProviderSelection(
         CollectorProvider.Gemini => services.GetRequiredService<GeminiDirectProvider>(),
         CollectorProvider.Bedrock => services.GetRequiredService<BedrockDirectProvider>(),
         CollectorProvider.Groq => services.GetRequiredService<GroqDirectProvider>(),
+        CollectorProvider.Vertex => services.GetRequiredService<VertexDirectProvider>(),
         var other => throw new InvalidOperationException($"AI provider {other} is not supported."),
     };
 
@@ -29,6 +31,7 @@ public sealed class AiProviderSelection(
         CollectorProvider.Gemini => gemini.Value.Concurrency,
         CollectorProvider.Bedrock => bedrock.Value.Concurrency,
         CollectorProvider.Groq => groq.Value.Concurrency,
+        CollectorProvider.Vertex => vertex.Value.Concurrency,
         var other => throw new InvalidOperationException($"AI provider {other} is not supported."),
     };
 

@@ -294,6 +294,26 @@ public class DependencyInjectionTests
     }
 
     [Fact]
+    public void ShippedAppSettingsDefaults_StartCleanlyForEveryProviderOptionsType_EvenWhenNotSelected()
+    {
+        var appSettingsPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+        var configuration = new ConfigurationBuilder().AddJsonFile(appSettingsPath, optional: false).Build();
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddCollectorApplication();
+        services.AddCollectorInfrastructure(configuration);
+        services.AddSingleton<IWindowHandleSource, FakeWindowHandleSource>();
+        using var provider = services.BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
+
+        Assert.Equal(CollectorProvider.Gemini, provider.GetRequiredService<IOptions<AiOptions>>().Value.Provider);
+        Assert.NotNull(provider.GetRequiredService<IOptions<GeminiProviderOptions>>().Value);
+        Assert.NotNull(provider.GetRequiredService<IOptions<AiProviderOptions>>().Value);
+        Assert.NotNull(provider.GetRequiredService<IOptions<BedrockProviderOptions>>().Value);
+        Assert.NotNull(provider.GetRequiredService<IOptions<GroqProviderOptions>>().Value);
+        Assert.NotNull(provider.GetRequiredService<IOptions<VertexProviderOptions>>().Value);
+    }
+
+    [Fact]
     public void ExtractionOptions_NoSetting_DefaultsToFourParallelSplits()
     {
         using var provider = Build();

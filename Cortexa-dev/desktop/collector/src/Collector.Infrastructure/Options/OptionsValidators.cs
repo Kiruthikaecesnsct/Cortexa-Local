@@ -247,6 +247,49 @@ public sealed class GroqProviderOptionsValidator : IValidateOptions<GroqProvider
     }
 }
 
+public sealed class VertexProviderOptionsValidator(IOptions<ProviderModelCatalog> catalog) : IValidateOptions<VertexProviderOptions>
+{
+    private const double MinTemperature = 0.0;
+    private const double MaxTemperature = 2.0;
+
+    public ValidateOptionsResult Validate(string? name, VertexProviderOptions options)
+    {
+        var failures = new List<string>();
+        AddIf(failures, string.IsNullOrWhiteSpace(options.ProjectId), nameof(options.ProjectId), "is required");
+        AddIf(failures, string.IsNullOrWhiteSpace(options.Location), nameof(options.Location), "is required");
+        AddIf(failures, string.IsNullOrWhiteSpace(options.Model), nameof(options.Model), "is required");
+        AddModelCatalogFailure(failures, options.Model);
+        AddIf(failures, options.MaxOutputTokens <= 0, nameof(options.MaxOutputTokens), "must be greater than zero");
+        AddIf(failures, options.Concurrency <= 0, nameof(options.Concurrency), "must be greater than zero");
+        AddIf(failures, options.MaxRetries < 0, nameof(options.MaxRetries), "must not be negative");
+        AddIf(failures, options.TimeoutSeconds <= 0, nameof(options.TimeoutSeconds), "must be greater than zero");
+        AddIf(failures, options.TokenRefreshSkewSeconds <= 0, nameof(options.TokenRefreshSkewSeconds), "must be greater than zero");
+        AddIf(failures, options.Temperature is < MinTemperature or > MaxTemperature, nameof(options.Temperature), "must be between 0 and 2");
+        return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
+    }
+
+    private void AddModelCatalogFailure(List<string> failures, string model)
+    {
+        if (string.IsNullOrWhiteSpace(model) || VertexCatalogModels().Contains(model, StringComparer.Ordinal))
+        {
+            return;
+        }
+
+        failures.Add($"{VertexProviderOptions.SectionName}:{nameof(VertexProviderOptions.Model)} is not in the Vertex model catalog.");
+    }
+
+    private List<string> VertexCatalogModels() =>
+        catalog.Value.Providers.TryGetValue(CollectorProvider.Vertex, out var entry) ? entry.Models : [];
+
+    private static void AddIf(List<string> failures, bool failed, string name, string reason)
+    {
+        if (failed)
+        {
+            failures.Add($"{VertexProviderOptions.SectionName}:{name} {reason}.");
+        }
+    }
+}
+
 public sealed class CandidateStageWeightsValidator : IValidateOptions<CandidateStageWeights>
 {
     private const double SumTolerance = 0.001;
@@ -280,7 +323,7 @@ public sealed class CandidateStageWeightsValidator : IValidateOptions<CandidateS
 public sealed class AiOptionsValidator : IValidateOptions<AiOptions>
 {
     public static readonly CollectorProvider[] SupportedProviders =
-        [CollectorProvider.Claude, CollectorProvider.Gemini, CollectorProvider.Bedrock, CollectorProvider.Groq];
+        [CollectorProvider.Claude, CollectorProvider.Gemini, CollectorProvider.Bedrock, CollectorProvider.Groq, CollectorProvider.Vertex];
 
     public ValidateOptionsResult Validate(string? name, AiOptions options) =>
         SupportedProviders.Contains(options.Provider)

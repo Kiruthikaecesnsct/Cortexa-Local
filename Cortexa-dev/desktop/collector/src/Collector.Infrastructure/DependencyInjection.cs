@@ -37,6 +37,7 @@ public static class DependencyInjection
         services.AddSingleton<ISecretStore, CredentialManagerStore>();
         services.AddSingleton<IGeminiKeyStore, GeminiKeyStore>();
         services.AddSingleton<IGeminiKeyStatusStore, GeminiKeyStatusStore>();
+        services.AddSingleton<IVertexCredentialStore, VertexCredentialStore>();
         services.AddSingleton<IAuthClient, GatewayAuthClient>();
         services.AddSingleton<IUserSettingsStore, JsonUserSettingsStore>();
         services.AddSingleton<SqliteConnectionFactory>();
@@ -77,6 +78,9 @@ public static class DependencyInjection
         services.AddValidatedOptions<GroqProviderOptions, GroqProviderOptionsValidator>(
             configuration,
             GroqProviderOptions.SectionName);
+        services.AddValidatedOptions<VertexProviderOptions, VertexProviderOptionsValidator>(
+            configuration,
+            VertexProviderOptions.SectionName);
         services.AddValidatedOptions<AiOptions, AiOptionsValidator>(configuration, AiOptions.SectionName);
         services.AddValidatedOptions<CandidateStageWeights, CandidateStageWeightsValidator>(
             configuration,
@@ -111,6 +115,8 @@ public static class DependencyInjection
         services.AddSingleton<BedrockClientFactory>();
         services.AddSingleton<BedrockDirectProvider>();
         services.AddSingleton<GroqDirectProvider>();
+        services.AddSingleton<IVertexTokenSource, VertexTokenSource>();
+        services.AddSingleton<VertexDirectProvider>();
         services.AddSingleton<IAiProviderFactory, AiProviderSelection>();
     }
 
@@ -144,6 +150,15 @@ public static class DependencyInjection
                 var groqOptions = sp.GetRequiredService<IOptions<GroqProviderOptions>>().Value;
                 client.BaseAddress = new Uri(groqOptions.BaseUrl.TrimEnd('/') + "/");
                 client.Timeout = TimeSpan.FromSeconds(groqOptions.TimeoutSeconds);
+            })
+            .ConfigurePrimaryHttpMessageHandler(CreateCookielessHandler)
+            .RedactLoggedHeaders(name => RedactedHeaders.Contains(name, StringComparer.OrdinalIgnoreCase));
+        services.AddHttpClient(HttpClientNames.Vertex)
+            .ConfigureHttpClient((sp, client) =>
+            {
+                var vertexOptions = sp.GetRequiredService<IOptions<VertexProviderOptions>>().Value;
+                client.BaseAddress = new Uri(VertexEndpoints.BaseAddress(vertexOptions.Location));
+                client.Timeout = TimeSpan.FromSeconds(vertexOptions.TimeoutSeconds);
             })
             .ConfigurePrimaryHttpMessageHandler(CreateCookielessHandler)
             .RedactLoggedHeaders(name => RedactedHeaders.Contains(name, StringComparer.OrdinalIgnoreCase));

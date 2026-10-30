@@ -48,5 +48,10 @@ public sealed class ProviderModelCatalog
             DefaultModel = "openai/gpt-oss-120b",
             Models = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"],
         },
+        [CollectorProvider.Vertex] = new ProviderModelCatalogEntry
+        {
+            DefaultModel = "gemini-3.6-flash",
+            Models = ["gemini-3.6-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"],
+        },
     };
 }

@@ -8,6 +8,7 @@ public enum SecretSlot
     GeminiApiKey,
     BedrockSsoToken,
     GroqApiKey,
+    VertexServiceAccount,
     MongoConnectionString,
     GitHubPat,
     AzureDevOpsPat,

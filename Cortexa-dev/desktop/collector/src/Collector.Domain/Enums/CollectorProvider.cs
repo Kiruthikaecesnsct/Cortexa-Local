@@ -6,4 +6,5 @@ public enum CollectorProvider
     Gemini,
     Bedrock,
     Groq,
+    Vertex,
 }

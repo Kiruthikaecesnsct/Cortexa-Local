@@ -4,39 +4,39 @@
   "machine": "saaraa",
   "env": "windows",
   "branch": "develop/US158",
-  "status": "implementing",
+  "status": "review",
   "files": [
-    "desktop/collector/Directory.Packages.props",
-    "desktop/collector/src/Collector.Application/Secrets/SecretSlot.cs",
-    "desktop/collector/src/Collector.Domain/Enums/CollectorProvider.cs",
-    "desktop/collector/src/Collector.Infrastructure/Ai/AiProviderSelection.cs",
-    "desktop/collector/src/Collector.Infrastructure/Collector.Infrastructure.csproj",
-    "desktop/collector/src/Collector.Infrastructure/DependencyInjection.cs",
-    "desktop/collector/src/Collector.Infrastructure/Http/HttpClientNames.cs",
-    "desktop/collector/src/Collector.Infrastructure/Options/OptionsValidators.cs",
-    "desktop/collector/src/Collector.Infrastructure/Options/ProviderModelCatalog.cs",
-    "desktop/collector/src/Collector.Presentation/Services/ProviderOutputLimits.cs",
-    "desktop/collector/src/Collector.Presentation/appsettings.json",
-    "desktop/collector/tests/Collector.Tests/Presentation/ExtractionViewModelTests.cs",
-    "desktop/collector/src/Collector.Application/Ports/IVertexCredentialStore.cs",
-    "desktop/collector/src/Collector.Application/Ports/IVertexTokenSource.cs",
-    "desktop/collector/src/Collector.Infrastructure/Ai/VertexDirectProvider.cs",
-    "desktop/collector/src/Collector.Infrastructure/Ai/VertexEndpoints.cs",
-    "desktop/collector/src/Collector.Infrastructure/Ai/VertexErrorMapper.cs",
-    "desktop/collector/src/Collector.Infrastructure/Ai/VertexGenerateContentWire.cs",
-    "desktop/collector/src/Collector.Infrastructure/Ai/VertexRequestFactory.cs",
-    "desktop/collector/src/Collector.Infrastructure/Ai/VertexResponseReader.cs",
-    "desktop/collector/src/Collector.Infrastructure/Ai/VertexTokenSource.cs",
-    "desktop/collector/src/Collector.Infrastructure/Options/VertexProviderOptions.cs",
-    "desktop/collector/src/Collector.Infrastructure/Secrets/VertexCredentialStore.cs",
-    "desktop/collector/tests/Collector.Tests/Ai/VertexCredentialStoreTests.cs",
-    "desktop/collector/tests/Collector.Tests/Ai/VertexDirectProviderTests.cs",
-    "desktop/collector/tests/Collector.Tests/Ai/VertexErrorMapperTests.cs",
-    "desktop/collector/tests/Collector.Tests/Ai/VertexProviderOptionsValidatorTests.cs",
-    "desktop/collector/tests/Collector.Tests/Ai/VertexWire.cs",
+    "desktop/collector/Directory.Packages.props",
+    "desktop/collector/src/Collector.Application/Secrets/SecretSlot.cs",
+    "desktop/collector/src/Collector.Domain/Enums/CollectorProvider.cs",
+    "desktop/collector/src/Collector.Infrastructure/Ai/AiProviderSelection.cs",
+    "desktop/collector/src/Collector.Infrastructure/Collector.Infrastructure.csproj",
+    "desktop/collector/src/Collector.Infrastructure/DependencyInjection.cs",
+    "desktop/collector/src/Collector.Infrastructure/Http/HttpClientNames.cs",
+    "desktop/collector/src/Collector.Infrastructure/Options/OptionsValidators.cs",
+    "desktop/collector/src/Collector.Infrastructure/Options/ProviderModelCatalog.cs",
+    "desktop/collector/src/Collector.Presentation/Services/ProviderOutputLimits.cs",
+    "desktop/collector/src/Collector.Presentation/appsettings.json",
+    "desktop/collector/tests/Collector.Tests/Presentation/ExtractionViewModelTests.cs",
+    "desktop/collector/src/Collector.Application/Ports/IVertexCredentialStore.cs",
+    "desktop/collector/src/Collector.Application/Ports/IVertexTokenSource.cs",
+    "desktop/collector/src/Collector.Infrastructure/Ai/VertexDirectProvider.cs",
+    "desktop/collector/src/Collector.Infrastructure/Ai/VertexEndpoints.cs",
+    "desktop/collector/src/Collector.Infrastructure/Ai/VertexErrorMapper.cs",
+    "desktop/collector/src/Collector.Infrastructure/Ai/VertexGenerateContentWire.cs",
+    "desktop/collector/src/Collector.Infrastructure/Ai/VertexRequestFactory.cs",
+    "desktop/collector/src/Collector.Infrastructure/Ai/VertexResponseReader.cs",
+    "desktop/collector/src/Collector.Infrastructure/Ai/VertexTokenSource.cs",
+    "desktop/collector/src/Collector.Infrastructure/Options/VertexProviderOptions.cs",
+    "desktop/collector/src/Collector.Infrastructure/Secrets/VertexCredentialStore.cs",
+    "desktop/collector/tests/Collector.Tests/Ai/VertexCredentialStoreTests.cs",
+    "desktop/collector/tests/Collector.Tests/Ai/VertexDirectProviderTests.cs",
+    "desktop/collector/tests/Collector.Tests/Ai/VertexErrorMapperTests.cs",
+    "desktop/collector/tests/Collector.Tests/Ai/VertexProviderOptionsValidatorTests.cs",
+    "desktop/collector/tests/Collector.Tests/Ai/VertexWire.cs",
     "desktop/collector/tests/Collector.Tests/DependencyInjectionTests.cs"
   ],
   "started": "2026-10-29T15:09:47Z",
-  "heartbeat": "2026-10-30T04:33:13Z",
+  "heartbeat": "2026-10-30T05:08:22Z",
   "schema": 2
 }

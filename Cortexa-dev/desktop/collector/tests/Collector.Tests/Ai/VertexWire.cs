@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using Collector.Application.Ports;
+using Collector.Application.Settings;
 using Collector.Infrastructure.Ai;
 using Collector.Infrastructure.Options;
 using Collector.Tests.Support;
@@ -15,6 +16,21 @@ internal sealed class FakeVertexTokenSource(string token = VertexWire.AccessToke
     {
         Calls++;
         return Task.FromResult(token);
+    }
+}
+
+internal sealed class FakeVertexSettingsState(VertexEffectiveSettings effective) : IVertexSettingsState
+{
+    public int Calls { get; private set; }
+
+    public VertexEffectiveSettings GetEffectiveSettings()
+    {
+        Calls++;
+        return effective;
+    }
+
+    public void Update(VertexUserSettings settings)
+    {
     }
 }
 
@@ -46,11 +62,15 @@ internal static class VertexWire
     public static VertexDirectProvider Provider(
         StubHttpHandler handler,
         VertexProviderOptions? options = null,
-        IVertexTokenSource? tokenSource = null)
+        IVertexTokenSource? tokenSource = null,
+        IVertexSettingsState? settingsState = null)
     {
-        var settings = Microsoft.Extensions.Options.Options.Create(options ?? DefaultOptions());
+        var resolvedOptions = options ?? DefaultOptions();
+        var settings = Microsoft.Extensions.Options.Options.Create(resolvedOptions);
         var factory = new BaseAddressClientFactory(handler, BaseAddress);
-        return new VertexDirectProvider(factory, tokenSource ?? new FakeVertexTokenSource(), settings);
+        var state = settingsState ?? new FakeVertexSettingsState(
+            new VertexEffectiveSettings(resolvedOptions.ProjectId, resolvedOptions.Location));
+        return new VertexDirectProvider(factory, tokenSource ?? new FakeVertexTokenSource(), state, settings);
     }
 
     public static VertexProviderOptions DefaultOptions() => new()

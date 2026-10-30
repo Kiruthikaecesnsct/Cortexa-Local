@@ -6,4 +6,7 @@ internal static class VertexEndpoints
 
     public static string GenerateContentPath(string projectId, string location, string model) =>
         $"v1/projects/{projectId}/locations/{location}/publishers/google/models/{model}:generateContent";
+
+    public static Uri GenerateContentUri(string projectId, string location, string model) =>
+        new(new Uri(BaseAddress(location)), GenerateContentPath(projectId, location, model));
 }

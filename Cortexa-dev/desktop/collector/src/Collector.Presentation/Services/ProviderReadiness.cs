@@ -27,6 +27,8 @@ public interface IProviderReadiness
 public sealed class ProviderReadiness(
     SettingsService settings,
     IBedrockSsoCredentials bedrock,
+    IVertexCredentialStore vertexCredentials,
+    IVertexSettingsState vertexSettings,
     ILogger<ProviderReadiness> logger) : IProviderReadiness
 {
     public event EventHandler? Changed;
@@ -58,6 +60,23 @@ public sealed class ProviderReadiness(
             return status.IsConnected;
         }
 
+        if (provider == CollectorProvider.Vertex)
+        {
+            return await IsVertexReadyAsync(cancellationToken);
+        }
+
         return await settings.HasAiKeyAsync(provider, cancellationToken);
+    }
+
+    private async Task<bool> IsVertexReadyAsync(CancellationToken cancellationToken)
+    {
+        var serviceAccount = await vertexCredentials.GetServiceAccountJsonAsync(cancellationToken);
+        if (string.IsNullOrWhiteSpace(serviceAccount))
+        {
+            return false;
+        }
+
+        var effective = vertexSettings.GetEffectiveSettings();
+        return !string.IsNullOrWhiteSpace(effective.ProjectId) && !string.IsNullOrWhiteSpace(effective.Location);
     }
 }

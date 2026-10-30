@@ -2,6 +2,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Collector.Application.Ports;
+using Collector.Application.Settings;
 using Collector.Infrastructure.Http;
 using Collector.Infrastructure.Options;
 using Microsoft.Extensions.Options;
@@ -11,6 +12,7 @@ namespace Collector.Infrastructure.Ai;
 public sealed class VertexDirectProvider(
     IHttpClientFactory httpClients,
     IVertexTokenSource tokenSource,
+    IVertexSettingsState settingsState,
     IOptions<VertexProviderOptions> options) : IAiProvider
 {
     private const string BearerScheme = "Bearer";
@@ -18,10 +20,11 @@ public sealed class VertexDirectProvider(
     public async Task<AiCompletion> CompleteAsync(AiRequest request, CancellationToken cancellationToken)
     {
         var settings = options.Value;
+        var effective = settingsState.GetEffectiveSettings();
         var model = string.IsNullOrWhiteSpace(request.Model) ? settings.Model : request.Model;
         var call = VertexRequestFactory.Create(request, settings);
         var token = await tokenSource.GetAccessTokenAsync(cancellationToken).ConfigureAwait(false);
-        var context = new VertexCallContext(settings, model, token, call);
+        var context = new VertexCallContext(settings, effective, model, token, call);
         var body = await SendAsync(context, cancellationToken).ConfigureAwait(false);
         return Parse(body, model);
     }
@@ -84,8 +87,8 @@ public sealed class VertexDirectProvider(
 
     private static HttpRequestMessage BuildRequest(VertexCallContext context)
     {
-        var path = VertexEndpoints.GenerateContentPath(context.Settings.ProjectId, context.Settings.Location, context.Model);
-        var httpRequest = new HttpRequestMessage(HttpMethod.Post, path)
+        var uri = VertexEndpoints.GenerateContentUri(context.Effective.ProjectId, context.Effective.Location, context.Model);
+        var httpRequest = new HttpRequestMessage(HttpMethod.Post, uri)
         {
             Content = JsonContent.Create(context.Call, VertexJson.Default.VertexGenerateContentRequestWire),
         };
@@ -95,6 +98,7 @@ public sealed class VertexDirectProvider(
 
     private sealed record VertexCallContext(
         VertexProviderOptions Settings,
+        VertexEffectiveSettings Effective,
         string Model,
         string Token,
         VertexGenerateContentRequestWire Call);

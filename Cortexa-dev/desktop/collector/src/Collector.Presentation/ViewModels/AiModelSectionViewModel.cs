@@ -222,14 +222,21 @@ public sealed partial class AiModelSectionViewModel : FocusableViewModel
         };
     }
 
-    private BannerViewModel MissingBanner()
+    private BannerViewModel MissingBanner() => SelectedProvider switch
     {
-        var bedrock = SelectedProvider == CollectorProvider.Bedrock;
-        return GoToKeysBanner(
-            bedrock ? SettingsStrings.BedrockWarningTitle : SettingsStrings.KeyWarningTitle(ProviderName),
-            bedrock ? SettingsStrings.BedrockWarningMessage : SettingsStrings.KeyWarningMessage,
-            withAction: true);
-    }
+        CollectorProvider.Bedrock => GoToKeysBanner(
+            SettingsStrings.BedrockWarningTitle,
+            SettingsStrings.BedrockWarningMessage,
+            withAction: true),
+        CollectorProvider.Vertex => GoToKeysBanner(
+            SettingsStrings.VertexWarningTitle,
+            SettingsStrings.VertexWarningMessage,
+            withAction: true),
+        _ => GoToKeysBanner(
+            SettingsStrings.KeyWarningTitle(ProviderName),
+            SettingsStrings.KeyWarningMessage,
+            withAction: true),
+    };
 
     private BannerViewModel UnknownBanner() =>
         GoToKeysBanner(SettingsStrings.ReadinessUnknownTitle(ProviderName), SettingsStrings.ReadinessUnknownMessage, withAction: false);

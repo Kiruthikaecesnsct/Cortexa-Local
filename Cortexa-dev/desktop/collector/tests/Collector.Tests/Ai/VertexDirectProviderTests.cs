@@ -1,5 +1,6 @@
 using System.Net;
 using Collector.Application.Ports;
+using Collector.Application.Settings;
 using Collector.Infrastructure.Ai;
 using Collector.Infrastructure.Options;
 using Collector.Tests.Support;
@@ -29,6 +30,35 @@ public sealed class VertexDirectProviderTests
         Assert.True(request.Headers.TryGetValue("Authorization", out var authorization));
         Assert.StartsWith("Bearer ", authorization, StringComparison.Ordinal);
         Assert.Equal(VertexWire.ServedModel, completion.Model);
+    }
+
+    [Fact]
+    public async Task CompleteAsync_EffectiveSettingsOverrideProjectAndLocation_UsesEffectiveValuesNotStaticOptions()
+    {
+        var handler = VertexWire.Ok();
+        var staticOptions = VertexWire.DefaultOptions();
+        var effective = new VertexEffectiveSettings("overridden-project", "asia-east1");
+        var settingsState = new FakeVertexSettingsState(effective);
+
+        await VertexWire.Provider(handler, staticOptions, settingsState: settingsState)
+            .CompleteAsync(VertexWire.Request, TestSupport.Ct);
+
+        var request = handler.Requests.Single();
+        var expectedUrl =
+            $"https://{effective.Location}-aiplatform.googleapis.com/v1/projects/{effective.ProjectId}/locations/{effective.Location}/publishers/google/models/{staticOptions.Model}:generateContent";
+        Assert.Equal(expectedUrl, request.Uri?.ToString());
+    }
+
+    [Fact]
+    public async Task CompleteAsync_CalledOnce_ReadsEffectiveSettingsExactlyOnce()
+    {
+        var handler = VertexWire.Ok();
+        var settingsState = new FakeVertexSettingsState(new VertexEffectiveSettings(VertexWire.ProjectId, "europe-west4"));
+
+        await VertexWire.Provider(handler, settingsState: settingsState)
+            .CompleteAsync(VertexWire.Request, TestSupport.Ct);
+
+        Assert.Equal(1, settingsState.Calls);
     }
 
     [Theory]

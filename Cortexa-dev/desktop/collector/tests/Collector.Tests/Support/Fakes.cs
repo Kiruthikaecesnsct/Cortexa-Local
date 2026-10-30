@@ -101,6 +101,42 @@ internal sealed class FakeGeminiKeyStore : IGeminiKeyStore
     }
 }
 
+internal sealed class FakeVertexCredentialStore : IVertexCredentialStore
+{
+    public string? ServiceAccountJson { get; set; }
+
+    public Exception? SaveFailure { get; set; }
+
+    public Task<string?> GetServiceAccountJsonAsync(CancellationToken cancellationToken) =>
+        Task.FromResult(ServiceAccountJson);
+
+    public Task SaveServiceAccountJsonAsync(string serviceAccountJson, CancellationToken cancellationToken)
+    {
+        if (SaveFailure is not null)
+        {
+            return Task.FromException(SaveFailure);
+        }
+
+        ServiceAccountJson = serviceAccountJson;
+        return Task.CompletedTask;
+    }
+}
+
+internal sealed class FakeVertexSettingsState : IVertexSettingsState
+{
+    private VertexUserSettings _current = new(string.Empty, string.Empty);
+
+    public int UpdateCalls { get; private set; }
+
+    public void Update(VertexUserSettings settings)
+    {
+        UpdateCalls++;
+        _current = settings;
+    }
+
+    public VertexEffectiveSettings GetEffectiveSettings() => new(_current.ProjectId, _current.Location);
+}
+
 internal sealed class FakeGeminiKeyStatusStore : IGeminiKeyStatusStore
 {
     private readonly Dictionary<string, GeminiKeyStatus> _statuses = [];
@@ -203,6 +239,18 @@ internal sealed class FakeUserSettingsStore : IUserSettingsStore
     {
         SaveCalls++;
         Current = settings;
+        return Task.CompletedTask;
+    }
+
+    public VertexUserSettings VertexUser { get; private set; } = new(string.Empty, string.Empty);
+
+    public void SeedVertexUserSettings(VertexUserSettings settings) => VertexUser = settings;
+
+    public VertexUserSettings GetVertexUserSettings() => VertexUser;
+
+    public Task SaveVertexUserSettingsAsync(VertexUserSettings settings, CancellationToken cancellationToken)
+    {
+        VertexUser = settings;
         return Task.CompletedTask;
     }
 }

@@ -187,6 +187,7 @@ internal sealed class FakeProviderReadiness : IProviderReadiness
         [CollectorProvider.Gemini] = ProviderReadinessState.Ready,
         [CollectorProvider.Bedrock] = ProviderReadinessState.Ready,
         [CollectorProvider.Groq] = ProviderReadinessState.Ready,
+        [CollectorProvider.Vertex] = ProviderReadinessState.Ready,
     };
 
     public TaskCompletionSource? Gate { get; set; }

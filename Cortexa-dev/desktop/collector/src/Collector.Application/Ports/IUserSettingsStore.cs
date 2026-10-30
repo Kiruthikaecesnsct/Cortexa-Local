@@ -19,4 +19,8 @@ public interface IUserSettingsStore
     string? GetGeminiActiveKeyId();
 
     Task SaveGeminiActiveKeyIdAsync(string? keyId, CancellationToken cancellationToken);
+
+    VertexUserSettings GetVertexUserSettings();
+
+    Task SaveVertexUserSettingsAsync(VertexUserSettings settings, CancellationToken cancellationToken);
 }

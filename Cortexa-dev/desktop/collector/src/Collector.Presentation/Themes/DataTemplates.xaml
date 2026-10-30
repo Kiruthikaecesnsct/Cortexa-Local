@@ -50,6 +50,10 @@
         <views:BedrockSsoRowView />
     </DataTemplate>
 
+    <DataTemplate DataType="{x:Type vm:VertexRowViewModel}">
+        <views:VertexRowView />
+    </DataTemplate>
+
     <DataTemplate DataType="{x:Type vm:GeminiKeysGroupViewModel}">
         <sections:GeminiKeysGroupView />
     </DataTemplate>
@@ -76,6 +80,53 @@
                     </PasswordBox.InputBindings>
                 </PasswordBox>
             </HeaderedContentControl>
+            <StackPanel Orientation="Horizontal">
+                <Button MinHeight="{StaticResource Size.RowAction}"
+                        Margin="{StaticResource Thickness.InlineGap}"
+                        AutomationProperties.Name="{Binding Labels.SaveName}"
+                        Command="{Binding SaveCommand}"
+                        Content="{Binding SaveLabel}"
+                        IsDefault="True"
+                        Style="{StaticResource Button.Primary}" />
+                <Button MinHeight="{StaticResource Size.RowAction}"
+                        AutomationProperties.Name="{Binding Labels.CancelName}"
+                        Command="{Binding CancelCommand}"
+                        Content="{x:Static res:SettingsStrings.Cancel}"
+                        IsEnabled="{Binding IsEditable}"
+                        Style="{StaticResource Button.Secondary}" />
+            </StackPanel>
+        </StackPanel>
+    </DataTemplate>
+
+    <DataTemplate DataType="{x:Type vm:VertexSaEditorViewModel}">
+        <StackPanel Margin="{StaticResource Thickness.SectionTop}">
+            <StackPanel.InputBindings>
+                <KeyBinding Key="Escape" Command="{Binding CancelCommand}" />
+            </StackPanel.InputBindings>
+            <HeaderedContentControl Header="{Binding Labels.Label}"
+                                    Style="{StaticResource FormField}"
+                                    b:FieldState.Error="{Binding Error}"
+                                    b:FieldState.Helper="{Binding Labels.Helper}">
+                <TextBox AcceptsReturn="True"
+                         MinHeight="120"
+                         AutomationProperties.HelpText="{Binding Error}"
+                         AutomationProperties.Name="{Binding Labels.AutomationName}"
+                         IsEnabled="{Binding IsEditable}"
+                         Style="{StaticResource TextBox.Field}"
+                         Text="{Binding PasteText, UpdateSourceTrigger=PropertyChanged}"
+                         TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto"
+                         b:FieldState.HasError="{Binding Error, Converter={StaticResource NotEmptyToBool}}"
+                         b:FocusRouter.Key="Editor" />
+            </HeaderedContentControl>
+            <StackPanel Margin="{StaticResource Thickness.StackGap}" Orientation="Horizontal">
+                <Button MinHeight="{StaticResource Size.RowAction}"
+                        AutomationProperties.Name="{x:Static res:SettingsStrings.VertexBrowseName}"
+                        Command="{Binding BrowseCommand}"
+                        Content="{x:Static res:SettingsStrings.VertexBrowse}"
+                        IsEnabled="{Binding IsEditable}"
+                        Style="{StaticResource Button.Secondary}" />
+            </StackPanel>
             <StackPanel Orientation="Horizontal">
                 <Button MinHeight="{StaticResource Size.RowAction}"
                         Margin="{StaticResource Thickness.InlineGap}"

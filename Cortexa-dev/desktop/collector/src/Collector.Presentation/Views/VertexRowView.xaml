@@ -1,0 +1,197 @@
+<UserControl x:Class="Collector.Presentation.Views.VertexRowView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:b="clr-namespace:Collector.Presentation.Behaviors"
+             xmlns:res="clr-namespace:Collector.Presentation.Resources"
+             xmlns:vm="clr-namespace:Collector.Presentation.ViewModels"
+             b:FocusRouter.IsHost="True"
+             Focusable="False"
+             IsTabStop="False">
+    <UserControl.Resources>
+        <Style x:Key="VertexSaChip.Surface" TargetType="Border" BasedOn="{StaticResource Tag.Surface}">
+            <Setter Property="Margin" Value="{StaticResource Thickness.InlineGap}" />
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Text.Body}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding ChipKind}" Value="{x:Static vm:VertexSaChipKind.Saved}">
+                    <Setter Property="Background" Value="{DynamicResource Brush.Success.Surface}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Success.Border}" />
+                    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Success}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding ChipKind}" Value="{x:Static vm:VertexSaChipKind.Unknown}">
+                    <Setter Property="Background" Value="{DynamicResource Brush.Warning.Surface}" />
+                    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Warning.Border}" />
+                    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Warning}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="VertexSaChip.Glyph" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="{StaticResource Font.Icon}" />
+            <Setter Property="FontSize" Value="{StaticResource FontSize.IconSmall}" />
+            <Setter Property="Margin" Value="{StaticResource Thickness.InlineGap}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding ChipKind}" Value="{x:Static vm:VertexSaChipKind.Saved}">
+                    <Setter Property="Text" Value="{x:Static res:Glyphs.Success}" />
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding ChipKind}" Value="{x:Static vm:VertexSaChipKind.Unknown}">
+                    <Setter Property="Text" Value="{x:Static res:Glyphs.Warning}" />
+                    <Setter Property="Visibility" Value="Visible" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <StackPanel>
+        <Border Style="{StaticResource Divider}" />
+        <Grid MinHeight="{StaticResource Size.RowMin}" Margin="{StaticResource Thickness.RowPadding}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <StackPanel Grid.Row="0" Grid.Column="0" VerticalAlignment="Center">
+                <TextBlock Style="{StaticResource Text.Label}" Text="{Binding Name}" />
+                <TextBlock Style="{StaticResource Text.Helper}" Text="{Binding Description}" />
+                <TextBlock Style="{StaticResource Text.Helper}"
+                           Text="{Binding StatusHelper}"
+                           Visibility="{Binding ShowStatusHelper, Converter={StaticResource BoolToVisibility}}" />
+                <StackPanel Margin="{StaticResource Thickness.HelperGap}"
+                            Orientation="Horizontal"
+                            Visibility="{Binding HasMessage, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Margin="{StaticResource Thickness.InlineGap}"
+                               Foreground="{DynamicResource Brush.Success}"
+                               Style="{StaticResource Text.Glyph}"
+                               Text="{x:Static res:Glyphs.Success}" />
+                    <TextBlock Foreground="{DynamicResource Brush.Success}"
+                               Style="{StaticResource Text.Caption}"
+                               Text="{Binding Message}" />
+                </StackPanel>
+                <StackPanel Margin="{StaticResource Thickness.HelperGap}"
+                            Orientation="Horizontal"
+                            Visibility="{Binding HasError, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Margin="{StaticResource Thickness.InlineGap}"
+                               Style="{StaticResource Text.Glyph.Error}"
+                               Text="{x:Static res:Glyphs.Error}" />
+                    <TextBlock Style="{StaticResource Text.Error}" Text="{Binding ErrorMessage}" />
+                </StackPanel>
+            </StackPanel>
+            <WrapPanel Grid.Row="0" Grid.Column="1" VerticalAlignment="Center">
+                <Border AutomationProperties.Name="{Binding ChipAutomationName}" Style="{StaticResource VertexSaChip.Surface}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Style="{StaticResource VertexSaChip.Glyph}" />
+                        <TextBlock VerticalAlignment="Center"
+                                   FontFamily="{StaticResource Font.Body}"
+                                   FontSize="{StaticResource FontSize.Caption}"
+                                   FontWeight="SemiBold"
+                                   Text="{Binding ChipText}" />
+                    </StackPanel>
+                </Border>
+                <StackPanel Orientation="Horizontal"
+                            Visibility="{Binding ShowActions, Converter={StaticResource BoolToVisibility}}">
+                    <Button MinHeight="{StaticResource Size.RowAction}"
+                            Margin="{StaticResource Thickness.InlineGap}"
+                            AutomationProperties.Name="{Binding ActionAutomationName}"
+                            Command="{Binding OpenEditorCommand}"
+                            Content="{Binding ActionLabel}"
+                            Style="{StaticResource Button.Secondary}"
+                            b:FocusRouter.Key="Primary" />
+                    <Button MinHeight="{StaticResource Size.RowAction}"
+                            AutomationProperties.Name="{Binding ClearAutomationName}"
+                            Command="{Binding BeginClearCommand}"
+                            Content="{x:Static res:SettingsStrings.Clear}"
+                            Style="{StaticResource Button.Link}"
+                            Visibility="{Binding HasSa, Converter={StaticResource BoolToVisibility}}"
+                            b:FocusRouter.Key="Clear" />
+                </StackPanel>
+            </WrapPanel>
+        </Grid>
+
+        <StackPanel Visibility="{Binding IsConfirmingClear, Converter={StaticResource BoolToVisibility}}">
+            <StackPanel.InputBindings>
+                <KeyBinding Key="Escape" Command="{Binding KeepSaCommand}" />
+            </StackPanel.InputBindings>
+            <TextBlock Margin="{StaticResource Thickness.StackGap}"
+                       Style="{StaticResource Text.Body}"
+                       Text="{Binding ConfirmText}" />
+            <StackPanel Margin="{StaticResource Thickness.StackGap}" Orientation="Horizontal">
+                <Button MinHeight="{StaticResource Size.RowAction}"
+                        Margin="{StaticResource Thickness.InlineGap}"
+                        AutomationProperties.Name="{Binding ConfirmAutomationName}"
+                        Command="{Binding ConfirmClearCommand}"
+                        Content="{Binding ConfirmLabel}"
+                        IsEnabled="{Binding IsConfirmEnabled}"
+                        Style="{StaticResource Button.Danger}"
+                        b:FocusRouter.Key="ConfirmClear" />
+                <Button MinHeight="{StaticResource Size.RowAction}"
+                        AutomationProperties.Name="{Binding KeepAutomationName}"
+                        Command="{Binding KeepSaCommand}"
+                        Content="{x:Static res:SettingsStrings.KeepServiceAccount}"
+                        IsEnabled="{Binding IsConfirmEnabled}"
+                        Style="{StaticResource Button.Secondary}"
+                        b:FocusRouter.Key="Keep" />
+            </StackPanel>
+        </StackPanel>
+
+        <ContentControl Content="{Binding Editor}" Focusable="False" IsTabStop="False" />
+
+        <StackPanel Margin="{StaticResource Thickness.RowPadding}"
+                    MaxWidth="{StaticResource Size.ContentMaxWidth}"
+                    HorizontalAlignment="Left">
+            <HeaderedContentControl Header="{x:Static res:SettingsStrings.VertexProjectIdLabel}"
+                                    Style="{StaticResource FormField}"
+                                    b:FieldState.Error="{Binding ProjectIdError}"
+                                    b:FieldState.Helper="{x:Static res:SettingsStrings.VertexProjectIdHelper}">
+                <TextBox AutomationProperties.HelpText="{Binding ProjectIdError}"
+                         AutomationProperties.Name="{x:Static res:SettingsStrings.VertexProjectIdName}"
+                         IsEnabled="{Binding AreFieldsEnabled}"
+                         Style="{StaticResource TextBox.Field}"
+                         Text="{Binding ProjectId, UpdateSourceTrigger=PropertyChanged}"
+                         b:CommandBehaviors.LostFocusCommand="{Binding ValidateProjectIdCommand}"
+                         b:FieldState.HasError="{Binding ProjectIdError, Converter={StaticResource NotEmptyToBool}}"
+                         b:FocusRouter.Key="ProjectId" />
+            </HeaderedContentControl>
+
+            <HeaderedContentControl Header="{x:Static res:SettingsStrings.VertexLocationLabel}"
+                                    Style="{StaticResource FormField}"
+                                    b:FieldState.Error="{Binding LocationError}"
+                                    b:FieldState.Helper="{x:Static res:SettingsStrings.VertexLocationHelper}">
+                <TextBox AutomationProperties.HelpText="{Binding LocationError}"
+                         AutomationProperties.Name="{x:Static res:SettingsStrings.VertexLocationName}"
+                         IsEnabled="{Binding AreFieldsEnabled}"
+                         Style="{StaticResource TextBox.Field}"
+                         Text="{Binding Location, UpdateSourceTrigger=PropertyChanged}"
+                         b:CommandBehaviors.LostFocusCommand="{Binding ValidateLocationCommand}"
+                         b:FieldState.HasError="{Binding LocationError, Converter={StaticResource NotEmptyToBool}}"
+                         b:FocusRouter.Key="Location" />
+            </HeaderedContentControl>
+
+            <ContentControl Margin="{StaticResource Thickness.FieldGap}"
+                            Content="{Binding SaveBanner}"
+                            Focusable="False"
+                            IsTabStop="False" />
+
+            <StackPanel Orientation="Horizontal">
+                <Button Margin="{StaticResource Thickness.InlineGapLarge}"
+                        AutomationProperties.Name="{x:Static res:SettingsStrings.SaveVertexSettingsName}"
+                        Command="{Binding SaveCommand}"
+                        Content="{Binding SaveLabel}"
+                        Style="{StaticResource Button.Primary}" />
+                <Button Margin="{StaticResource Thickness.InlineGapLarge}"
+                        AutomationProperties.Name="{x:Static res:SettingsStrings.DiscardVertexSettingsName}"
+                        Command="{Binding DiscardCommand}"
+                        Content="{x:Static res:SettingsStrings.Discard}"
+                        IsEnabled="{Binding AreFieldsEnabled}"
+                        Style="{StaticResource Button.Secondary}"
+                        Visibility="{Binding IsDirty, Converter={StaticResource BoolToVisibility}}" />
+                <Border Style="{StaticResource Tag.Surface.Warning}" Visibility="{Binding IsDirty, Converter={StaticResource BoolToVisibility}}">
+                    <TextBlock Style="{StaticResource Tag.Label}" Text="{x:Static res:SettingsStrings.Unsaved}" />
+                </Border>
+            </StackPanel>
+        </StackPanel>
+    </StackPanel>
+</UserControl>

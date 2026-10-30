@@ -12,12 +12,15 @@ public sealed class JsonUserSettingsStore(
     IOptionsMonitor<GatewayOptions> gateway,
     IOptionsMonitor<RemoteSourceOptions> remoteSources,
     IOptionsMonitor<AiModelChoiceOptions> aiModelChoice,
-    IOptionsMonitor<GeminiRotationOptions> geminiRotation) : IUserSettingsStore
+    IOptionsMonitor<GeminiRotationOptions> geminiRotation,
+    IOptionsMonitor<VertexUserOptions> vertexUser) : IUserSettingsStore
 {
     private const string AzureDevOpsSection = "AzureDevOps";
     private const string OrganizationKey = "Organization";
     private const string SshSection = "Ssh";
     private const string ProfilesKey = "Profiles";
+    private const string AiSection = "Ai";
+    private const string VertexUserSection = "VertexUser";
 
     private static readonly JsonSerializerOptions WriteOptions = new() { WriteIndented = true };
 
@@ -56,6 +59,26 @@ public sealed class JsonUserSettingsStore(
             root => root[GeminiRotationOptions.SectionName] = new JsonObject
             {
                 [nameof(GeminiRotationOptions.ActiveKeyId)] = keyId,
+            },
+            cancellationToken);
+
+    public VertexUserSettings GetVertexUserSettings()
+    {
+        var saved = vertexUser.CurrentValue;
+        return new VertexUserSettings(saved.ProjectId, saved.Location);
+    }
+
+    public Task SaveVertexUserSettingsAsync(VertexUserSettings settings, CancellationToken cancellationToken) =>
+        UpdateAsync(
+            root =>
+            {
+                var ai = root[AiSection] as JsonObject ?? [];
+                ai[VertexUserSection] = new JsonObject
+                {
+                    [nameof(VertexUserOptions.ProjectId)] = settings.ProjectId,
+                    [nameof(VertexUserOptions.Location)] = settings.Location,
+                };
+                root[AiSection] = ai;
             },
             cancellationToken);
 

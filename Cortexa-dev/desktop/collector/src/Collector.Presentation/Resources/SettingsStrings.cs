@@ -219,4 +219,53 @@ public static class SettingsStrings
 
     public static string GeminiKeyStatusAnnouncement(int position, string statusLabel) =>
         $"Gemini key {position} {statusLabel.ToLowerInvariant()}";
+
+    public const string ProviderVertexTitle = "Vertex AI";
+    public const string ProviderVertexDescription = "Google Cloud Vertex AI, using a service account.";
+
+    public const string VertexName = "Vertex AI";
+    public const string VertexDescription = "Google Cloud Vertex AI. Uses a service account, project ID, and location.";
+    public const string VertexRunsName = "Process with Vertex AI";
+
+    public const string VertexProjectIdLabel = "_Project ID";
+    public const string VertexProjectIdName = "Vertex AI project ID";
+    public const string VertexProjectIdHelper = "The Google Cloud project ID that hosts your Vertex AI resources.";
+
+    public const string VertexLocationLabel = "_Location";
+    public const string VertexLocationName = "Vertex AI location";
+    public const string VertexLocationHelper = "The Google Cloud region for Vertex AI, such as us-central1.";
+
+    public const string VertexSaEditorHelper =
+        "Paste the service account JSON key, or browse for the file. It won't be shown again.";
+
+    public const string VertexBrowse = "_Browse…";
+    public const string VertexBrowseName = "Browse for a Vertex AI service account JSON file";
+
+    public const string VertexProjectIdEmpty = "Enter the project ID.";
+    public const string VertexLocationEmpty = "Enter the location.";
+    public const string VertexServiceAccountMissing = "Add a service account before saving.";
+
+    public const string VertexServiceAccountInvalid =
+        "That file isn't valid JSON. Paste or browse to a service account key file.";
+
+    public const string VertexClearFailed = "Couldn't remove the service account from Windows Credential Manager. Try again.";
+
+    public const string VertexSaChipSaved = "Saved";
+    public const string VertexSaChipNotSaved = "Not saved";
+    public const string VertexStatusUnknownHelper = "Couldn't read the service account status. Reopen Settings to try again.";
+
+    public const string VertexReadyChip = "Set up";
+    public const string VertexNotReadyChip = "Not set up";
+    public const string VertexWarningTitle = "Not set up for Vertex AI.";
+
+    public const string VertexWarningMessage =
+        "Process stays off until you add a Vertex AI service account, project ID, and location.";
+
+    public const string AddServiceAccount = "Add service account";
+    public const string SaveServiceAccount = "Save service account";
+    public const string KeepServiceAccount = "Keep service account";
+
+    public const string SaveVertexSettings = "Sa_ve settings";
+    public const string SaveVertexSettingsName = "Save Vertex AI settings";
+    public const string DiscardVertexSettingsName = "Discard Vertex AI setting changes";
 }

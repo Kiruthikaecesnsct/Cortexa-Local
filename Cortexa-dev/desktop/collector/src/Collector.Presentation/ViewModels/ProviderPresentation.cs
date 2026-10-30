@@ -14,6 +14,7 @@ public static class ProviderPresentation
         new(CollectorProvider.Gemini, SettingsStrings.ProviderGeminiTitle, SettingsStrings.ProviderGeminiDescription, "G"),
         new(CollectorProvider.Bedrock, SettingsStrings.ProviderBedrockTitle, SettingsStrings.ProviderBedrockDescription, "B"),
         new(CollectorProvider.Groq, SettingsStrings.ProviderGroqTitle, SettingsStrings.ProviderGroqDescription, "Q"),
+        new(CollectorProvider.Vertex, SettingsStrings.ProviderVertexTitle, SettingsStrings.ProviderVertexDescription, "V"),
     ];
 
     public static string Title(CollectorProvider provider) =>
@@ -21,9 +22,23 @@ public static class ProviderPresentation
 
     public static string Chip(CollectorProvider provider, ProviderReadinessState state) => state switch
     {
-        ProviderReadinessState.Ready => provider == CollectorProvider.Bedrock ? SettingsStrings.BedrockConnectedChip : SettingsStrings.ChipKeySet,
-        ProviderReadinessState.Missing => provider == CollectorProvider.Bedrock ? SettingsStrings.BedrockNotConnectedChip : SettingsStrings.ChipKeyNotSet,
+        ProviderReadinessState.Ready => ReadyChip(provider),
+        ProviderReadinessState.Missing => MissingChip(provider),
         ProviderReadinessState.Unknown => SettingsStrings.ChipUnknown,
         _ => SettingsStrings.ChipChecking,
+    };
+
+    private static string ReadyChip(CollectorProvider provider) => provider switch
+    {
+        CollectorProvider.Bedrock => SettingsStrings.BedrockConnectedChip,
+        CollectorProvider.Vertex => SettingsStrings.VertexReadyChip,
+        _ => SettingsStrings.ChipKeySet,
+    };
+
+    private static string MissingChip(CollectorProvider provider) => provider switch
+    {
+        CollectorProvider.Bedrock => SettingsStrings.BedrockNotConnectedChip,
+        CollectorProvider.Vertex => SettingsStrings.VertexNotReadyChip,
+        _ => SettingsStrings.ChipKeyNotSet,
     };
 }

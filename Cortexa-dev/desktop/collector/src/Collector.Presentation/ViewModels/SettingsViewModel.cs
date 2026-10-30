@@ -17,7 +17,12 @@ public sealed record SettingsServices(
     ISessionState Session,
     ISignInService SignIn,
     IBedrockSsoCredentials BedrockSso,
-    IGeminiKeyStatusStore GeminiKeyStatus);
+    IGeminiKeyStatusStore GeminiKeyStatus,
+    IVertexCredentialStore VertexCredentials,
+    ISecretStore Secrets,
+    IUserSettingsStore UserSettingsStore,
+    IVertexSettingsState VertexSettingsState,
+    IFilePicker FilePicker);
 
 public sealed record SettingsSections(
     SettingsNavigator Navigator,
@@ -56,6 +61,15 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
 
         BedrockRow = new BedrockSsoRowViewModel(services.BedrockSso, logger);
         BedrockRow.StatusChanged += OnCredentialStatusChanged;
+        VertexRow = new VertexRowViewModel(
+            services.VertexCredentials,
+            services.Secrets,
+            services.UserSettingsStore,
+            services.VertexSettingsState,
+            services.FilePicker,
+            logger);
+        VertexRow.StatusChanged += OnCredentialStatusChanged;
+        VertexRow.EditorStateChanged += OnEditorStateChanged;
         GeminiKeys = new GeminiKeysGroupViewModel(services.Settings, services.GeminiKeyStatus, logger);
         GeminiKeys.EditorStateChanged += OnEditorStateChanged;
         _session.Changed += (_, _) => UiThread.Post(() => OnPropertyChanged(nameof(ShowGatewayHint)));
@@ -69,6 +83,8 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
     public IReadOnlyList<AiKeyRowViewModel> Rows { get; }
 
     public BedrockSsoRowViewModel BedrockRow { get; }
+
+    public VertexRowViewModel VertexRow { get; }
 
     public GeminiKeysGroupViewModel GeminiKeys { get; }
 
@@ -88,7 +104,7 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
 
     public string SaveLabel => IsSaving ? SettingsStrings.Saving : SettingsStrings.Save;
 
-    public bool IsSaveDefault => !AllRows.Any(row => row.HasEditor) && !GeminiKeys.HasEditor;
+    public bool IsSaveDefault => !AllRows.Any(row => row.HasEditor) && !GeminiKeys.HasEditor && !VertexRow.HasEditor;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsDirty), nameof(ShowGatewayHint))]
@@ -122,6 +138,7 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
         }
 
         _ = BedrockRow.LoadStatusAsync(CancellationToken.None);
+        _ = VertexRow.LoadStatusAsync(CancellationToken.None);
         _ = GeminiKeys.LoadAsync(CancellationToken.None);
         AiModel.OnNavigatedTo();
         FocusSections();
@@ -137,6 +154,7 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
         }
 
         GeminiKeys.CloseEditor(returnFocus: false);
+        VertexRow.CloseEditor(returnFocus: false);
     }
 
     partial void OnSelectedSectionChanged(SettingsSectionItemViewModel? value)
@@ -278,17 +296,21 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
             case AiKeyRowViewModel { HasEditor: true } opened:
                 CloseOtherEditors(opened);
                 break;
+            case VertexRowViewModel { HasEditor: true }:
+                CloseOtherEditors(opened: null);
+                break;
             case GeminiKeysGroupViewModel { HasEditor: true }:
                 foreach (var row in AllRows)
                 {
                     row.CloseEditor(returnFocus: false);
                 }
 
+                VertexRow.CloseEditor(returnFocus: false);
                 break;
         }
     }
 
-    private void CloseOtherEditors(AiKeyRowViewModel opened)
+    private void CloseOtherEditors(AiKeyRowViewModel? opened)
     {
         foreach (var other in AllRows.Where(row => row != opened))
         {
@@ -296,6 +318,10 @@ public sealed partial class SettingsViewModel : FocusableViewModel, INavigationA
         }
 
         GeminiKeys.CloseEditor(returnFocus: false);
+        if (opened is not null)
+        {
+            VertexRow.CloseEditor(returnFocus: false);
+        }
     }
 
     private IEnumerable<AiKeyRowViewModel> AllRows => Rows;

@@ -195,6 +195,33 @@ public sealed class AiModelSectionViewModelTests
     }
 
     [Fact]
+    public async Task Refresh_VertexNotSetUp_ShowsTheVertexWarning()
+    {
+        _harness.Readiness.States[CollectorProvider.Vertex] = ProviderReadinessState.Missing;
+        var section = _harness.CreateSection();
+        Card(section, CollectorProvider.Vertex).IsSelected = true;
+
+        await section.RefreshReadinessAsync();
+
+        Assert.Equal(SettingsStrings.VertexWarningTitle, section.ReadinessBanner!.Title);
+        Assert.Equal(SettingsStrings.VertexWarningMessage, section.ReadinessBanner.Message);
+        Assert.Equal(SettingsStrings.VertexNotReadyChip, Card(section, CollectorProvider.Vertex).ChipText);
+    }
+
+    [Fact]
+    public async Task Refresh_VertexReady_ShowsTheVertexReadyChip()
+    {
+        _harness.Readiness.States[CollectorProvider.Vertex] = ProviderReadinessState.Ready;
+        var section = _harness.CreateSection();
+        Card(section, CollectorProvider.Vertex).IsSelected = true;
+
+        await section.RefreshReadinessAsync();
+
+        Assert.Null(section.ReadinessBanner);
+        Assert.Equal(SettingsStrings.VertexReadyChip, Card(section, CollectorProvider.Vertex).ChipText);
+    }
+
+    [Fact]
     public async Task Refresh_AllProvidersReady_ShowsNoBannerAndTheReadyChips()
     {
         var section = _harness.CreateSection();
@@ -311,5 +338,10 @@ public sealed class AiModelSectionViewModelTests
     }
 
     private static ProviderReadiness CreateReadiness(StubBedrockSso sso, InMemorySecretStore secrets) =>
-        new(new SettingsService(new FakeUserSettingsStore(), secrets, new FakeGeminiKeyStore()), sso, NullLogger<ProviderReadiness>.Instance);
+        new(
+            new SettingsService(new FakeUserSettingsStore(), secrets, new FakeGeminiKeyStore()),
+            sso,
+            new FakeVertexCredentialStore(),
+            new FakeVertexSettingsState(),
+            NullLogger<ProviderReadiness>.Instance);
 }

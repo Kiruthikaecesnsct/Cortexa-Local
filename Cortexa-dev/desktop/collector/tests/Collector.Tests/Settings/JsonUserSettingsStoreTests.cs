@@ -25,7 +25,8 @@ public sealed class JsonUserSettingsStoreTests : IDisposable
         new StaticMonitor<GatewayOptions>(new GatewayOptions { BaseUrl = "https://current-gw.example" }),
         new StaticMonitor<RemoteSourceOptions>(new RemoteSourceOptions()),
         new StaticMonitor<AiModelChoiceOptions>(choice ?? new AiModelChoiceOptions()),
-        new StaticMonitor<GeminiRotationOptions>(new GeminiRotationOptions()));
+        new StaticMonitor<GeminiRotationOptions>(new GeminiRotationOptions()),
+        new StaticMonitor<VertexUserOptions>(new VertexUserOptions()));
 
     [Fact]
     public void Reads_current_endpoints_from_options()

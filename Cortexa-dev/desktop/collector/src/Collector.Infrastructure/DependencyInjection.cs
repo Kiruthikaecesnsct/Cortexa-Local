@@ -40,6 +40,7 @@ public static class DependencyInjection
         services.AddSingleton<IVertexCredentialStore, VertexCredentialStore>();
         services.AddSingleton<IAuthClient, GatewayAuthClient>();
         services.AddSingleton<IUserSettingsStore, JsonUserSettingsStore>();
+        services.AddSingleton<IVertexSettingsState, VertexSettingsState>();
         services.AddSingleton<SqliteConnectionFactory>();
         services.AddSingleton<ILocalCacheInitializer, SqliteCacheInitializer>();
         services.AddSingleton<IDocumentStore, SqliteDocumentStore>();
@@ -87,6 +88,7 @@ public static class DependencyInjection
             CandidateStageWeights.SectionName);
         services.AddOptions<AiModelChoiceOptions>().Bind(configuration.GetSection(AiModelChoiceOptions.SectionName));
         services.AddOptions<GeminiRotationOptions>().Bind(configuration.GetSection(GeminiRotationOptions.SectionName));
+        services.AddOptions<VertexUserOptions>().Bind(configuration.GetSection(VertexUserOptions.SectionName));
         services.AddSingleton<IProviderModelCatalog, ProviderModelCatalogAdapter>();
         services.AddOptions<ProviderModelCatalog>().Bind(configuration.GetSection(ProviderModelCatalog.SectionName));
         services.AddOptions<ExtractionOptions>().Bind(configuration.GetSection(ExtractionOptions.SectionName));
@@ -157,7 +159,6 @@ public static class DependencyInjection
             .ConfigureHttpClient((sp, client) =>
             {
                 var vertexOptions = sp.GetRequiredService<IOptions<VertexProviderOptions>>().Value;
-                client.BaseAddress = new Uri(VertexEndpoints.BaseAddress(vertexOptions.Location));
                 client.Timeout = TimeSpan.FromSeconds(vertexOptions.TimeoutSeconds);
             })
             .ConfigurePrimaryHttpMessageHandler(CreateCookielessHandler)

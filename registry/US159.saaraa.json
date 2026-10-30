@@ -4,42 +4,42 @@
   "machine": "saaraa",
   "env": "windows",
   "branch": "develop/US159",
-  "status": "implementing",
+  "status": "review",
   "files": [
-    "desktop/collector/src/Collector.Application/Ports/IUserSettingsStore.cs",
-    "desktop/collector/src/Collector.Infrastructure/Ai/VertexDirectProvider.cs",
-    "desktop/collector/src/Collector.Infrastructure/Ai/VertexEndpoints.cs",
-    "desktop/collector/src/Collector.Infrastructure/DependencyInjection.cs",
-    "desktop/collector/src/Collector.Infrastructure/Settings/JsonUserSettingsStore.cs",
-    "desktop/collector/src/Collector.Presentation/Resources/SettingsStrings.cs",
-    "desktop/collector/src/Collector.Presentation/Services/ProviderReadiness.cs",
-    "desktop/collector/src/Collector.Presentation/Themes/DataTemplates.xaml",
-    "desktop/collector/src/Collector.Presentation/ViewModels/AiModelSectionViewModel.cs",
-    "desktop/collector/src/Collector.Presentation/ViewModels/ProviderPresentation.cs",
-    "desktop/collector/src/Collector.Presentation/ViewModels/SettingsViewModel.cs",
-    "desktop/collector/src/Collector.Presentation/Views/Settings/ProviderKeysSectionView.xaml",
-    "desktop/collector/src/Collector.Application/Ports/IVertexSettingsState.cs",
-    "desktop/collector/src/Collector.Application/Settings/VertexEffectiveSettings.cs",
-    "desktop/collector/src/Collector.Application/Settings/VertexUserSettings.cs",
-    "desktop/collector/src/Collector.Infrastructure/Options/VertexUserOptions.cs",
-    "desktop/collector/src/Collector.Infrastructure/Settings/VertexSettingsState.cs",
-    "desktop/collector/src/Collector.Presentation/ViewModels/VertexRowViewModel.cs",
-    "desktop/collector/src/Collector.Presentation/ViewModels/VertexSaChipKind.cs",
-    "desktop/collector/src/Collector.Presentation/ViewModels/VertexSaEditorViewModel.cs",
-    "desktop/collector/src/Collector.Presentation/Views/VertexRowView.xaml",
-    "desktop/collector/src/Collector.Presentation/Views/VertexRowView.xaml.cs",
-    "desktop/collector/tests/Collector.Tests/Ai/VertexDirectProviderTests.cs",
-    "desktop/collector/tests/Collector.Tests/Ai/VertexWire.cs",
-    "desktop/collector/tests/Collector.Tests/Presentation/AiModelSectionViewModelTests.cs",
-    "desktop/collector/tests/Collector.Tests/Presentation/PresentationFakes.cs",
-    "desktop/collector/tests/Collector.Tests/Settings/JsonUserSettingsStoreRemoteTests.cs",
-    "desktop/collector/tests/Collector.Tests/Settings/JsonUserSettingsStoreTests.cs",
-    "desktop/collector/tests/Collector.Tests/Support/Fakes.cs",
-    "desktop/collector/tests/Collector.Tests/Presentation/ProviderReadinessTests.cs",
-    "desktop/collector/tests/Collector.Tests/Presentation/VertexRowViewModelTests.cs",
+    "desktop/collector/src/Collector.Application/Ports/IUserSettingsStore.cs",
+    "desktop/collector/src/Collector.Infrastructure/Ai/VertexDirectProvider.cs",
+    "desktop/collector/src/Collector.Infrastructure/Ai/VertexEndpoints.cs",
+    "desktop/collector/src/Collector.Infrastructure/DependencyInjection.cs",
+    "desktop/collector/src/Collector.Infrastructure/Settings/JsonUserSettingsStore.cs",
+    "desktop/collector/src/Collector.Presentation/Resources/SettingsStrings.cs",
+    "desktop/collector/src/Collector.Presentation/Services/ProviderReadiness.cs",
+    "desktop/collector/src/Collector.Presentation/Themes/DataTemplates.xaml",
+    "desktop/collector/src/Collector.Presentation/ViewModels/AiModelSectionViewModel.cs",
+    "desktop/collector/src/Collector.Presentation/ViewModels/ProviderPresentation.cs",
+    "desktop/collector/src/Collector.Presentation/ViewModels/SettingsViewModel.cs",
+    "desktop/collector/src/Collector.Presentation/Views/Settings/ProviderKeysSectionView.xaml",
+    "desktop/collector/src/Collector.Application/Ports/IVertexSettingsState.cs",
+    "desktop/collector/src/Collector.Application/Settings/VertexEffectiveSettings.cs",
+    "desktop/collector/src/Collector.Application/Settings/VertexUserSettings.cs",
+    "desktop/collector/src/Collector.Infrastructure/Options/VertexUserOptions.cs",
+    "desktop/collector/src/Collector.Infrastructure/Settings/VertexSettingsState.cs",
+    "desktop/collector/src/Collector.Presentation/ViewModels/VertexRowViewModel.cs",
+    "desktop/collector/src/Collector.Presentation/ViewModels/VertexSaChipKind.cs",
+    "desktop/collector/src/Collector.Presentation/ViewModels/VertexSaEditorViewModel.cs",
+    "desktop/collector/src/Collector.Presentation/Views/VertexRowView.xaml",
+    "desktop/collector/src/Collector.Presentation/Views/VertexRowView.xaml.cs",
+    "desktop/collector/tests/Collector.Tests/Ai/VertexDirectProviderTests.cs",
+    "desktop/collector/tests/Collector.Tests/Ai/VertexWire.cs",
+    "desktop/collector/tests/Collector.Tests/Presentation/AiModelSectionViewModelTests.cs",
+    "desktop/collector/tests/Collector.Tests/Presentation/PresentationFakes.cs",
+    "desktop/collector/tests/Collector.Tests/Settings/JsonUserSettingsStoreRemoteTests.cs",
+    "desktop/collector/tests/Collector.Tests/Settings/JsonUserSettingsStoreTests.cs",
+    "desktop/collector/tests/Collector.Tests/Support/Fakes.cs",
+    "desktop/collector/tests/Collector.Tests/Presentation/ProviderReadinessTests.cs",
+    "desktop/collector/tests/Collector.Tests/Presentation/VertexRowViewModelTests.cs",
     "desktop/collector/tests/Collector.Tests/Settings/VertexSettingsStateTests.cs"
   ],
   "started": "2026-10-30T05:39:24Z",
-  "heartbeat": "2026-10-30T06:29:47Z",
+  "heartbeat": "2026-10-30T07:14:09Z",
   "schema": 2
 }

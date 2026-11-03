@@ -1,6 +1,7 @@
 using Collector.Application.Candidates;
 using Collector.Application.History;
 using Collector.Application.Settings;
+using Collector.Domain.Enums;
 using Microsoft.Extensions.Logging;
 
 namespace Collector.Presentation.Services;
@@ -32,7 +33,7 @@ public sealed class CandidateRunner(
 
     private async Task<int> ConfiguredKeyCountAsync(CandidateRunResult result, CancellationToken cancellationToken)
     {
-        if (!result.Documents.Any(IsKeyRelated))
+        if (result.Provider != CollectorProvider.Gemini || !result.Documents.Any(IsKeyRelated))
         {
             return 0;
         }

@@ -26,6 +26,12 @@ internal static partial class VertexErrorMapper
         return new AiProviderException(KindFor(status), Describe(status), statusCode: (int)status);
     }
 
+    public static string? ReadDiagnostic(string? body)
+    {
+        var detail = ReadErrorDetail(body);
+        return detail is null ? null : $"{detail.Status}: {detail.Message}";
+    }
+
     public static AiProviderException MapUnreachable(Exception exception) =>
         new(AiFailureKind.Transient, "The Vertex AI service could not be reached.", exception);
 
@@ -49,7 +55,9 @@ internal static partial class VertexErrorMapper
             : null;
     }
 
-    private static string? ReadErrorMessage(string? body)
+    private static string? ReadErrorMessage(string? body) => ReadErrorDetail(body)?.Message;
+
+    private static VertexErrorDetailWire? ReadErrorDetail(string? body)
     {
         if (string.IsNullOrWhiteSpace(body))
         {
@@ -59,7 +67,7 @@ internal static partial class VertexErrorMapper
         try
         {
             var envelope = JsonSerializer.Deserialize(body, VertexJson.Default.VertexErrorEnvelopeWire);
-            return envelope?.Error?.Message;
+            return envelope?.Error;
         }
         catch (JsonException)
         {

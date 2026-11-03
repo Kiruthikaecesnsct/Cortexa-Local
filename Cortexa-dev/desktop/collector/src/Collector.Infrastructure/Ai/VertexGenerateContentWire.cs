@@ -10,7 +10,7 @@ internal sealed record VertexContentWire(string? Role, List<VertexPartWire> Part
 internal sealed record VertexGenerationConfigWire(
     int MaxOutputTokens,
     string ResponseMimeType,
-    JsonElement ResponseSchema,
+    JsonElement ResponseJsonSchema,
     double? Temperature);
 
 internal sealed record VertexGenerateContentRequestWire(

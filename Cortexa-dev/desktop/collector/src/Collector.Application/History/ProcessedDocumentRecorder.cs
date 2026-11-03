@@ -24,18 +24,18 @@ public sealed class ProcessedDocumentRecorder(
 
         foreach (var result in run.Documents.Where(result => result.Outcome != CandidateOutcome.Canceled))
         {
-            await RecordOneAsync(userId, run.Model, result, cancellationToken);
+            await RecordOneAsync(userId, run, result, cancellationToken);
         }
     }
 
-    private async Task RecordOneAsync(string userId, string model, CandidateDocumentResult result, CancellationToken cancellationToken)
+    private async Task RecordOneAsync(string userId, CandidateRunResult run, CandidateDocumentResult result, CancellationToken cancellationToken)
     {
         try
         {
             var document = await documentStore.GetAsync(result.DocumentId, cancellationToken);
             if (document is not null)
             {
-                await SaveAsync(ToRecord(userId, model, document, result), cancellationToken);
+                await SaveAsync(ToRecord(userId, run, document, result), cancellationToken);
             }
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
@@ -56,7 +56,7 @@ public sealed class ProcessedDocumentRecorder(
         await repository.UpsertAsync(existing is null ? next : next with { CreatedAt = existing.CreatedAt }, cancellationToken);
     }
 
-    private ProcessedDocumentRecord ToRecord(string userId, string model, CollectorDocument document, CandidateDocumentResult result)
+    private ProcessedDocumentRecord ToRecord(string userId, CandidateRunResult run, CollectorDocument document, CandidateDocumentResult result)
     {
         var now = time.GetUtcNow();
         return new ProcessedDocumentRecord
@@ -69,8 +69,8 @@ public sealed class ProcessedDocumentRecorder(
             SourcePath = document.SourcePath,
             SizeBytes = document.SizeBytes,
             ContentHash = document.ContentHash,
-            Provider = CollectorProvider.Gemini.ToString(),
-            Model = model,
+            Provider = run.Provider.ToString(),
+            Model = run.Model,
             Status = result.Outcome == CandidateOutcome.Completed ? ProcessedStatus.Succeeded : ProcessedStatus.Failed,
             Outcome = result.Outcome,
             FailureReason = result.Outcome == CandidateOutcome.Completed ? null : result.Reason ?? result.Outcome.ToString(),

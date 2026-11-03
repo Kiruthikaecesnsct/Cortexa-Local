@@ -1,4 +1,5 @@
 using Collector.Application.Ports;
+using Collector.Domain.Enums;
 
 namespace Collector.Application.Candidates;
 
@@ -17,10 +18,11 @@ public sealed record InputLimitResult
         new() { IsWithin = false, TokenCount = tokenCount, Limit = limit };
 }
 
-public sealed class GeminiInputLimitCheck(IGeminiInputBudget budget)
+public sealed class InputLimitCheck(IAiInputBudgetFactory budgets)
 {
-    public async Task<InputLimitResult> CheckAsync(AiRequest request, CancellationToken cancellationToken)
+    public async Task<InputLimitResult> CheckAsync(CollectorProvider provider, AiRequest request, CancellationToken cancellationToken)
     {
+        var budget = budgets.Resolve(provider);
         var count = await budget.CountAsync(request, cancellationToken);
         var limit = budget.MaxInputTokens;
         return count > limit ? InputLimitResult.DocumentTooLarge(count, limit) : InputLimitResult.Within(count, limit);

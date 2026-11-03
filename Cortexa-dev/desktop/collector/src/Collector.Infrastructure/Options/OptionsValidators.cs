@@ -490,3 +490,18 @@ public sealed class RemoteSourceOptionsValidator : IValidateOptions<RemoteSource
         }
     }
 }
+
+public sealed class AiInputLimitOptionsValidator : IValidateOptions<AiInputLimitOptions>
+{
+    private static readonly CollectorProvider[] Required =
+        [CollectorProvider.Claude, CollectorProvider.Bedrock, CollectorProvider.Groq, CollectorProvider.Vertex];
+
+    public ValidateOptionsResult Validate(string? name, AiInputLimitOptions options)
+    {
+        var failures = Required
+            .Where(provider => !options.MaxInputTokens.TryGetValue(provider, out var limit) || limit <= 0)
+            .Select(provider => $"{AiInputLimitOptions.SectionName}:{nameof(options.MaxInputTokens)}:{provider} must be greater than zero.")
+            .ToList();
+        return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
+    }
+}

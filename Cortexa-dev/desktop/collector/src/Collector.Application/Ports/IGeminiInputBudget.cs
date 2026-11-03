@@ -1,8 +1,5 @@
 namespace Collector.Application.Ports;
 
-public interface IGeminiInputBudget
+public interface IGeminiInputBudget : IAiInputBudget
 {
-    int MaxInputTokens { get; }
-
-    Task<int> CountAsync(AiRequest request, CancellationToken cancellationToken);
 }

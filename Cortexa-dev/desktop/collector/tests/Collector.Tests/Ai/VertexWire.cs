@@ -5,6 +5,7 @@ using Collector.Application.Settings;
 using Collector.Infrastructure.Ai;
 using Collector.Infrastructure.Options;
 using Collector.Tests.Support;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Collector.Tests.Ai;
 
@@ -70,7 +71,12 @@ internal static class VertexWire
         var factory = new BaseAddressClientFactory(handler, BaseAddress);
         var state = settingsState ?? new FakeVertexSettingsState(
             new VertexEffectiveSettings(resolvedOptions.ProjectId, resolvedOptions.Location));
-        return new VertexDirectProvider(factory, tokenSource ?? new FakeVertexTokenSource(), state, settings);
+        return new VertexDirectProvider(
+            factory,
+            tokenSource ?? new FakeVertexTokenSource(),
+            state,
+            settings,
+            NullLogger<VertexDirectProvider>.Instance);
     }
 
     public static VertexProviderOptions DefaultOptions() => new()

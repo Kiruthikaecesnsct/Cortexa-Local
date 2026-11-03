@@ -33,6 +33,19 @@ public sealed class VertexDirectProviderTests
     }
 
     [Fact]
+    public async Task CompleteAsync_OutputSchema_IsSentAsJsonSchemaNotOpenApiSchema()
+    {
+        var handler = VertexWire.Ok();
+
+        await CompleteAsync(handler);
+
+        using var body = System.Text.Json.JsonDocument.Parse(handler.Requests.Single().Body);
+        var config = body.RootElement.GetProperty("generationConfig");
+        Assert.False(config.TryGetProperty("responseSchema", out _));
+        Assert.True(config.TryGetProperty("responseJsonSchema", out _));
+    }
+
+    [Fact]
     public async Task CompleteAsync_EffectiveSettingsOverrideProjectAndLocation_UsesEffectiveValuesNotStaticOptions()
     {
         var handler = VertexWire.Ok();
@@ -47,6 +60,21 @@ public sealed class VertexDirectProviderTests
         var expectedUrl =
             $"https://{effective.Location}-aiplatform.googleapis.com/v1/projects/{effective.ProjectId}/locations/{effective.Location}/publishers/google/models/{staticOptions.Model}:generateContent";
         Assert.Equal(expectedUrl, request.Uri?.ToString());
+    }
+
+    [Fact]
+    public async Task CompleteAsync_GlobalLocation_UsesHostWithoutRegionPrefix()
+    {
+        var handler = VertexWire.Ok();
+        var staticOptions = VertexWire.DefaultOptions();
+        var settingsState = new FakeVertexSettingsState(new VertexEffectiveSettings(VertexWire.ProjectId, "global"));
+
+        await VertexWire.Provider(handler, staticOptions, settingsState: settingsState)
+            .CompleteAsync(VertexWire.Request, TestSupport.Ct);
+
+        var expectedUrl =
+            $"https://aiplatform.googleapis.com/v1/projects/{VertexWire.ProjectId}/locations/global/publishers/google/models/{staticOptions.Model}:generateContent";
+        Assert.Equal(expectedUrl, handler.Requests.Single().Uri?.ToString());
     }
 
     [Fact]

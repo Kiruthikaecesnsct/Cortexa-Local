@@ -34,14 +34,19 @@ public sealed class IdentifyCandidatesHandlerTests : IDisposable
         return document.Id;
     }
 
-    private IdentifyCandidatesHandler Handler(IAiProvider provider, int concurrency = 1, int tokens = TokenCount, IGeminiModelExhaustion? tracker = null)
+    private IdentifyCandidatesHandler Handler(
+        IAiProvider provider,
+        int concurrency = 1,
+        int tokens = TokenCount,
+        IGeminiModelExhaustion? tracker = null,
+        CandidateHandlerChoice? choice = null)
     {
         var prompt = CandidatePromptLoader.Load();
         var builder = new CandidatePromptBuilder(prompt, new UntrustedSourceGuard(KnowledgePromptLoader.Load()));
         var preparer = new DocumentPreparer(
             new WholeDocumentReader(new FakePdfTextExtractor(), new FakeDocxTextExtractor(), new FileContentGuard(), new TextNormalizer()),
             builder,
-            new GeminiInputLimitCheck(new FakeInputBudget(tokens, TokenLimit)));
+            new InputLimitCheck((choice ?? new CandidateHandlerChoice()).Budgets(tokens, TokenLimit)));
         var runner = new DocumentCandidateRunner(
             preparer,
             new SingleProviderFactory(provider, concurrency),
@@ -51,7 +56,22 @@ public sealed class IdentifyCandidatesHandlerTests : IDisposable
             _store,
             new SingleProviderFactory(provider, concurrency),
             runner,
-            tracker ?? new Collector.Infrastructure.Ai.GeminiModelExhaustionTracker());
+            tracker ?? new Collector.Infrastructure.Ai.GeminiModelExhaustionTracker(),
+            CandidateChoice.For((choice ?? new CandidateHandlerChoice()).Provider));
+    }
+
+    [Fact]
+    public async Task IdentifyAsync_SelectedProviderIsVertex_UsesVertexForBudgetAndResult()
+    {
+        var ids = new[] { await AddDocumentAsync("a.txt") };
+        var choice = new CandidateHandlerChoice { Provider = CollectorProvider.Vertex };
+        var provider = new ScriptedAiProvider().Then(Completions.Completed(Reply(Quote)));
+
+        var result = await Handler(provider, choice: choice).IdentifyAsync(new CandidateRunRequest(ids), null, TestSupport.Ct);
+
+        Assert.Equal(CollectorProvider.Vertex, result.Provider);
+        Assert.Equal(CollectorProvider.Vertex, choice.BudgetFactory!.LastProvider);
+        Assert.Equal(CandidateOutcome.Completed, result.Documents[0].Outcome);
     }
 
     [Fact]
@@ -164,7 +184,7 @@ public sealed class IdentifyCandidatesHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task IdentifyAsync_RequestCarriesNoFileNameAndNoModelOverride()
+    public async Task IdentifyAsync_RequestCarriesNoFileNameAndTheSelectedModel()
     {
         var id = await AddDocumentAsync("secret-name.txt");
         var provider = new ScriptedAiProvider().Then(Completions.Completed("{\"candidates\":[]}"));
@@ -172,7 +192,7 @@ public sealed class IdentifyCandidatesHandlerTests : IDisposable
         await Handler(provider).IdentifyAsync(new CandidateRunRequest([id]), null, TestSupport.Ct);
 
         var request = Assert.Single(provider.Requests);
-        Assert.Null(request.Model);
+        Assert.Equal(CandidateChoice.For(CollectorProvider.Gemini).Current.Model, request.Model);
         Assert.DoesNotContain("secret-name", request.UserText, StringComparison.Ordinal);
         Assert.Contains(DocumentText, request.UserText, StringComparison.Ordinal);
     }

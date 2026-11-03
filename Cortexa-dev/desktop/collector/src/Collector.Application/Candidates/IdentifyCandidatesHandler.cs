@@ -1,4 +1,5 @@
 using Collector.Application.Ports;
+using Collector.Application.Settings;
 using Collector.Domain.Documents;
 using Collector.Domain.Enums;
 
@@ -8,7 +9,8 @@ public sealed class IdentifyCandidatesHandler(
     IDocumentStore documentStore,
     IAiProviderFactory providerFactory,
     DocumentCandidateRunner runner,
-    IGeminiModelExhaustion exhaustion)
+    IGeminiModelExhaustion exhaustion,
+    AiModelChoiceService modelChoice)
 {
     private const string NotFoundReason = "document not found";
 
@@ -18,19 +20,21 @@ public sealed class IdentifyCandidatesHandler(
         CancellationToken cancellationToken)
     {
         exhaustion.Reset();
+        var choice = modelChoice.Current;
+        var context = new CandidateRunContext(choice.Provider, choice.Model);
         var ids = request.DistinctDocumentIds;
         var results = ids.Select(id => CandidateDocumentResult.Canceled(id, id)).ToArray();
         var state = new RunState(ids.Count, progress);
         try
         {
             var documents = await LoadAsync(ids, results, state, cancellationToken);
-            await RunAllAsync(documents, results, state, cancellationToken);
+            await RunAllAsync(documents, results, new RunScope(context, state), cancellationToken);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
         }
 
-        return new CandidateRunResult(results, state.Model ?? string.Empty);
+        return new CandidateRunResult(results, context.Provider, state.Model ?? context.Model);
     }
 
     private async Task<CollectorDocument?[]> LoadAsync(
@@ -56,23 +60,26 @@ public sealed class IdentifyCandidatesHandler(
     private async Task RunAllAsync(
         CollectorDocument?[] documents,
         CandidateDocumentResult[] results,
-        RunState state,
+        RunScope scope,
         CancellationToken cancellationToken)
     {
+        var state = scope.State;
         var options = new ParallelOptions
         {
-            MaxDegreeOfParallelism = Math.Max(1, providerFactory.ConcurrencyFor(CollectorProvider.Gemini)),
+            MaxDegreeOfParallelism = Math.Max(1, providerFactory.ConcurrencyFor(scope.Context.Provider)),
             CancellationToken = cancellationToken,
         };
         var indexes = Enumerable.Range(0, documents.Length).Where(index => documents[index] is not null);
         await Parallel.ForEachAsync(indexes, options, async (index, token) =>
         {
             void ReportStage(CandidateStage stage, double fraction) => state.ReportStage(index, stage, fraction);
-            var run = await runner.RunAsync(documents[index]!, ReportStage, token);
+            var run = await runner.RunAsync(documents[index]!, scope.Context, ReportStage, token);
             results[index] = run.Result;
             state.Record(index, run);
         });
     }
+
+    private sealed record RunScope(CandidateRunContext Context, RunState State);
 
     private sealed class RunState(int total, IProgress<CandidateProgress>? progress)
     {

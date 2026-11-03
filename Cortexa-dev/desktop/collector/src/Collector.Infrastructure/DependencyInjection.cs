@@ -91,6 +91,9 @@ public static class DependencyInjection
         services.AddOptions<VertexUserOptions>().Bind(configuration.GetSection(VertexUserOptions.SectionName));
         services.AddSingleton<IProviderModelCatalog, ProviderModelCatalogAdapter>();
         services.AddOptions<ProviderModelCatalog>().Bind(configuration.GetSection(ProviderModelCatalog.SectionName));
+        services.AddValidatedOptions<AiInputLimitOptions, AiInputLimitOptionsValidator>(
+            configuration,
+            AiInputLimitOptions.SectionName);
         services.AddOptions<ExtractionOptions>().Bind(configuration.GetSection(ExtractionOptions.SectionName));
         services.AddOptions<KnowledgeExtractionOptions>()
             .Configure<IOptions<AiOptions>>((extraction, ai) => AiProviderSelection.Apply(extraction, ai.Value));
@@ -103,6 +106,7 @@ public static class DependencyInjection
         services.AddSingleton<GeminiClientFactory>();
         services.AddSingleton<GeminiDirectProvider>();
         services.AddSingleton<IGeminiInputBudget, GeminiInputBudget>();
+        services.AddSingleton<IAiInputBudgetFactory, AiInputBudgetSelection>();
         services.AddSingleton<IGeminiModelExhaustion, GeminiModelExhaustionTracker>();
         services.AddSingleton<GeminiModelFallback>();
         services.AddSingleton<GeminiQuotaWait>();

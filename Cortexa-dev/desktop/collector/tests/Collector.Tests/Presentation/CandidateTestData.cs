@@ -1,4 +1,5 @@
 using Collector.Application.Candidates;
+using Collector.Domain.Enums;
 using Collector.Presentation.Services;
 using Microsoft.Extensions.Options;
 
@@ -25,7 +26,7 @@ internal static class CandidateData
     public static CandidateDocumentResult TooLargeSize(string name, long size, long cap) =>
         new($"id-{name}", name, CandidateOutcome.TooLarge, null, null, null, size, cap, []);
 
-    public static CandidateRunResult Result(params CandidateDocumentResult[] documents) => new(documents, Model);
+    public static CandidateRunResult Result(params CandidateDocumentResult[] documents) => new(documents, CollectorProvider.Gemini, Model);
 
     public static CandidateRunOutcome Outcome(CandidateRunResult result, bool canceled = false, int keys = 0) =>
         new(result, canceled, keys);

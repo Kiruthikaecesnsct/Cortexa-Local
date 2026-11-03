@@ -233,7 +233,7 @@ public static class SettingsStrings
 
     public const string VertexLocationLabel = "_Location";
     public const string VertexLocationName = "Vertex AI location";
-    public const string VertexLocationHelper = "The Google Cloud region for Vertex AI, such as us-central1.";
+    public const string VertexLocationHelper = "The Google Cloud region for Vertex AI, such as us-central1, or global.";
 
     public const string VertexSaEditorHelper =
         "Paste the service account JSON key, or browse for the file. It won't be shown again.";

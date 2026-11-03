@@ -5,6 +5,7 @@ using Collector.Application.Ports;
 using Collector.Application.Settings;
 using Collector.Infrastructure.Http;
 using Collector.Infrastructure.Options;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace Collector.Infrastructure.Ai;
@@ -13,7 +14,8 @@ public sealed class VertexDirectProvider(
     IHttpClientFactory httpClients,
     IVertexTokenSource tokenSource,
     IVertexSettingsState settingsState,
-    IOptions<VertexProviderOptions> options) : IAiProvider
+    IOptions<VertexProviderOptions> options,
+    ILogger<VertexDirectProvider> logger) : IAiProvider
 {
     private const string BearerScheme = "Bearer";
 
@@ -45,21 +47,30 @@ public sealed class VertexDirectProvider(
         }
     }
 
-    private static async Task<string> SendOnceAsync(
+    private async Task<string> SendOnceAsync(
         HttpClient client,
         VertexCallContext context,
         CancellationToken cancellationToken)
     {
         using var httpRequest = BuildRequest(context);
+        logger.LogInformation(
+            "Vertex AI request on model {Model} in location {Location}.",
+            context.Model,
+            context.Effective.Location);
         var response = await SendRequestAsync(client, httpRequest, cancellationToken).ConfigureAwait(false);
         using (response)
         {
             var responseBody = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             if (!response.IsSuccessStatusCode)
             {
+                logger.LogWarning(
+                    "Vertex AI returned {StatusCode}. Google says: {Diagnostic}",
+                    (int)response.StatusCode,
+                    VertexErrorMapper.ReadDiagnostic(responseBody) ?? "no error body");
                 throw VertexErrorMapper.Map(response.StatusCode, responseBody, context.Model);
             }
 
+            logger.LogInformation("Vertex AI responded {StatusCode} for model {Model}.", (int)response.StatusCode, context.Model);
             return responseBody;
         }
     }

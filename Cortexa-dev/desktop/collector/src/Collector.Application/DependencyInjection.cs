@@ -98,7 +98,7 @@ public static class DependencyInjection
     {
         services.AddSingleton(CandidatePromptLoader.Load());
         services.AddSingleton<WholeDocumentReader>();
-        services.AddSingleton<GeminiInputLimitCheck>();
+        services.AddSingleton<InputLimitCheck>();
         services.AddSingleton<CandidatePromptBuilder>();
         services.AddSingleton<CandidateParser>();
         services.AddSingleton<ExcerptVerifier>();

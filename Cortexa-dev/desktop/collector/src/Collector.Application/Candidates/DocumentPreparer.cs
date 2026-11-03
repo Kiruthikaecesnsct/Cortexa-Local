@@ -19,12 +19,13 @@ public sealed record PreparationResult
 public sealed class DocumentPreparer(
     WholeDocumentReader reader,
     CandidatePromptBuilder promptBuilder,
-    GeminiInputLimitCheck limitCheck)
+    InputLimitCheck limitCheck)
 {
     private const string TooLargeReason = "document exceeds the model input limit";
 
     public async Task<PreparationResult> PrepareAsync(
         CollectorDocument document,
+        CandidateRunContext context,
         Action<CandidateStage, double> reportStage,
         CancellationToken cancellationToken)
     {
@@ -36,8 +37,8 @@ public sealed class DocumentPreparer(
         }
 
         reportStage(CandidateStage.Extraction, 0d);
-        var request = promptBuilder.Build(read.Document!);
-        var limit = await limitCheck.CheckAsync(request, cancellationToken);
+        var request = promptBuilder.Build(read.Document!) with { Model = context.Model };
+        var limit = await limitCheck.CheckAsync(context.Provider, request, cancellationToken);
         return limit.IsWithin
             ? PreparationResult.Ready(new PreparedDocument(read.Document!, request, limit))
             : PreparationResult.Rejected(TooLarge(document, limit.TokenCount, limit.Limit));

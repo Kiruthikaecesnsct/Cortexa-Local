@@ -15,12 +15,13 @@ public sealed class DocumentCandidateRunner(
 {
     public async Task<DocumentRun> RunAsync(
         CollectorDocument document,
+        CandidateRunContext context,
         Action<CandidateStage, double> reportStage,
         CancellationToken cancellationToken)
     {
         try
         {
-            var run = await RunCoreAsync(document, reportStage, cancellationToken);
+            var run = await RunCoreAsync(document, context, reportStage, cancellationToken);
             LogOutcome(document, run.Result);
             return run;
         }
@@ -69,10 +70,11 @@ public sealed class DocumentCandidateRunner(
 
     private async Task<DocumentRun> RunCoreAsync(
         CollectorDocument document,
+        CandidateRunContext context,
         Action<CandidateStage, double> reportStage,
         CancellationToken cancellationToken)
     {
-        var preparation = await preparer.PrepareAsync(document, reportStage, cancellationToken);
+        var preparation = await preparer.PrepareAsync(document, context, reportStage, cancellationToken);
         if (preparation.Prepared is not { } prepared)
         {
             reportStage(CandidateStage.Save, 1d);
@@ -80,7 +82,7 @@ public sealed class DocumentCandidateRunner(
         }
 
         reportStage(CandidateStage.LlmCall, 0d);
-        var completion = await providerFactory.Resolve(CollectorProvider.Gemini).CompleteAsync(prepared.Request, cancellationToken);
+        var completion = await providerFactory.Resolve(context.Provider).CompleteAsync(prepared.Request, cancellationToken);
         reportStage(CandidateStage.Save, 0d);
         var run = interpreter.Interpret(document, prepared, completion);
         reportStage(CandidateStage.Save, 1d);

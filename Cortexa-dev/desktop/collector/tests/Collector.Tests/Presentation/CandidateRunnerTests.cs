@@ -49,7 +49,7 @@ public sealed class CandidateRunnerTests : IDisposable
         var preparer = new DocumentPreparer(
             new WholeDocumentReader(new FakePdfTextExtractor(), new FakeDocxTextExtractor(), new FileContentGuard(), new TextNormalizer()),
             builder,
-            new GeminiInputLimitCheck(new FakeInputBudget(TokenCount, TokenLimit)));
+            new InputLimitCheck(new FakeInputBudgetFactory(new FakeInputBudget(TokenCount, TokenLimit))));
         var factory = new SingleProviderFactory(provider);
         var runner = new DocumentCandidateRunner(
             preparer,
@@ -60,7 +60,8 @@ public sealed class CandidateRunnerTests : IDisposable
             store ?? _store,
             factory,
             runner,
-            tracker ?? new Collector.Infrastructure.Ai.GeminiModelExhaustionTracker());
+            tracker ?? new Collector.Infrastructure.Ai.GeminiModelExhaustionTracker(),
+            CandidateChoice.For(CollectorProvider.Gemini));
         var settings = new SettingsService(new FakeUserSettingsStore(), new InMemorySecretStore(), _keys);
         var recorder = new ProcessedDocumentRecorder(store ?? _store, new InMemoryProcessedDocumentRepository(), new FakeSession(), TimeProvider.System, Microsoft.Extensions.Logging.Abstractions.NullLogger<ProcessedDocumentRecorder>.Instance);
         return new CandidateRunner(handler, settings, recorder, _logger);

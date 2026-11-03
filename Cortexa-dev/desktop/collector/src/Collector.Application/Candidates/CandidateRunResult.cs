@@ -1,3 +1,5 @@
+using Collector.Domain.Enums;
+
 namespace Collector.Application.Candidates;
 
 public sealed record CandidateDocumentResult(
@@ -18,7 +20,7 @@ public sealed record CandidateDocumentResult(
         Failure(documentId, filename, CandidateOutcome.Canceled, null);
 }
 
-public sealed record CandidateRunResult(IReadOnlyList<CandidateDocumentResult> Documents, string Model)
+public sealed record CandidateRunResult(IReadOnlyList<CandidateDocumentResult> Documents, CollectorProvider Provider, string Model)
 {
     public IReadOnlyList<InventionCandidate> AllCandidates => [.. Documents.SelectMany(document => document.Candidates)];
 }
